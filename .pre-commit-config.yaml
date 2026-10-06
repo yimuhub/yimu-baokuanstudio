@@ -1,0 +1,42 @@
+# 一幕·YIMU V7 pre-commit 钩子
+# 安装：pip install pre-commit && pre-commit install
+# 手动全量跑：pre-commit run --all-files
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        name: 去除行尾空格
+      - id: end-of-file-fixer
+        name: 文件末尾空行
+      - id: check-yaml
+        name: YAML 语法检查
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4 # 可按需升级到更新版本
+    hooks:
+      # ruff：lint（选定 ruff 作为唯一 Python 检查器，见 docs/CONVENTIONS.md）
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+
+  - repo: local
+    hooks:
+      - id: yimu-spdx-header
+        name: SPDX 文件头检查（新增 .py 必须含 BUSL-1.1）
+        entry: python tests/check_spdx.py
+        language: system
+        types: [python]
+        pass_filenames: true
+      - id: yimu-no-secrets
+        name: 密钥扫描（tests/test_no_secrets.py）
+        entry: python -m pytest tests/test_no_secrets.py -q
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: yimu-no-jargon
+        name: 术语检查（用户文案无内部黑话）
+        entry: python -m pytest tests/test_no_internal_jargon.py -q
+        language: system
+        pass_filenames: false
+        always_run: true

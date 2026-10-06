@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BUSL-1.1
 # Python
 __pycache__/
 *.py[cod]
@@ -7,6 +8,9 @@ venv/
 .env
 .env.*
 !.env.example
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # 数据与本地状态（绝不进仓库）
 data/

@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# 数据与本地状态（绝不进仓库）
+data/
+*.db
+*.sqlite*
+logs/
+backups/
+*.log
+
+# 构建与分发
+build/
+dist/
+*.egg-info/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 密钥与凭证（BSL 项目红线：任何 key/secret 禁止提交）
+*secret*
+*credential*
+*.pem
+*.key
+secrets/
+
+# IDE
+.vscode/
+.idea/
+*.swp

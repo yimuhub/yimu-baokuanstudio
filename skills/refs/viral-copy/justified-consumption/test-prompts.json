@@ -1,0 +1,59 @@
+{
+  "skill": "justified-consumption",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "type": "should_trigger",
+      "prompt": "300多的台灯怎么让家长买单，他们说一个灯而已不用这么贵",
+      "reason": "非刚需高价品，家长犹豫需要正当化购买理由（健康/孩子）"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "护颈枕399怎么说服人，消费者觉得一个枕头而已花这么多钱干嘛",
+      "reason": "享受型产品需要重构购买理由（上进/健康），消除花钱负罪感"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "高端面包比普通面包贵一倍，怎么让家庭主妇不心疼这个钱",
+      "reason": "享受型消费品，可以把购买理由归到'孩子'正当类别"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "客户看了产品很喜欢但犹豫不下单，说太贵了没必要，怎么消除他的心理障碍",
+      "reason": "典型的'想买但不好意思买'心理，需要正当化购买理由"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "卫生纸怎么做促销文案，让囤货量更大",
+      "reason": "刚需日用品，消费者没有花钱负罪感，不需要正当化"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "帮我写退款理由，我要把买的东西退了",
+      "reason": "反向场景，不是为购买行为寻找正当理由"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "冰箱广告文案怎么突出保鲜效果",
+      "reason": "功能性刚需产品，消费者本就没有负罪感，应使用factual-evidence"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "男士护肤品怎么正当化，男的买护肤品总觉得不好意思",
+      "reason": "可用上进或健康理由正当化，但需要巧妙的措辞避免生硬"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "产品是一个200多块的盲盒，怎么让消费者觉得花钱不是在乱花钱",
+      "reason": "享乐型产品难以映射到四大正当类别，可能需要'悦己消费'等新角度"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "悦己型产品能用正当消费吗，比如一个SPA体验套餐",
+      "reason": "书中未覆盖'悦己消费'类别，但可以用'健康'理由做连接，属于边界扩展"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

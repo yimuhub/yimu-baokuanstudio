@@ -1,0 +1,64 @@
+{
+  "skill": "factual-evidence",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "type": "should_trigger",
+      "prompt": "怎么证明我们的床垫真软，消费者总说不就是一层海绵吗",
+      "reason": "用户需要用事实/实验证明产品性能，属于直接证明或间接实验场景"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "这款充电宝电量够用怎么表达，光说10000毫安时消费者没感觉",
+      "reason": "用户有精确数据但无法让消费者感知，需要链接到熟悉事物"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "我们的防水面料比竞品好很多，但消费者看不出来，怎么做一个直观的对比",
+      "reason": "产品性能优势不便量化，需要设计视觉实验创造对比"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "牙刷的刷毛磨圆率有数据，但这个参数太专业了，怎么让消费者一眼就懂",
+      "reason": "有精确性能参数但需要链接到消费者熟悉的事物"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "想拍一个产品演示视频，让消费者亲眼看到我们空气净化器的效果",
+      "reason": "需要设计实验创造视觉对比来证明产品效果"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "帮我P一张产品图，要好看一点能发朋友圈的",
+      "reason": "视觉设计需求，不是文案中的事实证明策略"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "产品没有测试数据也没有实验条件，怎么做推广",
+      "reason": "无素材基础，事实证明法无法施展，应考虑其他文案策略"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "帮我写一个走心的品牌故事，要有情感共鸣",
+      "reason": "情感型文案需求，不是用数据/实验证明产品性能"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "数据很普通没有亮点，比如只比竞品好5%，怎么办",
+      "reason": "数据优势不够显著，可能需要重新找角度或用实验法替代直接数据对比"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "产品是护肤品，效果很难量化，用户说用了觉得好但这个主观感受怎么做证据",
+      "reason": "主观体验型产品，直接数据路线困难，可能需要设计间接实验或考虑authority-transfer"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "我们有第三方检测报告，但消费者根本看不懂那些专业指标",
+      "reason": "有数据但链接不到熟悉事物则无效，需要判断能否找到恰当类比"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

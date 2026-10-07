@@ -1,0 +1,54 @@
+{
+  "skill": "friend-chat-title",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "type": "should_trigger",
+      "prompt": "推文标题怎么让人想点，要亲切一点不要太官方",
+      "reason": "用户想要亲切口语化的标题，直接命中好友对话标题法"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "眼霜测评标题怎么起，要像闺蜜推荐的那种感觉",
+      "reason": "需要好友对话感的测评标题，适合用'你+口语词+惊叹词'公式"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "朋友圈文案标题怎么写才不像广告",
+      "reason": "朋友圈场景天然适合好友对话风格，降低广告排斥感"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "社群推产品的标题太正式了群友都不看，怎么改得口语一点",
+      "reason": "私域场景需要亲切感，口语化标题能突破群友的心理防线"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "正式商业提案的标题怎么写，要专业有分量",
+      "reason": "正式商业语境不适合好友对话风格，需要权威感"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "学术论文标题怎么拟定，要符合期刊规范",
+      "reason": "学术场景完全不同，追求严谨而非亲切"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "品牌Slogan怎么写，要简短有力能传播",
+      "reason": "品牌口号不是标题，目标不同，不需要对话感"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "B2B产品能用好友对话标题吗，我们的客户是企业采购",
+      "reason": "B2B场景偏正式，好友对话可能过于口语化，需要根据具体渠道和受众判断"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "标题写成口语化之后感觉太轻浮了不够专业，怎么办",
+      "reason": "口语化过度的风险，需要在亲切和专业之间找平衡"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

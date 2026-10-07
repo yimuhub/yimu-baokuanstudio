@@ -1,0 +1,54 @@
+{
+  "skill": "cost-accounting",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "type": "should_trigger",
+      "prompt": "洗碗机2800元怎么让人觉得值，消费者说花这个钱洗几个碗不值",
+      "reason": "典型耐用高价品算账场景，适合用平摊法拆解到日均成本"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "生态大米一年2700太贵了怎么办，客户觉得溢价太高",
+      "reason": "增量成本需要拆解和对比，适合用平摊法+对比熟悉消费"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "净水器怎么展示长期省钱效果，让消费者觉得买了反而更划算",
+      "reason": "节能替代型产品，适合用省钱法展示长期节省额"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "英语课程一年6800家长嫌贵，怎么让他们觉得每天花不了多少钱",
+      "reason": "课程类高价品，适合平摊到每天对比小额消费"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "帮我做个财务报表，算一下公司今年的利润率",
+      "reason": "财务分析需求，与文案中的价格拆解策略无关"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "产品只卖9.9包邮，怎么让转化率更高",
+      "reason": "低价产品不需要算账，价格本身已在心理阈值以下"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "情人节鲜花文案怎么写，要浪漫一点",
+      "reason": "情感冲动型消费品，理性算账会破坏购买情绪"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "订阅制产品怎么算账，年费299的会员怎么让用户觉得划算",
+      "reason": "按月平摊+计算年节省额，订阅制场景仍然适用算账法"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "平摊下来每天也要8块钱，还是不便宜，怎么破",
+      "reason": "平摊后数字仍不够低，可能需要换更小的分母或结合price-anchor使用"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

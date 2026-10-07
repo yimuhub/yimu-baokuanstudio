@@ -1,0 +1,72 @@
+{
+  "skill": "authority-transfer",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "id": "should-trigger-01",
+      "type": "should_trigger",
+      "prompt": "我们是个小品牌，怎么让人觉得靠谱愿意买",
+      "expected_behavior": "触发权威转嫁技巧，引导用户挖掘可用的权威背书（创始人背景、合作机构、行业认证、媒体报道等），将外部权威转化为品牌信任",
+      "notes": "小品牌信任度低是典型痛点，权威转嫁是最有效的信任建立策略"
+    },
+    {
+      "id": "should-trigger-02",
+      "type": "should_trigger",
+      "prompt": "我们拿了红点设计奖，怎么把这个写进文案里不显得在炫耀",
+      "expected_behavior": "触发权威转嫁技巧，指导用户将奖项信息自然融入文案叙事（如'德国红点设计奖评委为什么选了我们'），用故事化方式传递权威而非简单罗列头衔",
+      "notes": "用户有权威素材但不会自然地融入文案，需要转嫁技巧的编排指导"
+    },
+    {
+      "id": "should-trigger-03",
+      "type": "should_trigger",
+      "prompt": "我们的成分是和某大学实验室联合研发的，这个点怎么在文案里体现",
+      "expected_behavior": "触发权威转嫁技巧，指导用户将学术权威转化为消费者可理解的表达（如'XX大学实验室3年研发成果'），用'高校背景'建立专业可信度",
+      "notes": "产学研合作是优质权威素材，但需要将专业术语翻译为消费者语言"
+    },
+    {
+      "id": "should-trigger-04",
+      "type": "should_trigger",
+      "prompt": "我们被XX电视台报道过，这个怎么用来增加信任感",
+      "expected_behavior": "触发权威转嫁技巧，指导用户将媒体权威转化为信任信号（如'被XX电视台专题报道的品牌'），注意用报道内容而非仅提媒体名",
+      "notes": "主流媒体报道是强权威信号，但需要具体化而非空洞提及"
+    },
+    {
+      "id": "should-not-trigger-01",
+      "type": "should_not_trigger",
+      "prompt": "我们已经是行业知名大牌了，知名度很高",
+      "expected_behavior": "不应触发权威转嫁，知名品牌自身就是权威，不需要转嫁外部权威来建立信任",
+      "notes": "大牌自身已有品牌信任度，权威转嫁是给'小品牌'用的策略"
+    },
+    {
+      "id": "should-not-trigger-02",
+      "type": "should_not_trigger",
+      "prompt": "帮我联系几个KOL做推广，找哪些类型比较好",
+      "expected_behavior": "不应触发权威转嫁，这是KOL筛选和商务合作的执行问题，不是文案中如何运用权威背书",
+      "notes": "KOL合作是渠道运营问题，不是文案技巧中的权威转嫁"
+    },
+    {
+      "id": "should-not-trigger-03",
+      "type": "should_not_trigger",
+      "prompt": "我们的品牌定位应该怎么做，怎么找到差异化",
+      "expected_behavior": "不应触发权威转嫁，品牌定位是战略问题，不是文案中如何展示权威背书的技巧",
+      "notes": "品牌定位是战略层问题，权威转嫁是文案执行层技巧"
+    },
+    {
+      "id": "edge-case-01",
+      "type": "edge_case",
+      "prompt": "创始人是医生，但我们卖的是厨具不是医疗器械，这个背景能用吗",
+      "expected_behavior": "应触发权威转嫁但需要'翻译'处理，医生背景可以转嫁为'对品质的严谨态度''对材料安全的极致追求'等，需要找到权威与产品之间的合理关联",
+      "notes": "跨行业权威可以转嫁但需要逻辑桥梁，不能生硬关联"
+    },
+    {
+      "id": "edge-case-02",
+      "type": "edge_case",
+      "prompt": "我们获得了某个行业细分领域的认证，但消费者可能没听过这个认证机构",
+      "expected_behavior": "应触发权威转嫁，需要将小众权威'翻译'为大众可理解的表述（如'经过XX机构300项安全检测，达标率100%'），用检测过程和结果替代机构名",
+      "notes": "消费者不认识的权威机构名号无效，需要将权威'翻译'为可感知的具体成果"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

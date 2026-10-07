@@ -19,7 +19,7 @@
 
 | 场景 | 方式 |
 |------|------|
-| 网关 `/v1/*` | `Authorization: Bearer <redacted>`（网关 Key，只存 hash，前缀展示） |
+| 网关 `/v1/*` | `Authorization: Bearer yimu_sk_...`（网关 Key，只存 hash，前缀展示） |
 | Studio 浏览器 | Cookie session（多用户登录态） |
 | Studio CLI/API | `Authorization: Bearer <session token>` 或网关 Key（只读类接口） |
 
@@ -119,12 +119,15 @@
 - `GET /` → index：首页（UA 分流手机/桌面，登录态校验）【V7.0】[B]
 - `GET /m` → mobile_index：手机专属首页【V7.0】[B]
 - `GET /api/health` → health：健康检查（B 原路径 `/health`，归一为 `/api/health`）【V7.0】[B→重写]
+- `GET /health` → health：旧路径兼容别名（deprecated）【V7.0】[B]
 - `GET /api/version` → api_version：版本号（必须读 `version.py` 单一真源）【V7.0】[B→重写] C-4
 - `GET /api/status` → status：系统状态与配置摘要【V7.0】[B]
 - `GET /preview/{did}/{platform}` → preview：草稿分平台预览页【V7.0】[B]
 - `GET /card/{did}/{name}` → card：小红书卡片图直链【V7.0】[B]
 - `GET /img/{did}/{name}` → draft_img：草稿配图直链【V7.0】[B]
 - （静态挂载）`/static` → web 静态资源；`/static-img` → data 目录文件服务【V7.0】[B]
+- `GET /admin/gateway` → gateway_page：网关管理页（模型服务状态/Key 管理/测试调用）【V7.0】[NEW]
+- `GET /admin/billing` → billing_page：会员与账本页（档位/额度/账本/邀请码）【V7.0】[NEW]
 
 ### 5.2 认证 / 用户保险箱【V7.0，C-1 重写实现】
 - `POST /api/auth/register` → api_register：用户自助注册（launch_mode=invite-only 时需邀请码）【V7.0】[B→重写]
@@ -275,7 +278,14 @@
 - `POST /api/short_drama/shots/reroll` → shots_reroll：单镜头重抽【V7.0】[B→重写]
 - `POST /api/short_drama/shots/retake_voice` → shots_retake_voice：单镜头重配音【V7.0】[B→重写]
 - `POST /api/short_drama/reorder_and_restitch` → reorder_restitch：重排重混母带【V7.0】[B→重写]
-- 文件直链（7 条）：`GET /audio/drama/{did}/{filename}`、`GET /img/drama/{did}/images/{filename}`、`GET /img/drama/{did}/assets/{filename}`、`GET /img/drama/{did}/shots/{filename}`、`GET /img/storyboard/{did}/images/{filename}`、`GET /video/drama/{did}/shots/{filename}`、`GET /video/drama/{did}/{filename}`【V7.0】[B]
+- 文件直链（7 条）【V7.0】[B]：
+- `GET /audio/drama/{did}/{filename}` → drama_audio_file：短剧音频直链【V7.0】[B]
+- `GET /img/drama/{did}/images/{filename}` → drama_img_file：短剧图片直链【V7.0】[B]
+- `GET /img/drama/{did}/assets/{filename}` → drama_asset_file：短剧资产直链【V7.0】[B]
+- `GET /img/drama/{did}/shots/{filename}` → drama_shot_img_file：短剧分镜图直链【V7.0】[B]
+- `GET /img/storyboard/{did}/images/{filename}` → storyboard_img_file：分镜图直链【V7.0】[B]
+- `GET /video/drama/{did}/shots/{filename}` → drama_shot_video_file：短剧分镜视频直链【V7.0】[B]
+- `GET /video/drama/{did}/{filename}` → drama_video_file：短剧视频直链【V7.0】[B]
 
 ### 5.12 计费 / 模型 / 任务 / Copilot / 批量【V7.0】
 - `GET /api/billing/status` → billing_status：算力余额与套餐（后端切统一 ledger）【V7.0】[B→重写]
@@ -322,8 +332,33 @@
 - `POST /api/settings` → settings_save：全局配置保存【V7.0】[B]
 
 ### 5.14 V7.1 新增（A 移植，骨架期预留，不阻塞 V7.0）
-- `GET /api/hot/trends` → hot_trends：话题热度趋势（studio/hot/）【V7.1】[A→V7.1] C-3
-- `POST /api/hot/collect` → hot_collect：21 平台采集触发（studio/hot/）【V7.1】[A→V7.1] C-3
+- `GET /api/hot/trends` → hot_trends：话题热度趋势（studio/hot/ 真实采集）【V7.0】[A] C-3
+- `POST /api/hot/collect` → hot_collect：24 平台采集触发（studio/hot/ 真实采集）【V7.0】[A] C-3
+
+### 5.15 网关 / 会员 / 热榜（V7.0 新增，真实可用）【V7.0】
+- `GET /admin/hot` → hot_page：热榜采集页（24 平台选择/一键采集/结果表）【V7.0】[NEW]
+- `POST /v1/chat/completions` → gw_chat：OpenAI 兼容 chat（含 SSE；鉴权→限速→扣费→上游）【V7.0】[NEW]
+- `POST /v1/images/generations` → gw_images：OpenAI 兼容生图【V7.0】[NEW]
+- `POST /v1/embeddings` → gw_embeddings：OpenAI 兼容向量【V7.0】[NEW]
+- `GET /v1/models` → gw_models：模型列表【V7.0】[NEW]
+- `POST /api/gw/ui/keys` → gw_ui_create_key：创建网关 Key（明文仅本次返回）【V7.0】[NEW]
+- `GET /api/gw/ui/keys` → gw_ui_list_keys：Key 列表（管理员）【V7.0】[NEW]
+- `GET /api/gw/ui/my-keys` → gw_ui_my_keys：我的 Key 列表【V7.0】[NEW]
+- `POST /api/gw/ui/keys/{key_id}/revoke` → gw_ui_revoke_key：吊销 Key（不删行）【V7.0】[NEW]
+- `POST /api/gw/ui/test-call` → gw_ui_test_call：网关测试调用（走真实流水线，echo 明确标注）【V7.0】[NEW]
+- `GET /api/billing/ui/me` → billing_ui_me：我的档位与剩余额度【V7.0】[NEW]
+- `POST /api/billing/ui/init` → billing_ui_init：会员一键初始化【V7.0】[NEW]
+- `GET /api/billing/ui/ledger` → billing_ui_ledger：账本历史（分页）【V7.0】[NEW]
+- `POST /api/billing/ui/invites` → billing_ui_create_invite：创建邀请码（管理员）【V7.0】[NEW]
+- `GET /api/billing/ui/invites` → billing_ui_list_invites：邀请码列表（管理员）【V7.0】[NEW]
+- `GET /api/billing/ui/launch_mode` → billing_ui_get_launch_mode：查看首发模式（管理员）【V7.0】[NEW]
+- `PUT /api/billing/ui/launch_mode` → billing_ui_set_launch_mode：切换首发模式（管理员）【V7.0】[NEW]
+- `GET /api/membership/me` → membership_me：会员自查（studio 会话鉴权）【V7.0】[NEW]
+- `GET /api/admin/launch_mode` → admin_get_launch_mode：查看首发模式（studio 会话鉴权）【V7.0】[NEW]
+- `PUT /api/admin/launch_mode` → admin_set_launch_mode：切换首发模式（studio 会话鉴权）【V7.0】[NEW]
+- `GET /api/admin/invites` → admin_list_invites：邀请码列表（studio 会话鉴权）【V7.0】[NEW]
+- `POST /api/admin/invites` → admin_create_invite：创建邀请码（studio 会话鉴权）【V7.0】[NEW]
+- `GET /api/hot/platforms` → hot_platforms：24 平台目录【V7.0】[NEW]
 
 ---
 

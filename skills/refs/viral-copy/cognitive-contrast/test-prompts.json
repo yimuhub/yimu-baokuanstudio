@@ -1,0 +1,72 @@
+{
+  "skill": "cognitive-contrast",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "id": "should-trigger-01",
+      "type": "should_trigger",
+      "prompt": "我们的果汁比超市里卖的好喝多了，怎么在文案里表达出来",
+      "expected_behavior": "触发认知对比技巧，引导用户用具体差异点（如鲜榨vs浓缩还原、配料表对比、口感差异）建立'我比竞品好'的认知",
+      "notes": "用户明确有竞品对比诉求，且品类成熟消费者有认知基准，认知对比天然适配"
+    },
+    {
+      "id": "should-trigger-02",
+      "type": "should_trigger",
+      "prompt": "榨汁机文案怎么写出我们比竞品好用，让顾客觉得值这个价",
+      "expected_behavior": "触发认知对比技巧，引导用户列出核心差异（如出汁率、清洗难度、噪音大小），形成对比表格或场景对比描述",
+      "notes": "小家电品类消费者会货比三家，认知对比能直接影响购买决策"
+    },
+    {
+      "id": "should-trigger-03",
+      "type": "should_trigger",
+      "prompt": "我们的面膜比市面上同类产品补水效果好，文案里怎么体现这种优势",
+      "expected_behavior": "触发认知对比技巧，引导用户用实验数据、使用前后对比、成分差异等方式展示优势",
+      "notes": "护肤品是成熟品类，消费者对市面产品有认知基准，对比能有效建立优势感知"
+    },
+    {
+      "id": "should-trigger-04",
+      "type": "should_trigger",
+      "prompt": "同样的有机大米，我们比别家便宜30%，文案怎么写才能让人明白不是便宜没好货",
+      "expected_behavior": "触发认知对比技巧，重点解决'低价=低质'的认知误区，用供应链优势、中间环节省略等解释价格差异的原因",
+      "notes": "低价策略下消费者的认知障碍是质疑品质，认知对比可用来打破这个偏见"
+    },
+    {
+      "id": "should-not-trigger-01",
+      "type": "should_not_trigger",
+      "prompt": "我们做了一个全新品类的产品，市面上没有人做过类似的",
+      "expected_behavior": "不应触发认知对比，没有竞品参照物时消费者没有认知基准，对比无从建立，应改用教育市场的策略",
+      "notes": "认知对比的前提是消费者对竞品有认知，全新品类不满足这个条件"
+    },
+    {
+      "id": "should-not-trigger-02",
+      "type": "should_not_trigger",
+      "prompt": "帮我写个投诉信，投诉快递送货太慢",
+      "expected_behavior": "不应触发认知对比，投诉信是非文案场景，不涉及产品销售中的竞品对比",
+      "notes": "投诉信是维权沟通场景，与文案销售中的认知对比完全不同"
+    },
+    {
+      "id": "should-not-trigger-03",
+      "type": "should_not_trigger",
+      "prompt": "帮我写个招聘启事，吸引更多候选人投简历",
+      "expected_behavior": "不应触发认知对比，招聘启事不是产品文案场景，不适用竞品对比逻辑",
+      "notes": "招聘文案的核心是吸引人才，不是产品竞品对比"
+    },
+    {
+      "id": "edge-case-01",
+      "type": "edge_case",
+      "prompt": "我们是行业第二名，怎么跟第一名对比而不显得在踩同行",
+      "expected_behavior": "应触发认知对比但需特别注意措辞公正性，可以聚焦自身独特优势而非攻击对手弱点，用'我们更适合XX人群'替代'别人不如我们'",
+      "notes": "第二名对比第一名有天然话题性，但需要注意法律风险和行业道德，不能贬低竞品"
+    },
+    {
+      "id": "edge-case-02",
+      "type": "edge_case",
+      "prompt": "我们的产品和竞品差不多，就包装好看一点，怎么写对比",
+      "expected_behavior": "可能触发认知对比但优势不够显著，应引导用户将包装差异延伸到体验差异（如送礼场景的体面感、日常使用的愉悦感），而非仅在包装层面做浅层对比",
+      "notes": "核心差异点不够硬核时，认知对比的说服力有限，需要找到差异的深层价值"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

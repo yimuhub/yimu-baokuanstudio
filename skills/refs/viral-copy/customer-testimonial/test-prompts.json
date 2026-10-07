@@ -1,0 +1,79 @@
+{
+  "skill": "customer-testimonial",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "id": "should-trigger-01",
+      "type": "should_trigger",
+      "prompt": "护肤品文案怎么让人信，光说自己好感觉没人信",
+      "expected_behavior": "触发顾客证言技巧，引导用户收集和展示真实用户评价、使用前后对比、第三方检测报告等信任背书材料",
+      "notes": "护肤品是'信任门槛高'的品类，用户评价是最有效的信任建立手段"
+    },
+    {
+      "id": "should-trigger-02",
+      "type": "should_trigger",
+      "prompt": "怎么用好评论提高转化率，我们有很多好评但不知道怎么放进文案",
+      "expected_behavior": "触发顾客证言技巧，指导用户筛选最有说服力的评价（带具体效果描述的优于泛泛而谈的），并在文案中合理编排展示位置",
+      "notes": "用户有素材但不会运用，需要证言筛选和编排技巧"
+    },
+    {
+      "id": "should-trigger-03",
+      "type": "should_trigger",
+      "prompt": "我们的课程有很多学员反馈说效果不错，怎么把这些评价用到销售页上",
+      "expected_behavior": "触发顾客证言技巧，引导用户将学员评价按'痛点共鸣-效果验证-身份认同'分层编排，增强说服力",
+      "notes": "知识付费产品的信任建立高度依赖学员证言，需要结构化呈现"
+    },
+    {
+      "id": "should-trigger-04",
+      "type": "should_trigger",
+      "prompt": "产品详情页转化率低，有人说加真实买家秀可以提升，具体怎么加",
+      "expected_behavior": "触发顾客证言技巧，指导用户在详情页的关键决策点插入买家秀和评价，形成'看到产品-产生兴趣-看到别人说好-下单'的转化路径",
+      "notes": "用户已意识到证言的价值，需要的是具体落地方法"
+    },
+    {
+      "id": "should-not-trigger-01",
+      "type": "should_not_trigger",
+      "prompt": "帮我编几条好评放在产品页上，越多越好",
+      "expected_behavior": "不应触发顾客证言技巧且应明确拒绝，编造评价违反商业道德和消费者权益保护法，应引导用户收集真实评价",
+      "notes": "编造评价是不道德行为，skill应该拒绝并引导正确做法"
+    },
+    {
+      "id": "should-not-trigger-02",
+      "type": "should_not_trigger",
+      "prompt": "产品刚上市还没有用户评价，怎么办",
+      "expected_behavior": "不应触发顾客证言技巧，无素材时该skill无法发挥作用，应引导用户使用其他信任建立方式（如试用报告、专家评测、品牌承诺）",
+      "notes": "顾客证言依赖真实用户素材，没有评价时这个skill不适用"
+    },
+    {
+      "id": "should-not-trigger-03",
+      "type": "should_not_trigger",
+      "prompt": "帮我把差评从搜索结果里删掉",
+      "expected_behavior": "不应触发顾客证言技巧，这是公关/ reputation管理问题，不属于文案中的证言运用",
+      "notes": "差评处理是售后服务和公关范畴，不是文案中如何使用证言的问题"
+    },
+    {
+      "id": "edge-case-01",
+      "type": "edge_case",
+      "prompt": "差评怎么处理，我们有一些差评但好评更多，怎么在文案里扬长避短",
+      "expected_behavior": "可能与顾客证言技巧部分相关，但核心诉求是差评管理而非证言运用，可以建议用好评比例和具体好评内容来建立信任，同时主动回应差评展示服务态度",
+      "notes": "用户提到差评但核心还是想用好评价提升信任，处于证言skill的边缘地带"
+    },
+    {
+      "id": "edge-case-02",
+      "type": "edge_case",
+      "prompt": "用户评价太长了要不要精简，还是完整放上去更有说服力",
+      "expected_behavior": "应触发顾客证言技巧的编排优化建议，指导用户保留评价中最有说服力的细节（具体效果、使用时长、对比感受），删减无关内容",
+      "notes": "评价的筛选和精简是证言技巧的重要环节，属于skill覆盖范围"
+    },
+    {
+      "id": "edge-case-03",
+      "type": "edge_case",
+      "prompt": "我们只有几个KOL的测评，没有普通用户的评价，这样够吗",
+      "expected_behavior": "应触发顾客证言技巧，指出KOL测评和普通用户评价的互补关系，建议先使用KOL测评同时积累用户评价，两者结合比单独使用更有说服力",
+      "notes": "KOL测评属于权威背书但也可纳入广义证言体系，与authority-transfer skill存在交叉"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

@@ -1,0 +1,72 @@
+{
+  "skill": "sensory-occupation",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "id": "should-trigger-01",
+      "type": "should_trigger",
+      "prompt": "这款蛋糕怎么写才让人看到就想吃，流口水那种",
+      "expected_behavior": "触发感官占领技巧，引导用户用视觉、嗅觉、味觉、触觉等多感官描写替代简单的'好吃'描述",
+      "notes": "食品类是最典型的感官占领场景，用户明确要求'流口水'效果"
+    },
+    {
+      "id": "should-trigger-02",
+      "type": "should_trigger",
+      "prompt": "耳机文案怎么写出音效好的感觉，让人一听就心动",
+      "expected_behavior": "触发感官占领技巧，引导用听觉场景化描写（如低音震动胸腔、人声就在耳边）替代参数堆砌",
+      "notes": "耳机是听觉体验型产品，用户希望传达'听到'的感觉而非列举参数"
+    },
+    {
+      "id": "should-trigger-03",
+      "type": "should_trigger",
+      "prompt": "我卖手工皂的，怎么把洗完脸那种滑嫩的感觉写出来",
+      "expected_behavior": "触发感官占领技巧，引导用触觉描写（如'指尖划过脸颊像抚过丝绸'）传递产品体验",
+      "notes": "护肤/洗护类产品核心卖点就是使用感受，完美匹配感官占领"
+    },
+    {
+      "id": "should-trigger-04",
+      "type": "should_trigger",
+      "prompt": "精油的文案怎么写才能让人觉得闻到了香味",
+      "expected_behavior": "触发感官占领技巧，通过嗅觉场景描写和情感联想（如'闭上眼仿佛走进雨后的花园'）传递香气体验",
+      "notes": "精油是嗅觉体验型产品，需要将抽象的香味具象化为可感知的场景"
+    },
+    {
+      "id": "should-not-trigger-01",
+      "type": "should_not_trigger",
+      "prompt": "帮我写个产品参数表，把这款手机的规格列清楚",
+      "expected_behavior": "不应触发感官占领，参数表是客观信息整理，不需要体验化描写",
+      "notes": "参数表是理性信息展示，不涉及感官体验传递"
+    },
+    {
+      "id": "should-not-trigger-02",
+      "type": "should_not_trigger",
+      "prompt": "这款软件有哪些功能，帮我整理一下",
+      "expected_behavior": "不应触发感官占领，软件功能列表是逻辑性内容，不适用感官描写",
+      "notes": "软件功能梳理是信息架构任务，不涉及感官体验"
+    },
+    {
+      "id": "should-not-trigger-03",
+      "type": "should_not_trigger",
+      "prompt": "帮我把这些产品数据做成对比图表",
+      "expected_behavior": "不应触发感官占领，数据可视化是理性信息呈现任务",
+      "notes": "数据对比图表是客观分析，与感官体验描写无关"
+    },
+    {
+      "id": "edge-case-01",
+      "type": "edge_case",
+      "prompt": "SaaS产品怎么写出使用体验好的感觉",
+      "expected_behavior": "可能触发感官占领但需调整策略，SaaS产品没有物理感官体验，应转向场景化描写（如'打开仪表盘，数据一目了然，终于不用再熬夜做报表'）来传递体验感",
+      "notes": "SaaS产品非传统感官型，但'体验好'的核心诉求可以用场景化和情绪描写来替代纯感官描写"
+    },
+    {
+      "id": "edge-case-02",
+      "type": "edge_case",
+      "prompt": "这款床垫怎么写才能让人感觉到舒服",
+      "expected_behavior": "应触发感官占领但偏向触觉描写，如'整个人像被云朵托起来，腰背终于不用硬撑了'，结合身体感受和情绪释放",
+      "notes": "床垫是触觉+体验型产品，感官描写方向偏向身体感受和睡眠场景，与食品/美妆类略有不同"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

@@ -1,0 +1,149 @@
+admin:
+  port: 8790
+agents:
+  analyze:
+    instruction: ''
+    model: agnes-3.0-flash
+    skills:
+    - colloquial
+    - title-forge
+    - viral-formulas
+    - xhs-style
+  collect:
+    instruction: ''
+    model: agnes-3.0-flash
+    skills:
+    - colloquial
+    - title-forge
+    - viral-formulas
+    - xhs-style
+  director:
+    instruction: ''
+    model: agnes-3.0-flash
+    skills:
+    - director-beat-sheet
+  image:
+    instruction: ''
+    model: agnes-image-2.5-flash
+    skills: []
+  layout:
+    instruction: ''
+    model: agnes-3.0-flash
+    skills:
+    - pro-layout
+  review:
+    instruction: ''
+    model: agnes-3.0-flash
+    skills:
+    - judge-strict
+  write:
+    instruction: ''
+    model: agnes-3.0-flash
+    skills:
+    - colloquial
+    - de-ai
+    - title-forge
+    - viral-copy
+    - viral-formulas
+creation:
+  card_style: ai_visual_dark
+  styles:
+    toutiao: 资讯体，信息密度高，标题带地域/数字钩子
+    wechat_mp: 深度长文，讲故事+干货，结尾引导关注
+    xhs: 短句分点，口语化，第一人称体验感，适配竖版卡片节奏
+  use_viral_formulas: true
+  wechat_theme: spring-fresh
+  draft_expire_days: 0
+  target_platforms:
+  - wechat_mp
+  - xhs
+  - toutiao
+gateway:
+  agent_routing:
+    analyzer: agnes-2.5-flash
+    critic: agnes-3.0-flash
+    drama: agnes-3.0-flash
+    image: agnes-image-2.5-flash
+    video: agnes-video-v2.0
+    writer: agnes-3.0-flash
+  base_url: http://127.0.0.1:8787/v1
+  configured_models: &id001
+  - category: text
+    id: agnes-2.5-flash
+    is_enabled: true
+    name: agnes-2.5-flash
+  - category: text
+    id: agnes-3.0-flash
+    is_enabled: true
+    name: agnes-3.0-flash
+  - category: image
+    id: agnes-image-2.5-flash
+    is_enabled: true
+    name: agnes-image-2.5-flash
+  - category: video
+    id: agnes-video-v2.0
+    is_enabled: true
+    name: agnes-video-v2.0
+  model: agnes-3.0-flash
+  provider_id: custom
+  providers:
+    custom:
+      base_url: http://127.0.0.1:8787/v1
+      configured_models: *id001
+      model: agnes-3.0-flash
+      name: 自定义聚合网关 (硅基流动 / OneAPI)
+    deepseek:
+      base_url: https://api.deepseek.com
+      model: deepseek-chat
+    qwen:
+      base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      model: qwen-max
+  timeout_s: 180
+image:
+  card_bg: true
+  count: 5
+  cover: true
+  enabled: true
+  model: agnes-image-2.5-flash
+  sections: true
+platforms:
+  toutiao:
+    enabled: true
+  wechat_mp:
+    enabled: true
+  xhs:
+    enabled: true
+publish:
+  toutiao_mode: manual
+  wechat_mp_mode: api
+  xhs_mode: manual
+quality:
+  max_rounds: 3
+  threshold: 75
+topics:
+  keywords: []
+  max_daily: 10
+  sources:
+  - enabled: true
+    platforms:
+    - toutiao
+    - weibo
+    - baidu
+    - douyin
+    type: builtin
+  - enabled: false
+    platforms:
+    - weibo
+    - douyin
+    - toutiao
+    - zhihu
+    type: dailyhotapi
+    url: http://127.0.0.1:6688
+watermark:
+  enabled: true
+  opacity: 0.45
+  position: bottom-right
+  show_on_cards: true
+  show_on_cover: true
+  show_on_video: true
+  text: Designed with 一幕 YIMU

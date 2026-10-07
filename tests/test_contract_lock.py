@@ -26,6 +26,8 @@ NEXT_SECTION_RE = re.compile(r"^##\s", re.M)
 
 # 自动挂载的辅助方法不参与锁死比对（如 Starlette 自动加的 HEAD/OPTIONS）
 IGNORED_METHODS = {"HEAD", "OPTIONS", "TRACE"}
+# FastAPI 自动生成的文档路由不参与锁死比对
+IGNORED_PATHS = {"/openapi.json", "/docs", "/redoc", "/docs/oauth2-redirect"}
 
 
 def _load_contract_routes() -> set[tuple[str, str]]:
@@ -45,6 +47,22 @@ def _load_contract_routes() -> set[tuple[str, str]]:
     return routes
 
 
+def _iter_expanded_routes(routes, prefix=""):
+    """递归展开路由表：FastAPI 0.142+ 的 include_router 挂的是 _IncludedRouter
+    懒加载节点（请求时才求值），直接遍历 app.routes 会漏掉被 include 的子路由。
+    这里按 include_context.prefix 展开，还原 (route, 完整前缀) 供锁死比对。"""
+    for route in routes or []:
+        if type(route).__name__ == "_IncludedRouter":
+            ctx = getattr(route, "include_context", None)
+            sub_prefix = getattr(ctx, "prefix", "") or ""
+            yield from _iter_expanded_routes(
+                getattr(getattr(route, "original_router", None), "routes", []),
+                prefix + sub_prefix,
+            )
+            continue
+        yield route, prefix
+
+
 def _load_app_routes() -> set[tuple[str, str]]:
     """读取 studio.main:app 的路由表；骨架期 skip。"""
     try:
@@ -52,9 +70,11 @@ def _load_app_routes() -> set[tuple[str, str]]:
     except Exception as exc:  # 骨架期 app 尚未实现：任何导入失败都视为未实现
         pytest.skip(f"骨架期：无法导入 studio.main:app（{exc}），跳过路由锁死检查。")
     routes: set[tuple[str, str]] = set()
-    for route in getattr(app, "routes", []):
+    for route, route_prefix in _iter_expanded_routes(getattr(app, "routes", [])):
         methods = {m for m in (getattr(route, "methods", None) or set()) if m not in IGNORED_METHODS}
-        path = getattr(route, "path", "")
+        path = route_prefix + getattr(route, "path", "")
+        if path in IGNORED_PATHS:
+            continue
         for method in methods:
             routes.add((method, path))
     return routes

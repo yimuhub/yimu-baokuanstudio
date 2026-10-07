@@ -1,0 +1,54 @@
+{
+  "skill": "news-editorial-title",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "type": "should_trigger",
+      "prompt": "咖啡产品推文标题怎么写，要有吸引力让人想点进来",
+      "reason": "经典新闻社论标题场景，产品可傍硅谷等地域权威感"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "有个新科技产品要推广，标题怎么起才有新闻感",
+      "reason": "新品发布+科技元素，天然适合新闻社论标题法"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "产品跟某个明星有关联，标题怎么利用这个点",
+      "reason": "有知名人物可傍，适合新闻社论标题的'傍大款'策略"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "标题怎么写得不像广告，让人以为是新闻就点进来了",
+      "reason": "用户明确想伪装成新闻风格，直接命中skill核心"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "老客户复购活动标题怎么写，目标受众已经是会员了",
+      "reason": "已有明确目标受众的老客户不需要新闻体吸引，应用其他策略"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "帮我写产品说明书标题，要简洁专业",
+      "reason": "说明书标题是非广告场景，不需要吸引力技巧"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "朋友圈推手工糕点，标题怎么走温馨路线",
+      "reason": "温馨情感类产品不适合新闻社论风格，应用friend-chat-title"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "产品没有明星关联也没有行业第一，新闻标题还能怎么写",
+      "reason": "缺少傍大款元素，需要找间接关联或考虑用其他标题法替代"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "产品是在一个很小众的行业，没有什么知名公司可以傍，怎么办",
+      "reason": "行业缺少知名锚点，可尝试跨行业傍大款或转向其他标题策略"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

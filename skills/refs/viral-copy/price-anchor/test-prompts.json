@@ -1,0 +1,54 @@
+{
+  "skill": "price-anchor",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "type": "should_trigger",
+      "prompt": "298元的产品怎么让人觉得便宜，消费者总觉得贵",
+      "reason": "典型价格锚点需求，需要用高价参照物让298元显得划算"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "课程定价198怎么让人下单，很多人说不到200但犹豫不决",
+      "reason": "中客单价需要价格锚定来降低心理门槛"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "促销活动文案怎么写出超值感，让折扣力度看起来更大",
+      "reason": "需要用锚定效应放大折扣的感知力度"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "体检套餐卖3999，怎么让消费者觉得不贵",
+      "reason": "中高客单价产品，适合用跨界锚点（如汽车保养）制造划算感"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "帮我定价，这个新产品卖多少合适",
+      "reason": "定价策略不是文案中的价格锚点技巧"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "产品本身就免费，怎么推广让更多人用",
+      "reason": "无价格场景，不存在价格锚点的基础"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "奢侈品包包怎么卖出高级感",
+      "reason": "奢侈品的高价本身就是价值信号，不需要让它显得便宜"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "价格已经很低了还需要锚点吗，产品只卖39块",
+      "reason": "低价产品用锚点可能多余，但如果有合理的高价参照物仍然可以增强划算感"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "行业里大家都知道成本价，消费者很精明，锚点会不会被识破",
+      "reason": "目标消费者对该品类价格非常熟悉时锚点策略容易被识破，属于边界场景"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

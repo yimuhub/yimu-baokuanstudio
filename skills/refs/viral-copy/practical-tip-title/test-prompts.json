@@ -1,0 +1,54 @@
+{
+  "skill": "practical-tip-title",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "type": "should_trigger",
+      "prompt": "理财课程标题怎么写才吸引人，目标用户是存不下钱的月光族",
+      "reason": "经典痛点+解决方案标题场景，有明确痛点和目标人群"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "拖延症患者怎么起标题，让他们觉得这个课程能帮到自己",
+      "reason": "有明确具体痛点（拖延症），适合实用锦囊标题法"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "怎么写出戳中用户痛点的标题，让人一看就觉得说的就是自己",
+      "reason": "用户明确要求痛点共鸣型标题，直接命中skill核心"
+    },
+    {
+      "type": "should_trigger",
+      "prompt": "英语学习课程推广，用户痛点是学了多年还是开不了口，标题怎么写",
+      "reason": "痛点具体可识别，适合实用锦囊标题的两步公式"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "高端香水广告标题怎么写，要营造奢华向往感",
+      "reason": "享乐型产品不适合痛点切入，用户购买动机是向往而非解决痛苦"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "帮我们想一个品牌口号，要朗朗上口能传播",
+      "reason": "品牌口号不是标题，两者目标和结构完全不同"
+    },
+    {
+      "type": "should_not_trigger",
+      "prompt": "搞笑短视频标题怎么起，要吸引流量",
+      "reason": "娱乐内容没有明确痛点可切，不适合实用锦囊法"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "痛点太普遍不够具体，比如大家都觉得自己时间不够用，怎么写出识别感",
+      "reason": "普遍痛点需要具体化到可识别的场景，如'每天加班到10点还没做完PPT'"
+    },
+    {
+      "type": "edge_case",
+      "prompt": "产品解决的是一个非常小众的问题，标题写出来目标人群能看懂但大众不感兴趣，怎么办",
+      "reason": "小众痛点精准但覆盖面窄，需要权衡精准性和传播力的平衡"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

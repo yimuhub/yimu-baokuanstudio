@@ -1,0 +1,86 @@
+{
+  "skill": "copywriting-four-step-system",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "id": "should-trigger-01",
+      "type": "should_trigger",
+      "prompt": "我的文案投放了但转化率很低，帮我看看哪里有问题",
+      "expected_behavior": "触发四步系统诊断流程，引导用户逐步排查标题吸引、利益激发、信任建立、下单冲动四个环节的缺失",
+      "notes": "用户明确提到转化率低，是典型的文案诊断场景，需要四步系统全面排查"
+    },
+    {
+      "id": "should-trigger-02",
+      "type": "should_trigger",
+      "prompt": "帮我规划一篇卖茶叶的推文，从零开始写",
+      "expected_behavior": "触发四步系统完整规划，按标题抓眼球、激发购买欲望、赢得读者信任、引导马上下单四个模块逐步展开",
+      "notes": "用户要求从零规划完整文案，四步系统是最合适的整体框架"
+    },
+    {
+      "id": "should-trigger-03",
+      "type": "should_trigger",
+      "prompt": "文章写完了但没人下单，阅读量还行就是没转化",
+      "expected_behavior": "触发四步系统进行诊断，重点检查信任建立和下单引导环节是否缺失或薄弱",
+      "notes": "有阅读无转化说明标题有效但后续环节断裂，四步系统可定位断点"
+    },
+    {
+      "id": "should-trigger-04",
+      "type": "should_trigger",
+      "prompt": "我要写一篇落地页卖护肤品，不知道文案结构怎么安排",
+      "expected_behavior": "触发四步系统，为落地页文案提供四段式结构建议和各模块要点",
+      "notes": "落地页是经典长文案场景，四步系统天然适配"
+    },
+    {
+      "id": "should-trigger-05",
+      "type": "should_trigger",
+      "prompt": "我的电商详情页转化率只有0.8%，行业平均是2%，帮我优化文案",
+      "expected_behavior": "触发四步系统进行全链路诊断，对比用户现有文案与四步框架找出薄弱环节并提出优化建议",
+      "notes": "用数据说明转化率偏低，需要系统性诊断而非单点修改"
+    },
+    {
+      "id": "should-not-trigger-01",
+      "type": "should_not_trigger",
+      "prompt": "帮我写个邮件通知，告诉客户下周二系统维护",
+      "expected_behavior": "不应触发四步系统，这是信息通知类写作，不涉及销售转化逻辑",
+      "notes": "邮件通知是事务性写作，不需要四步销售文案框架"
+    },
+    {
+      "id": "should-not-trigger-02",
+      "type": "should_not_trigger",
+      "prompt": "这个banner上的文字怎么改比较好，就八个字",
+      "expected_behavior": "不应触发四步系统，banner文案极短且是标题类优化，不属于完整文案规划场景",
+      "notes": "Banner文案属于标题优化范畴，只需要一句话的技巧，不需要四步系统"
+    },
+    {
+      "id": "should-not-trigger-03",
+      "type": "should_not_trigger",
+      "prompt": "帮我写一段公司介绍，用在我们官网的关于我们页面",
+      "expected_behavior": "不应触发四步系统，公司介绍是品牌叙事而非销售文案",
+      "notes": "品牌介绍文案不以销售转化为目标，四步销售框架不适用"
+    },
+    {
+      "id": "edge-case-01",
+      "type": "edge_case",
+      "prompt": "帮我写个朋友圈卖水果，自家果园的那种",
+      "expected_behavior": "可能触发四步系统但应简化应用，朋友圈场景下四步可压缩为两到三步，核心逻辑仍适用但需适配短文案和社交语境",
+      "notes": "朋友圈卖货场景简单、篇幅短，四步系统可适用但需做轻量化处理，不能机械套用全部四步"
+    },
+    {
+      "id": "edge-case-02",
+      "type": "edge_case",
+      "prompt": "我想优化一下现有的推文，主要改标题部分",
+      "expected_behavior": "可能触发四步系统中的标题模块，但用户只需求单点优化而非全链路诊断，应聚焦标题技巧而非展开完整四步",
+      "notes": "用户只需优化标题环节，属于四步系统中的一个子模块需求，不应强制走全流程"
+    },
+    {
+      "id": "edge-case-03",
+      "type": "edge_case",
+      "prompt": "我有一篇小红书笔记想改成带货文案，怎么改",
+      "expected_behavior": "应触发四步系统但需要适配小红书平台特性（短篇幅、种草语气、emoji风格），在四步框架基础上调整表达方式",
+      "notes": "从内容型笔记转为带货文案，四步框架适用但需要适配平台调性和内容格式"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

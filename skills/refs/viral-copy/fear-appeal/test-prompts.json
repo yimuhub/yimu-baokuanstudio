@@ -1,0 +1,79 @@
+{
+  "skill": "fear-appeal",
+  "version": "0.1.0",
+  "source_book": "《爆款文案》 关健明",
+  "darwin_compatible": true,
+  "test_cases": [
+    {
+      "id": "should-trigger-01",
+      "type": "should_trigger",
+      "prompt": "防螨床垫的文案怎么写，怎么让人觉得不买不行",
+      "expected_behavior": "触发恐惧诉求技巧，引导用户描写螨虫危害场景（如'你每晚和200万只螨虫同眠'），建立不行动的代价感",
+      "notes": "防螨产品是典型的预防型产品，恐惧诉求最适配"
+    },
+    {
+      "id": "should-trigger-02",
+      "type": "should_trigger",
+      "prompt": "怎么让家长觉得必须给孩子买儿童安全座椅，不买就是不负责任",
+      "expected_behavior": "触发恐惧诉求技巧，通过安全事故场景描写和数据冲击让家长感受到风险，将购买行为与孩子安全绑定",
+      "notes": "儿童安全产品是最适合恐惧诉求的品类之一，家长群体对安全风险高度敏感"
+    },
+    {
+      "id": "should-trigger-03",
+      "type": "should_trigger",
+      "prompt": "空气净化器的文案，怎么写出空气污染的可怕让人赶紧买",
+      "expected_behavior": "触发恐惧诉求技巧，描写室内空气污染的隐形危害（如甲醛、PM2.5），将不可见风险具象化",
+      "notes": "空气净化器属于预防/健康类产品，恐惧诉求能激发紧迫感"
+    },
+    {
+      "id": "should-trigger-04",
+      "type": "should_trigger",
+      "prompt": "牙膏文案怎么让人意识到牙齿问题的严重性，主动来买",
+      "expected_behavior": "触发恐惧诉求技巧，通过牙疼场景描写和牙齿损伤不可逆的警示激发预防性购买",
+      "notes": "口腔护理是日常预防型消费，恐惧诉求能有效提高品类关注度"
+    },
+    {
+      "id": "should-not-trigger-01",
+      "type": "should_not_trigger",
+      "prompt": "奢侈品包包的文案怎么写，突出品牌格调",
+      "expected_behavior": "不应触发恐惧诉求，奢侈品是享乐型消费，恐惧情绪与品牌调性冲突，应使用欲望激发而非恐惧驱动",
+      "notes": "享乐型产品用恐惧诉求会产生认知冲突，反而降低购买欲"
+    },
+    {
+      "id": "should-not-trigger-02",
+      "type": "should_not_trigger",
+      "prompt": "帮我写一个品牌故事，讲述我们公司十年创业历程",
+      "expected_behavior": "不应触发恐惧诉求，品牌故事是正面叙事和情感共鸣场景，不涉及销售转化中的恐惧驱动",
+      "notes": "品牌故事场景以情感连接为目标，不是恐惧驱动的销售文案"
+    },
+    {
+      "id": "should-not-trigger-03",
+      "type": "should_not_trigger",
+      "prompt": "这个生日礼物推荐文案怎么写才温馨",
+      "expected_behavior": "不应触发恐惧诉求，用户明确要求温馨调性，恐惧情绪完全违背场景需求",
+      "notes": "礼物场景需要温暖和喜悦的情绪，恐惧诉求严重违和"
+    },
+    {
+      "id": "edge-case-01",
+      "type": "edge_case",
+      "prompt": "保险产品文案能用恐惧诉求吗",
+      "expected_behavior": "应触发恐惧诉求但需特别注意合规边界，恐惧诉求逻辑上高度适配保险，但文案措辞需要避免过度恐吓和虚假夸大，建议用理性恐惧替代情绪恐吓",
+      "notes": "保险是最适合恐惧诉求的品类之一，但行业监管严格，需要平衡恐惧强度与合规要求"
+    },
+    {
+      "id": "edge-case-02",
+      "type": "edge_case",
+      "prompt": "防晒霜文案用恐惧诉求还是用美白效果来吸引人",
+      "expected_behavior": "可能触发恐惧诉求但需要与正向卖点结合使用，可以先描写紫外线伤害（恐惧）再引出防晒效果（正向），两者配合而非二选一",
+      "notes": "防晒霜兼具预防型（恐惧适配）和美容型（欲望适配）双重属性，可以混合使用但需注意比例"
+    },
+    {
+      "id": "edge-case-03",
+      "type": "edge_case",
+      "prompt": "减肥产品的文案能不能用恐惧，怕反弹那种",
+      "expected_behavior": "应触发恐惧诉求但需谨慎处理，反弹恐惧是有效角度，但需避免制造身材焦虑的道德风险，建议聚焦健康风险而非外貌焦虑",
+      "notes": "减肥产品的恐惧诉求容易触碰身材羞辱红线，需要引导用户用健康角度而非审美角度构建恐惧"
+    }
+  ],
+  "minimum_pass_rate": 0.8
+}

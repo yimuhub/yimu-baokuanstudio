@@ -187,7 +187,101 @@ def probe_video(ctx: dict) -> dict:
     return {"ok": True, "skipped": False, "step": step, "artifact": out_path, "evidence": evidence}
 
 
-PROBES = (probe_draft, probe_rewrite, probe_deliver, probe_tts, probe_video)
+def probe_gateway(ctx: dict) -> dict:
+    """网关链路探针：建表 → 建租户/用户 → 直插网关 Key → 调 chat →
+    断言账本落下该租户的 input/output 两行（判据=账本行存在）。"""
+    step = "网关"
+    # ⭐ 环境变量必须在任何 studio / gateway import 之前就绪（函数级 import）
+    os.environ["YIMU_SECRET_KEY"] = "probe-secret"
+    os.environ["YIMU_UPSTREAM_ECHO"] = "1"
+    os.environ["YIMU_DB_URL"] = ctx["db_url"]
+    # 直接运行（python tests/probes.py）时 sys.path 首位是 tests/ 目录，
+    # 把仓库根加进来，保证 gateway / studio 包可导入（-m 模式下无影响）
+    if str(REPO_ROOT) not in sys.path:
+        sys.path.insert(0, str(REPO_ROOT))
+    try:
+        import secrets as _secrets
+
+        from fastapi.testclient import TestClient
+        from sqlalchemy.orm import sessionmaker
+
+        from gateway.main import create_app
+        from studio.auth import ensure_default_tenant, register_user
+        from studio.db import get_engine, init_db
+        from studio.db_models import (
+            GatewayKey,
+            Ledger,
+            hash_gateway_key,
+            new_id,
+            utcnow,
+        )
+    except ImportError:
+        return _skip(step, "网关模块（gateway.main / studio.auth）未实现")
+    try:
+        engine = get_engine(ctx["db_url"])
+        init_db(engine)
+        db = sessionmaker(bind=engine)()
+        try:
+            tenant = ensure_default_tenant(db)
+            tenant.launch_mode = "public"
+            db.commit()
+            user = register_user(db, tenant, "probe-owner", "probe-pass-123")
+            tid, uid = tenant.id, user.id
+            # 发网关 Key（直插 DB：明文只在内存出现一次，入库的只有哈希）
+            raw = "yimu_sk_" + _secrets.token_urlsafe(32)
+            db.add(
+                GatewayKey(
+                    id=new_id(),
+                    tenant_id=tid,
+                    user_id=uid,
+                    key_prefix=raw[:12],
+                    key_hash=hash_gateway_key(raw),
+                    name="probe-key",
+                    quota_credits=100000,
+                    rate_limit_rpm=60,
+                    rate_limit_tpm=100000,
+                    status="active",
+                    created_at=utcnow(),
+                    updated_at=utcnow(),
+                )
+            )
+            db.commit()
+        finally:
+            db.close()
+
+        client = TestClient(create_app())
+        resp = client.post(
+            "/v1/chat/completions",
+            headers={"Authorization": f"Bearer {raw}"},
+            json={
+                "model": "yimu-chat",
+                "messages": [{"role": "user", "content": "探针问候"}],
+            },
+        )
+        if resp.status_code != 200:
+            return _fail(step, f"chat 调用失败：{resp.status_code} {resp.text[:200]}")
+
+        db2 = sessionmaker(bind=engine)()
+        try:
+            rows = db2.query(Ledger).filter(Ledger.tenant_id == tid).all()
+        finally:
+            db2.close()
+            engine.dispose()
+        directions = sorted(r.direction for r in rows)
+        if directions != ["input", "output"]:
+            return _fail(step, f"账本行缺失：租户 {tid[:8]}… 的方向为 {directions}")
+        return {
+            "ok": True,
+            "skipped": False,
+            "step": step,
+            "artifact": None,
+            "evidence": f"chat 200，账本落 input/output 两行（租户 {tid[:8]}…）",
+        }
+    except Exception:
+        return _fail(step, f"探针抛错：\n{traceback.format_exc(limit=3)}")
+
+
+PROBES = (probe_draft, probe_rewrite, probe_deliver, probe_tts, probe_video, probe_gateway)
 
 
 def main() -> int:

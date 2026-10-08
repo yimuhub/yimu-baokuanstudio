@@ -2737,9 +2737,10 @@ async def create_draft_endpoint(request: Request):
     from core import orchestrator
     orchestrator.init_draft_artifacts(did, draft["title"], draft["body_md"])
     
-    # 执行初次基准评分
+    # 执行初次基准评分（无 LLM 时跳过，避免 500）
     from core import judge
-    score = judge.judge_draft(did)
+    from core import llm as _llm
+    score = judge.judge_draft(did) if _llm.available() else {"total": 0, "grade": "未评分（未配置大模型）"}
     
     return {"ok": True, "draft": db.get_draft(did), "score": score}
 

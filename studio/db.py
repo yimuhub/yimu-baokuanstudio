@@ -50,6 +50,35 @@ def init_db(engine: Engine) -> None:
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
             conn.exec_driver_sql("PRAGMA foreign_keys=ON;")
     Base.metadata.create_all(engine)
+    _migrate_missing_columns(engine)
+
+
+def _migrate_missing_columns(engine: Engine) -> None:
+    """旧库列迁移：为已有表补上模型中新增的列（幂等，仅 SQLite）。"""
+    if engine.url.drivername != "sqlite":
+        return
+    from sqlalchemy import inspect as sa_inspect
+    from sqlalchemy.schema import CreateColumn
+
+    insp = sa_inspect(engine)
+    with engine.begin() as conn:
+        for table in Base.metadata.sorted_tables:
+            try:
+                existing = {c["name"] for c in insp.get_columns(table.name)}
+            except Exception:
+                continue
+            for col in table.columns:
+                if col.name in existing:
+                    continue
+                col_sql = str(CreateColumn(col).compile(bind=engine)).strip()
+                try:
+                    ddl = f"ALTER TABLE {table.name} ADD COLUMN " + col_sql.split("ADD COLUMN", 1)[1].strip()
+                except IndexError:
+                    ddl = f"ALTER TABLE {table.name} ADD COLUMN {col.name} {col.type.compile(dialect=engine.dialect)}"
+                try:
+                    conn.exec_driver_sql(ddl)
+                except Exception:
+                    pass  # 列已存在或类型冲突时跳过（幂等）
 
 
 def get_session_factory(engine: Engine) -> sessionmaker[Session]:

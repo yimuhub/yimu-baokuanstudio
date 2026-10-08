@@ -395,17 +395,23 @@ code,.code{font-family:var(--mono);background:rgba(255,255,255,.06);padding:2px 
 """
 
 
-def _shell(title: str, body: str, username: str = "", active: str = "") -> str:
-    """功能页外壳：B 主站风格顶栏（返回工作台 + 三功能页互链 + V7 徽章 + 登录态）。"""
+def _shell(title: str, body: str, username: str = "", active: str = "", embed: bool = False) -> str:
+    """功能页外壳：B 主站风格顶栏（返回工作台 + 功能页互链 + V7 徽章 + 登录态）。
+
+    embed=True（控制中心 iframe 内嵌）时隐藏返回按钮和互链导航，只保留标题+V7 徽章。
+    """
     user_html = f'<div class="page-user">当前登录：{html.escape(username)}</div>' if username else ""
-    nav = "".join(
-        f'<a href="{href}" class="{"on" if active == key else ""}">{label}</a>'
-        for key, href, label in (
-            ("gateway", "/admin/gateway", "网关管理"),
-            ("billing", "/admin/billing", "会员与账本"),
-            ("hot", "/admin/hot", "热榜采集"),
+    if embed:
+        top_nav = ""
+    else:
+        nav = "".join(
+            f'<a href="{href}" class="{"on" if active == key else ""}">{label}</a>'
+            for key, href, label in (
+                ("gateway", "/admin/gateway", "网关管理"),
+                ("billing", "/admin/billing", "会员与账本"),
+            )
         )
-    )
+        top_nav = f'<a class="page-back" href="/">← 返回工作台</a><nav class="page-nav">{nav}</nav>'
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -414,8 +420,8 @@ def _shell(title: str, body: str, username: str = "", active: str = "") -> str:
 <style>{_PAGE_CSS}</style>
 </head><body>
 <div class="page-wrap">
-<div class="page-top"><a class="page-back" href="/">← 返回工作台</a><h1>{html.escape(title)}</h1>
-<span class="ver-badge">V7</span><nav class="page-nav">{nav}</nav>{user_html}</div>
+<div class="page-top">{top_nav}<h1>{html.escape(title)}</h1>
+<span class="ver-badge">V7</span>{user_html}</div>
 {body}
 </div>
 <script>
@@ -566,7 +572,7 @@ document.addEventListener('DOMContentLoaded', gwLoadKeys);
 """
 
 
-def _gateway_page(user: dict) -> str:
+def _gateway_page(user: dict, embed: bool = False) -> str:
     is_admin = user.get("role") in ADMIN_ROLES
     if is_admin:
         key_card = """
@@ -600,7 +606,7 @@ def _gateway_page(user: dict) -> str:
 <button class="btn" id="gw-test-btn" onclick="gwTestCall()">发起测试调用</button>
 <div class="result-box" id="gw-test-result"></div></div>
 {_GATEWAY_JS}"""
-    return _shell("网关管理", body, user.get("username", ""), active="gateway")
+    return _shell("网关管理", body, user.get("username", ""), active="gateway", embed=embed)
 
 
 _BILLING_JS = """
@@ -698,7 +704,7 @@ document.addEventListener('DOMContentLoaded', function () {
 """
 
 
-def _billing_page(user: dict) -> str:
+def _billing_page(user: dict, embed: bool = False) -> str:
     is_admin = user.get("role") in ADMIN_ROLES
     if is_admin:
         admin_card = """
@@ -732,7 +738,7 @@ def _billing_page(user: dict) -> str:
 <div style="text-align:center;margin-top:12px"><button class="btn ghost" id="bl-more" onclick="blLoadLedger(false)">加载更多</button></div></div>
 {admin_card}
 {_BILLING_JS}"""
-    return _shell("会员与账本", body, user.get("username", ""), active="billing")
+    return _shell("会员与账本", body, user.get("username", ""), active="billing", embed=embed)
 
 
 # ---------------------------------------------------------------------------
@@ -746,7 +752,8 @@ def page_gateway(request: Request):
     user = _current_user(request)
     if not user:
         return _login_required_page()
-    return HTMLResponse(_gateway_page(user))
+    embed = request.query_params.get("embed") == "1"
+    return HTMLResponse(_gateway_page(user, embed=embed))
 
 
 @router.get("/admin/billing", response_class=HTMLResponse)
@@ -755,7 +762,8 @@ def page_billing(request: Request):
     user = _current_user(request)
     if not user:
         return _login_required_page()
-    return HTMLResponse(_billing_page(user))
+    embed = request.query_params.get("embed") == "1"
+    return HTMLResponse(_billing_page(user, embed=embed))
 
 
 # ---------------------------------------------------------------------------
@@ -1071,18 +1079,32 @@ def _membership_summary(m) -> dict:
 @router.get("/api/billing/ui/me")
 @_api
 async def ui_me(request: Request):
-    """我的会员：档位 / 剩余额度 / 累计使用。未初始化时返回明确指引。"""
+    """我的会员：档位 / 剩余额度 / 累计使用。未初始化时自动初始化（幂等）。"""
     user = _require_login(request)
     db = _db()
     try:
         su = _studio_user(db, user)
         if su is None:
-            return JSONResponse(ok_body({
-                "initialized": False,
-                "message": "会员未初始化",
-                "hint": "点击「一键初始化」开通免费体验档会员（10000 点额度），不收取任何费用",
-            }))
+            # 自动初始化：建 studio 用户行（此前需手动点「一键初始化」，导致徽章不显示）
+            role = "admin" if user.get("role") in ADMIN_ROLES else "user"
+            su = User(
+                id=user["user_id"],
+                tenant_id=TENANT_ID,
+                username=user.get("username") or user["user_id"],
+                email="",
+                password_hash="!",  # studio 侧仅做关联，登录走 B 主应用
+                salt="",
+                role=role,
+                is_active=True,
+                created_at=utcnow(),
+            )
+            db.add(su)
+            db.flush()
         m = ensure_membership(db, TENANT_ID, su.id)
+        # ⭐ 管理员恒为 studio 档（最高权限）
+        if su.id == "u-admin" and m.tier != "studio":
+            m.tier = "studio"
+            m.credits_total = 6000000
         db.commit()
         return JSONResponse(ok_body(_membership_summary(m)))
     finally:

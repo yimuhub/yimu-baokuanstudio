@@ -119,3 +119,7 @@ class TestQuotaEngine:
 
     def test_get_user_tier_default_free(self, db):
         assert caps.get_user_tier(db, tenant_id="t1", user_id="nonexistent") == "free"
+
+    def test_admin_always_studio(self, db):
+        # 管理员 u-admin 恒为 studio 档（最高权限），无需会员记录
+        assert caps.get_user_tier(db, tenant_id="t1", user_id="u-admin") == "studio"

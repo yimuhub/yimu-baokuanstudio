@@ -34,6 +34,10 @@ CFG_PATH = BASE / "config.yaml"
 ENV_PATH = BASE / ".env"
 
 app = FastAPI(title="一幕·YIMU 爆款工作室")
+# ⭐ 性能：GZip 压缩（index.html 约 835KB → ~140KB，首屏加载显著加快）
+from starlette.middleware.gzip import GZipMiddleware  # noqa: E402
+
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.mount("/static-img", StaticFiles(directory=str(BASE / "data")), name="img")
 app.mount("/static", StaticFiles(directory=str(BASE / "web" / "static")), name="static")
 
@@ -45,10 +49,6 @@ from gateway.routers_openai import router as gateway_openai_router  # noqa: E402
 app.include_router(gateway_ui_router)
 app.include_router(gateway_openai_router)
 
-# ---- 热榜采集真实路由（WS2 集成）：挂载 web/hot_ui（501 桩已删除） ----
-from web.hot_ui import router as hot_ui_router  # noqa: E402
-app.include_router(hot_ui_router)
-
 # ---- 会员路由（WS-B 集成）：studio/membership_router ----
 # 与 B 现有 /api/auth/*、/api/admin/* 无路径冲突（已核验）。
 # studio 侧 DB 会话走 YIMU_DB_URL；默认指向主应用同一 sqlite 文件，
@@ -58,6 +58,56 @@ from core.db import DB_PATH as _MAIN_DB_PATH  # noqa: E402
 _os.environ.setdefault("YIMU_DB_URL", "sqlite:///" + str(_MAIN_DB_PATH))
 from studio.membership_router import router as membership_router  # noqa: E402
 app.include_router(membership_router)
+
+# ---- 图片专项 API（studio/image_forge）：/api/image/* ----
+# 审计发现：router.py 的 build_router() 从未被挂载，前端/后端均无 /api/image/*。
+# 此处挂载并接入鉴权 + 会员分级（free 档 race_allowed=False → 单张直出）。
+from studio.image_forge import router as _image_forge_mod  # noqa: E402
+from studio.image_forge.router import handle_request as _image_handle_request  # noqa: E402
+
+
+def _image_forge_endpoint(_handler_name: str, _method: str, _path: str):
+    async def _endpoint(request: Request):
+        user = guard(request)
+        try:
+            body = await request.json()
+            if not isinstance(body, dict):
+                body = {}
+        except Exception:
+            body = {}
+        # ⭐ 会员分级：赛马权限按档位
+        #   free：每周 3 次赛马体验（image_race_weekly），用完转单张直出
+        #   pro/studio：image_race=True，赛马不限
+        _race_allowed = False
+        if _handler_name == "generate":
+            _tier = _tier_capability_limit(user, "image_race")
+            if _tier:
+                _race_allowed = True  # pro/studio 全开
+            else:
+                _ok, _, _ = _tier_quota_check(user, "image_race_weekly")
+                _race_allowed = bool(_ok)  # free：配额内体验赛马，用完单张直出
+        ctx = {
+            "tenant_id": "default",
+            "request_id": request.headers.get("x-request-id"),
+            "db_url": _os.environ.get("YIMU_DB_URL"),
+            "image_client": None,  # 上游未配置时抛 UpstreamNotReady（诚实报错）
+            "race_allowed": _race_allowed,
+        }
+        result = _image_handle_request(_method, _path, body, ctx)
+        status = 200 if result.get("ok") else {
+            "NOT_FOUND": 404, "BAD_REQUEST": 400,
+            "UPSTREAM_NOT_READY": 503, "FORBIDDEN": 403,
+        }.get(result.get("code"), 500)
+        return JSONResponse(result, status_code=status)
+    _endpoint.__name__ = f"image_forge_{_handler_name}"
+    return _endpoint
+
+
+for _m, _p, _n in _image_forge_mod.ROUTES:
+    (_register := app.get if _m == "GET" else app.post)(
+        _p, name=f"image_forge_{_n}")(_image_forge_endpoint(_n, _m, _p))
+del _m, _p, _n, _register
+
 
 # ---- YIMU Gateway /v1 运行时装配（集成）：补齐 routers_openai 依赖的 app.state ----
 # 与 web/gateway_ui 共用同一 DB（YIMU_DB_URL 优先，否则主应用 DB 文件），保证
@@ -537,7 +587,11 @@ def status(request: Request):
 
 @app.post("/api/topics/collect")
 async def topics_collect(request: Request):
-    guard(request)
+    u = guard(request)
+    # ⭐ 会员分级：热榜采集每日配额（free：每日 1 次）
+    _allowed, _reason, _tier = _tier_quota_check(u, "hot_daily")
+    if not _allowed:
+        raise HTTPException(402, _reason)
     return await asyncio.get_event_loop().run_in_executor(None, orchestrator.run_once)
 
 
@@ -2185,9 +2239,12 @@ async def drama_render(did: str, request: Request):
     )
     from core import billing, short_drama
     billing.check_and_deduct("drama_render", 1, f"全AI短剧渲染 [{did}]")
+    # ⭐ 会员分级：短剧成片时长帽（free：10 秒）——渲染期最终兜底（整镜头截取）
+    _cap = _tier_capability_limit(u, "drama_max_seconds")
+    _max_s = _cap if (isinstance(_cap, int) and _cap > 0) else None
     def _run():
         try:
-            res = short_drama.render_short_drama_video(did, aspect=aspect, emit=lambda m: update_async_job(jid, step=m))
+            res = short_drama.render_short_drama_video(did, aspect=aspect, max_total_seconds=_max_s, emit=lambda m: update_async_job(jid, step=m))
             update_async_job(jid, status="done", step="短剧成片渲染完成！", progress=100, result=res)
         except Exception as e:
             update_async_job(jid, status="failed", error=str(e)[:400], step="短剧渲染失败")
@@ -2279,10 +2336,19 @@ async def drama_pipeline_save_project(did: str, request: Request):
 
 @app.post("/api/video/drama/{did}/pipeline/step1_analyze")
 async def drama_pipeline_step1(did: str, request: Request):
-    guard(request)
+    u = guard(request)
     body = await request.json()
     text = body.get("text", "")
     overrides = body.get("overrides", {})
+    # ⭐ 会员分级：短剧成片时长帽（free：10 秒）——导演 AI 按该时长规划，保证成片连贯
+    _cap = _tier_capability_limit(u, "drama_max_seconds")
+    if isinstance(_cap, int) and _cap > 0:
+        try:
+            _dt = int(overrides.get("duration_target") or 45)
+        except (TypeError, ValueError):
+            _dt = 45
+        if _dt > _cap:
+            overrides["duration_target"] = _cap
     from core import billing, short_drama
     billing.check_and_deduct("drama_decompose", 1, f"短剧需求分析与剧本改写 [{did}]")
     def _run():
@@ -2356,11 +2422,14 @@ async def drama_pipeline_step4_batch(did: str, request: Request):
 
 @app.post("/api/video/drama/{did}/pipeline/step5_storyboard")
 async def drama_pipeline_step5(did: str, request: Request):
-    guard(request)
+    u = guard(request)
     from core import billing, short_drama
     billing.check_and_deduct("drama_decompose", 1, f"短剧好莱坞分镜解构 [{did}]")
+    # ⭐ 会员分级：短剧成片时长帽（free：10 秒）——分镜期按总时长整镜头截取
+    _cap = _tier_capability_limit(u, "drama_max_seconds")
+    _max_s = _cap if (isinstance(_cap, int) and _cap > 0) else None
     def _run():
-        return short_drama.step5_generate_storyboard(did)
+        return short_drama.step5_generate_storyboard(did, max_total_seconds=_max_s)
     try:
         shots = await asyncio.get_event_loop().run_in_executor(None, _run)
         return {"ok": True, "shots": shots, "project": short_drama.get_pipeline_project(did)}

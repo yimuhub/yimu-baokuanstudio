@@ -3221,21 +3221,14 @@ input[type=text]:focus, textarea:focus, select:focus {
       <span class="nav-icon">🔌</span>
       <div class="nav-txt">
         <span>网关管理</span>
-        <small>模型中转 · 即将接入</small>
-      </div>
-    </a>
-    <a class="nav-item" href="/admin/hot" style="text-decoration:none">
-      <span class="nav-icon">🔥</span>
-      <div class="nav-txt">
-        <span>热榜采集</span>
-        <small>24 平台 · 一键采集</small>
+        <small>API 中转 · Key 管理</small>
       </div>
     </a>
     <a class="nav-item" href="/admin/billing" style="text-decoration:none">
       <span class="nav-icon">💳</span>
       <div class="nav-txt">
         <span>会员与账本</span>
-        <small>额度 · 账单 · 功能开发中</small>
+        <small>额度 · 账单 · 会员</small>
       </div>
     </a>
   </nav>
@@ -8817,6 +8810,12 @@ async function refresh() {
   const gwOk = S.gateway && S.gateway.llm_ok;
   $('gw-dot').className = 'dot' + (gwOk ? '' : ' err');
   $('gw-status-text').textContent = gwOk ? `${S.gateway.model}` : 'LLM 未连接';
+
+  // ⭐ 未配置大模型时弹窗引导（每会话只弹一次）
+  if (!gwOk && !sessionStorage.getItem('yimu_llm_warned')) {
+    sessionStorage.setItem('yimu_llm_warned', '1');
+    showLlmMissingModal();
+  }
 
   if ($('dash-topics-count')) $('dash-topics-count').textContent = (S.topics ? S.topics.length : 0) + '+';
   if ($('dash-drafts-count')) $('dash-drafts-count').textContent = (S.drafts ? S.drafts.length : 0) + ' 篇';
@@ -17284,6 +17283,28 @@ function showUpgradeModal(msg) {
   }
   $('upgrade-modal-msg').textContent = msg || '该功能为 V7 Pro 专属，升级解锁完整体验';
   modal('upgrade-modal');
+}
+
+/* ==================== 未配置大模型时的引导弹窗 ==================== */
+function showLlmMissingModal() {
+  let m = $('llm-missing-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'llm-missing-modal';
+    m.className = 'mask';
+    m.innerHTML = '<div class="modal-box" style="width:440px;max-width:92vw;background:linear-gradient(145deg,#161c28,#0d121c);border:1px solid rgba(240,136,62,0.35);border-radius:12px;padding:28px;text-align:center">'
+      + '<div style="font-size:44px;margin-bottom:12px">🤖</div>'
+      + '<div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:8px">还未配置大模型</div>'
+      + '<div style="font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:20px">'
+      + '各 Agent 需要大模型驱动才能工作。<br>请前往「控制台 → 系统与 API 配置」填写模型 API Key，<br>或在网关管理中配置上游模型服务。</div>'
+      + '<div style="display:flex;gap:10px;justify-content:center">'
+      + '<button class="btn" onclick="closeModal();switchSubTab(\'console\',\'sp-settings\')" style="padding:10px 24px">去配置</button>'
+      + '<button class="btn ghost" onclick="closeModal()" style="padding:10px 24px">稍后再说</button>'
+      + '</div></div>';
+    m.addEventListener('click', e => { if(e.target === m) closeModal(); });
+    document.body.appendChild(m);
+  }
+  modal('llm-missing-modal');
 }
 
 document.addEventListener('DOMContentLoaded', () => {

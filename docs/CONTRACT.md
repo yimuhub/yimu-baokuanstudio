@@ -208,6 +208,11 @@
 - `POST /api/assets/batch_delete` → asset_batch_delete：批量删除素材【V7.0】[B]
 - `POST /api/assets/generate_hyper_real` → asset_hyper_real：电影级超写实文生图（走 §6）【V7.0】[B→重写]
 - `POST /api/assets/use_in_draft` → asset_use_in_draft：素材用于草稿插槽【V7.0】[B]
+- `POST /api/image/forge` → image_forge_forge：PromptForge 提示词工程（贫瘠输入→结构化提示词）【V7.0】[NEW]
+- `GET /api/image/styles` → image_forge_styles：12 风格库列表【V7.0】[NEW]
+- `POST /api/image/generate` → image_forge_generate：赛马生图（会员分级：free 单张直出/pro 赛马）【V7.0】[NEW]
+- `POST /api/image/judge` → image_forge_judge：Aesthetic Judge 图片评分【V7.0】[NEW]
+- `GET /api/image/benchmark` → image_forge_benchmark：审美基准集回归结果【V7.0】[NEW]
 
 ### 5.7 小红书【V7.0】
 - `POST /api/drafts/{did}/ai_xhs` → ai_xhs：AI 生成小红书图文【V7.0】[B]
@@ -332,11 +337,9 @@
 - `POST /api/settings` → settings_save：全局配置保存【V7.0】[B]
 
 ### 5.14 V7.1 新增（A 移植，骨架期预留，不阻塞 V7.0）
-- `GET /api/hot/trends` → hot_trends：话题热度趋势（studio/hot/ 真实采集）【V7.0】[A] C-3
-- `POST /api/hot/collect` → hot_collect：24 平台采集触发（studio/hot/ 真实采集）【V7.0】[A] C-3
+> 2026-10-08 精简：独立热榜采集页与 `/api/hot/*` 接口已移除（与「灵感与选题」内置热榜功能重复），底层采集能力保留在 `studio/hot/` 供灵感模块调用。
 
 ### 5.15 网关 / 会员 / 热榜（V7.0 新增，真实可用）【V7.0】
-- `GET /admin/hot` → hot_page：热榜采集页（24 平台选择/一键采集/结果表）【V7.0】[NEW]
 - `POST /v1/chat/completions` → gw_chat：OpenAI 兼容 chat（含 SSE；鉴权→限速→扣费→上游）【V7.0】[NEW]
 - `POST /v1/images/generations` → gw_images：OpenAI 兼容生图【V7.0】[NEW]
 - `POST /v1/embeddings` → gw_embeddings：OpenAI 兼容向量【V7.0】[NEW]
@@ -358,7 +361,6 @@
 - `PUT /api/admin/launch_mode` → admin_set_launch_mode：切换首发模式（studio 会话鉴权）【V7.0】[NEW]
 - `GET /api/admin/invites` → admin_list_invites：邀请码列表（studio 会话鉴权）【V7.0】[NEW]
 - `POST /api/admin/invites` → admin_create_invite：创建邀请码（studio 会话鉴权）【V7.0】[NEW]
-- `GET /api/hot/platforms` → hot_platforms：24 平台目录【V7.0】[NEW]
 
 ---
 

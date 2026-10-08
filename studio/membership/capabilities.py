@@ -229,7 +229,12 @@ def check_and_consume(
 
 
 def get_user_tier(db: Session, *, tenant_id: str, user_id: str) -> str:
-    """取用户的会员档位 key；无记录时按 free 处理。"""
+    """取用户的会员档位 key；无记录时按 free 处理。
+
+    管理员（u-admin）恒为 studio 档（最高权限），不依赖会员记录。
+    """
+    if (user_id or "") == "u-admin":
+        return "studio"
     m = (
         db.query(Membership)
         .filter(Membership.tenant_id == tenant_id, Membership.user_id == user_id)

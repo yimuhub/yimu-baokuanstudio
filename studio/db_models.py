@@ -626,6 +626,45 @@ class AuditLog(Base, HasTenant):
     )
 
 
+class QuotaCounter(Base, HasTenant):
+    """配额计数器：按自然日/周/月统计用户某能力的使用次数。
+
+    用于会员分级的功能配额（如 free 每日热榜采集 1 次、每周短剧 1 次）。
+    同一 (user_id, capability, window, window_start) 只增计数，不删改历史；
+    窗口滚动后自然产生新行，旧行由定期清理任务归档（不阻塞）。
+    """
+
+    __tablename__ = "quota_counters"
+
+    # 主键
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    # 所属用户（用户 id；不建外键——配额计数是运营数据，允许用户行尚未初始化时
+    # 先计数，避免 FK 阻塞主功能；租户隔离仍由 tenant_id 保证）
+    user_id: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
+    # 能力码（如 hot_daily / tts_daily / drama_weekly / image_race_weekly）
+    capability: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    # 窗口类型：day（自然日）/ week（自然周，周一为始）/ month（自然月）
+    window: Mapped[str] = mapped_column(String(16), nullable=False)
+    # 窗口起始标识：day→"2026-10-08"；week→周一日期；month→"2026-10"
+    window_start: Mapped[str] = mapped_column(String(16), nullable=False, index=True)
+    # 本窗口已用次数
+    count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # 更新时间
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id", "user_id", "capability", "window", "window_start",
+            name="uq_quota_counters_window",
+        ),
+        CheckConstraint(
+            "window IN ('day','week','month')", name="ck_quota_counters_window"
+        ),
+    )
+
+
 # ---------------------------------------------------------------------------
 # 密码学小工具（pbkdf2_hmac-sha256）
 # ---------------------------------------------------------------------------

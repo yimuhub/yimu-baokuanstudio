@@ -21,7 +21,7 @@ from ..db_models import AuditLog, Invite, Membership, Tenant, User, new_id, utcn
 # V7.0 会员档位配置（每周期授信额度，单位：credits 点数）。
 #
 # 口径对齐（2026-10-06 战略调整：V7 改为"移植 B 代码 + 手术式修改"）：
-#   本表对应 B 代码基线 /home/hatch/workspace/yimu-v7-port/core/billing.py
+#   本表对应 B 代码基线 core/billing.py
 #   的 DEFAULT_TIERS —— 中文名与 tokens_grant 点数一一对齐：
 #     free   → B「新人体验官」                tokens_grant=10000
 #     pro    → B「超级创作者 (Pro)」          tokens_grant=500000

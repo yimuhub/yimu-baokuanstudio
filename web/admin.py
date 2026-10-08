@@ -237,6 +237,46 @@ def guard(request: Request) -> dict:
     return u
 
 
+def _tier_quota_check(user: dict, capability: str) -> tuple:
+    """会员配额检查（V7 Free / V7 Pro / V7 Studio 三档）。
+
+    返回 (allowed, reason, tier)：配额系统异常时直接放行（配额是体验
+    限制非资金，不阻塞主功能）；未知用户按 free 档处理。
+    """
+    try:
+        from studio.membership import capabilities as _caps
+
+        _db = _caps.get_db_session()
+        try:
+            _uid = str((user or {}).get("id") or "")
+            _tier = _caps.get_user_tier(_db, tenant_id="default", user_id=_uid)
+            _allowed, _reason = _caps.check_and_consume(
+                _db, tenant_id="default", user_id=_uid,
+                tier=_tier, capability=capability,
+            )
+            return _allowed, _reason, _tier
+        finally:
+            _db.close()
+    except Exception:
+        return True, "", "pro"
+
+
+def _tier_capability_limit(user: dict, capability: str):
+    """取用户某能力的配置值；异常时返回 -1（不限）。"""
+    try:
+        from studio.membership import capabilities as _caps
+
+        _db = _caps.get_db_session()
+        try:
+            _tier = _caps.get_user_tier(
+                _db, tenant_id="default", user_id=str((user or {}).get("id") or ""))
+            return _caps.capability_limit(_tier, capability)
+        finally:
+            _db.close()
+    except Exception:
+        return -1
+
+
 def write_env(key: str, value: str):
     lines = ENV_PATH.read_text(encoding="utf-8").splitlines() if ENV_PATH.exists() else []
     out, found = [], False
@@ -1300,12 +1340,19 @@ async def draft_switch_title(did: str, request: Request):
 
 @app.post("/api/drafts/{did}/publish")
 async def draft_publish(did: str, request: Request):
-    guard(request)
+    u = guard(request)
     body = await request.json()
     platforms = body.get("platforms") or []
     bad = [p for p in platforms if p not in PLATFORMS]
     if bad or not platforms:
         raise HTTPException(400, f"平台非法: {bad}")
+    # ⭐ 会员分级：单次可发布平台数（free：1 个）
+    _plimit = _tier_capability_limit(u, "publish_platforms")
+    if isinstance(_plimit, int) and _plimit > 0 and len(platforms) > _plimit:
+        raise HTTPException(
+            400,
+            f"当前档位单次最多发布到 {_plimit} 个平台，升级 V7 Pro 解锁全平台发布",
+        )
     return orchestrator.approve_and_publish(did, platforms)
 
 
@@ -1697,12 +1744,23 @@ def platforms_list(request: Request):
 
 @app.post("/api/audio/make")
 async def audio_make(request: Request):
-    guard(request)
+    u = guard(request)
     body = await request.json()
     did = body.get("draft_id")
     if not did:
         raise HTTPException(400, "请选择草稿")
     script = body.get("script", "")
+    # ⭐ 会员分级：TTS 每日次数配额 + 单次字数上限（free：每日 5 次/500 字）
+    _allowed, _reason, _tier = _tier_quota_check(u, "tts_daily")
+    if not _allowed:
+        raise HTTPException(402, _reason)
+    _max_chars = _tier_capability_limit(u, "tts_max_chars")
+    if isinstance(_max_chars, int) and _max_chars > 0 and len(script) > _max_chars:
+        raise HTTPException(
+            400,
+            f"当前档位单次配音最多 {_max_chars} 字（本次 {len(script)} 字），"
+            "升级 V7 Pro 解锁不限字数",
+        )
     d = db.get_draft(did) or {}
     d_title = d.get("title", did[:8])
     import uuid
@@ -2106,7 +2164,11 @@ async def drama_preview_audio(did: str, request: Request):
 
 @app.post("/api/video/drama/{did}/render")
 async def drama_render(did: str, request: Request):
-    guard(request)
+    u = guard(request)
+    # ⭐ 会员分级：短剧流水线每周配额（free：每周 1 次完整 8 步）
+    _allowed, _reason, _tier = _tier_quota_check(u, "drama_weekly")
+    if not _allowed:
+        raise HTTPException(402, _reason)
     body = await request.json()
     aspect = body.get("aspect", "9:16")
     d = db.get_draft(did) or {}

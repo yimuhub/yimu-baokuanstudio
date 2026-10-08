@@ -125,13 +125,47 @@ async def hot_trends(request: Request, platforms: Optional[str] = None):
 
 @router.post("/api/hot/collect")
 async def hot_collect(request: Request):
-    """触发采集（真实实现）：body 可选 {"platforms": ["weibo", ...]}，不传则采全部。"""
-    _guard(request)
+    """触发采集（真实实现）：body 可选 {"platforms": ["weibo", ...]}，不传则采全部。
+
+    会员配额：free 每日 1 次、单次最多 5 个平台；超限返回 402 + 升级引导。
+    """
+    user = _guard(request)
+    user_id = str((user or {}).get("id") or "")
+    # ⭐ 会员配额检查（V7 Free 每日 1 次）
+    try:
+        from studio.membership import capabilities as _caps
+
+        db = _caps.get_db_session()
+        try:
+            tier = _caps.get_user_tier(db, tenant_id="default", user_id=user_id)
+            allowed, reason = _caps.check_and_consume(
+                db, tenant_id="default", user_id=user_id,
+                tier=tier, capability="hot_daily",
+            )
+            if not allowed:
+                return _err("QUOTA_EXCEEDED", reason, "升级 V7 Pro 解锁不限次", 402)
+            _tier_for_platforms = tier
+        finally:
+            db.close()
+    except Exception:
+        # 配额系统异常时直接放行，不阻塞主功能（配额是体验限制非资金）
+        _tier_for_platforms = "pro"
     try:
         body = await request.json()
     except Exception:
         body = {}
     names = _normalize_platforms((body or {}).get("platforms"))
+    # ⭐ 平台数量按档位截断（free 最多 5 个）
+    try:
+        from studio.membership import capabilities as _caps2
+
+        _plimit = _caps2.capability_limit(_tier_for_platforms, "hot_platforms")
+    except Exception:
+        _plimit = -1
+    _truncated = False
+    if isinstance(_plimit, int) and _plimit > 0 and names and len(names) > _plimit:
+        names = names[:_plimit]
+        _truncated = True
     try:
         summary = await _collect(names)
     except ValueError as exc:
@@ -143,6 +177,11 @@ async def hot_collect(request: Request):
     out = dict(summary)
     out["ok"] = True
     out["request_id"] = _request_id()
+    if _truncated:
+        out["platforms_truncated"] = True
+        out["platforms_truncated_hint"] = (
+            f"当前档位单次最多采集 {_plimit} 个平台，升级 V7 Pro 解锁 24 平台全开"
+        )
     return JSONResponse(content=out)
 
 
@@ -158,23 +197,54 @@ async def hot_page(request: Request):
     )
     html = f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8">
-<title>热榜采集 · 一幕 YIMU</title>
+<title>热榜采集 · 一幕·YIMU V7</title>
 <link rel="stylesheet" href="/static/css/modern_studio.css">
 <style>
+:root{{
+  --bg:#07090e; --card:#121824; --border:#232d3d;
+  --primary:#f0883e; --primary-hover:#ff9d55; --primary-subtle:rgba(240,136,62,.16);
+  --text:#f0f6fc; --text-muted:#8b98a8;
+  --success:#3fb950; --info:#58a6ff; --warn:#d29922; --danger:#f85149;
+  --radius:14px; --radius-sm:8px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+}}
+body{{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(circle at 50% 0%,rgba(240,136,62,.06) 0%,transparent 60%)}}
+.page-wrap{{max-width:1100px;margin:0 auto;padding:28px 22px 64px}}
+.page-top{{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}}
+.page-top h1{{font-size:22px;margin:0}}
+.page-back{{color:var(--primary);text-decoration:none;font-size:14px;white-space:nowrap}}
+.page-back:hover{{color:var(--primary-hover)}}
+.page-nav{{display:flex;gap:6px}}
+.page-nav a{{color:var(--text-muted);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:var(--radius-sm)}}
+.page-nav a:hover{{color:var(--text);background:rgba(255,255,255,.04)}}
+.page-nav a.on{{color:var(--primary);background:var(--primary-subtle);font-weight:600}}
+.page-user{{margin-left:auto;font-size:13px;color:var(--text-muted)}}
+.ver-badge{{font-size:11px;color:var(--text-muted);border:1px solid var(--border);border-radius:999px;padding:2px 10px;white-space:nowrap}}
+.card{{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:18px}}
+.btn{{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .15s ease;background:var(--primary);color:#fff;font-family:inherit}}
+.btn:hover{{background:var(--primary-hover)}}
+.btn:active{{transform:scale(.98)}}
+.btn[disabled]{{opacity:.5;cursor:not-allowed}}
+.badge{{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}}
+.badge.green{{background:rgba(63,185,80,.18);color:#56d364;border:1px solid rgba(63,185,80,.3)}}
+.badge.red{{background:rgba(248,81,73,.18);color:#ff7b72;border:1px solid rgba(248,81,73,.3)}}
+.badge.gold{{background:rgba(227,179,65,.18);color:#f2cc60;border:1px solid rgba(227,179,65,.3)}}
+.tbl{{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}}
+.tbl th,.tbl td{{border-bottom:1px solid var(--border);padding:8px;text-align:left;vertical-align:top}}
+.tbl th{{color:var(--text-muted);font-weight:600;font-size:12px}}
 .plat-grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin:12px 0}}
-.plat{{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid rgba(255,255,255,.12);
-border-radius:8px;cursor:pointer;font-size:13px}}
-.plat input{{accent-color:#f0883e}}
+.plat{{display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;font-size:13px;color:var(--text)}}
+.plat:hover{{border-color:var(--primary)}}
+.plat input{{accent-color:var(--primary)}}
 #collect-btn.loading{{opacity:.6;pointer-events:none}}
-#result-table{{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}}
-#result-table th,#result-table td{{border-bottom:1px solid rgba(255,255,255,.08);padding:8px;text-align:left;vertical-align:top}}
-#result-table th{{color:var(--text-muted,#8b949e);font-weight:600}}
-.st-ok{{color:#3fb950}}.st-err{{color:#f85149}}.st-skip{{color:#d29922}}
 .toolbar{{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}}
 </style></head>
-<body style="padding:24px;max-width:1100px;margin:0 auto">
+<body><div class="page-wrap">
+<div class="page-top"><a class="page-back" href="/">← 返回工作台</a><h1>🔥 热榜采集</h1>
+<span class="ver-badge">V7</span>
+<nav class="page-nav"><a href="/admin/gateway">网关管理</a><a href="/admin/billing">会员与账本</a><a href="/admin/hot" class="on">热榜采集</a></nav></div>
 <div class="card">
-  <h2 style="margin:0 0 4px">🔥 热榜采集</h2>
   <p style="color:var(--text-muted,#8b949e);font-size:13px;margin:0 0 8px">
     勾选平台后开始采集 · 单平台失败不影响其他平台 · 超过 {int(COLLECT_TIMEOUT_SECONDS)} 秒如实提示超时</p>
   <div class="plat-grid">{boxes}</div>
@@ -183,10 +253,11 @@ border-radius:8px;cursor:pointer;font-size:13px}}
     <span id="status" style="font-size:13px;color:var(--text-muted,#8b949e)"></span>
   </div>
   <div id="summary"></div>
-  <table id="result-table" style="display:none">
+  <table id="result-table" class="tbl" style="display:none">
     <thead><tr><th>平台</th><th>标题</th><th>热度</th><th>链接</th><th>状态</th></tr></thead>
     <tbody id="result-body"></tbody>
   </table>
+</div>
 </div>
 <script>
 function esc(s){{return String(s??"").replace(/[&<>"']/g,c=>({{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}}[c]))}}

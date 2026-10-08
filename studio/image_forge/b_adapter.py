@@ -69,7 +69,7 @@ def generate_with_forge(
     Args:
         prompt: 用户原始描述；style_id: 风格 id；n: 候选张数（1..4）；
         tenant_id: 租户 id（账本必填）；db_url: 账本库 URL
-            （如 "sqlite:////home/hatch/workspace/yimu-v7-port/data/mediaflow.db"）；
+            （如 "sqlite:////path/to/yimu-baokuanstudio/data/mediaflow.db"）；
         size: 尺寸；out_dir: 候选图落盘目录。
 
     Returns:

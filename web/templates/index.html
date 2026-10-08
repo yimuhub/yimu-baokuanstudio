@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>一幕·YIMU 爆款工作室 v6.7 PRO · 全媒体超级创作引擎</title>
+<title>一幕·YIMU 爆款工作室 V7 · 全媒体超级创作引擎</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script>
 (function() {
@@ -3171,7 +3171,7 @@ input[type=text]:focus, textarea:focus, select:focus {
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.3px">爆款工作室</span>
-      <span class="version-badge" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(139,92,246,0.3)">v6.7 PRO</span>
+      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V7</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -3217,7 +3217,7 @@ input[type=text]:focus, textarea:focus, select:focus {
         <small>每日工单 · 技能 · 设置</small>
       </div>
     </div>
-    <a class="nav-item" href="/admin/gateway" style="text-decoration:none">
+    <a class="nav-item" href="/admin/gateway" data-pro-only="1" style="text-decoration:none">
       <span class="nav-icon">🔌</span>
       <div class="nav-txt">
         <span>网关管理</span>
@@ -3351,7 +3351,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:12px">
         <span class="live-pulse"></span>
         <span style="font-weight:700;font-size:13.5px;color:#fff">一幕·YIMU 爆款雷达实时巡航中</span>
-        <span class="version-badge" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(139,92,246,0.3)">v6.7 PRO</span>
+        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V7</span>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap">
         <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">48 篇</strong></div>
@@ -17234,11 +17234,64 @@ async function resetHabitSkill() {
   }
 }
 
+/* ==================== V7 会员分级：动态版本徽章 + 升级引导 ==================== */
+let yimuUserTier = 'free';
+const TIER_BADGE_TEXT = {free: 'V7 Free', pro: 'V7 Pro', studio: 'V7 Studio'};
+
+async function refreshTierBadge() {
+  try {
+    const r = await fetch('/api/billing/ui/me');
+    if (!r.ok) return;
+    const res = await r.json();
+    const d = res.data || res;
+    if (!d || d.initialized === false) return;
+    yimuUserTier = (d.tier || 'free').toLowerCase();
+    const label = TIER_BADGE_TEXT[yimuUserTier] || 'V7 Free';
+    document.querySelectorAll('.version-badge').forEach(el => { el.textContent = label; });
+    markProLockedMenus();
+  } catch(e) { /* 静默失败，保持默认显示 */ }
+}
+
+function markProLockedMenus() {
+  // 免费版用户：Pro 专属菜单显示小锁（不隐藏，让用户知道有这功能）
+  if (yimuUserTier !== 'free') return;
+  document.querySelectorAll('[data-pro-only]').forEach(el => {
+    if (el.querySelector('.pro-lock')) return;
+    const lock = document.createElement('span');
+    lock.className = 'pro-lock';
+    lock.textContent = ' 🔒';
+    lock.title = 'V7 Pro 专属功能，点击了解';
+    lock.style.cssText = 'font-size:11px;cursor:pointer;margin-left:4px';
+    lock.onclick = (e) => { e.preventDefault(); e.stopPropagation(); showUpgradeModal(); };
+    const txt = el.querySelector('.nav-txt span') || el;
+    txt.appendChild(lock);
+  });
+}
+
+function showUpgradeModal(msg) {
+  let m = $('upgrade-modal');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'upgrade-modal';
+    m.className = 'mask';
+    m.innerHTML = '<div class="modal-box" style="width:420px;max-width:92vw;background:linear-gradient(145deg,#161c28,#0d121c);border:1px solid rgba(240,136,62,0.35);border-radius:12px;padding:28px;text-align:center">'
+      + '<div style="font-size:44px;margin-bottom:12px">🚀</div>'
+      + '<div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:8px">升级 V7 Pro</div>'
+      + '<div id="upgrade-modal-msg" style="font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:20px"></div>'
+      + '<button class="btn" onclick="closeModal()" style="padding:10px 32px">我知道了</button></div>';
+    m.addEventListener('click', e => { if(e.target === m) closeModal(); });
+    document.body.appendChild(m);
+  }
+  $('upgrade-modal-msg').textContent = msg || '该功能为 V7 Pro 专属，升级解锁完整体验';
+  modal('upgrade-modal');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initSystemMode();
   initCopilotSettingsBadge();
   initWorkspacesUI();
   restoreSelectedDerivePlatforms();
+  refreshTierBadge();
 });
 </script>
 
@@ -17329,7 +17382,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px" id="agent-task-subtitle">全能微创改写与生成引擎调度中…</div>
         </div>
       </div>
-      <span class="badge" style="background:rgba(139,92,246,0.2);color:#c4b5fd;border:1px solid rgba(139,92,246,0.3);font-size:11px;padding:3px 8px">v6.7 PRO</span>
+      <span class="badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V7</span>
     </div>
     
     <!-- 当前动态进行中的工作步骤展示卡 -->

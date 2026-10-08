@@ -324,63 +324,98 @@ def _pick_test_entry(model: str):
 # ---------------------------------------------------------------------------
 
 _PAGE_CSS = """
-.gw-wrap{max-width:1180px;margin:0 auto;padding:28px 22px 64px;color:var(--text-primary);font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
-.gw-top{display:flex;align-items:center;gap:16px;margin-bottom:22px}
-.gw-top h1{font-size:22px;margin:0;color:var(--text-pure)}
-.gw-back{color:var(--brand-primary);text-decoration:none;font-size:14px;white-space:nowrap}
-.gw-user{margin-left:auto;font-size:13px;color:var(--text-secondary)}
-.gw-card{background:var(--bg-card);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:20px;box-shadow:var(--shadow-sm)}
-.gw-card h2{font-size:16px;margin:0 0 6px;color:var(--text-pure)}
-.gw-card .sub{font-size:13px;color:var(--text-secondary);margin:0 0 16px}
-.gw-table{width:100%;border-collapse:collapse;font-size:13px}
-.gw-table th{text-align:left;padding:10px 12px;color:var(--text-tertiary);font-weight:500;border-bottom:1px solid var(--border-subtle);white-space:nowrap}
-.gw-table td{padding:10px 12px;border-bottom:1px solid var(--border-subtle);vertical-align:top;color:var(--text-primary)}
-.gw-table tr:last-child td{border-bottom:none}
-.gw-pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:12px;white-space:nowrap}
-.gw-pill.ok{background:rgba(16,185,129,.14);color:var(--brand-green);border:1px solid rgba(16,185,129,.35)}
-.gw-pill.no{background:rgba(239,68,68,.12);color:var(--brand-red);border:1px solid rgba(239,68,68,.35)}
-.gw-pill.info{background:rgba(139,92,246,.13);color:var(--brand-primary);border:1px solid rgba(139,92,246,.35)}
-.gw-pill.warn{background:rgba(249,115,22,.13);color:var(--brand-accent);border:1px solid rgba(249,115,22,.35)}
-.gw-form{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px}
-.gw-field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text-secondary)}
-.gw-input,.gw-select,.gw-textarea{background:var(--bg-surface);border:1px solid var(--border-medium);border-radius:var(--radius-sm);color:var(--text-primary);padding:9px 12px;font-size:13px;outline:none;min-width:0}
-.gw-input:focus,.gw-select:focus,.gw-textarea:focus{border-color:var(--border-focus)}
-.gw-textarea{width:100%;min-height:84px;resize:vertical}
-.gw-btn{background:var(--brand-primary);color:#fff;border:none;border-radius:var(--radius-sm);padding:9px 18px;font-size:13px;cursor:pointer;font-weight:500}
-.gw-btn:hover{filter:brightness(1.1)}
-.gw-btn.ghost{background:transparent;border:1px solid var(--border-medium);color:var(--text-primary)}
-.gw-btn.danger{background:transparent;border:1px solid rgba(239,68,68,.5);color:var(--brand-red)}
-.gw-btn:disabled{opacity:.5;cursor:not-allowed}
-.gw-result{margin-top:14px;background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-md);padding:16px;font-size:13px;display:none}
-.gw-result.show{display:block}
-.gw-result pre{white-space:pre-wrap;word-break:break-word;margin:8px 0 0;color:var(--text-primary);font-family:inherit}
-.gw-meta{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--text-secondary);margin-top:10px}
-.gw-tier{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
-.gw-tier-name{font-size:20px;font-weight:600;color:var(--text-pure)}
-.gw-stat{display:flex;flex-direction:column;gap:4px}
-.gw-stat .v{font-size:22px;font-weight:600;color:var(--text-pure)}
-.gw-stat .k{font-size:12px;color:var(--text-tertiary)}
-.gw-bar{height:8px;background:var(--bg-active);border-radius:999px;overflow:hidden;margin-top:12px}
-.gw-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand-primary),var(--brand-cyan));border-radius:999px}
-.gw-code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--bg-active);padding:2px 8px;border-radius:6px;font-size:12px;color:var(--text-primary)}
-.gw-keybox{background:rgba(16,185,129,.08);border:1px dashed rgba(16,185,129,.5);border-radius:var(--radius-md);padding:14px 16px;margin:0 0 16px;font-size:13px;display:none}
-.gw-keybox.show{display:block}
-.gw-note{font-size:12px;color:var(--text-tertiary);line-height:1.7}
-.gw-login{min-height:60vh;display:flex;align-items:center;justify-content:center}
+/* 一幕·YIMU V7 功能页设计语言：与 B 主站（web/templates/index.html）对齐。
+   主色 --primary #f0883e（橙），卡片/边框/圆角/按钮/徽章/输入框全部复用 B 主站组件类。 */
+:root{
+  --bg:#07090e; --card:#121824; --card-hover:#192233; --border:#232d3d; --border-light:#303b4d;
+  --primary:#f0883e; --primary-hover:#ff9d55; --primary-subtle:rgba(240,136,62,.16);
+  --text:#f0f6fc; --text-muted:#8b98a8;
+  --success:#3fb950; --info:#58a6ff; --warn:#d29922; --danger:#f85149;
+  --radius:14px; --radius-sm:8px;
+  --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;
+  background-image:radial-gradient(circle at 50% 0%,rgba(240,136,62,.06) 0%,transparent 60%),radial-gradient(circle at 100% 100%,rgba(168,85,247,.05) 0%,transparent 50%)}
+.page-wrap{max-width:1180px;margin:0 auto;padding:28px 22px 64px}
+.page-top{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.page-top h1{font-size:22px;margin:0;color:var(--text)}
+.page-back{color:var(--primary);text-decoration:none;font-size:14px;white-space:nowrap}
+.page-back:hover{color:var(--primary-hover)}
+.page-nav{display:flex;gap:6px}
+.page-nav a{color:var(--text-muted);text-decoration:none;font-size:13px;padding:6px 12px;border-radius:var(--radius-sm)}
+.page-nav a:hover{color:var(--text);background:rgba(255,255,255,.04)}
+.page-nav a.on{color:var(--primary);background:var(--primary-subtle);font-weight:600}
+.page-user{margin-left:auto;font-size:13px;color:var(--text-muted)}
+.ver-badge{font-size:11px;color:var(--text-muted);border:1px solid var(--border);border-radius:999px;padding:2px 10px;white-space:nowrap}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:18px}
+.card h2{font-size:16px;margin:0 0 6px;color:var(--text)}
+.card .sub{font-size:13px;color:var(--text-muted);margin:0 0 16px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-size:13.5px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .15s ease;user-select:none;background:var(--primary);color:#fff;font-family:inherit;text-decoration:none}
+.btn:hover{background:var(--primary-hover)}
+.btn:active{transform:scale(.98)}
+.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none!important}
+.btn.ghost{background:transparent;border-color:var(--border);color:var(--text)}
+.btn.ghost:hover{background:rgba(255,255,255,.06)}
+.btn.warn{background:transparent;border:1px solid rgba(248,81,73,.5);color:var(--danger)}
+.btn.warn:hover{background:rgba(248,81,73,.1)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.2px;white-space:nowrap}
+.badge.green{background:rgba(63,185,80,.18);color:#56d364;border:1px solid rgba(63,185,80,.3)}
+.badge.red{background:rgba(248,81,73,.18);color:#ff7b72;border:1px solid rgba(248,81,73,.3)}
+.badge.blue{background:rgba(88,166,255,.18);color:#79c0ff;border:1px solid rgba(88,166,255,.3)}
+.badge.gold{background:rgba(227,179,65,.18);color:#f2cc60;border:1px solid rgba(227,179,65,.3)}
+.badge.gray{background:rgba(110,118,129,.2);color:#8b949e;border:1px solid var(--border)}
+input[type=text],input[type=password],input[type=number],textarea,select{background:#0d1117;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);padding:8px 12px;font-size:13.5px;font-family:inherit;outline:none;transition:border-color .15s}
+input[type=text]:focus,input[type=password]:focus,input[type=number]:focus,textarea:focus,select:focus{border-color:var(--primary)}
+textarea{width:100%;min-height:84px;resize:vertical}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;padding:10px 12px;color:var(--text-muted);font-weight:600;border-bottom:1px solid var(--border);white-space:nowrap;font-size:12px}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;color:var(--text)}
+.tbl tr:last-child td{border-bottom:none}
+.form-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:16px}
+.field{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--text-muted)}
+.result-box{margin-top:14px;background:#0d1117;border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;font-size:13px;display:none}
+.result-box.show{display:block}
+.result-box pre{white-space:pre-wrap;word-break:break-word;margin:8px 0 0;color:var(--text);font-family:inherit}
+.meta-row{display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--text-muted);margin-top:10px}
+.note{font-size:12px;color:var(--text-muted);line-height:1.7}
+code,.code{font-family:var(--mono);background:rgba(255,255,255,.06);padding:2px 8px;border-radius:6px;font-size:12px;color:var(--text)}
+.keybox{background:rgba(63,185,80,.08);border:1px dashed rgba(63,185,80,.5);border-radius:var(--radius-sm);padding:14px 16px;margin:0 0 16px;font-size:13px;display:none}
+.keybox.show{display:block}
+.tier-row{display:flex;gap:26px;align-items:center;flex-wrap:wrap}
+.tier-name{font-size:20px;font-weight:600;color:var(--text)}
+.stat{display:flex;flex-direction:column;gap:4px}
+.stat .v{font-size:22px;font-weight:600;color:var(--text)}
+.stat .k{font-size:12px;color:var(--text-muted)}
+.bar{height:8px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:12px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),#a855f7);border-radius:999px}
+.login-wrap{min-height:60vh;display:flex;align-items:center;justify-content:center}
 """
 
 
-def _shell(title: str, body: str, username: str = "") -> str:
-    user_html = f'<div class="gw-user">当前登录：{html.escape(username)}</div>' if username else ""
+def _shell(title: str, body: str, username: str = "", active: str = "") -> str:
+    """功能页外壳：B 主站风格顶栏（返回工作台 + 三功能页互链 + V7 徽章 + 登录态）。"""
+    user_html = f'<div class="page-user">当前登录：{html.escape(username)}</div>' if username else ""
+    nav = "".join(
+        f'<a href="{href}" class="{"on" if active == key else ""}">{label}</a>'
+        for key, href, label in (
+            ("gateway", "/admin/gateway", "网关管理"),
+            ("billing", "/admin/billing", "会员与账本"),
+            ("hot", "/admin/hot", "热榜采集"),
+        )
+    )
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(title)} · 一幕·YIMU</title>
+<title>{html.escape(title)} · 一幕·YIMU V7</title>
 <link rel="stylesheet" href="/static/css/modern_studio.css">
 <style>{_PAGE_CSS}</style>
 </head><body>
-<div class="gw-wrap">
-<div class="gw-top"><a class="gw-back" href="/">← 返回工作台</a><h1>{html.escape(title)}</h1>{user_html}</div>
+<div class="page-wrap">
+<div class="page-top"><a class="page-back" href="/">← 返回工作台</a><h1>{html.escape(title)}</h1>
+<span class="ver-badge">V7</span><nav class="page-nav">{nav}</nav>{user_html}</div>
 {body}
 </div>
 <script>
@@ -393,8 +428,8 @@ async function gwFetch(url, opt) {{
   return {{status: r.status, body: j}};
 }}
 function gwToast(el, ok, text) {{
-  el.className = 'gw-result show';
-  el.innerHTML = '<span class="gw-pill ' + (ok ? 'ok' : 'no') + '">' + (ok ? '成功' : '失败') + '</span><pre></pre>';
+  el.className = 'result-box show';
+  el.innerHTML = '<span class="badge ' + (ok ? 'green' : 'red') + '">' + (ok ? '成功' : '失败') + '</span><pre></pre>';
   el.querySelector('pre').textContent = text;
 }}
 </script>
@@ -402,9 +437,9 @@ function gwToast(el, ok, text) {{
 
 
 def _login_required_page() -> HTMLResponse:
-    body = ('<div class="gw-login"><div class="gw-card" style="text-align:center;max-width:420px">'
+    body = ('<div class="login-wrap"><div class="card" style="text-align:center;max-width:420px">'
             '<h2>请先登录</h2><p class="sub">登录后即可管理网关 Key、查看会员额度与调用账本。</p>'
-            '<a class="gw-btn" style="text-decoration:none;display:inline-block" href="/">前往工作台登录</a>'
+            '<a class="btn" style="text-decoration:none;display:inline-block" href="/">前往工作台登录</a>'
             '</div></div>')
     return HTMLResponse(_shell("请先登录", body), status_code=401)
 
@@ -427,23 +462,23 @@ def _provider_rows() -> str:
         doc_url = pinfo.get("doc_url", "")
         tips = st.get("tips") or pinfo.get("tips", "")
         if has_key:
-            key_cell = '<span class="gw-pill ok">已配置</span>'
-            guide = '<span class="gw-note">Key 已就绪，可直接调用。</span>'
+            key_cell = '<span class="badge green">已配置</span>'
+            guide = '<span class="note">Key 已就绪，可直接调用。</span>'
         else:
             env_k = f"MEDIAFLOW_KEY_{pid.upper()}"
-            guide = (f'<span class="gw-note">尚未配置 Key：<br>1. 在 <span class="gw-code">.env</span> 中添加 '
-                     f'<span class="gw-code">{env_k}=你的Key</span> 后重启服务；<br>'
+            guide = (f'<span class="note">尚未配置 Key：<br>1. 在 <span class="code">.env</span> 中添加 '
+                     f'<span class="code">{env_k}=你的Key</span> 后重启服务；<br>'
                      f'2. 或前往「设置」页的模型服务配置中填写。</span>')
             if tips:
-                guide += f'<br><span class="gw-note">{html.escape(tips)}</span>'
+                guide += f'<br><span class="note">{html.escape(tips)}</span>'
             if doc_url:
                 guide += (f'<br><a href="{html.escape(doc_url)}" target="_blank" rel="noopener" '
                           f'style="color:var(--brand-primary);font-size:12px">申请地址 ↗</a>')
-            key_cell = '<span class="gw-pill no">未配置</span>'
+            key_cell = '<span class="badge red">未配置</span>'
         rows.append(
             f"<tr><td>{html.escape(icon)} <b>{html.escape(name)}</b>"
-            + (f' <span class="gw-pill info">{html.escape(badge)}</span>' if badge else "")
-            + f"<br><span class='gw-note'>{len(models)} 个模型 · 默认 {html.escape(default_model)}</span></td>"
+            + (f' <span class="badge blue">{html.escape(badge)}</span>' if badge else "")
+            + f"<br><span class='note'>{len(models)} 个模型 · 默认 {html.escape(default_model)}</span></td>"
             f"<td>{key_cell}</td><td>{guide}</td></tr>"
         )
     return "\n".join(rows)
@@ -466,10 +501,10 @@ async function gwLoadKeys() {
     return;
   }
   if (tb) tb.innerHTML = items.map(function (k) {
-    const st = k.status === 'active' ? '<span class="gw-pill ok">有效</span>' : '<span class="gw-pill no">' + k.status + '</span>';
+    const st = k.status === 'active' ? '<span class="badge green">有效</span>' : '<span class="badge red">' + k.status + '</span>';
     const op = k.status === 'active'
-      ? '<button class="gw-btn danger" onclick="gwRevokeKey(\\'' + k.id + '\\')">吊销</button>' : '—';
-    return '<tr><td>' + esc(k.name || '(未命名)') + '</td><td><span class="gw-code">' + esc(k.key_prefix) + '…</span></td>'
+      ? '<button class="btn warn" onclick="gwRevokeKey(\\'' + k.id + '\\')">吊销</button>' : '—';
+    return '<tr><td>' + esc(k.name || '(未命名)') + '</td><td><span class="code">' + esc(k.key_prefix) + '…</span></td>'
       + '<td>' + k.quota_credits + '</td><td>' + k.rate_limit_rpm + ' / ' + k.rate_limit_tpm + '</td>'
       + '<td>' + st + '</td><td>' + op + '</td></tr>';
   }).join('');
@@ -488,10 +523,10 @@ async function gwCreateKey() {
   const r = await gwFetch('/api/gw/ui/keys', {method: 'POST', body: JSON.stringify({name: name, quota: quota})});
   if (!r.body || !r.body.ok) { gwToast(box, false, (r.body && (r.body.message + (r.body.hint ? '\\n' + r.body.hint : ''))) || ('HTTP ' + r.status)); return; }
   const d = r.body.data;
-  box.className = 'gw-keybox show';
+  box.className = 'keybox show';
   box.innerHTML = '<b>Key 创建成功，请立即复制保存，明文只显示一次：</b><br><br>'
-    + '<span class="gw-code" style="font-size:14px;user-select:all">' + esc(d.key) + '</span>'
-    + '<br><br><span class="gw-note">刷新或离开页面后将无法再次查看明文。</span>';
+    + '<span class="code" style="font-size:14px;user-select:all">' + esc(d.key) + '</span>'
+    + '<br><br><span class="note">刷新或离开页面后将无法再次查看明文。</span>';
   document.getElementById('gw-key-name').value = '';
   gwLoadKeys();
 }
@@ -514,10 +549,10 @@ async function gwTestCall() {
     const r = await gwFetch('/api/gw/ui/test-call', {method: 'POST', body: JSON.stringify({key_id: keyId, model: model, message: message})});
     if (!r.body || !r.body.ok) { gwToast(box, false, (r.body && (r.body.message + (r.body.hint ? '\\n' + r.body.hint : ''))) || ('HTTP ' + r.status)); return; }
     const d = r.body.data;
-    const echoTag = d.echo ? '<span class="gw-pill warn">回显测试，未走真实上游</span>' : '<span class="gw-pill ok">真实服务调用</span>';
-    box.className = 'gw-result show';
-    box.innerHTML = echoTag + ' <span class="gw-pill info">' + esc(d.model) + '</span><pre></pre>'
-      + '<div class="gw-meta"><span>本次扣费：<b>' + d.credits_charged + '</b> 点</span>'
+    const echoTag = d.echo ? '<span class="badge gold">回显测试，未走真实上游</span>' : '<span class="badge green">真实服务调用</span>';
+    box.className = 'result-box show';
+    box.innerHTML = echoTag + ' <span class="badge blue">' + esc(d.model) + '</span><pre></pre>'
+      + '<div class="meta-row"><span>本次扣费：<b>' + d.credits_charged + '</b> 点</span>'
       + '<span>输入/输出 Token：' + d.input_tokens + ' / ' + d.output_tokens + '</span>'
       + '<span>账本行：' + d.ledger_ids.length + ' 行已落账</span>'
       + '<span>延迟：' + d.latency_ms + ' ms</span></div>';
@@ -535,37 +570,37 @@ def _gateway_page(user: dict) -> str:
     is_admin = user.get("role") in ADMIN_ROLES
     if is_admin:
         key_card = """
-<div class="gw-card"><h2>🔑 网关 Key 管理</h2>
+<div class="card"><h2>🔑 网关 Key 管理</h2>
 <p class="sub">发放给调用方的凭证。明文 Key 只在创建成功时显示一次，入库仅保存哈希。</p>
-<div class="gw-keybox" id="gw-key-created"></div>
-<div class="gw-form">
-  <label class="gw-field">名称<input class="gw-input" id="gw-key-name" placeholder="如：公众号推文服务" style="width:220px"></label>
-  <label class="gw-field">配额（点）<input class="gw-input" id="gw-key-quota" type="number" value="100000" min="0" step="1000" style="width:140px"></label>
-  <button class="gw-btn" onclick="gwCreateKey()">创建 Key</button>
+<div class="keybox" id="gw-key-created"></div>
+<div class="form-row">
+  <label class="field">名称<input id="gw-key-name" placeholder="如：公众号推文服务" style="width:220px"></label>
+  <label class="field">配额（点）<input id="gw-key-quota" type="number" value="100000" min="0" step="1000" style="width:140px"></label>
+  <button class="btn" onclick="gwCreateKey()">创建 Key</button>
 </div>
-<table class="gw-table"><thead><tr><th>名称</th><th>前缀</th><th>配额（点）</th><th>限速 rpm/tpm</th><th>状态</th><th>操作</th></tr></thead>
+<table class="tbl"><thead><tr><th>名称</th><th>前缀</th><th>配额（点）</th><th>限速 rpm/tpm</th><th>状态</th><th>操作</th></tr></thead>
 <tbody id="gw-keys-tb"><tr><td colspan="6">加载中…</td></tr></tbody></table></div>"""
     else:
         key_card = """
-<div class="gw-card"><h2>🔑 网关 Key 管理</h2>
+<div class="card"><h2>🔑 网关 Key 管理</h2>
 <p class="sub">Key 的发放与吊销需要管理员权限。如需调用网关，请联系管理员为你发放 Key。</p></div>"""
     body = f"""
-<div class="gw-card"><h2>🌐 模型服务状态</h2>
+<div class="card"><h2>🌐 模型服务状态</h2>
 <p class="sub">以下为内置的 13 个模型服务预设。Key 状态实时读取自当前环境配置。</p>
-<table class="gw-table"><thead><tr><th>模型服务</th><th>Key 状态</th><th>配置指引</th></tr></thead>
+<table class="tbl"><thead><tr><th>模型服务</th><th>Key 状态</th><th>配置指引</th></tr></thead>
 <tbody>{_provider_rows()}</tbody></table></div>
 {key_card}
-<div class="gw-card"><h2>🧪 测试调用</h2>
+<div class="card"><h2>🧪 测试调用</h2>
 <p class="sub">用指定 Key 发起一次真实的 chat 调用，全程走网关流水线：鉴权 → 限速 → 扣费 → 模型服务，并写入调用账本。</p>
-<div class="gw-form">
-  <label class="gw-field">调用 Key<select class="gw-select" id="gw-test-key" style="width:240px"></select></label>
-  <label class="gw-field">模型<input class="gw-input" id="gw-test-model" value="yimu-chat" style="width:200px"></label>
+<div class="form-row">
+  <label class="field">调用 Key<select id="gw-test-key" style="width:240px"></select></label>
+  <label class="field">模型<input id="gw-test-model" value="yimu-chat" style="width:200px"></label>
 </div>
-<label class="gw-field" style="margin-bottom:10px">测试消息<textarea class="gw-textarea" id="gw-test-msg" placeholder="输入一句话，例如：用一句话介绍一幕·YIMU"></textarea></label>
-<button class="gw-btn" id="gw-test-btn" onclick="gwTestCall()">发起测试调用</button>
-<div class="gw-result" id="gw-test-result"></div></div>
+<label class="field" style="margin-bottom:10px">测试消息<textarea id="gw-test-msg" placeholder="输入一句话，例如：用一句话介绍一幕·YIMU"></textarea></label>
+<button class="btn" id="gw-test-btn" onclick="gwTestCall()">发起测试调用</button>
+<div class="result-box" id="gw-test-result"></div></div>
 {_GATEWAY_JS}"""
-    return _shell("网关管理", body, user.get("username", ""))
+    return _shell("网关管理", body, user.get("username", ""), active="gateway")
 
 
 _BILLING_JS = """
@@ -578,17 +613,17 @@ async function blLoadMe() {
   const d = r.body.data;
   if (!d.initialized) {
     box.innerHTML = '<p class="sub">' + esc(d.message) + '</p>'
-      + '<button class="gw-btn" onclick="blInit()">一键初始化（免费体验档）</button>';
+      + '<button class="btn" onclick="blInit()">一键初始化（免费体验档）</button>';
     return;
   }
   const pct = d.credits_total > 0 ? Math.min(100, Math.round(d.credits_used / d.credits_total * 100)) : 0;
-  box.innerHTML = '<div class="gw-tier">'
-    + '<div><div class="gw-tier-name">' + esc(d.tier_name) + '</div><div class="gw-note">当前档位</div></div>'
-    + '<div class="gw-stat"><span class="v">' + d.credits_left + '</span><span class="k">剩余额度（点）</span></div>'
-    + '<div class="gw-stat"><span class="v">' + d.credits_used + '</span><span class="k">累计使用（点）</span></div>'
-    + '<div class="gw-stat"><span class="v">' + d.credits_total + '</span><span class="k">本周期总额（点）</span></div>'
-    + '</div><div class="gw-bar"><i style="width:' + pct + '%"></i></div>'
-    + '<p class="gw-note" style="margin-top:10px">会员额度与网关调用额度为同一账本：每次模型调用都会从这里扣减，明细见下方账本。</p>';
+  box.innerHTML = '<div class="tier-row">'
+    + '<div><div class="tier-name">' + esc(d.tier_display || d.tier_name) + '</div><div class="note">当前档位</div></div>'
+    + '<div class="stat"><span class="v">' + d.credits_left + '</span><span class="k">剩余额度（点）</span></div>'
+    + '<div class="stat"><span class="v">' + d.credits_used + '</span><span class="k">累计使用（点）</span></div>'
+    + '<div class="stat"><span class="v">' + d.credits_total + '</span><span class="k">本周期总额（点）</span></div>'
+    + '</div><div class="bar"><i style="width:' + pct + '%"></i></div>'
+    + '<p class="note" style="margin-top:10px">会员额度与网关调用额度为同一账本：每次模型调用都会从这里扣减，明细见下方账本。</p>';
 }
 async function blInit() {
   const r = await gwFetch('/api/billing/ui/init', {method: 'POST', body: JSON.stringify({})});
@@ -613,7 +648,7 @@ async function blLoadLedger(reset) {
     return;
   }
   const html = items.map(function (it) {
-    const dir = it.direction === 'input' ? '<span class="gw-pill info">输入</span>' : '<span class="gw-pill warn">输出</span>';
+    const dir = it.direction === 'input' ? '<span class="badge blue">输入</span>' : '<span class="badge gold">输出</span>';
     return '<tr><td style="white-space:nowrap">' + esc(it.created_at) + '</td><td>' + esc(it.model) + '</td><td>' + dir + '</td>'
       + '<td>' + it.tokens + '</td><td>' + it.cost + '</td><td>' + it.latency_ms + ' ms</td></tr>';
   }).join('');
@@ -628,7 +663,7 @@ async function blLoadInvites() {
   const items = r.body.data.items || [];
   if (!items.length) { tb.innerHTML = '<tr><td colspan="5" style="color:var(--text-tertiary)">暂无邀请码。</td></tr>'; return; }
   tb.innerHTML = items.map(function (it) {
-    return '<tr><td><span class="gw-code">' + esc(it.code) + '</span></td><td>' + it.used_count + ' / ' + it.max_uses + '</td>'
+    return '<tr><td><span class="code">' + esc(it.code) + '</span></td><td>' + it.used_count + ' / ' + it.max_uses + '</td>'
       + '<td>' + it.credits_grant + '</td><td>' + esc(it.status) + '</td><td style="white-space:nowrap">' + esc(it.expires_at || '永不过期') + '</td></tr>';
   }).join('');
 }
@@ -646,8 +681,8 @@ async function blLoadMode() {
   const el = document.getElementById('bl-mode');
   if (!r.body || !r.body.ok) { el.innerHTML = '加载失败'; return; }
   const m = r.body.data.launch_mode;
-  el.innerHTML = '<span class="gw-pill ' + (m === 'public' ? 'ok' : 'info') + '">' + (m === 'public' ? '公开注册' : '邀请制') + '</span>'
-    + ' <span class="gw-code">' + esc(m) + '</span>';
+  el.innerHTML = '<span class="badge ' + (m === 'public' ? 'green' : 'blue') + '">' + (m === 'public' ? '公开注册' : '邀请制') + '</span>'
+    + ' <span class="code">' + esc(m) + '</span>';
 }
 async function blSetMode(mode) {
   if (!confirm('确定切换为「' + (mode === 'public' ? '公开注册' : '邀请制') + '」吗？')) return;
@@ -667,37 +702,37 @@ def _billing_page(user: dict) -> str:
     is_admin = user.get("role") in ADMIN_ROLES
     if is_admin:
         admin_card = """
-<div class="gw-card"><h2>✉️ 邀请码管理</h2>
+<div class="card"><h2>✉️ 邀请码管理</h2>
 <p class="sub">邀请制模式下，用于发放注册 / 升级资格，核销后按设定赠送额度。</p>
-<div class="gw-form">
-  <label class="gw-field">可用次数<input class="gw-input" id="bl-inv-uses" type="number" value="1" min="1" style="width:110px"></label>
-  <label class="gw-field">赠送额度（点）<input class="gw-input" id="bl-inv-grant" type="number" value="10000" min="0" step="1000" style="width:140px"></label>
-  <label class="gw-field">有效天数（0=永不过期）<input class="gw-input" id="bl-inv-days" type="number" value="30" min="0" style="width:150px"></label>
-  <button class="gw-btn" onclick="blCreateInvite()">创建邀请码</button>
+<div class="form-row">
+  <label class="field">可用次数<input id="bl-inv-uses" type="number" value="1" min="1" style="width:110px"></label>
+  <label class="field">赠送额度（点）<input id="bl-inv-grant" type="number" value="10000" min="0" step="1000" style="width:140px"></label>
+  <label class="field">有效天数（0=永不过期）<input id="bl-inv-days" type="number" value="30" min="0" style="width:150px"></label>
+  <button class="btn" onclick="blCreateInvite()">创建邀请码</button>
 </div>
-<table class="gw-table"><thead><tr><th>邀请码</th><th>已用/可用</th><th>赠送额度</th><th>状态</th><th>过期时间</th></tr></thead>
+<table class="tbl"><thead><tr><th>邀请码</th><th>已用/可用</th><th>赠送额度</th><th>状态</th><th>过期时间</th></tr></thead>
 <tbody id="bl-inv-tb"><tr><td colspan="5">加载中…</td></tr></tbody></table></div>
-<div class="gw-card"><h2>🚀 上线模式</h2>
+<div class="card"><h2>🚀 上线模式</h2>
 <p class="sub">云端首发的注册策略：邀请制（凭邀请码注册）或公开注册。</p>
 <p>当前模式：<span id="bl-mode">加载中…</span></p>
-<div class="gw-form">
-  <button class="gw-btn ghost" onclick="blSetMode('invite-only')">切换为邀请制</button>
-  <button class="gw-btn ghost" onclick="blSetMode('public')">切换为公开注册</button>
+<div class="form-row">
+  <button class="btn ghost" onclick="blSetMode('invite-only')">切换为邀请制</button>
+  <button class="btn ghost" onclick="blSetMode('public')">切换为公开注册</button>
 </div></div>"""
     else:
         admin_card = ""
     body = f"""
-<div class="gw-card"><h2>👤 我的会员</h2>
+<div class="card"><h2>👤 我的会员</h2>
 <p class="sub">会员额度与网关调用额度为同一账本。</p>
 <div id="bl-tier">加载中…</div></div>
-<div class="gw-card"><h2>📒 调用账本</h2>
+<div class="card"><h2>📒 调用账本</h2>
 <p class="sub">每次模型调用的计量记录（只增不改），费用为整数点数。</p>
-<table class="gw-table"><thead><tr><th>时间</th><th>模型</th><th>方向</th><th>Token</th><th>费用（点）</th><th>延迟</th></tr></thead>
+<table class="tbl"><thead><tr><th>时间</th><th>模型</th><th>方向</th><th>Token</th><th>费用（点）</th><th>延迟</th></tr></thead>
 <tbody id="bl-ledger-tb"><tr><td colspan="6">加载中…</td></tr></tbody></table>
-<div style="text-align:center;margin-top:12px"><button class="gw-btn ghost" id="bl-more" onclick="blLoadLedger(false)">加载更多</button></div></div>
+<div style="text-align:center;margin-top:12px"><button class="btn ghost" id="bl-more" onclick="blLoadLedger(false)">加载更多</button></div></div>
 {admin_card}
 {_BILLING_JS}"""
-    return _shell("会员与账本", body, user.get("username", ""))
+    return _shell("会员与账本", body, user.get("username", ""), active="billing")
 
 
 # ---------------------------------------------------------------------------
@@ -737,8 +772,32 @@ def _key_item_public(k: GatewayKey) -> dict:
 @router.post("/api/gw/ui/keys")
 @_api
 async def ui_create_key(request: Request):
-    """创建网关 Key：明文只在本次响应返回，入库只存哈希。"""
+    """创建网关 Key：明文只在本次响应返回，入库只存哈希。
+
+    ⭐ 会员分级：网关 API 为 V7 Pro 专属；free 档位直接 403。
+    """
     admin = _require_admin(request)
+    # ⭐ 会员分级检查：网关 API 为 V7 Pro 专属
+    try:
+        from studio.membership import capabilities as _caps
+
+        _db2 = _db()
+        try:
+            _tier = _caps.get_user_tier(
+                _db2, tenant_id=TENANT_ID, user_id=str(admin.get("user_id") or "")
+            )
+        finally:
+            _db2.close()
+        if not _caps.is_allowed(_tier, "gateway_api"):
+            raise GatewayError(
+                "FORBIDDEN",
+                "网关 API 为 V7 Pro 专属功能",
+                "升级 V7 Pro 解锁网关 API（当前档位：" + _caps.tier_display_name(_tier) + "）",
+            )
+    except GatewayError:
+        raise
+    except Exception:
+        pass  # 配额系统异常时放行，不阻塞管理员操作
     try:
         body = await request.json()
     except Exception:
@@ -757,7 +816,6 @@ async def ui_create_key(request: Request):
     tpm = int(body.get("rate_limit_tpm", 100000) or 100000)
     if rpm <= 0 or tpm <= 0:
         raise GatewayError("BAD_REQUEST", "限速必须为正整数", "请检查 rate_limit_rpm / rate_limit_tpm")
-
     db = _db()
     try:
         owner_id = str(body.get("user_id") or admin["user_id"])
@@ -892,7 +950,6 @@ async def ui_test_call(request: Request):
         max_tokens = max(16, min(int(body.get("max_tokens", 512)), 2048))
     except (TypeError, ValueError):
         raise GatewayError("BAD_REQUEST", "max_tokens 必须为整数", "请传入 16~2048 的整数")
-
     db = _db()
     try:
         # ① 鉴权：Key 存在 / 同租户 / 有效 / 未过期 / 白名单
@@ -923,7 +980,6 @@ async def ui_test_call(request: Request):
         if ms is None:
             raise GatewayError("BAD_REQUEST", "会员未初始化",
                                "请先到「会员与账本」页点击「一键初始化」，再回来测试调用")
-
         # ② 计费预估 → ③ 限速 → ④ 配额 → ⑤ 原子扣费（失败直接 429，不调服务）
         est_in = estimate_tokens(message) + 4
         est_out = max_tokens
@@ -936,7 +992,6 @@ async def ui_test_call(request: Request):
         check_rate_limit(_limiter, key, TENANT_ID, db, est_in + est_out, rid)
         check_key_quota(db, TENANT_ID, key, est_credits, rid)
         charge_or_429(db, TENANT_ID, key.user_id, est_credits)
-
         # ⑥ 调模型服务（无可用服务时 echo 回显）
         entry, echo_mode = _pick_test_entry(model)
         payload = {"model": model, "messages": [{"role": "user", "content": message}]}
@@ -961,7 +1016,6 @@ async def ui_test_call(request: Request):
             text = ""
         if not isinstance(text, str):
             text = str(text)
-
         # ⑦ 记账：ledger 只 INSERT，input / output 各一行
         t0 = utcnow()
         cost_in, cost_out = write_ledger_rows(
@@ -1000,10 +1054,13 @@ async def ui_test_call(request: Request):
 
 
 def _membership_summary(m) -> dict:
+    from studio.membership.capabilities import tier_display_name
+
     return {
         "initialized": True,
         "tier": m.tier,
         "tier_name": tier_name(m.tier),
+        "tier_display": tier_display_name(m.tier),
         "credits_total": int(m.credits_total),
         "credits_used": int(m.credits_used),
         "credits_left": credits_left(m),
@@ -1150,7 +1207,6 @@ async def ui_create_invite(request: Request):
     if days < 0:
         raise GatewayError("BAD_REQUEST", "有效天数不能为负数", "0 表示永不过期")
     expires_at = utcnow() + timedelta(days=days) if days > 0 else None
-
     db = _db()
     try:
         tenant = db.get(Tenant, TENANT_ID)

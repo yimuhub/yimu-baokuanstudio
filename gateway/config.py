@@ -23,6 +23,7 @@ import math
 import os
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from fastapi import Request
@@ -257,8 +258,19 @@ def load_upstreams() -> list[UpstreamConfig]:
 #   上游 API Key 仍只从网关自己的环境变量（YIMU_UPSTREAMS.api_key_env）读取。
 # ---------------------------------------------------------------------------
 
-# core/llm.py 位置（过渡期绝对路径；可用 YIMU_CORE_LLM_PATH 覆盖）
-_DEFAULT_CORE_LLM_PATH = "/home/hatch/workspace/yimu-v7-port/core/llm.py"
+# core/llm.py 位置：从本文件位置向上找仓库根（含 core/llm.py 的目录）；
+# 可用 YIMU_CORE_LLM_PATH 环境变量覆盖。
+def _default_core_llm_path() -> str:
+    here = Path(__file__).resolve()
+    for parent in (here.parent, *here.parents):
+        candidate = parent / "core" / "llm.py"
+        if candidate.is_file():
+            return str(candidate)
+    # 兜底：相对于本文件的常规布局
+    return str(here.parent / "core" / "llm.py")
+
+
+_DEFAULT_CORE_LLM_PATH = _default_core_llm_path()
 
 # B 的 classify_model 返回值 → 网关能力标签
 _CATEGORY_CAPABILITIES: dict[str, list[str]] = {

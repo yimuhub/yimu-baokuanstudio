@@ -19,6 +19,12 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from studio.db import get_engine, get_session_factory, init_db
 
+# ⭐ 版本号单一真源：读仓库根 version.py；失败才回退（绝不手写版本号）。
+try:
+    from version import __version__ as _GATEWAY_VERSION
+except Exception:
+    _GATEWAY_VERSION = "7.0.0-dev"
+
 from .circuit import CircuitBreaker
 from .config import (
     CODE_HTTP,
@@ -89,7 +95,7 @@ def create_app() -> FastAPI:
     engine = get_engine(settings.db_url)
     init_db(engine)
 
-    app = FastAPI(title="YIMU Gateway", version="7.0.0-dev")
+    app = FastAPI(title="YIMU Gateway", version=_GATEWAY_VERSION)
     app.state.settings = settings
     app.state.session_factory = get_session_factory(engine)
     app.state.rate_limiter = RateLimiter()

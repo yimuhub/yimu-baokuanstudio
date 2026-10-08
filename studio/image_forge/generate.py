@@ -51,6 +51,7 @@ def generate(
     db_url: str,
     client=None,
     size: str = "1024x1024",
+    race_allowed: bool = True,
 ) -> dict:
     """生成图片并走赛马优选，全流程记账。
 
@@ -65,6 +66,8 @@ def generate(
             list[{"url": str, "revised_prompt": str}]``。
             为 None 时直接抛 UpstreamNotReady。
         size: 尺寸字符串，如 "1024x1024"。
+        race_allowed: 是否允许赛马优选（会员分级：free 档 False=单张直出，
+            此时强制 n=1 并跳过 race，直接返回唯一候选为 winner）。
 
     Returns:
         {"ok": True, "winner": {...}, "candidates": [...],
@@ -75,7 +78,11 @@ def generate(
 
     if not str(prompt or "").strip():
         raise BadRequest("请输入图片描述，描述不能为空")
-    n = _clamp_n(n)
+    # ⭐ 会员分级：不允许赛马时强制单张直出
+    if not race_allowed:
+        n = 1
+    else:
+        n = _clamp_n(n)
 
     # ⭐ 红线：上游未就绪时必须显式报错，禁止静默返回假成功。
     if client is None:
@@ -114,8 +121,14 @@ def generate(
             }
         )
 
-    # 4) 赛马优选
-    race_result = race(candidates)
+    # 4) 赛马优选（会员分级：单张直出时跳过 race）
+    if race_allowed and len(candidates) > 1:
+        race_result = race(candidates)
+        winner = race_result["winner"]
+        ranking = race_result["ranking"]
+    else:
+        winner = candidates[0]
+        ranking = candidates
 
     # 5) ⭐ 记账：每张候选图 5 credits，calc_cost 汇总，只增不改写 ledger。
     entries = [{"cost_credits": CREDITS_PER_IMAGE} for _ in candidates]
@@ -140,10 +153,11 @@ def generate(
 
     result = {
         "ok": True,
-        "winner": race_result["winner"],
-        "candidates": race_result["ranking"],
+        "winner": winner,
+        "candidates": ranking,
         "cost_credits": cost_credits,
         "request_id": request_id,
+        "race_enabled": race_allowed and len(candidates) > 1,
     }
     if failed:
         result["ledger_warning"] = f"{failed} 条账本记录写入失败：{last_error}"

@@ -65,6 +65,14 @@ __all__ = [
     "tier_period_days",
     "action_cost",
     "FULL_DRAMA_CREDITS",
+    "GRAPHIC_POST_CREDITS",
+    "PLANS",
+    "FREE_PLAN",
+    "plan_price_cents",
+    "plan_exists",
+    "plan_capacity",
+    "plan_catalog",
+    "upsell_options",
 ]
 
 # ---------------------------------------------------------------------------
@@ -264,6 +272,171 @@ FULL_DRAMA_CREDITS = (
     + ACTION_COSTS["drama_render"]
     + ACTION_COSTS["drama_tts"] * 4
 )
+
+# ---------------------------------------------------------------------------
+# 4b) 在售套餐（R3-1：把「额度」翻译成用户能看懂的「价格 + 能干多少事」）
+# ---------------------------------------------------------------------------
+#
+# ⭐ 这是**全仓唯一一份「卖什么、卖多少」的清单**。价格页、下单接口、
+#   额度墙引导都读这一份，禁止在路由或前端另写价格数字。
+#
+# ⚠️ 售价口径（必须与 CREDIT_PRICE_CENTS 自洽，别手动填错）：
+#   每档 credits 恰好等于其售价分（1 credit = 1 分），所以
+#   price_cents == credits。这不是巧合，是刻意设计：
+#   将来若调汇率，只需改 CREDIT_PRICE_CENTS 一处，售价自动跟随。
+#
+# ⚠️ 诚实性红线（R3-1 明确要求，不得为了转化率模糊）：
+#   Free 档3000 credits < 一条完整短剧 12000 credits，
+#   **Free 档跑不完一条短剧**，只够跑约 1/4（约 1 个镜头）。
+#   价格页与额度墙引导都必须如实写明，否则就是「结账时才发现限制」，
+#   属于 R2-7 已经明确禁止的那类「承诺与额度不自洽」。
+
+#: 一篇图文的参考消耗（rewrite 800 + 打分 300 + 排版 500），
+#: 用于价格页把 credits 翻译成「能写几篇」，避免用户自己换算。
+GRAPHIC_POST_CREDITS = (
+    ACTION_COSTS["rewrite"] + ACTION_COSTS["score"] + ACTION_COSTS["xhs_card_layout"]
+)
+
+#: 可购买套餐（key → 套餐定义）。free 不在其中——免费档不是商品，不能下单购买。
+#: price_cents 单位为**分**（与 CREDIT_PRICE_CENTS 同口径，1 credit = 1 分）。
+PLANS: dict[str, dict[str, object]] = {
+    "pro": {
+        "code": "pro",
+        "name": "超级创作者 Pro",
+        "tier": "pro",
+        "credits": TIER_CREDITS["pro"],
+        "price_cents": TIER_CREDITS["pro"],       # = 300 元
+        "period_days": TIER_PERIOD_DAYS["pro"],  # 30
+        "tagline": "个人创作者日更不掉链子",
+        "highlights": [
+            "短剧流水线、卡片排版、名家音色全部解锁",
+            "图片赛马 3 候选 + Judge 优选不限次",
+            "热榜 24 平台全开、TTS 三引擎",
+            "导出剪映工程 / 对标平台一键分发",
+        ],
+    },
+    "studio": {
+        "code": "studio",
+        "name": "MCN 机构矩阵版 Studio",
+        "tier": "studio",
+        "credits": TIER_CREDITS["studio"],
+        "price_cents": TIER_CREDITS["studio"],       # = 2000 元
+        "period_days": TIER_PERIOD_DAYS["studio"],  # 365
+        "tagline": "工作室 / 机构批量产能与矩阵分发",
+        "highlights": [
+            "Pro 全部权益，且额度为Pro 的 6.7 倍",
+            "深度博主音色 / 排版逆向蒸馏",
+            "账号矩阵自动发布、优先级算力",
+            "适合 2~6 人小团队共用结算",
+        ],
+    },
+}
+
+#: 免费档（不可购买，仅展示）。价格 0，额度 3000。
+FREE_PLAN: dict[str, object] = {
+    "code": "free",
+    "name": "新人体验官 Free",
+    "tier": "free",
+    "credits": TIER_CREDITS["free"],
+    "price_cents": 0,
+    "period_days": TIER_PERIOD_DAYS["free"],
+    "tagline": "先跑通单镜头，不承诺完整短剧",
+    "highlights": [
+        "每日 3 篇草稿额度、AI 仿写与质量评分",
+        "基础排版与单轮内容打磨",
+        "**跑不完一条完整短剧**（额度不足一条的 1/4）",
+        "额度每 30 天刷新一次",
+    ],
+}
+
+
+def plan_price_cents(plan_code: str) -> int:
+    """取某套餐售价（分）。未知套餐返回 0，且不会抛错（避免前端传错值就 500）。"""
+    key = (plan_code or "").strip().lower()
+    if key == "free":
+        return 0
+    return int(PLANS.get(key, {}).get("price_cents", 0))
+
+
+def plan_exists(plan_code: str) -> bool:
+    """该套餐是否可购买（free 不可购买）。"""
+    return (plan_code or "").strip().lower() in PLANS
+
+
+def plan_capacity(credits: int) -> dict[str, object]:
+    """把 credits 额度翻译成「能跑几条短剧/ 几篇图文」，供价格页与额度墙共用。
+
+    ⭐ 两处必须用同一套换算，否则会出现「价格页说够 2.5 条、额度墙说够 3 条」
+       这种自相矛盾（按向下取整展示，宁可少说不可多说）。
+    """
+    credits = max(0, int(credits))
+    return {
+        "credits": credits,
+        "yuan": credits_to_yuan(credits),
+        # 短剧按完整 8 步流程算；不足一条的显示为 0
+        "dramas": credits // FULL_DRAMA_CREDITS if FULL_DRAMA_CREDITS else 0,
+        "dramas_exact": round(credits / FULL_DRAMA_CREDITS, 2) if FULL_DRAMA_CREDITS else 0,
+        # 图文按 rewrite+score+排版 一条算
+        "graphic_posts": credits // GRAPHIC_POST_CREDITS if GRAPHIC_POST_CREDITS else 0,
+        # 能否跑完一条完整短剧（Free 档为 False，必须如实告知）
+        "can_run_full_drama": credits >= FULL_DRAMA_CREDITS,
+    }
+
+
+def plan_catalog() -> list[dict]:
+    """全部套餐（free + pro + studio），价格页与下单页共用。
+
+    Returns:
+        每项含 code/name/tier/credits/price_cents/price_yuan/period_days/
+        tagline/highlights/capacity。**已按 free→pro→studio 排好序**，
+        前端直接渲染即可，不要再自行排序。
+    """
+    out: list[dict] = []
+    for src in (FREE_PLAN, PLANS["pro"], PLANS["studio"]):
+        item = dict(src)
+        credits = int(item["credits"])
+        item["price_yuan"] = round(int(item["price_cents"]) / 100.0, 2)
+        item["capacity"] = plan_capacity(credits)
+        out.append(item)
+    return out
+
+
+def upsell_options(need_credits: int = 0, balance: int = 0) -> dict:
+    """额度墙引导用：还差多少 + 哪些套餐能立刻满足（R3-4）。
+
+    Args:
+        need_credits: 本次动作所需额度（require_credits 传入的 need）。
+        balance: 用户当前余额。
+
+    Returns:
+        含 ``shortfall``（缺口）、``free_recommend``（能否先用免费额度扛过）
+        与 ``options``（够买得起的套餐，含「够不够跑完本次动作」标记）。
+        引导文案在web 层组装，价格与额度数字只从本模块取。
+    """
+    need = max(0, int(need_credits))
+    left = max(0, int(balance))
+    shortfall = max(0, need - left)
+    options = []
+    for code in ("pro", "studio"):
+        p = PLANS[code]
+        credits = int(p["credits"])
+        options.append({
+            "code": code,
+            "name": str(p["name"]),
+            "credits": credits,
+            "price_yuan": round(int(p["price_cents"]) / 100.0, 2),
+            # 该套餐额度是否够本次动作（够 → 建议这个）
+            "covers_action": credits >= need,
+            # 是否够跑一条完整短剧
+            "covers_full_drama": credits >= FULL_DRAMA_CREDITS,
+        })
+    return {
+        "need": need,
+        "balance": left,
+        "shortfall": shortfall,
+        "free_recommend": shortfall <= left,   # 缺口在现有余额内可分次完成
+        "options": options,
+    }
 
 # ---------------------------------------------------------------------------
 # 5) 兼容层：DEFAULT_TIERS（billing_adapter / core.billing 的历史结构）

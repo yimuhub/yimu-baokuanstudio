@@ -925,7 +925,9 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
             source_platform="copilot_web_rewrite",
             source_title=clean_topic[:40],
             analysis=analysis_text,
-            source_stats=source_stats
+            source_stats=source_stats,
+            # ⭐ R3-9：标记草稿归属，否则本人登录后看不到自己刚生成的稿
+            user_id=str(user_id or ""),
         )
         
         # 智能判定创作者目标平台偏向

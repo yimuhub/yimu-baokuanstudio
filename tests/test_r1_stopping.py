@@ -580,15 +580,17 @@ def _core_db():
 
 
 def _all_draft_ids(core_db):
+    #⭐ R3-9：list_drafts 默认按归属过滤（fail-closed）。
+    #   这里要的是「本隔离库里全部草稿」= 运营视角，故显式 is_admin=True。
     try:
-        return list(core_db.list_drafts())
+        return list(core_db.list_drafts(is_admin=True))
     except Exception:
         return []
 
 
 def _all_draft_titles(core_db):
     try:
-        return [d.get("title", "") for d in core_db.list_drafts()]
+        return [d.get("title", "") for d in core_db.list_drafts(is_admin=True)]
     except Exception:
         return []
 

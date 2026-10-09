@@ -670,6 +670,72 @@ class AuditLog(Base, HasTenant):
     )
 
 
+class Order(Base, HasTenant):
+    """R3-2 订单：用户下单购买套餐（或充值包）的一条记录。
+
+    ⭐ 为什么要有这张表：此前收款只有「运营手工生成 CDKey → 微信群发」，
+       系统里**没有任何一行记录谁付了钱、付了多少**。缺了这张表，
+       退款（R3-6）无从谈起，营收也无法对账。
+
+    收款流程（R3-2 手工核销方案，支付资质未落地时也能收钱）：
+        下单 → 立刻生成一张 CDKey（invites 行，max_uses=1）
+             → 把卡密与支付指引回给用户
+             → 用户转账 → 管理员核销确认
+             → 用户自己兑换卡密，额度到账
+    卡密本身仍走 invites 表（与既有 redeem 同源），
+    本表只负责「订单态」与「退款时该扣多少额度」。
+
+    状态机：
+        pending（待支付）→ paid（已核销/已收款）→ refunded（已退款）
+        pending → cancelled（用户放弃或管理员作废）
+    ⚠️ 只允许 pending→paid、paid→refunded、pending→cancelled，
+       终态不可再迁移，非法迁移直接 raise（防重复退款）。
+    """
+
+    __tablename__ = "orders"
+
+    # 主键（同时是对外订单号：32 位十六进制，不可枚举）
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    # 下单用户
+    user_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("users.id"), nullable=False, index=True
+    )
+    # 套餐码（pro / studio；充值包为 credits_pack）
+    plan: Mapped[str] = mapped_column(String(32), nullable=False, default="pro")
+    # 本单发放的额度（credits）
+    credits: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # 应付金额（分）——下单时快照，日后改价不影响历史订单
+    amount_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # 状态：pending / paid / refunded / cancelled
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    # 本单生成的 CDKey（invites.code）。未生成时为空串。
+    cdkey: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    # 退款时实际扣回的额度（可能小于 credits：用户已花掉的部分扣不回来）
+    refunded_credits: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # 退款备注/原因（运营填写，进审计）
+    note: Mapped[str] = mapped_column(String(512), nullable=False, default="")
+    # 创建时间
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow, index=True
+    )
+    # 核销（确认收款）时间
+    paid_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # 退款时间
+    refunded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_orders_tenant_status", "tenant_id", "status"),
+        CheckConstraint(
+            "status IN ('pending','paid','refunded','cancelled')",
+            name="ck_orders_status",
+        ),
+    )
+
+
 class QuotaCounter(Base, HasTenant):
     """配额计数器：按自然日/周/月统计用户某能力的使用次数。
 

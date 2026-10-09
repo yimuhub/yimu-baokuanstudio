@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: BUSL-1.1
 """一幕·YIMU 爆款工作室（FastAPI :8790）。
 
 面板：搜索仿写 / 选题 / 草稿工作台 / 发布 / 设置。
@@ -23,6 +24,7 @@ from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # n
 from fastapi.responses import (FileResponse, HTMLResponse,   # noqa: E402
                                JSONResponse, Response, StreamingResponse)
 from fastapi.staticfiles import StaticFiles          # noqa: E402
+from fastapi.routing import APIRoute                # noqa: E402
 
 from core import db, judge, orchestrator             # noqa: E402
 from core.llm import load_config, load_env           # noqa: E402
@@ -51,6 +53,63 @@ from core.security_middleware import (  # noqa: E402
 
 app.add_middleware(CSRFMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+
+# ---------------------------------------------------------------------------
+# R3-9 草稿归属隔离（fail-closed）
+# ---------------------------------------------------------------------------
+#
+# ⚠️ 为什么要做成「路由类」而不是逐个端点加校验：
+#   全仓有 **80+ 个路由**带 {did} 路径参数（/api/drafts/{did}/...、
+#   /img/{did}/{name}、/card/{did}/{name}、/video/drama/{did}/... 等）。
+#   逐个改必然漏——而漏一个就等于越权仍可利用（实测确认
+#   drafts.user_id 全库为空串，任何登录用户拿到 did 即可读他人稿件与图片）。
+#   做成路由基类后，**新增路由自动受保护**，不存在「忘了加」的可能。
+#
+# ⭐ 为什么用APIRoute 子类而不是 HTTP 中间件：
+#   Starlette 的中间件在**路由匹配之前**执行，此时 scope 里还没有
+#   "route"/"path_params"，拿不到 did。路由类包裹的是 handler，
+#   执行时 path_params 已就绪，是唯一能可靠读到 did 的位置。
+#
+# 判定逻辑：
+#   1. 路由路径含 {did} → 取出 did；
+#   2. 取当前登录用户（复用 R1 的 get_current_user，内含 is_active 校验，
+#      因此**封禁用户会被这里与 guard 双重拦住**）；
+#   3. 非管理员 → 必须 db.is_draft_owner(draft, user_id)，否则 404。
+#
+# ⚠️ 有意放行的例外（否则会打断公网分享功能）：
+#   - /s/{token} 分享页及其二维码/海报：地址里**只有令牌、没有 did**，
+#     令牌→稿件映射只存在于服务端库，无法靠改 did 越权（R5-5 已验证）。
+#   - /preview/{did}/{platform}：分享产物预览页，由 share 令牌链路驱动。
+#   其余一切带 did 的路由一律校验归属。
+_DID_OWNER_EXEMPT_PREFIXES = ("/s/", "/preview/")
+
+
+class DraftOwnerRoute(APIRoute):
+    """R3-9：对所有带 {did} 的路由强制校验草稿归属（fail-closed）。"""
+
+    def get_route_handler(self):
+        original = super().get_route_handler()
+        if "{did}" not in self.path or self.path.startswith(_DID_OWNER_EXEMPT_PREFIXES):
+            return original
+
+        async def guarded(request: Request) -> Response:
+            u = get_current_user(request)
+            # 未登录：交给下游 guard() 处理，保持 401 语义统一；
+            # 这里放行不代表能访问——所有业务路由自身都会再 guard() 一次。
+            if u and not _is_admin_user(u):
+                did = str(request.path_params.get("did") or "")
+                draft = db.get_draft(did) if did else None
+                if not db.is_draft_owner(draft, _current_user_id(u), is_admin=False):
+                    # 刻意用 404 而非 403：403 等于确认「该 id 存在」，
+                    # 反而给了遍历 did 探测的口子。
+                    raise HTTPException(404, "草稿不存在或无权访问")
+            return await original(request)
+
+        return guarded
+
+
+# 必须在**任何路由注册之前**设置 route_class，否则已注册的路由不会走新类
+app.router.route_class = DraftOwnerRoute
 # R4-5 安全收窄：此前把整个 data/ 目录挂成 HTTP 可访问
 #（`GET /static-img/data/video_config.json` 可直接下载到含 pexels_api_key 明文的配置）。
 # 全仓核查结论：/static-img 的**唯一**真实使用点是富文本编辑器上传回显
@@ -503,11 +562,58 @@ def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
     # 这是最有效的付费转化触点——用户已经想用而用不了，此时的召回
     # 转化率远高于日常推送。事件记录失败绝不影响 402 本身。
     _on_quota_blocked(action, label, need, balance)
+    # R3-4：把「还差多少 + 买哪个档」直接写进 402 文案。
+    # ⭐ 与 R5-3 的召回通知**不冲突**：那边发邮件（user_notify），这边只改
+    #   HTTP 响应文案，两条通道互不触发。
+    # ⭐ 额度数字全部取自 pricing 真源，不在此处硬编码。
+    from studio import pricing as _pricing
+
+    _up = _pricing.upsell_options(need_credits=need, balance=balance)
+    _sug = "、".join(
+        f"{o['name']}（{o['price_yuan']:.0f} 元 / {o['credits']:,} 点）"
+        for o in _up["options"] if o["covers_action"]
+    ) or "请前往价格页查看可用套餐"
     raise HTTPException(
         402,
-        f"算力额度不足：{label}本次需要 {need:,} 点，你的账户还剩 {balance:,} 点。"
-        f"可以通过「兑换卡密」充值，或前往「设置 - 会员与额度」升级套餐后继续使用。",
+        f"算力额度不足：{label}本次需要 {need:,} 点，你的账户还剩 {balance:,} 点，"
+        f"还差 {_up['shortfall']:,} 点。"
+        f"可升级套餐（{_sug}），或前往 /pricing 查看全部套餐与权益说明；"
+        f"已有卡密的用户也可在「设置 - 会员与额度」直接兑换卡密充值。"
+        f"（一条完整短剧约需 {_pricing.FULL_DRAMA_CREDITS:,} 点，"
+        f"Free 档额度不足以跑完一条，请知悉）",
     )
+
+
+# ---------------------------------------------------------------------------
+# R3-9：草稿归属校验
+# ---------------------------------------------------------------------------
+#
+# ⚠️ 安全背景（实测）：drafts.user_id 曾全库为空串，且所有内容读取路由
+#   （/img/{did}/{name}、/card/{did}/{name}、/api/drafts/{did} 等）都只按
+#   did 取数据、不校验归属 → **任何登录用户拿到任意 did 即可读取他人稿件
+#   与图片直链**。这里统一收口：所有对外暴露草稿内容的端点都必须过
+#   _assert_draft_owner()，管理员放行用于排障与合规复核。
+
+def _is_admin_user(user: dict | None) -> bool:
+    """是否管理员/运营角色（可跨用户访问草稿）。"""
+    return (user or {}).get("role") in ("admin", "owner")
+
+
+def _assert_draft_owner(request: Request, did: str) -> dict:
+    """校验当前用户对该草稿的归属权，无权则抛 404。
+
+    Returns:
+        草稿 dict（归属校验通过）。
+
+    ⚠️ 刻意返回 **404 而非 403**：403 等于确认「该 id 存在」，
+       反而给了遍历 did 探测的口子；404 对越权者与不存在者表现一致。
+       异常语义与历史（did 不存在也是 404）保持统一，前端无需改分支。
+    """
+    u = guard(request)
+    d = db.get_draft(did)
+    if not db.is_draft_owner(d, _current_user_id(u), is_admin=_is_admin_user(u)):
+        raise HTTPException(404, "草稿不存在或无权访问")
+    return d
 
 
 def _on_quota_blocked(action: str, label: str, need: int, balance: int) -> None:
@@ -714,7 +820,7 @@ def logout():
 try:
     from version import __version__ as APP_VERSION
 except Exception:
-    APP_VERSION = "7.0.0-dev"
+    APP_VERSION = "7.1.0"
 
 
 @app.get("/health")
@@ -858,7 +964,7 @@ def _draft_view(d: dict) -> dict:
 
 @app.get("/api/status")
 def status(request: Request):
-    guard(request)
+    user = guard(request)
     cfg = load_config()
     env = load_env()
     cr = cfg.get("creation", {})
@@ -871,7 +977,11 @@ def status(request: Request):
             pass
     return {
         "topics": db.list_topics(),
-        "drafts": [_draft_view(d) for d in db.list_drafts()],
+        #⭐ R3-9：草稿列表按归属过滤——普通用户只看得到自己的稿件，
+        #   管理员仍看全部（排障/合规复核需要）。此前此处返回全库草稿，
+        #   等于「登录即可看到所有人的稿件标题与正文」。
+        "drafts": [_draft_view(d) for d in db.list_drafts(
+            _current_user_id(user), is_admin=_is_admin_user(user))],
         "jobs": db.list_jobs(),
         "gateway": {"base_url": cfg.get("gateway", {}).get("base_url", ""),
                     "model": cfg.get("gateway", {}).get("model", ""),
@@ -955,7 +1065,7 @@ async def topics_stats(request: Request):
 
 @app.post("/api/topics/{tid}/{action}")
 async def topic_action(tid: str, action: str, request: Request):
-    guard(request)
+    user = guard(request)
     if action == "approve":
         db.set_topic_status(tid, "approved")
         return {"ok": True}
@@ -965,7 +1075,8 @@ async def topic_action(tid: str, action: str, request: Request):
     if action == "generate":
         try:
             return await asyncio.get_event_loop().run_in_executor(
-                None, orchestrator.generate_draft, tid)
+                None, lambda: orchestrator.generate_draft(
+                    tid, user_id=_current_user_id(user)))
         except Exception as e:
             raise HTTPException(500, str(e))
     if action == "generate_job":
@@ -996,7 +1107,9 @@ async def topic_action(tid: str, action: str, request: Request):
                     tid,
                     emit=lambda m: update_async_job(jid, step=m),
                     media_name=media_name,
-                    platforms=platforms
+                    platforms=platforms,
+                    # ⭐ R3-9：草稿归属，避免成稿落库后本人看不到
+                    user_id=_current_user_id(user),
                 )
                 draft_info = res.get("draft") or {}
                 d_title = draft_info.get("title") or "新生成文章"
@@ -1169,18 +1282,23 @@ async def draft_voiceover_script(did: str, request: Request):
 
 @app.get("/api/assets/library")
 def get_asset_library(request: Request, q: str = "", page: int = 1, per_page: int = 60):
-    """扫描所有草稿图片，返回全局素材库（支持关键词过滤和分页）"""
-    guard(request)
+    """扫描所有草稿图片，返回全局素材库（支持关键词过滤和分页）
+
+    ⭐ R3-9：素材库只扫**当前用户自己**的草稿目录。素材是稿件的派生物，
+       扫全库等于把别人的图片素材也交出来，与草稿正文同级别机密。
+    """
+    user = guard(request)
     import pathlib, time as _time
     drafts_dir = pathlib.Path("data/drafts")
     if not drafts_dir.exists():
         return {"ok": True, "assets": [], "total": 0}
 
-    # 批量获取草稿 title 映射
+    # 批量获取草稿 title 映射（⭐ R3-9：只取当前用户自己的草稿）
     all_drafts = {}
     try:
-        for d in db.list_drafts():
-            all_drafts[d.get("id", "")] = d.get("title", "")
+        _mine = {d.get("id", ""): d.get("title", "") for d in db.list_drafts(
+            _current_user_id(user), is_admin=_is_admin_user(user))}
+        all_drafts = _mine
     except Exception:
         pass
 
@@ -1192,6 +1310,11 @@ def get_asset_library(request: Request, q: str = "", page: int = 1, per_page: in
         if not img_dir.exists():
             continue
         did = draft_dir.name
+        #⭐ R3-9：目录在磁盘上但不属于当前用户 → 整个目录跳过。
+        #   磁盘目录是历史遗留（可能含已删草稿的残留），只靠 db 查询会漏，
+        #   所以这里以「当前用户的草稿集合」做白名单过滤。
+        if did not in all_drafts:
+            continue
         draft_title = all_drafts.get(did, did)
         for img_file in sorted(img_dir.glob("*.png"), key=lambda f: f.stat().st_mtime, reverse=True):
             name = img_file.stem
@@ -1272,15 +1395,19 @@ async def delete_single_asset(request: Request):
 @app.post("/api/assets/generate_hyper_real")
 async def generate_hyper_real_asset(request: Request):
     """电影级普利策超写实文生图接口：调用当前配置的顶级大模型与生图通道生成逼真写真照片。"""
-    guard(request)
+    user = guard(request)
     body = await request.json()
     prompt = (body.get("prompt") or body.get("scene") or "").strip()
     if not prompt:
         raise HTTPException(400, "请输入生成画面的描述")
-    
+
     # 选取一个草稿目录存放（优先当前草稿，若无草稿存放至第一篇草稿或通用目录）
-    did = body.get("draft_id", "")
-    all_d = db.list_drafts()
+    # ⭐ R3-9：只允许写进**自己**的草稿目录，否则可往他人草稿里塞图
+    #   （投毒他人素材库）。归属校验失败直接忽略该 draft_id。
+    did = str(body.get("draft_id") or "")
+    all_d = db.list_drafts(_current_user_id(user), is_admin=_is_admin_user(user))
+    if did and not any(d.get("id") == did for d in all_d):
+        did = ""
     if not did and all_d:
         did = all_d[0]["id"]
     if not did:
@@ -1674,7 +1801,9 @@ async def do_rewrite(request: Request):
                 body.get("platform", ""), body.get("title", ""),
                 body.get("url", ""), (body.get("theme") or "").strip(),
                 body.get("extra") or {},
-                source_text=body.get("source_text") or body.get("text") or ""))
+                source_text=body.get("source_text") or body.get("text") or "",
+                #⭐ R3-9：草稿归属（否则成稿落库后本人也看不到）
+                user_id=_current_user_id(guard(request))))
     except Exception as e:
         raise HTTPException(500, f"拆解仿写失败: {e}")
 
@@ -2606,12 +2735,17 @@ def billing_status(request: Request):
     # ⭐ R2-3：账本收敛到 memberships + ledger。
     #   此前读的是 core/billing 的 JSON 全局单例——所有用户看到同一个余额，
     #   且余额变动不落ledger、无法对账。现按当前用户读 memberships。
+    # ⭐ R3-9顺带修复：原实现直接取 core.auth 返回的 tenant_id，
+    #   那是字符串 'default'（core/db.py 的列默认值），而 studio 侧真实租户
+    #   id 是 uuid（studio.auth.ensure_default_tenant 生成）——
+    #   两者不一致会让 ensure_membership 查不到 memberships 行，
+    #   表现为「明明有额度却一直提示不足」。此处与 require_credits 统一口径。
     from studio import billing_adapter
 
-    user_id = str((u or {}).get("id") or "")
-    tenant_id = str((u or {}).get("tenant_id") or billing_adapter.WEB_TENANT_NAME)
     db = billing_adapter._web_session()
     try:
+        user_id = str((u or {}).get("id") or "")
+        tenant_id = _web_tenant_id(db, user_id)
         if not user_id:
             tenant, u_row = billing_adapter.get_default_billing_user(db)
             tenant_id = tenant.id if tenant is not None else tenant_id
@@ -2698,6 +2832,459 @@ async def billing_gen_keys(request: Request):
     except Exception as e:
         raise HTTPException(500, f"生成卡密失败，请稍后重试: {e}")
     return {"ok": True, "keys": keys}
+
+
+# ===================================================================
+# R3 变现通路线：价格页 / 下单收款 / 额度引导 / 发放 / 退款 / 用户 / 审计
+# ===================================================================
+#
+# ⭐ 全部新路由的鉴权约定：
+#   - 用户自助的（价格页、下单、查自己的订单）→ guard()（登录即可）
+#   - 涉及资金与权限的（发放额度、退款、封禁、查审计、订单管理）→ guard_admin()
+#   R1 已在 admin.py 建立 guard/guard_admin，此处一律复用，**不另造鉴权**。
+#
+# ⭐ 租户口径：与 require_credits 完全一致——以 **studio侧 users 行**的 tenant_id
+#   为准（core.auth 返回的 tenant_id 可能是字符串 'default'，与 studio 的 uuid
+#   租户不一致会查不到 memberships）。抽成 _web_tenant_id() 供全批次复用。
+
+def _web_tenant_id(db, user_id: str) -> str:
+    """解析当前用户所在 studio 租户 id（口径同 require_credits）。
+
+    查不到 studio 用户行时退化为默认租户，保证单机模式不中断业务。
+    """
+    from studio import billing_adapter
+    from studio.db_models import User as _StudioUser
+
+    uid = str(user_id or "")
+    if uid:
+        row = db.query(_StudioUser.tenant_id).filter(_StudioUser.id == uid).first()
+        if row and row[0]:
+            return str(row[0])
+    tenant, _u = billing_adapter.get_default_billing_user(db)
+    return tenant.id if tenant is not None else billing_adapter.WEB_TENANT_NAME
+
+
+def _r3_session():
+    """R3 各路由统一取 studio DB session（调用方负责 close）。"""
+    from studio import billing_adapter
+
+    return billing_adapter._web_session()
+
+
+def _current_user_id(u: dict | None) -> str:
+    """从 guard() 返回的用户 dict 里取 id。"""
+    return str((u or {}).get("id") or "")
+
+
+# ---------------- R3-1 价格页 ----------------
+
+@app.get("/api/pricing")
+def pricing_plans(request: Request):
+    """R3-1：三档套餐与售价（价格页数据源）。
+
+    ⭐ 登录即可见（未登录也能看价格，这是获客页），因此这里用 try 取用户：
+       取不到不影响返回套餐。
+    ⚠️ 返回体里的 capacity.can_run_full_drama 为False 时（Free 档），
+       前端**必须如实展示「跑不完一条完整短剧」**，不得美化。
+    """
+    from studio import pricing as _pricing
+
+    plans = _pricing.plan_catalog()
+    payload = {
+        "ok": True,
+        "plans": plans,
+        # 供前端一次性算「还差多少」而不必二次请求
+        "full_drama_credits": _pricing.FULL_DRAMA_CREDITS,
+        "credit_price_cents": _pricing.CREDIT_PRICE_CENTS,
+    }
+    u = get_current_user(request)
+    if u:
+        try:
+            payload["current"] = {
+                "user_id": _current_user_id(u),
+                "tier": str(u.get("plan") or "free"),
+            }
+        except Exception:
+            pass
+    return payload
+
+
+@app.get("/pricing", response_class=HTMLResponse)
+def pricing_page(request: Request):
+    """R3-1：价格页（自包含 HTML，前端拉 /api/pricing 渲染）。
+
+    与项目「无构建步骤」的现状一致：不引前端框架，双击即可用。
+    """
+    return HTMLResponse(_PRICING_PAGE_HTML)
+
+
+# ---------------- R3-2 下单收款 ----------------
+
+@app.post("/api/billing/order")
+async def billing_create_order(request: Request):
+    """R3-2：用户下单购买套餐 → 生成 CDKey + 返回支付指引。
+
+    ⚠️ 收款方式说明（重要，勿误认为已接支付网关）：
+       本项目**没有微信支付/支付宝商户资质**，因此不提供「一键支付」按钮。
+       真实链路是「下单 → 生成卡密 → 线下转账 → 管理员核销 → 用户兑换到账」。
+       这不是临时应付，而是当前资质下**唯一能真实收钱**的通路。
+    """
+    u = guard(request)
+    body = await request.json()
+    plan = str(body.get("plan") or "").strip().lower()
+    from studio import pricing as _pricing
+
+    if not _pricing.plan_exists(plan):
+        raise HTTPException(400, "该套餐不可购买，可选：pro、studio")
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        user_id = _current_user_id(u)
+        tenant_id = _web_tenant_id(db, user_id)
+        view = commerce.create_order(db, tenant_id, user_id, plan)
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[下单] 创建订单异常: {e}")
+        raise HTTPException(500, "下单失败，请稍后重试")
+    finally:
+        db.close()
+    # R5-6 埋点：进入付费漏斗（仅下单成功时记，避免刷事件）
+    try:
+        from core import analytics
+        analytics.track("order_created", _current_user_id(u),
+                        {"plan": plan, "amount_yuan": view.get("amount_yuan")})
+    except Exception:
+        pass
+    return {"ok": True, "order": view}
+
+
+@app.get("/api/billing/orders")
+def billing_my_orders(request: Request):
+    """R3-2：查询**当前用户自己**的订单列表（含卡密与状态）。"""
+    u = guard(request)
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        user_id = _current_user_id(u)
+        tenant_id = _web_tenant_id(db, user_id)
+        # 只查自己的：按user_id 过滤，不接受前端传user_id
+        from studio.db_models import Order
+
+        rows = (
+            db.query(Order)
+            .filter(Order.tenant_id == tenant_id, Order.user_id == user_id)
+            .order_by(Order.created_at.desc())
+            .limit(50)
+            .all()
+        )
+        items = [
+            {
+                "id": r.id,
+                "plan": r.plan,
+                "credits": int(r.credits),
+                "amount_yuan": round(int(r.amount_cents) / 100.0, 2),
+                "status": r.status,
+                "cdkey": r.cdkey if r.status != "refunded" else "",
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            }
+            for r in rows
+        ]
+    finally:
+        db.close()
+    return {"ok": True, "items": items, "total": len(items)}
+
+
+@app.get("/api/admin/orders")
+def admin_list_orders(request: Request):
+    """R3-2/R3-6：订单管理列表（管理员），支持状态筛选与分页。"""
+    guard_admin(request)
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        tenant_id = _web_tenant_id(db, _current_user_id(get_current_user(request)))
+        status = request.query_params.get("status") or ""
+        limit = int(request.query_params.get("limit") or 50)
+        offset = int(request.query_params.get("offset") or 0)
+        return {"ok": True, **commerce.list_orders(
+            db, tenant_id, status=status, limit=limit, offset=offset)}
+    finally:
+        db.close()
+
+
+@app.post("/api/admin/orders/{order_id}/confirm")
+async def admin_confirm_order(request: Request, order_id: str):
+    """R3-2：管理员核销收款（pending → paid）。
+
+    ⭐ 这是手工核销收款方案的「收钱确认」环节：用户线下转账后，
+       运营在这里点一下，订单才算真正收款成功。
+    """
+    admin = guard_admin(request)
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        tenant_id = _web_tenant_id(db, _current_user_id(admin))
+        view = commerce.confirm_order_paid(
+            db, tenant_id, order_id, actor=_current_user_id(admin))
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[订单] 核销异常: {e}")
+        raise HTTPException(500, "核销失败，请稍后重试")
+    finally:
+        db.close()
+    return {"ok": True, "order": view}
+
+
+@app.post("/api/admin/orders/{order_id}/cancel")
+async def admin_cancel_order(request: Request, order_id: str):
+    """R3-2：作废未支付订单（pending → cancelled，并撤销卡密）。"""
+    admin = guard_admin(request)
+    body = await request.json()
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        tenant_id = _web_tenant_id(db, _current_user_id(admin))
+        view = commerce.cancel_order(
+            db, tenant_id, order_id,
+            actor=_current_user_id(admin),
+            reason=str(body.get("reason") or ""),
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[订单] 取消异常: {e}")
+        raise HTTPException(500, "取消失败，请稍后重试")
+    finally:
+        db.close()
+    return {"ok": True, "order": view}
+
+
+# ---------------- R3-4 额度墙付费引导 ----------------
+
+@app.get("/api/billing/upgrade")
+def billing_upgrade_options(request: Request):
+    """R3-4：额度不足时的付费引导数据（额度对比表 + 购买入口）。
+
+    供前端在撞402 后弹出「还差多少 + 买哪个档」；与 R5-3 的召回邮件**并存不冲突**：
+    邮件走 user_notify（本接口不触发邮件），页面引导走本接口（不发邮件）。
+    """
+    guard(request)
+    from studio import pricing as _pricing
+
+    try:
+        need = int(request.query_params.get("need") or 0)
+    except Exception:
+        need = 0
+    db = _r3_session()
+    try:
+        user_id = _current_user_id(get_current_user(request))
+        tenant_id = _web_tenant_id(db, user_id)
+        from studio.billing_adapter import get_billing_status
+
+        balance = int(get_billing_status(db, tenant_id, user_id)["balance"])
+    except Exception:
+        balance = 0
+    finally:
+        db.close()
+    data = _pricing.upsell_options(need_credits=need, balance=balance)
+    data["full_drama_credits"] = _pricing.FULL_DRAMA_CREDITS
+    return {"ok": True, **data}
+
+
+# ---------------- R3-5 额度发放（HTTP 入口） ----------------
+
+@app.post("/api/admin/grant_credits")
+async def admin_grant_credits(request: Request):
+    """R3-5：给指定用户发放额度（管理员）。
+
+    背景：grant_credits 此前只有 service 层函数、**没有 HTTP 入口**，
+    运营要发额度只能改代码发版。现补上管理端入口。
+    ⚠️ 资金动作：必须 guard_admin，且发放与审计同事务（见 commerce 层）。
+    """
+    admin = guard_admin(request)
+    body = await request.json()
+    user_id = str(body.get("user_id") or "").strip()
+    try:
+        amount = int(body.get("amount") or 0)
+    except Exception:
+        raise HTTPException(400, "额度必须是整数")
+    reason = str(body.get("reason") or "").strip()
+    if not user_id:
+        raise HTTPException(400, "缺少 user_id")
+    if amount <= 0:
+        raise HTTPException(400, "发放额度必须为正数")
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        tenant_id = _web_tenant_id(db, _current_user_id(admin))
+        result = commerce.grant_credits_to_user(
+            db, tenant_id, user_id, amount,
+            reason=reason or "管理员手动发放", actor=_current_user_id(admin))
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[发放] 额度发放异常: {e}")
+        raise HTTPException(500, "发放失败，请稍后重试")
+    finally:
+        db.close()
+    return {"ok": True, **result}
+
+
+# ---------------- R3-6 退款 ----------------
+
+@app.post("/api/admin/orders/{order_id}/refund")
+async def admin_refund_order(request: Request, order_id: str):
+    """R3-6：退款（**真的扣回额度** + 作废卡密 + 写审计）。
+
+    ⚠️ 资金动作：必须 guard_admin。
+    ⭐ 「扣回额度」是本接口的核心——只改订单状态不扣额度等于假退款。
+       用户已消费导致扣不满的部分（shortfall）会如实返回给运营。
+    """
+    admin = guard_admin(request)
+    body = await request.json()
+    reason = str(body.get("reason") or "").strip()
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        tenant_id = _web_tenant_id(db, _current_user_id(admin))
+        view = commerce.refund_order(
+            db, tenant_id, order_id,
+            actor=_current_user_id(admin),
+            reason=reason or "运营退款",
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[退款] 退款异常: {e}")
+        raise HTTPException(500, "退款失败，请稍后重试")
+    finally:
+        db.close()
+    return {"ok": True, "order": view}
+
+
+# ---------------- R3-7 用户列表与封禁 ----------------
+
+@app.get("/api/admin/users")
+def admin_list_users(request: Request):
+    """R3-7：用户列表（分页 + 搜用户名/邮箱/档位/封禁态）。"""
+    guard_admin(request)
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        tenant_id = _web_tenant_id(db, _current_user_id(get_current_user(request)))
+        return {"ok": True, **commerce.list_users(
+            db, tenant_id,
+            keyword=request.query_params.get("keyword") or "",
+            tier=request.query_params.get("tier") or "",
+            banned=request.query_params.get("banned") or "",
+            limit=int(request.query_params.get("limit") or 20),
+            offset=int(request.query_params.get("offset") or 0),
+        )}
+    finally:
+        db.close()
+
+
+@app.post("/api/admin/users/{user_id}/ban")
+async def admin_ban_user(request: Request, user_id: str):
+    """R3-7：封禁用户（banned=true）/ 解封（banned=false）。
+
+    ⚠️ 权限动作：必须 guard_admin，且**必须写审计日志**（见 commerce.set_user_banned）。
+       封禁后 is_active=False，``get_current_user`` 会拒绝其令牌 →
+       即「无法调 API」（见 tests/test_r3_monetization.py）。
+    """
+    admin = guard_admin(request)
+    body = await request.json()
+    banned = bool(body.get("banned", True))
+    reason = str(body.get("reason") or "").strip()
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        tenant_id = _web_tenant_id(db, _current_user_id(admin))
+        result = commerce.set_user_banned(
+            db, tenant_id, user_id, banned,
+            actor=_current_user_id(admin), reason=reason)
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"[封禁] 操作异常: {e}")
+        raise HTTPException(500, "操作失败，请稍后重试")
+    finally:
+        db.close()
+    return {"ok": True, **result}
+
+
+@app.get("/admin/users", response_class=HTMLResponse)
+def admin_users_page(request: Request):
+    """R3-7：用户管理页（管理员），含搜索/封禁操作。"""
+    guard_admin(request)
+    return HTMLResponse(_USERS_PAGE_HTML)
+
+
+# ---------------- R3-8 审计日志 ----------------
+
+@app.get("/api/admin/audit_logs")
+def admin_audit_logs(request: Request):
+    """R3-8：审计日志查询（分页 + 按动作/操作人/对象过滤）。"""
+    guard_admin(request)
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        tenant_id = _web_tenant_id(db, _current_user_id(get_current_user(request)))
+        return {"ok": True, **commerce.query_audit_logs(
+            db, tenant_id,
+            action=request.query_params.get("action") or "",
+            actor=request.query_params.get("actor") or "",
+            target=request.query_params.get("target") or "",
+            keyword=request.query_params.get("keyword") or "",
+            limit=int(request.query_params.get("limit") or 50),
+            offset=int(request.query_params.get("offset") or 0),
+        )}
+    finally:
+        db.close()
+
+
+@app.get("/api/admin/audit_actions")
+def admin_audit_actions(request: Request):
+    """R3-8：已出现过的审计动作列表（给查询页做下拉筛选）。"""
+    guard_admin(request)
+    from studio.membership import commerce
+
+    db = _r3_session()
+    try:
+        tenant_id = _web_tenant_id(db, _current_user_id(get_current_user(request)))
+        return {"ok": True, "actions": commerce.audit_actions(db, tenant_id)}
+    finally:
+        db.close()
+
+
+@app.get("/admin/audit", response_class=HTMLResponse)
+def admin_audit_page(request: Request):
+    """R3-8：审计日志查询页（管理员）。"""
+    guard_admin(request)
+    return HTMLResponse(_AUDIT_PAGE_HTML)
 
 
 # ---------------- 8大名家音色与深度蒸馏中台 ----------------
@@ -3392,7 +3979,8 @@ async def create_draft_endpoint(request: Request):
         if active_ws:
             workspace_id = active_ws.get("id", "")
 
-    draft = db.create_custom_draft(title=title, body_md=body_md, workspace_id=workspace_id)
+    draft = db.create_custom_draft(title=title, body_md=body_md, workspace_id=workspace_id,
+                                   user_id=_current_user_id(user))
     did = draft["id"]
 
     # 初始化多平台文件产物与预览
@@ -5038,7 +5626,8 @@ def _run_rewrite_job(jid: str, payload: dict):
                          source_platform=payload.get("platform", ""),
                          source_url=payload.get("url", ""),
                          source_title=payload.get("title", ""),
-                         analysis=parsed.get("ANALYSIS", ""))
+                         analysis=parsed.get("ANALYSIS", ""),
+                         user_id=str(payload.get("_owner_user_id") or ""))
         O._refresh_artifacts(d["id"], parsed, title, body, media_name=media_name)
         score = None
         if O.llm.available():
@@ -5069,7 +5658,8 @@ def _run_one_sentence_viral_job(jid: str, payload: dict):
         update_async_job(jid, step="正在解构核心痛点与生成多端爆款…", progress=30)
         res = O.generate_one_sentence_viral(sentence, mounted_persona=mounted_persona,
                                             theme=theme, media_name=media_name, emit=emit,
-                                            platforms=platforms)
+                                            platforms=platforms,
+                                            user_id=str(payload.get("_owner_user_id") or ""))
         update_async_job(jid, status="done", progress=100, step="一句话灵感创作完成！", result=res)
     except Exception as e:
         update_async_job(jid, status="failed", error=str(e)[:400], step="创作失败")
@@ -5079,6 +5669,8 @@ def _run_one_sentence_viral_job(jid: str, payload: dict):
 async def api_one_sentence_viral(request: Request):
     guard(request)
     body = await request.json()
+    # ⭐ R3-9：把归属带进后台任务（线程池里拿不到 request）
+    body["_owner_user_id"] = str((get_current_user(request) or {}).get("id") or "")
     sentence = (body.get("sentence") or "").strip()
     if not sentence:
         raise HTTPException(400, "请输入创作灵感或一句话需求")
@@ -5099,6 +5691,11 @@ async def api_one_sentence_viral(request: Request):
 async def rewrite_job(request: Request):
     guard(request)
     body = await request.json()
+    #⭐ R3-9：把当前用户 id 带进后台任务payload。
+    #   _run_rewrite_job 在线程池里跑，拿不到 request，只能靠payload 传递归属，
+    #   否则它创建的草稿 user_id 为空 → 谁都看不到自己的成稿。
+    user = get_current_user(request) or {}
+    body["_owner_user_id"] = str(user.get("id") or "")
     import uuid
     title = (body.get("title") or (body.get("extra") or {}).get("title") or "爆款仿写")[:16]
     jid = f"rw-{uuid.uuid4().hex[:8]}"
@@ -5250,6 +5847,356 @@ function renderEvents(list){
       esc(e.event)+'</td><td>'+esc(e.user_id||'—')+'</td></tr>').join('')+'</table>';
 }
 load();
+</script></body></html>"""
+
+
+# R3-1 价格页（自包含 HTML，拉 /api/pricing + /api/billing/order 渲染）
+# ⭐ 诚实性要求：Free 档跑不完一条完整短剧（3000 < 12000 credits），
+#   页面必须如实标注，不得为了转化率把 Free 写成「够跑一条」。
+_PRICING_PAGE_HTML = """<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>价格 · 一幕 YIMU</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0f1220;color:#e8ecf8;font-family:PingFang SC,Microsoft YaHei,sans-serif}
+ .wrap{max-width:1000px;margin:0 auto;padding:32px 20px 70px}
+ h1{font-size:26px;margin:0 0 6px}
+ .sub{color:#8b93ad;font-size:13px;line-height:1.8;margin-bottom:26px}
+ .warn{background:rgba(240,136,62,.1);border:1px solid rgba(240,136,62,.35);
+       border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.9;margin-bottom:24px}
+ .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}
+ .plan{background:#161c28;border:1px solid #262d3d;border-radius:14px;padding:22px;display:flex;flex-direction:column}
+ .plan.hot{border-color:#f0883e;box-shadow:0 0 0 1px rgba(240,136,62,.25)}
+ .pname{font-size:17px;font-weight:800;margin-bottom:4px}
+ .ptag{font-size:12px;color:#8b93ad;min-height:34px;line-height:1.7}
+ .price{font-size:30px;font-weight:800;color:#f0883e;margin:12px 0 2px}
+ .price small{font-size:13px;color:#8b93ad;font-weight:400}
+ .credits{font-size:13px;color:#c8cee0;margin-bottom:12px}
+ .cap{font-size:12.5px;color:#9aa3bd;background:#0d1117;border-radius:8px;padding:10px 12px;line-height:1.9;margin-bottom:14px}
+ .cap b{color:#e8ecf8}
+ .cap .no{color:#ff7b72}
+ ul{list-style:none;padding:0;margin:0 0 18px;font-size:13px;line-height:2;color:#c8cee0}
+ li:before{content:"· ";color:#f0883e}
+ .btn{background:#f0883e;color:#fff;border:0;border-radius:9px;padding:11px 18px;
+      font-size:14px;font-weight:700;cursor:pointer;width:100%}
+ .btn.ghost{background:#0d1117;border:1px solid #2c3446;color:#c8cee0}
+ .btn:disabled{opacity:.5;cursor:not-allowed}
+ .note{font-size:12px;color:#6f7896;line-height:1.9;margin-top:8px}
+ h2{font-size:16px;margin:34px 0 12px}
+ table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+ th,td{padding:9px 10px;border-bottom:1px solid #262d3d;text-align:left}
+ th{color:#8b93ad;font-weight:600}
+ .code{font-family:ui-monospace,Menlo,monospace;background:#0d1117;padding:3px 8px;
+       border-radius:5px;color:#7ee787;letter-spacing:1px}
+ .st{font-size:12px;padding:3px 9px;border-radius:20px}
+ .st.paid{background:rgba(126,231,135,.15);color:#7ee787}
+ .st.pending{background:rgba(240,136,62,.15);color:#f0883e}
+ .st.refunded{background:rgba(255,123,114,.15);color:#ff7b72}
+ .st.cancelled{background:#262d3d;color:#8b93ad}
+ .empty{color:#8b93ad;padding:16px 0;font-size:13px}
+</style></head><body>
+<div class="wrap">
+  <h1>💰 价格与套餐</h1>
+  <div class="sub">算力点数（credits）用于 AI 仿写、短剧渲染、图片生成等所有 AI 能力。
+    1 点 = 0.01 元，额度按周期刷新，周期内用不完不累计。</div>
+
+  <div class="warn" id="honest-note">
+    <b>关于「一条短剧」的真实消耗：</b>
+    <span id="drama-line">加载中…</span><br>
+    这也是为什么 Free 档<b>跑不完一条完整短剧</b>——我们把这一点写在明面上，
+    而不是让你付了钱才发现限制。
+  </div>
+
+  <div class="grid" id="plans"><div class="empty">套餐加载中…</div></div>
+
+  <h2>🧾 我的订单</h2>
+  <div id="orders"><div class="empty">订单加载中…</div></div>
+  <div class="note">未登录时看不到订单。订单状态为「待支付」时，请按下方指引线下转账后联系管理员核销。</div>
+</div>
+
+<script>
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+
+async function loadPlans(){
+  const r = await fetch('/api/pricing');
+  const d = await r.json();
+  const full = d.full_drama_credits;
+  document.getElementById('drama-line').innerHTML =
+    '一条完整短剧（分镜解构 + 4 张生图 + 渲染合成 + 4 段配音）约消耗 <b>' +
+    Number(full).toLocaleString() + '</b> 点。';
+
+  document.getElementById('plans').innerHTML = d.plans.map(function(p){
+    const cap = p.capacity;
+    const free = p.code === 'free';
+    // ⭐ 诚实标注：跑不完就明说，不含糊
+    const dramaTxt = cap.can_run_full_drama
+      ? '可跑 <b>' + cap.dramas + '</b> 条完整短剧'
+      : '<span class="no">额度不足，<b>跑不完一条完整短剧</b>（约 ' +
+        cap.dramas_exact + ' 条）</span>';
+    return '<div class="plan' + (p.code === 'pro' ? ' hot' : '') + '">' +
+      '<div class="pname">' + esc(p.name) + '</div>' +
+      '<div class="ptag">' + esc(p.tagline) + '</div>' +
+      '<div class="price">' + (p.price_yuan > 0 ? '¥' + p.price_yuan : '免费') +
+        (p.price_yuan > 0 ? '<small> / ' + p.period_days + ' 天</small>' : '') + '</div>' +
+      '<div class="credits">' + Number(p.credits).toLocaleString() + ' 点额度' +
+        (p.price_yuan > 0 ? '（约 ' + p.price_yuan + ' 元等值）' : '') + '</div>' +
+      '<div class="cap">' + dramaTxt + '<br>可产出 <b>' + cap.graphic_posts +
+        '</b> 篇图文（仿写+评分+排版）</div>' +
+      '<ul>' + (p.highlights || []).map(function(h){
+        return '<li>' + esc(h.replace(/^\\*\\*|\\*\\*$/g, '')) + '</li>';}).join('') + '</ul>' +
+      (free ? '<button class="btn ghost" disabled>免费档，无需购买</button>'
+            : '<button class="btn" onclick="order(\\'' + p.code + '\\')">立即购买 ' +
+              esc(p.name) + '</button>') +
+      '</div>';
+  }).join('');
+}
+
+async function order(code){
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '下单中…';
+  try{
+    const r = await fetch('/api/billing/order', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+      body: JSON.stringify({plan: code})
+    });
+    const d = await r.json();
+    if(!r.ok || !d.ok){
+      alert(d.detail && d.detail.message ? d.detail.message
+            : (d.error || '下单失败，请稍后重试'));
+      return;
+    }
+    showPay(d.order);
+    loadOrders();
+  }catch(e){ alert('下单异常：' + e); }
+  finally{ btn.disabled = false; btn.textContent = '立即购买'; }
+}
+
+function showPay(o){
+  const L = {'pending':'待支付','paid':'已收款','refunded':'已退款','cancelled':'已取消'};
+  alert(
+    '订单已创建（订单号 ' + o.id.slice(0,8) + '）\\n\\n' +
+    '应付金额：¥' + o.amount_yuan + '（' + o.credits + ' 点）\\n' +
+    '你的卡密：' + (o.cdkey || '（已退款）') + '\\n\\n' +
+    (o.payment_instructions || []).map(function(s,i){return (i+1)+'. '+s;}).join('\\n') +
+    '\\n\\n卡密请复制保存，可在「设置 - 会员与额度」粘贴兑换。'
+  );
+  void L;
+}
+
+async function loadOrders(){
+  const box = document.getElementById('orders');
+  const r = await fetch('/api/billing/orders');
+  if(r.status === 401){
+    box.innerHTML = '<div class="empty">请先登录后查看订单</div>'; return;
+  }
+  const d = await r.json();
+  if(!d.ok || !d.items.length){
+    box.innerHTML = '<div class="empty">暂无订单</div>'; return;
+  }
+  const L = {'pending':'待支付','paid':'已收款','refunded':'已退款','cancelled':'已取消'};
+  box.innerHTML = '<table><tr><th>时间</th><th>套餐</th><th>金额</th><th>额度</th>' +
+    '<th>卡密</th><th>状态</th></tr>' + d.items.map(function(o){
+      return '<tr><td>' + esc((o.created_at||'').slice(0,16).replace('T',' ')) + '</td><td>' +
+        esc(o.plan) + '</td><td>¥' + o.amount_yuan + '</td><td>' +
+        Number(o.credits).toLocaleString() + '</td><td><span class="code">' +
+        esc(o.cdkey || '—') + '</span></td><td><span class="st ' + esc(o.status) + '">' +
+        esc(L[o.status] || o.status) + '</span></td></tr>';}).join('') + '</table>';
+}
+
+loadPlans(); loadOrders();
+</script></body></html>"""
+
+
+# R3-7 用户管理页（管理员）：搜索 + 封禁/解封
+_USERS_PAGE_HTML = """<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>用户管理 · 一幕 YIMU</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0f1220;color:#e8ecf8;font-family:PingFang SC,Microsoft YaHei,sans-serif}
+ .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+ h1{font-size:22px;margin:0 0 4px}
+ .sub{color:#8b93ad;font-size:13px;margin-bottom:20px}
+ .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+ input,select{background:#0d1117;border:1px solid #2c3446;color:#e8ecf8;
+              border-radius:8px;padding:8px 11px;font-size:13px}
+ button{background:#f0883e;color:#fff;border:0;border-radius:8px;padding:8px 16px;
+        font-size:13px;font-weight:700;cursor:pointer}
+ button.ghost{background:#0d1117;border:1px solid #2c3446;color:#c8cee0}
+ button.danger{background:#8b2b28}
+ table{width:100%;border-collapse:collapse;font-size:13px}
+ th,td{padding:9px 10px;border-bottom:1px solid #262d3d;text-align:left;white-space:nowrap}
+ th{color:#8b93ad;font-weight:600}
+ .banned{color:#ff7b72}
+ .ok{color:#7ee787}
+ .tag{font-size:12px;padding:2px 8px;border-radius:20px;background:#262d3d;color:#c8cee0}
+ .empty{color:#8b93ad;padding:16px 0;font-size:13px}
+ .pager{margin-top:14px;display:flex;gap:10px;align-items:center;font-size:13px;color:#8b93ad}
+</style></head><body>
+<div class="wrap">
+  <h1>👥 用户管理</h1>
+  <div class="sub">封禁后该用户无法调用任何 API（登录令牌立即失效）。所有封禁操作均记入审计日志。</div>
+  <div class="bar">
+    <input id="kw" placeholder="搜索用户名 / 邮箱" style="width:220px">
+    <select id="tier"><option value="">全部档位</option><option value="free">Free</option>
+      <option value="pro">Pro</option><option value="studio">Studio</option></select>
+    <select id="banned"><option value="">全部状态</option><option value="1">已封禁</option>
+      <option value="0">正常</option></select>
+    <button onclick="load(0)">查询</button>
+    <button class="ghost" onclick="grant()">发放额度</button>
+  </div>
+  <div id="tb"><div class="empty">加载中…</div></div>
+  <div class="pager">
+    <button class="ghost" onclick="load(Math.max(0,off-20))">上一页</button>
+    <span id="info"></span>
+    <button class="ghost" onclick="load(off+20)">下一页</button>
+  </div>
+</div>
+<script>
+var off = 0;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function csrf(){var m=document.cookie.match(/(?:^|; )csrf_token=([^;]+)/);
+  return m?decodeURIComponent(m[1]):'';}
+async function load(o){
+  off = o || 0;
+  const p = new URLSearchParams({offset:String(off), limit:'20',
+    keyword:document.getElementById('kw').value.trim(),
+    tier:document.getElementById('tier').value,
+    banned:document.getElementById('banned').value});
+  const r = await fetch('/api/admin/users?' + p.toString());
+  const d = await r.json();
+  if(!r.ok || !d.ok){document.getElementById('tb').innerHTML =
+    '<div class="empty">' + esc((d.detail&&d.detail.message)||'加载失败') + '</div>'; return;}
+  if(!d.items.length){document.getElementById('tb').innerHTML =
+    '<div class="empty">没有符合条件的用户</div>';
+    document.getElementById('info').textContent = ''; return;}
+  document.getElementById('tb').innerHTML = '<table><tr><th>用户名</th><th>邮箱</th><th>角色</th>' +
+    '<th>档位</th><th>剩余额度</th><th>已用</th><th>状态</th><th>注册时间</th><th>操作</th></tr>' +
+    d.items.map(function(u){
+      return '<tr><td>' + esc(u.username) + '</td><td>' + esc(u.email||'—') + '</td><td>' +
+        '<span class="tag">' + esc(u.role) + '</span></td><td>' + esc(u.tier) + '</td><td>' +
+        Number(u.credits_left).toLocaleString() + '</td><td>' +
+        Number(u.credits_used).toLocaleString() + '</td><td class="' +
+        (u.banned?'banned':'ok') + '">' + (u.banned?'已封禁':'正常') + '</td><td>' +
+        esc((u.created_at||'').slice(0,10)) + '</td><td><button class="' +
+        (u.banned?'ghost':'danger') + '" onclick="ban(\\'' + u.user_id + '\\',' +
+        (u.banned?'false':'true') + ')">' + (u.banned?'解封':'封禁') + '</button></td></tr>';
+    }).join('') + '</table>';
+  document.getElementById('info').textContent =
+    '共 ' + d.total + ' 位用户，当前第 ' + (off/20+1) + ' 页';
+}
+async function ban(uid, banned){
+  if(banned === 'true' && !confirm('确定封禁该用户？封禁后其所有 API 调用都会失败。')) return;
+  const reason = banned === 'true' ? (prompt('封禁原因（记入审计）') || '违反使用规范') : '';
+  const r = await fetch('/api/admin/users/' + uid + '/ban', {method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+    body: JSON.stringify({banned: banned === 'true', reason: reason})});
+  const d = await r.json();
+  if(!r.ok || !d.ok){ alert((d.detail&&d.detail.message)||'操作失败'); return; }
+  load(off);
+}
+async function grant(){
+  const uid = prompt('要发放额度的 user_id（见上表，可用浏览器搜索定位）：');
+  if(!uid) return;
+  const amount = prompt('发放多少点额度？');
+  if(!amount) return;
+  const reason = prompt('发放原因（记入审计）：') || '管理员手动发放';
+  const r = await fetch('/api/admin/grant_credits', {method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+    body: JSON.stringify({user_id: uid.trim(), amount: parseInt(amount,10), reason: reason})});
+  const d = await r.json();
+  if(!r.ok || !d.ok){ alert((d.detail&&d.detail.message)||'发放失败'); return; }
+  alert('发放成功：' + d.granted + ' 点\\n当前余额：' + Number(d.balance_after).toLocaleString() + ' 点');
+  load(off);
+}
+load(0);
+</script></body></html>"""
+
+
+# R3-8 审计日志查询页（管理员）
+_AUDIT_PAGE_HTML = """<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>审计日志 · 一幕 YIMU</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0f1220;color:#e8ecf8;font-family:PingFang SC,Microsoft YaHei,sans-serif}
+ .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+ h1{font-size:22px;margin:0 0 4px}
+ .sub{color:#8b93ad;font-size:13px;margin-bottom:20px}
+ .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+ input,select{background:#0d1117;border:1px solid #2c3446;color:#e8ecf8;
+              border-radius:8px;padding:8px 11px;font-size:13px}
+ button{background:#f0883e;color:#fff;border:0;border-radius:8px;padding:8px 16px;
+        font-size:13px;font-weight:700;cursor:pointer}
+ button.ghost{background:#0d1117;border:1px solid #2c3446;color:#c8cee0}
+ table{width:100%;border-collapse:collapse;font-size:12.5px}
+ th,td{padding:8px 10px;border-bottom:1px solid #262d3d;text-align:left;vertical-align:top}
+ th{color:#8b93ad;font-weight:600}
+ td.detail{font-family:ui-monospace,Menlo,monospace;color:#9aa3bd;font-size:12px;
+           max-width:420px;word-break:break-all}
+ .act{color:#f0883e;font-weight:600;white-space:nowrap}
+ .empty{color:#8b93ad;padding:16px 0;font-size:13px}
+ .pager{margin-top:14px;display:flex;gap:10px;align-items:center;font-size:13px;color:#8b93ad}
+</style></head><body>
+<div class="wrap">
+  <h1>🗂️ 审计日志</h1>
+  <div class="sub">记录发放额度、退款、封禁、下单等敏感操作。日志只增不改，不可删除。</div>
+  <div class="bar">
+    <select id="act"><option value="">全部动作</option></select>
+    <input id="actor" placeholder="操作人 user_id" style="width:200px">
+    <input id="kw" placeholder="搜索动作 / 对象" style="width:200px">
+    <button onclick="load(0)">查询</button>
+  </div>
+  <div id="tb"><div class="empty">加载中…</div></div>
+  <div class="pager">
+    <button class="ghost" onclick="load(Math.max(0,off-50))">上一页</button>
+    <span id="info"></span>
+    <button class="ghost" onclick="load(off+50)">下一页</button>
+  </div>
+</div>
+<script>
+var off = 0;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+async function loadActions(){
+  const r = await fetch('/api/admin/audit_actions');
+  const d = await r.json();
+  if(d.ok && d.actions){
+    document.getElementById('act').innerHTML = '<option value="">全部动作</option>' +
+      d.actions.map(function(a){return '<option value="' + esc(a) + '">' + esc(a) + '</option>';}).join('');
+  }
+}
+async function load(o){
+  off = o || 0;
+  const p = new URLSearchParams({offset:String(off), limit:'50',
+    action:document.getElementById('act').value,
+    actor:document.getElementById('actor').value.trim(),
+    keyword:document.getElementById('kw').value.trim()});
+  const r = await fetch('/api/admin/audit_logs?' + p.toString());
+  const d = await r.json();
+  if(!r.ok || !d.ok){document.getElementById('tb').innerHTML =
+    '<div class="empty">' + esc((d.detail&&d.detail.message)||'加载失败') + '</div>'; return;}
+  if(!d.items.length){document.getElementById('tb').innerHTML =
+    '<div class="empty">没有符合条件的审计记录</div>';
+    document.getElementById('info').textContent=''; return;}
+  document.getElementById('tb').innerHTML = '<table><tr><th>时间</th><th>操作人</th>' +
+    '<th>动作</th><th>对象</th><th>详情</th></tr>' + d.items.map(function(x){
+      return '<tr><td>' + esc((x.created_at||'').slice(0,19).replace('T',' ')) + '</td><td>' +
+        esc(x.actor) + '</td><td class="act">' + esc(x.action) + '</td><td>' + esc(x.target) +
+        '</td><td class="detail">' + esc(JSON.stringify(x.detail)) + '</td></tr>';}).join('') +
+    '</table>';
+  document.getElementById('info').textContent = '共 ' + d.total + ' 条，当前第 ' + (off/50+1) + ' 页';
+}
+loadActions(); load(0);
 </script></body></html>"""
 
 

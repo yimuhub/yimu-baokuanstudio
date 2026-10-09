@@ -286,7 +286,9 @@ class TestDraftNeedsReview:
 
         # 草稿仍在库中（未被删除）
         assert db.get_draft(d["id"]) is not None
-        assert len(db.list_drafts()) == 1
+        #⭐ R3-9：list_drafts 默认按归属过滤（fail-closed），
+        #   此处要的是本隔离库的全部草稿 = 运营视角，故显式 is_admin=True。
+        assert len(db.list_drafts(is_admin=True)) == 1
 
         assert db.clear_draft_needs_review(d["id"])
         assert db.list_drafts_needs_review() == []

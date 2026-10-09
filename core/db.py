@@ -1,9 +1,13 @@
+# SPDX-License-Identifier: BUSL-1.1
 """SQLite 存储层：选题 / 草稿 / 发布任务。"""
 import json
 import sqlite3
 import time
 import uuid
 from pathlib import Path
+
+# R2-1：额度数字的唯一真源（core.auth 也从这里取，避免两处硬编码）
+from studio.pricing import TIER_CREDITS
 
 BASE = Path(__file__).resolve().parent.parent
 DATA = BASE / "data"
@@ -279,6 +283,48 @@ CREATE INDEX IF NOT EXISTS idx_share_links_draft ON share_links(draft_id);
 """
 
 
+#: core.auth 侧需要的 users 列（studio.db_models.User 里没有的那几个）。
+#: 两套 schema 共用同一张 users 表，谁先建表就会缺对方的列（见ensure_users_columns）。
+_CORE_USER_COLUMNS: tuple[tuple[str, str], ...] = (
+    ("plan", "TEXT DEFAULT 'free'"),
+    ("quota_used", "INTEGER DEFAULT 0"),
+    # R2-1：额度默认取定价真源（禁止在此硬编码额度数字）
+    ("quota_max", f"INTEGER DEFAULT {TIER_CREDITS['free']}"),
+    ("last_login", "REAL"),
+)
+
+
+def ensure_users_columns(c: sqlite3.Connection) -> None:
+    """幂等补齐 ``users`` 表中 core.auth 需要的列（R3-9）。
+
+    ⚠️ 为什么必须有这一步：``core.db`` 与 ``studio.db_models`` 把 ``users``
+       当作**同一张物理表**，但列集不同。SQLite 的
+       ``CREATE TABLE IF NOT EXISTS`` 不会给已存在的表补列，
+       因此**谁先建表决定了另一方会不会缺列**。
+       实测：新装机器若 studio先 init_db，``core.auth.get_user_by_id``
+       会抛 ``no such column: plan``，表现为**所有接口 500**。
+
+    在 :func:`conn` 与 :func:`core.auth._db` 两条建连路径上都调用，
+    保证无论哪一侧先建表都能自愈。
+    """
+    try:
+        cols = {r[1] for r in c.execute("PRAGMA table_info(users)")}
+    except Exception:
+        return
+    if not cols:
+        return  # 表还不存在（首次建库），交给 SCHEMA / create_all 处理
+    for col, ddl in _CORE_USER_COLUMNS:
+        if col not in cols:
+            try:
+                c.execute(f"ALTER TABLE users ADD COLUMN {col} {ddl}")
+            except Exception:
+                pass  # 并发下可能已被另一方补上，忽略（幂等）
+    try:
+        c.commit()
+    except Exception:
+        pass
+
+
 def conn() -> sqlite3.Connection:
     DATA.mkdir(parents=True, exist_ok=True)
     c = sqlite3.connect(DB_PATH)
@@ -332,10 +378,23 @@ def conn() -> sqlite3.Connection:
             continue
         if "tenant_id" not in _cols:
             c.execute(f"ALTER TABLE {_t} ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
+    # ⭐ R3-9：补齐 core.auth 需要的 users 列（与 studio 共用同一张表，
+    #   谁先建表另一方就会缺列——详见 ensure_users_columns 的说明）。
+    ensure_users_columns(c)
+
     # 确保默认租户行存在
     c.execute(
         "INSERT OR IGNORE INTO tenants (id, name, plan, launch_mode, is_active, created_at) "
         "VALUES ('default', 'default', 'free', 'invite-only', 1, datetime('now'))"
+    )
+
+    # R3-9：把历史草稿（user_id 为空串）的归属一次性回填给本机管理员。
+    # 幂等（只填空串），故每次建连执行成本可忽略；放在迁移之后是因为
+    # 上面的 ALTER TABLE ADD COLUMN user_id 保证了该列一定存在。
+    # ⚠️ 直接写 SQL（而非调 backfill_drafts_owner）是为了避免 conn() 与
+    #    业务函数互相递归调用。
+    c.execute(
+        "UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''"
     )
 
     c.commit()
@@ -525,7 +584,14 @@ def add_draft(topic_id: str, title: str, body_md: str, platforms: list[str], *,
               source_title: str = "", analysis: str = "",
               candidate_titles: list[dict] | None = None,
               source_stats: dict | None = None,
-              workspace_id: str = "") -> dict:
+              workspace_id: str = "", user_id: str = "") -> dict:
+    """新建草稿。
+
+    ⭐ R3-9：新增 ``user_id`` 参数并**真正落库**。
+       此前 add_draft 从不写 user_id，而所有读取路径又不过滤归属，
+       等于「任何登录用户可访问任意 did」。调用方（web 路由）必须传入
+       当前登录用户 id；留空仅允许内部任务使用（归属为空 → 对外不可见）。
+    """
     c = conn()
     cand_json = json.dumps(candidate_titles or [], ensure_ascii=False)
     stats_json = json.dumps(source_stats or {}, ensure_ascii=False)
@@ -534,21 +600,28 @@ def add_draft(topic_id: str, title: str, body_md: str, platforms: list[str], *,
          "source_platform": source_platform, "source_url": source_url,
          "source_title": source_title, "analysis": analysis,
          "candidate_titles": cand_json, "source_stats": stats_json,
-         "workspace_id": workspace_id}
+         "workspace_id": workspace_id, "user_id": str(user_id or "")}
     c.execute("INSERT INTO drafts (id,topic_id,created_at,title,body_md,platforms,status,"
-              "source_platform,source_url,source_title,analysis,candidate_titles,source_stats,workspace_id) "
-              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+              "source_platform,source_url,source_title,analysis,candidate_titles,source_stats,"
+              "workspace_id,user_id) "
+              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
               tuple(d[k] for k in ("id", "topic_id", "created_at", "title", "body_md",
                                    "platforms", "status", "source_platform",
                                    "source_url", "source_title", "analysis",
-                                   "candidate_titles", "source_stats", "workspace_id")))
+                                   "candidate_titles", "source_stats",
+                                   "workspace_id", "user_id")))
     c.commit()
     c.close()
     return d
 
 
-def create_custom_draft(title: str, body_md: str = "", workspace_id: str = "", platforms: list[str] | None = None) -> dict:
-    """创作者在内容工作台手动新建草稿或导入外部草稿。"""
+def create_custom_draft(title: str, body_md: str = "", workspace_id: str = "",
+                         platforms: list[str] | None = None,
+                         user_id: str = "") -> dict:
+    """创作者在内容工作台手动新建草稿或导入外部草稿。
+
+    ⭐ R3-9：透传 user_id，让新建的草稿立刻带上归属。
+    """
     if platforms is None:
         platforms = ["wechat_mp", "xhs", "toutiao", "zhihu", "weibo"]
     clean_title = (title or "").strip()
@@ -562,39 +635,128 @@ def create_custom_draft(title: str, body_md: str = "", workspace_id: str = "", p
         platforms=platforms,
         source_platform="manual_import",
         source_title=clean_title,
-        workspace_id=workspace_id or ""
+        workspace_id=workspace_id or "",
+        user_id=user_id or "",
     )
 
 
 def get_draft(draft_id: str) -> dict | None:
+    """按 id 取草稿（**不做归属校验**）。
+
+    ⚠️ 安全警告（R3-9）：本函数只按 id 查，任何知道 did 的登录用户都能取到
+       别人的稿件。仅供「内部任务/后台线程/归属已确定」的场景使用。
+       对外暴露的接口必须改用 :func:`get_draft_for_user`
+       （或web层的 ``_assert_draft_owner``），否则就是越权漏洞。
+    """
     c = conn()
     r = c.execute("SELECT * FROM drafts WHERE id=?", (draft_id,)).fetchone()
     c.close()
     if not r:
         return None
     d = dict(r)
-    try:
-        d["platforms"] = json.loads(d["platforms"]) if d.get("platforms") else []
-    except Exception:
-        d["platforms"] = []
-    try:
-        d["candidate_titles"] = json.loads(d["candidate_titles"]) if d.get("candidate_titles") else []
-    except Exception:
-        d["candidate_titles"] = []
-    try:
-        d["source_stats"] = json.loads(d["source_stats"]) if d.get("source_stats") else {}
-    except Exception:
-        d["source_stats"] = {}
+    for k in ("platforms", "candidate_titles", "source_stats"):
+        try:
+            d[k] = json.loads(d[k]) if d.get(k) else ([] if k != "source_stats" else {})
+        except Exception:
+            d[k] = [] if k != "source_stats" else {}
     return d
 
 
-def list_drafts() -> list[dict]:
+# ---------------------------------------------------------------------------
+# R3-9：草稿归属隔离
+# ---------------------------------------------------------------------------
+#
+# 背景（实测）：``drafts.user_id`` 全库为空串，且 :func:`get_draft` /
+# :func:`list_drafts` 从不过滤归属 → **任何登录用户拿到任意 did 就能读
+# 别人的稿件与图片直链**（/img/{did}/{name}、/card/{did}/{name} 同样如此）。
+#
+# 归属判定规则（fail-closed）：
+#   - 草稿有 user_id → 只有该user（及管理员）可访问；
+#   - 草稿 user_id 为空（R3-9 前的历史数据）→ 已由 backfill_drafts_owner
+#     一次性回填给本机唯一管理员；回填后仍为空的一律**只允许管理员**访问，
+#     绝不退化成「谁都能看」。
+
+def is_draft_owner(draft: dict | None, user_id: str, *, is_admin: bool = False) -> bool:
+    """判断某用户是否有权访问该草稿。
+
+    Args:
+        draft: 草稿行（dict），为空视为无权。
+        user_id: 当前登录用户 id。
+        is_admin: 管理员/运营可跨用户访问（排障与合规复核需要）。
+    """
+    if not draft:
+        return False
+    if is_admin:
+        return True
+    owner = str(draft.get("user_id") or "").strip()
+    uid = str(user_id or "").strip()
+    if not owner:
+        # 无归属的历史数据：只放行管理员，绝不「无人认领即公开」
+        return False
+    return bool(uid) and owner == uid
+
+
+def get_draft_for_user(draft_id: str, user_id: str, *, is_admin: bool = False) -> dict | None:
+    """取草稿并校验归属；无权访问时返回 ``None``（由调用方决定 403 还是 404）。
+
+    刻意**不直接抛错**：不同端点对「存在但无权」应返回 403 还是 404
+    有不同取舍（404 不泄露 id 是否存在），由web 层统一决定。
+    """
+    d = get_draft(draft_id)
+    if not d:
+        return None
+    return d if is_draft_owner(d, user_id, is_admin=is_admin) else None
+
+
+def backfill_drafts_owner(default_owner: str = "u-admin") -> int:
+    """R3-9：把``drafts.user_id`` 为空的历史草稿归到 ``default_owner``名下。
+
+    背景：库里有 6 条草稿 ``user_id`` 全为空串（实测），在归属校验上线后
+    这些草稿会对所有人不可见（含原作者）。本函数在连接建立时**幂等执行**：
+    只填空串，不动已有归属，因此可以安全地反复调用。
+
+    Returns:
+        本次回填的行数（无新增时返回 0）。
+    """
+    owner = str(default_owner or "").strip()
+    if not owner:
+        return 0
+    try:
+        c = conn()
+        cur = c.execute(
+            "UPDATE drafts SET user_id=? WHERE user_id IS NULL OR TRIM(user_id)=''",
+            (owner,),
+        )
+        c.commit()
+        n = cur.rowcount or 0
+        c.close()
+        return int(n)
+    except Exception:
+        # 回填失败绝不能拖垮连接建立：归属校验会 fail-closed 拒绝访问，
+        # 宁可「暂时谁都看不到」，也不要「谁都能看」。
+        return 0
+
+
+def list_drafts(user_id: str = "", *, is_admin: bool = False) -> list[dict]:
+    """草稿列表。
+
+    ⭐ R3-9：新增归属过滤。传 ``user_id`` 只返回该用户的草稿；
+       ``is_admin=True`` 返回全部（运营排障/合规复核）。
+       **不传 user_id 且非管理员时返回空列表**（fail-closed）——
+       绝不能退化成「列出所有人的稿件」。
+    """
     c = conn()
-    rows = c.execute("SELECT id,topic_id,created_at,title,body_md,platforms,status,"
-                     "source_platform,source_url,source_title,analysis,"
-                     "score,score_detail,score_round,candidate_titles,source_stats,"
-                     "needs_review,guard_reason "
-                     "FROM drafts ORDER BY created_at DESC LIMIT 200").fetchall()
+    sql = ("SELECT id,topic_id,created_at,title,body_md,platforms,status,"
+           "source_platform,source_url,source_title,analysis,"
+           "score,score_detail,score_round,candidate_titles,source_stats,"
+           "needs_review,guard_reason,user_id "
+           "FROM drafts")
+    params: tuple = ()
+    if not is_admin:
+        sql += " WHERE user_id = ?"
+        params = (str(user_id or ""),)
+    sql += " ORDER BY created_at DESC LIMIT 200"
+    rows = c.execute(sql, params).fetchall()
     c.close()
     out = []
     for r in rows:

@@ -48,8 +48,19 @@ def _secret_key() -> str:
 
 
 def _db():
+    """打开 auth 专用连接。
+
+    ⭐ R3-9：这里也补齐 users 列。``core.db`` 与 ``studio.db_models`` 共用同一张
+    ``users`` 表但列集不同，谁先建表另一方就会缺列——新装机器若studio 先
+    init_db，``get_user_by_id`` 会抛 ``no such column: plan``，
+    表现为**所有需要鉴权的接口全部 500**。
+    在此补列可让两条建连路径都自愈（core.db.conn 与本函数）。
+    """
     c = sqlite3.connect(DB_PATH)
     c.row_factory = sqlite3.Row
+    from core.db import ensure_users_columns
+
+    ensure_users_columns(c)
     return c
 
 

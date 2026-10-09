@@ -1,6 +1,6 @@
 # 一幕·YIMU 爆款工作室 V7 · API 契约（Contract）
 
-> **版本**：7.0.0-dev ｜ **状态**：WS-A 冻结版（冻结后修改须走 §8 变更流程）
+> **版本**：7.1.0 ｜ **状态**：WS-A 冻结版（冻结后修改须走 §8 变更流程）
 > **基线**：项目 B @ commit `0cb424f` 的全部 `/api` 路由功能（§5 路由清单逐一映射，遗漏显式标注）
 > **阅读对象**：WS-B（网关+会员）、WS-C（图片专项）、WS-D（B功能重实现）、WS-E（A移植→V7.1）、WS-F（前端）
 
@@ -311,6 +311,24 @@
 - `POST /api/models/provider/set_active` → models_set_active：切换活动供应商【V7.0】[B→重写]
 - `POST /api/models/provider/delete` → models_delete_provider：删除供应商【V7.0】[B→重写]
 - `GET /api/llm/usage` → llm_usage：各模型服务使用量统计+官方通道消费汇总（双轨制）【V7.0】[NEW]
+- `GET /api/pricing` → pricing_plans：三档套餐与售价（价格页数据源，价格取 studio/pricing 真源）【V7.2/R3-1】[NEW]
+- `GET /pricing` → pricing_page：价格页（自包含 HTML，含下单与订单查询）【V7.2/R3-1】[NEW]
+- `POST /api/billing/order` → billing_create_order：下单购买套餐→生成 CDKey+支付指引【V7.2/R3-2】[NEW]
+- `GET /api/billing/orders` → billing_my_orders：当前用户自己的订单列表【V7.2/R3-2】[NEW]
+- `GET /api/billing/upgrade` → billing_upgrade_options：额度墙付费引导（缺口+套餐对比，取定价真源）【V7.2/R3-4】[NEW]
+- `GET /api/admin/orders` → admin_list_orders：订单管理列表（管理员，分页+状态筛选）【V7.2/R3-2】[NEW]
+- `POST /api/admin/orders/{order_id}/confirm` → admin_confirm_order：管理员核销收款（pending→paid）【V7.2/R3-2】[NEW]
+- `POST /api/admin/orders/{order_id}/cancel` → admin_cancel_order：作废未支付订单并撤销卡密【V7.2/R3-2】[NEW]
+- `POST /api/admin/orders/{order_id}/refund` → admin_refund_order：退款（扣回额度+作废卡密+审计，幂等防重复退）【V7.2/R3-6】[NEW]
+- `POST /api/admin/grant_credits` → admin_grant_credits：给指定用户发放额度（管理员，资金动作）【V7.2/R3-5】[NEW]
+- `GET /api/admin/users` → admin_list_users：用户列表（分页+搜用户名/邮箱/档位/封禁态）【V7.2/R3-7】[NEW]
+- `POST /api/admin/users/{user_id}/ban` → admin_ban_user：封禁/解封用户（审计必写，封禁后无法调 API）【V7.2/R3-7】[NEW]
+- `GET /admin/users` → admin_users_page：用户管理页（管理员）【V7.2/R3-7】[NEW]
+- `GET /api/admin/audit_logs` → admin_audit_logs：审计日志查询（分页+动作/操作人/对象过滤）【V7.2/R3-8】[NEW]
+- `GET /api/admin/audit_actions` → admin_audit_actions：已出现的审计动作列表（下拉筛选用）【V7.2/R3-8】[NEW]
+- `GET /admin/audit` → admin_audit_page：审计日志查询页（管理员）【V7.2/R3-8】[NEW]
+- `GET /api/video/status` → video_status：MoneyPrinterTurbo 视频服务运行状态探测【V7.0】[B]
+- `POST /api/video/launch` → video_launch：拉起 MoneyPrinterTurbo 视频服务进程【V7.0】[B]
 - `GET /api/tasks` → tasks_list：异步任务列表【V7.0】[B]
 - `GET /api/tasks/{task_id}` → tasks_get：任务状态/进度【V7.0】[B]
 - `POST /api/tasks/{task_id}/cancel` → tasks_cancel：取消任务【V7.0】[B]

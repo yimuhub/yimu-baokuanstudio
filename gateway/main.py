@@ -23,7 +23,7 @@ from studio.db import get_engine, get_session_factory, init_db
 try:
     from version import __version__ as _GATEWAY_VERSION
 except Exception:
-    _GATEWAY_VERSION = "7.0.0-dev"
+    _GATEWAY_VERSION = "7.1.0"
 
 from .circuit import CircuitBreaker
 from .config import (

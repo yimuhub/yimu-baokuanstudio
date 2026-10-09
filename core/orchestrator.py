@@ -316,12 +316,16 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
 
 
 def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆款工作室",
-                   platforms: list[str] | None = None) -> dict:
+                   platforms: list[str] | None = None,
+                   user_id: str = "") -> dict:
     """对已通过选题生成草稿：LLM 成稿 → 按需多端渲染/配图/卡片 → 自动评分循环。
 
     R4 合规：成稿后先过内容安全前置闸（core.content_guard），
     **命中阻断档时不进入 7 维质量评分**——违规内容不该浪费评分算力，
     更不该被「质量分高」误导为可发布。灰区标记 needs_review 交人工审。
+
+    ⭐ R3-9：``user_id`` 标记草稿归属；留空则草稿对外不可见
+       （归属为空的草稿只有管理员能访问，见 core.db.is_draft_owner）。
     """
     emit = emit or (lambda *_: None)
     emit("AI 写作中…（约20-40秒）")
@@ -361,7 +365,7 @@ def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆
     emit(f"排版渲染与配图 [{', '.join(selected_platforms)}]…")
     cand_titles = generate_candidate_titles(title, body)
     draft = db.add_draft(topic_id, title, body, selected_platforms,
-                         candidate_titles=cand_titles)
+                         candidate_titles=cand_titles, user_id=user_id)
     parsed = {"TITLE_WX": title, "BODY_WX": body,
               "TITLE_XHS": title, "BODY_XHS": body,
               "TITLE_TT": title, "BODY_TT": body}
@@ -461,10 +465,12 @@ def switch_draft_title(draft_id: str, new_title: str) -> dict:
 
 def benchmark_and_rewrite(source_platform: str, source_title: str, source_url: str,
                           theme: str, extra: dict | None = None,
-                          source_text: str = "") -> dict:
+                          source_text: str = "", user_id: str = "") -> dict:
     """读取对标爆款 → 拆解结构 → 仿写三平台 → 自动评分循环。
 
     source_text 非空（手动贴文模式）时直接以其为原文，跳过抓取。
+
+    ⭐ R3-9：``user_id`` 标记草稿归属（见 core.db.is_draft_owner）。
     """
     from core import search as S
     from core.extractor import extract_url
@@ -516,7 +522,8 @@ def benchmark_and_rewrite(source_platform: str, source_title: str, source_url: s
     d = db.add_draft(None, title, body, ["wechat_mp", "xhs", "toutiao"],
                      source_platform=source_platform, source_url=source_url,
                      source_title=source_title, analysis=parsed.get("ANALYSIS", ""),
-                     candidate_titles=cand_titles, source_stats=source_stats)
+                     candidate_titles=cand_titles, source_stats=source_stats,
+                     user_id=user_id)
     _refresh_artifacts(d["id"], parsed, title, body)
     result = {"draft": db.get_draft(d["id"]), "analysis": parsed.get("ANALYSIS", "")}
     if llm.available():
@@ -1650,12 +1657,15 @@ def deep_distill_anything(content: str, distill_type: str = "all", author_name: 
 
 def generate_one_sentence_viral(sentence: str, mounted_persona: str = "", theme: str = "",
                                 media_name: str = "一幕·YIMU 爆款工作室", emit=None,
-                                platforms: list[str] | None = None) -> dict:
+                                platforms: list[str] | None = None,
+                                user_id: str = "") -> dict:
     """一句话爆款引擎：
     1. 意图拆解与多组高精准搜索 Query 提炼；
     2. 全网多源真实并发检索 3~5 篇权威长文；
     3. 消化真实文章，结合名家文风生成所选平台的爆款成稿；
     4. 入库草稿箱并完成 7 维智能评审。
+
+    ⭐ R3-9：``user_id`` 标记草稿归属（见 core.db.is_draft_owner）。
     """
     emit = emit or (lambda *_: None)
     sentence = (sentence or "").strip()
@@ -1749,7 +1759,8 @@ def generate_one_sentence_viral(sentence: str, mounted_persona: str = "", theme:
         source_title=sentence,
         analysis=parsed.get("ANALYSIS", ""),
         candidate_titles=cand_titles,
-        source_stats={"search_queries": search_queries, "reference_count": len(all_refs)}
+        source_stats={"search_queries": search_queries, "reference_count": len(all_refs)},
+        user_id=user_id,
     )
     _refresh_artifacts(draft["id"], parsed, title, body, media_name=media_name, platforms=selected_platforms)
 

@@ -51,7 +51,9 @@ class TestCapabilityMatrix:
         assert caps.capability_limit("free", "image_race_weekly") == 3
         assert caps.capability_limit("free", "tts_max_chars") == 500
         assert caps.capability_limit("free", "tts_daily") == 5
-        assert caps.capability_limit("free", "drama_weekly") == 1
+        #⭐ R2-7：免费档不再承诺完整 8 步短剧（消耗 12000 credits ≫ 额度 3000）
+        assert caps.capability_limit("free", "drama_weekly") == 0
+        assert caps.capability_limit("free", "drama_shot_weekly") == 1
         assert caps.capability_limit("free", "drama_max_seconds") == 10
         assert caps.capability_limit("free", "publish_platforms") == 1
         assert caps.capability_limit("free", "gateway_api") is False
@@ -92,13 +94,29 @@ class TestQuotaEngine:
             assert ok is True
 
     def test_weekly_quota(self, db):
-        # free 每周短剧 1 次
+        # ⭐ R2-7：单镜头体验每周 1 次（替代原「完整短剧每周 1 次」）
         ok1, _ = caps.check_and_consume(
-            db, tenant_id="t1", user_id="u3", tier="free", capability="drama_weekly")
+            db, tenant_id="t1", user_id="u3", tier="free", capability="drama_shot_weekly")
         assert ok1 is True
         ok2, r2 = caps.check_and_consume(
-            db, tenant_id="t1", user_id="u3", tier="free", capability="drama_weekly")
+            db, tenant_id="t1", user_id="u3", tier="free", capability="drama_shot_weekly")
         assert ok2 is False and "下周一" in r2
+
+    def test_free_cannot_run_full_drama(self, db):
+        """R2-7：免费档不得跑完整 8 步短剧，且文案要指明替代方案与升级路径。"""
+        ok, reason = caps.check_and_consume(
+            db, tenant_id="t1", user_id="u3b", tier="free", capability="drama_weekly")
+        assert ok is False, "免费档跑完整短剧必然跳票，必须拒绝"
+        assert "单镜头" in reason, f"应引导到单镜头体验：{reason}"
+        assert "Pro" in reason, f"应给出升级路径：{reason}"
+
+    def test_free_drama_promise_matches_quota(self, db):
+        """承诺必须与额度自洽：免费档周期额度跑不完一条完整短剧。"""
+        from studio.pricing import FULL_DRAMA_CREDITS, TIER_CREDITS
+
+        assert TIER_CREDITS["free"] < FULL_DRAMA_CREDITS, (
+            "免费档额度若够跑完整短剧，就不该把 drama_weekly 设为 0"
+        )
 
     def test_switch_capability(self, db):
         # 开关型：free 拒绝，pro 允许

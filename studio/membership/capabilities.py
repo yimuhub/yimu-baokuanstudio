@@ -2,12 +2,21 @@
 """会员能力矩阵与配额引擎：V7 Free / V7 Pro / V7 Studio 三档功能区分。
 
 设计原则（2026-10-08 用户拍板）：
-- 免费版"限量不限功能"：让用户体验完整版内容（短剧每周 1 次完整 8 步、
-  热榜每日 1 次），用完整体验驱动付费转化。
-- 网关 API 为 Pro 专属卖点，免费版不开放。
+- 免费版"限量不限功能"：让用户体验完整版内容，用完整体验驱动付费转化。
+- 网关 API 为Pro 专属卖点，免费版不开放。
 - 配额按自然日/自然周重置；超限返回升级引导，不粗暴报错。
 
 ⭐ 配额计数只增不改；金额/次数一律整数。
+
+⭐ R2-7 免费版权益必须与额度自洽：
+   一条完整 8 步短剧真实消耗 **12000 credits**
+   （解构 1000 + 生图 4×1000 + 渲染 5000 + 配音 4×500，见
+   ``studio.pricing.FULL_DRAMA_CREDITS``），
+   而免费档周期总额度只有 **3000 credits** —— 连一条都跑不完。
+   此前本文件承诺"每周 1 次完整 8 步短剧"（``drama_weekly: 1``），
+   是一条**必然跳票的承诺**：跑一条就归零，用户只会觉得被骗。
+   现改为只送「单镜头体验」（单次分镜解构 + 单张生图），
+   让用户尝到 AI 短剧的味道，但要出片必须升级 —— 承诺与账本自洽。
 """
 
 from __future__ import annotations
@@ -56,7 +65,12 @@ CAPABILITIES: dict[str, dict[str, int | bool]] = {
         "image_race_weekly": 3,    # 每周赛马体验次数
         "tts_max_chars": 500,      # 单次 TTS 最大字数
         "tts_daily": 5,            # 每日 TTS 次数
-        "drama_weekly": 1,         # 每周短剧完整流水线次数
+        # ⭐ R2-7：free 不再承诺「完整 8 步短剧」——12000 credits 的消耗
+        #   远超免费档 3000 的周期额度，承诺必然跳票。
+        #   改为 0 次完整流水线；改送「单镜头体验」：
+        #   每周可做 drama_shot_experience 次（解构 + 单张生图，约 2000 credits）。
+        "drama_weekly": 0,         # 完整 8 步短剧流水线：免费档不提供
+        "drama_shot_weekly": 1,    # 每周单镜头体验次数（解构 + 1 张图）
         "drama_max_seconds": 10,   # 短剧成片最大秒数
         "publish_platforms": 1,    # 单次可发布平台数
         "gateway_api": False,      # 网关 Key 创建/API 调用
@@ -74,6 +88,7 @@ CAPABILITIES: dict[str, dict[str, int | bool]] = {
         "tts_max_chars": -1,
         "tts_daily": -1,
         "drama_weekly": -1,
+        "drama_shot_weekly": -1,
         "drama_max_seconds": -1,
         "publish_platforms": -1,
         "gateway_api": True,
@@ -91,6 +106,7 @@ CAPABILITIES: dict[str, dict[str, int | bool]] = {
         "tts_max_chars": -1,
         "tts_daily": -1,
         "drama_weekly": -1,
+        "drama_shot_weekly": -1,
         "drama_max_seconds": -1,
         "publish_platforms": -1,
         "gateway_api": True,
@@ -108,6 +124,7 @@ QUOTA_WINDOWS: dict[str, str] = {
     "image_race_weekly": "week",
     "tts_daily": "day",
     "drama_weekly": "week",
+    "drama_shot_weekly": "week",
     "copilot_daily": "day",
 }
 
@@ -116,7 +133,8 @@ _QUOTA_REASONS: dict[str, str] = {
     "hot_daily": "今日热榜采集次数已用完（{used}/{limit}），明日重置",
     "image_race_weekly": "本周图片赛马体验次数已用完（{used}/{limit}），下周一重置",
     "tts_daily": "今日语音合成次数已用完（{used}/{limit}），明日重置",
-    "drama_weekly": "本周短剧流水线次数已用完（{used}/{limit}），下周一重置",
+    "drama_weekly": "本周完整短剧次数已用完（{used}/{limit}），下周一重置",
+    "drama_shot_weekly": "本周单镜头体验次数已用完（{used}/{limit}），下周一重置",
     "copilot_daily": "今日 Copilot 对话次数已用完（{used}/{limit}），升级 Pro 可无限使用，明日重置",
 }
 
@@ -191,7 +209,14 @@ def check_and_consume(
     # -1 = 不限
     if limit == -1:
         return True, ""
+    #⭐ R2-7：0 = 该档位不提供此能力（免费档完整短剧即此情形）。
+    #   文案要说清「为什么」+「怎么办」，否则用户以为系统坏了。
     if limit == 0:
+        if capability == "drama_weekly":
+            return False, (
+                "完整 8 步 AI 短剧为 Pro 专属功能。免费档可先体验「单镜头短剧」，"
+                f"{UPGRADE_HINT}即可生成完整成片。"
+            )
         return False, f"该功能为 V7 Pro 专属，{UPGRADE_HINT}"
 
     # 配额型：按窗口计数

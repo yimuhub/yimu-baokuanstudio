@@ -2793,7 +2793,8 @@ async def drama_preview_audio(did: str, request: Request):
 @app.post("/api/video/drama/{did}/render")
 async def drama_render(did: str, request: Request):
     u = guard(request)
-    # ⭐ 会员分级：短剧流水线每周配额（free：每周 1 次完整 8 步）
+    # ⭐ 会员分级：完整 8 步短剧为 Pro 专属（R2-7：免费档额度 3000 credits
+    #   跑不完一条 12000 credits 的完整短剧，故不再向Free 承诺）。
     _allowed, _reason, _tier = _tier_quota_check(u, "drama_weekly")
     if not _allowed:
         raise HTTPException(402, _reason)
@@ -2922,7 +2923,19 @@ async def drama_pipeline_step1(did: str, request: Request):
     body = await request.json()
     text = body.get("text", "")
     overrides = body.get("overrides", {})
-    # ⭐ 会员分级：短剧成片时长帽（free：10 秒）——导演 AI 按该时长规划，保证成片连贯
+    #⭐ R2-7：会员分级（两条）
+    #   1) 成片时长帽（free：10 秒）——导演 AI 按该时长规划，保证成片连贯
+    #   2) 完整流水线（step1→render）为 Pro 专属；免费档每周 1 次
+    #      「单镜头体验」额度（解构 + 单张图，约 2000 credits，额度内可跑）
+    _is_free = str((u or {}).get("role") or "") not in ("admin", "owner")
+    _pipeline_allowed = True
+    if _is_free:
+        _pipeline_allowed, _reason, _ = _tier_quota_check(u, "drama_weekly")
+        if not _pipeline_allowed:
+            # 免费档改走单镜头体验额度
+            _shot_allowed, _shot_reason, _ = _tier_quota_check(u, "drama_shot_weekly")
+            if not _shot_allowed:
+                raise HTTPException(402, _shot_reason or _reason)
     _cap = _tier_capability_limit(u, "drama_max_seconds")
     if isinstance(_cap, int) and _cap > 0:
         try:

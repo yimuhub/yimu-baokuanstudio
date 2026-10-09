@@ -45,6 +45,8 @@ class _AdminClient:
         self._c = client
         self.db_session = db_session
         self._tmp = tmp
+        # ⭐ R2-3：as_user() 记录当前登录用户 id，供 set_balance 定位memberships 行
+        self._user_id: str | None = None
         # ⭐ 这些用例模拟**浏览器 Cookie 登录态**（mf_v6_token），必须像真实前端
         #   一样带上 Double Submit Cookie 的 CSRF token，否则请求会被
         #   core.security_middleware.CSRFMiddleware 挡成 403，
@@ -65,13 +67,59 @@ class _AdminClient:
     def get(self, url, **kw):
         return self._c.get(url, **kw)
 
-    def set_balance(self, amount: int) -> None:
-        """设置 core.billing 账本余额（测试用）。"""
-        from core import billing
+    def set_balance(self, amount: int, user_id: str | None = None) -> None:
+        """设置账户余额（测试用）。
 
-        data = billing._load_data()
-        data["balance"] = amount
-        billing._save_data(data)
+        ⭐ R2-3：账本已收敛到 memberships + ledger，
+           require_credits 不再读 core.billing 的 JSON 单例，
+           因此这里直接改 memberships.credits_used 来构造余额。
+
+        ⚠️ 本fixture 把 core.auth 库与 studio 库**故意隔离**成两个文件，
+           而生产环境两者是同一个 sqlite 文件（web/admin.py 把 YIMU_DB_URL
+           指向 core.db.DB_PATH），因此生产下 core.auth 注册的用户天然也在
+           studio 的 users 表里。测试里必须补上这一行，否则
+           ensure_membership 会因「用户不存在」而 404。
+        """
+        from studio import billing_adapter
+        from studio.db_models import Membership, Tenant, User, new_id, utcnow
+        from studio.membership.service import ensure_membership
+
+        db = self.db_session
+        tid = billing_adapter.WEB_TENANT_NAME
+        uid = user_id or self._user_id
+        assert uid, "需先调用 as_user() 确定登录用户"
+
+        # memberships.tenant_id 有外键指向 tenants，隔离库里需先建默认租户。
+        # ⚠️ 全量跑时 default 租户可能已由其他用例/装配流程建过；且本 session
+        #   可能持有过期读快照（先查后插却撞主键）。因此先 rollback 清掉
+        #   旧读事务，再 get-or-create，并对并发插入兜底。
+        db.rollback()
+        # ⭐ 用官方ensure_default_tenant（幂等，按 name 找/建），
+        #   它的租户 id 未必是 'default'（可能是 uuid），必须用它返回的 id，
+        #   否则下面 users.tenant_id 会外键悬空 —— 这正是本用例先前
+        #   在全量跑时 402 的根因（单跑通过、全量失败）。
+        from studio.auth import ensure_default_tenant
+
+        _t = ensure_default_tenant(db)
+        db.commit()
+        tid = _t.id
+
+        exists = db.query(User).filter(User.id == uid).first()
+        if exists is None:
+            db.add(User(
+                id=uid, tenant_id=tid, username=f"r1-{uid[:12]}",
+                email="", password_hash="x", salt="x", role="user",
+                is_active=True, created_at=utcnow(),
+            ))
+            db.commit()
+
+        m = ensure_membership(db, tid, uid)
+        db.commit()
+        if amount <= 0:
+            m.credits_used = int(m.credits_total)
+        else:
+            m.credits_used = max(0, int(m.credits_total) - amount)
+        db.commit()
 
     def as_user(self, role: str = "user", user_id: str | None = None):
         """以指定角色的 V6 登录态调用。
@@ -100,6 +148,7 @@ class _AdminClient:
                 c.close()
         token = auth.make_token({"user_id": user_id, "username": user_id, "role": role})
         self._c.cookies.set("mf_v6_token", token)
+        self._user_id = user_id
         return self
 
 
@@ -438,16 +487,27 @@ def test_r1_4_no_unchecked_check_and_deduct_calls():
 
 
 def test_r1_4_require_credits_raises_402_with_guide(billing_json, monkeypatch):
-    """R1-4：额度不足时 require_credits 抛 402，文案可读且不含开发者黑话。"""
-    import core.billing as cb
+    """R1-4：额度不足时 require_credits 抛 402，文案可读且不含开发者黑话。
+
+    ⭐ R2-3：账本收敛到 memberships 后，余额清零改为清 memberships 的已用额度
+       （不再清 JSON——JSON 已不参与计费）。
+    """
     from fastapi import HTTPException
 
+    from studio import billing_adapter
+    from studio.db_models import Membership
+    from studio.membership.service import ensure_membership
     from web import admin as web_admin
 
-    # 余额清零
-    data = cb._load_data()
-    data["balance"] = 0
-    cb._save_data(data)
+    db = billing_adapter._web_session()
+    try:
+        tid, uid = billing_adapter.get_default_billing_user(db)[0].id, "u-admin"
+        m = ensure_membership(db, tid, uid)
+        db.commit()
+        m.credits_used = int(m.credits_total)  # 余额清零
+        db.commit()
+    finally:
+        db.close()
 
     with pytest.raises(HTTPException) as exc:
         web_admin.require_credits("rewrite", 1, "测试")

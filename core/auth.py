@@ -274,7 +274,9 @@ def login_user(username: str, password: str) -> dict:
 def get_user_by_id(user_id: str) -> dict | None:
     """根据 user_id 查询用户画像"""
     c = _db()
-    r = c.execute("SELECT id, username, email, role, plan, quota_used, quota_max, created_at, last_login, is_active FROM users WHERE id=?", (user_id,)).fetchone()
+    # ⭐ R2-3：必须带上 tenant_id —— 计费按 (tenant_id, user_id) 定位memberships 行，
+    #   拿不到租户就只能退化到 "default"，多租户下会扣错账。
+    r = c.execute("SELECT id, username, email, role, plan, quota_used, quota_max, created_at, last_login, is_active, tenant_id FROM users WHERE id=?", (user_id,)).fetchone()
     c.close()
     return dict(r) if r else None
 

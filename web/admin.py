@@ -424,20 +424,74 @@ _ACTION_LABELS = {
 def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
     """⭐ 扣算力额度并校验结果：余额不足直接抛 402，调用方必须 return。
 
-    背景：全部扣费点此前都写成裸调用``billing.check_and_deduct(...)``，
+    背景：全部扣费点此前都写成裸调用 ``billing.check_and_deduct(...)``，
     返回值被丢弃——余额不足时业务照样执行，等于额度形同虚设。
     现在统一走本函数：扣费成功返回 True，失败抛 HTTPException(402)
     并带上可读的升级引导文案，路由层因此不会执行后续业务动作。
+
+    ⭐ R2-3：账本收敛到 memberships + ledger（不再是 core/billing 的 JSON 单例）。
+       历史问题：``_load_data/_save_data`` 是**全局单例**，多用户共用一个
+       billing.json —— A 充值会被 B 的写入覆盖，且余额不区分用户。
+       现按当前登录用户（guard() 写入的 _CURRENT_USER）扣 memberships.credits_used，
+       明细进ledger 表，逐笔可对账。
+       ⚠️ 无登录上下文时（如后台线程直接调用）退化为单机 u-admin，
+          与历史行为一致，但不再写 JSON。
 
     Raises:
         HTTPException: 402 额度不足（含所需额度与当前余额）。
     """
     from core import billing
-    unit = billing.ACTION_COSTS.get(action, 500)
+    from studio import billing_adapter
+    from studio import pricing
+
+    unit = pricing.ACTION_COSTS.get(action, 500)
     need = unit * max(1, count)
+
+    user = _CURRENT_USER.get() or {}
+    user_id = str(user.get("id") or "")
+
+    ok = False
+    balance = 0
     try:
-        ok = billing.check_and_deduct(action, count, desc)
-    except Exception as e:
+        db = billing_adapter._web_session()
+        try:
+            if not user_id:
+                # 无登录上下文：退化为单机默认用户，保持旧行为不中断业务
+                tenant, u_row = billing_adapter.get_default_billing_user(db)
+                tenant_id = tenant.id if tenant is not None else billing_adapter.WEB_TENANT_NAME
+                user_id = u_row.id if u_row is not None else "u-admin"
+            else:
+                # ⭐ 按 (tenant_id, user_id) 精确定位 memberships 行。
+                #   ⚠️ tenant_id **不能直接信 core.auth 返回的值**：
+                #      core.auth 的 users 行 tenant_id 可能是字符串 'default'
+                #      （core/db.py 的 schema 默认值），而 studio 侧真实租户 id
+                #      是 uuid（studio.auth.ensure_default_tenant 生成）——
+                #      两者不一致会查不到 memberships 行，表现为
+                #      「明明有额度却一直提示不足」。
+                #   正确做法：以 **studio 侧 users 行** 里的 tenant_id 为准
+                #   （同一张 users 表，studio 侧那行是计费用的权威来源）。
+                from studio.db_models import User as _StudioUser
+
+                row = (
+                    db.query(_StudioUser.tenant_id)
+                    .filter(_StudioUser.id == user_id)
+                    .first()
+                )
+                if row and row[0]:
+                    tenant_id = str(row[0])
+                else:
+                    tenant, _ = billing_adapter.get_default_billing_user(db)
+                    tenant_id = (
+                        tenant.id if tenant is not None
+                        else billing_adapter.WEB_TENANT_NAME
+                    )
+            ok = billing_adapter.check_and_deduct(
+                db, tenant_id, user_id, action, count, desc
+            )
+            balance = billing_adapter.get_billing_status(db, tenant_id, user_id)["balance"]
+        finally:
+            db.close()
+    except Exception as e:  # noqa: BLE001
         # 扣费模块异常时按失败处理，宁可拦住也不放过（不抛 500 打扰用户）
         print(f"[计费] 扣费异常，按余额不足处理: action={action} err={e}")
         ok = False
@@ -445,10 +499,6 @@ def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
         return True
 
     label = _ACTION_LABELS.get(action, "该功能")
-    try:
-        balance = billing.get_billing_status().get("balance", 0)
-    except Exception:
-        balance = 0
     # R5-3/R5-6：撞上额度墙时留痕 + 触发召回通知。
     # 这是最有效的付费转化触点——用户已经想用而用不了，此时的召回
     # 转化率远高于日常推送。事件记录失败绝不影响 402 本身。
@@ -2552,9 +2602,23 @@ async def storyboard_batch_gen_images(did: str, request: Request):
 
 @app.get("/api/billing/status")
 def billing_status(request: Request):
-    guard(request)
-    from core import billing
-    return billing.get_billing_status()
+    u = guard(request)
+    # ⭐ R2-3：账本收敛到 memberships + ledger。
+    #   此前读的是 core/billing 的 JSON 全局单例——所有用户看到同一个余额，
+    #   且余额变动不落ledger、无法对账。现按当前用户读 memberships。
+    from studio import billing_adapter
+
+    user_id = str((u or {}).get("id") or "")
+    tenant_id = str((u or {}).get("tenant_id") or billing_adapter.WEB_TENANT_NAME)
+    db = billing_adapter._web_session()
+    try:
+        if not user_id:
+            tenant, u_row = billing_adapter.get_default_billing_user(db)
+            tenant_id = tenant.id if tenant is not None else tenant_id
+            user_id = u_row.id if u_row is not None else "u-admin"
+        return billing_adapter.get_billing_status(db, tenant_id, user_id)
+    finally:
+        db.close()
 
 
 @app.get("/api/llm/usage")

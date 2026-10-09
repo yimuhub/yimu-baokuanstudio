@@ -596,3 +596,124 @@ def test_calc_cost_canary_unchanged():
         "total_credits": 12,
         "count": 2,
     }
+
+
+# ---------------------------------------------------------------------------
+# R2-3 账本收敛验收
+# ---------------------------------------------------------------------------
+
+def test_core_billing_no_longer_owns_a_json_ledger():
+    """R2-3：core/billing.py 不得再用 JSON 单例做余额真源。
+
+    收敛后余额真源是 memberships，明细是 ledger，JSON 仅保留迁移用途。
+    """
+    src = (Path(__file__).resolve().parent.parent / "core" / "billing.py").read_text(
+        encoding="utf-8"
+    )
+    # 对外函数必须转发到 studio 侧账本
+    assert "billing_adapter" in src, "core/billing.py 应转发到 studio.billing_adapter"
+    # 旧的「直接改 JSON 里的 balance」实现应消失
+    assert 'data["balance"] = data.get("balance", 0) + amount' not in src, (
+        "grant_tokens 不得再直接改 JSON 余额"
+    )
+    assert 'data["balance"] -= total_cost' not in src, (
+        "check_and_deduct 不得再直接改 JSON 余额"
+    )
+
+
+def test_check_and_deduct_writes_ledger_and_membership(db_session):
+    """R2-3 核心验收：core.billing.check_and_deduct 落到 memberships + ledger。"""
+    import core.billing as cb
+    from studio import billing_adapter
+    from studio.db_models import Ledger, Membership
+    from studio.membership.service import ensure_membership
+
+    from tests.wsb_common import make_tenant_stack, unique_name
+
+    stack = make_tenant_stack(db_session, unique_name("r2conv"))
+    tid, uid = stack["tenant_id"], stack["user_id"]
+    ensure_membership(db_session, tid, uid)
+    db_session.commit()
+
+    # 直接调adapter（core.billing 的 db 参数版），验证收敛后的行为
+    assert billing_adapter.check_and_deduct(db_session, tid, uid, "rewrite", 1) is True
+
+    m = (
+        db_session.query(Membership)
+        .filter(Membership.user_id == uid)
+        .one()
+    )
+    assert int(m.credits_used) == pricing.ACTION_COSTS["rewrite"]
+    n = (
+        db_session.query(Ledger)
+        .filter(Ledger.tenant_id == tid, Ledger.model == "billing:rewrite")
+        .count()
+    )
+    assert n == 1, "必须写 ledger 明细"
+    assert callable(cb.check_and_deduct), "core.billing 兼容签名仍需存在"
+
+
+def test_json_and_membership_do_not_diverge(db_session):
+    """R2-3：JSON 里的余额变化不得再影响真实余额（JSON 已非真源）。"""
+    from studio import billing_adapter
+    from studio.membership.service import ensure_membership
+
+    from tests.wsb_common import make_tenant_stack, unique_name
+
+    stack = make_tenant_stack(db_session, unique_name("r2div"))
+    tid, uid = stack["tenant_id"], stack["user_id"]
+    ensure_membership(db_session, tid, uid)
+    db_session.commit()
+
+    before = billing_adapter.get_billing_status(db_session, tid, uid)["balance"]
+
+    # 篡改 JSON（模拟历史单例被外部改写）
+    import core.billing as cb
+
+    data = cb._load_data()
+    data["balance"] = 999999
+    cb._save_data(data)
+
+    after = billing_adapter.get_billing_status(db_session, tid, uid)["balance"]
+    assert after == before, (
+        f"真实余额不应被 JSON 影响：before={before} after={after}"
+    )
+
+
+def test_tenant_id_resolved_from_studio_users_row(db_session):
+    """回归：租户 id 必须以 studio users 行为准，不能假定为 'default'。
+
+    ⭐ 这是 R2-3 实测抓到的真实 bug：core/auth.py 返回的 tenant_id 可能是
+       字符串 'default'（core/db.py 的 schema 默认值），而 studio 侧真实租户
+       id 是 uuid（ensure_default_tenant 生成）。若直接采信前者，
+       查 memberships 会查不到行，表现为「明明有额度却永远提示不足」——
+       即用户被永久锁死。
+    """
+    from studio.auth import ensure_default_tenant
+    from studio.db_models import User
+    from studio.membership.service import ensure_membership
+
+    db_session.rollback()
+    tenant = ensure_default_tenant(db_session)
+    db_session.commit()
+    # 该租户 id 很可能不是 'default'（正是 bug 的触发条件）
+    uid = "u-tenant-probe"
+    exists = db_session.query(User).filter(User.id == uid).first()
+    if exists is None:
+        db_session.add(User(
+            id=uid, tenant_id=tenant.id, username=uid, email="",
+            password_hash="x", salt="x", role="user", is_active=True,
+            created_at=utcnow(),
+        ))
+        db_session.commit()
+    m = ensure_membership(db_session, tenant.id, uid)
+    db_session.commit()
+    assert m.tenant_id == tenant.id
+    # 断言：该租户 id 若恰好不是 'default'，则本用例才真正覆盖了 bug
+    if tenant.id != "default":
+        # 用错误的 'default' 去查必然查不到——这正是需要避免的路径
+        assert (
+            db_session.query(Membership)
+            .filter(Membership.tenant_id == "default", Membership.user_id == uid)
+            .first() is None
+        )

@@ -11,6 +11,7 @@ import json
 import sys
 import time
 import uuid
+from contextvars import ContextVar
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
@@ -38,7 +39,28 @@ app = FastAPI(title="一幕·YIMU 爆款工作室")
 from starlette.middleware.gzip import GZipMiddleware  # noqa: E402
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-app.mount("/static-img", StaticFiles(directory=str(BASE / "data")), name="img")
+# R4-8：CSRF 防护 + 安全响应头（CSP / X-Frame-Options / Referrer-Policy 等）。
+# 注意中间件顺序：Starlette 按注册**逆序**执行，靠后注册的先跑（ outermost）。
+# 这里把 CSRF 注册在后 → CSRF 在最外层；SecurityHeaders 在内层包住业务路由。
+# ⚠️ 但这样 CSRF 自己返回的 403 不会经过 SecurityHeaders。
+# 因此改为：SecurityHeaders 在外层（保证任何响应—including 403—都带头），
+# CSRF 在内层（被外层包住，403 也会被外层补上安全头）。
+from core.security_middleware import (  # noqa: E402
+    CSRFMiddleware, SecurityHeadersMiddleware,
+)
+
+app.add_middleware(CSRFMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
+# R4-5 安全收窄：此前把整个 data/ 目录挂成 HTTP 可访问
+#（`GET /static-img/data/video_config.json` 可直接下载到含 pexels_api_key 明文的配置）。
+# 全仓核查结论：/static-img 的**唯一**真实使用点是富文本编辑器上传回显
+#（web/admin.py editor_upload_file → /static-img/editor_uploads/{name}）。
+# 草稿配图/卡片全部走显式路由 /img/{did}/{name}、/card/{did}/{name}
+# （FileResponse，不经过静态挂载），因此这里只挂 editor_uploads 一个子目录，
+# 直链 /static-img/editor_uploads/xxx.png 保持可用，其余 data/ 内容一律 404。
+_STATIC_UPLOAD_DIR = BASE / "data" / "editor_uploads"
+_STATIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static-img/editor_uploads", StaticFiles(directory=str(_STATIC_UPLOAD_DIR)), name="img")
 app.mount("/static", StaticFiles(directory=str(BASE / "web" / "static")), name="static")
 
 # ---- V7 网关 + 会员账本 UI（WS1）：/admin/gateway、/admin/billing 功能页 ----
@@ -54,6 +76,7 @@ app.include_router(gateway_openai_router)
 # studio 侧 DB 会话走 YIMU_DB_URL；默认指向主应用同一 sqlite 文件，
 # 保证网关 UI、/v1、会员三方数据一致（测试可用 YIMU_DB_URL 隔离）。
 import os as _os  # noqa: E402
+import secrets as _secrets  # noqa: E402
 from core.db import DB_PATH as _MAIN_DB_PATH  # noqa: E402
 _os.environ.setdefault("YIMU_DB_URL", "sqlite:///" + str(_MAIN_DB_PATH))
 from studio.membership_router import router as membership_router  # noqa: E402
@@ -88,6 +111,8 @@ def _image_forge_endpoint(_handler_name: str, _method: str, _path: str):
                 _race_allowed = bool(_ok)  # free：配额内体验赛马，用完单张直出
         ctx = {
             "tenant_id": "default",
+            # ⭐ R2-5：生图要真扣 memberships 额度，必须带上调用者身份
+            "user_id": str((user or {}).get("id") or ""),
             "request_id": request.headers.get("x-request-id"),
             "db_url": _os.environ.get("YIMU_DB_URL"),
             "image_client": None,  # 上游未配置时抛 UpstreamNotReady（诚实报错）
@@ -157,6 +182,8 @@ async def on_startup():
         scheduler.start_scheduler_daemon()
     except Exception as e:
         print(f"[Startup] 排期调度守护线程启动轻微异常: {e}")
+    # ⭐ 管理口令状态告警：未配置 ADMIN_PASSWORD 时管理接口不开放（fail-closed）
+    _warn_admin_password_state()
 
 # ---------------- 全局统一异步任务池与调度中枢 ----------------
 JOBS: dict = {}
@@ -242,8 +269,79 @@ async def idempotent_posts(request: Request, call_next):
     return await call_next(request)
 
 
+# ---------------------------------------------------------------------------
+# ⭐ 单机管理口令与 loopback 免密通行（fail-closed）
+#
+# 历史包袱（已下线，不得回退）：
+#   _token() = sha256("mf|" + ADMIN_PASSWORD or缺省 "local-admin")
+#   loopback 判定 = ADMIN_PASSWORD == "local-admin"
+# 两者叠在一起的后果：.env 里没有 ADMIN_PASSWORD 时，_token() 退化成常量，
+# 任何人算一次 sha256 就能伪造 mf_token Cookie 直接拿超级管理员；
+# 而 loopback 免密分支因此恒为真，等于本机任何进程都是超管。
+#
+# 现在的规则：
+#   1) ADMIN_PASSWORD 未配置 → 不签发任何管理 Cookie、拒绝管理员口令登录、
+#      loopback 也不免密（没有口令就没有"默认口令"可免），并在启动时明确告警。
+#   2) mf_token 改为进程内随机密钥签发，重启即失效，外部无法预测或伪造。
+#   3) loopback 免密仅在已配置 ADMIN_PASSWORD 时保留，保证本地开发
+#      （启动一幕V7测试.command 会生成随机口令）开箱可用。
+# ---------------------------------------------------------------------------
+
+#: 进程内随机的管理会话密钥：每次启动重新生成，外部无法预测或伪造 mf_token
+_MF_SESSION_SECRET = _secrets.token_hex(32)
+
+#: 历史默认弱口令：即使 .env 里真的写了它，也不当作"已配置口令"处理
+_WEAK_DEFAULT_PASSWORD = "local-admin"
+
+_LOOPBACK_HOSTS = ("127.0.0.1", "::1", "localhost")
+
+
+def _admin_password() -> Optional[str]:
+    """读取已配置的管理员口令；未配置返回 None（绝不返回默认弱口令）。"""
+    pwd = (load_env().get("ADMIN_PASSWORD") or "").strip()
+    if not pwd or pwd == _WEAK_DEFAULT_PASSWORD:
+        return None
+    return pwd
+
+
+def _loopback_admin_allowed() -> bool:
+    """loopback 自动免密通行是否放行：仅在已配置真实口令时为真。"""
+    return _admin_password() is not None
+
+
+def _warn_admin_password_state() -> None:
+    """服务启动时打印管理口令配置状态（未配置即明确告警）。"""
+    if _admin_password() is None:
+        print(
+            "[安全提示] 未配置 ADMIN_PASSWORD：管理员口令登录与本机免密通行均已关闭，"
+            "管理相关接口需要登录会话。请设置 ADMIN_PASSWORD 环境变量"
+            "（本地可运行「启动一幕V7测试.command」自动生成随机口令）。"
+        )
+    else:
+        print(
+            "[安全提示] 已配置 ADMIN_PASSWORD：本机（loopback）访问将自动获得管理员权限，"
+            "请勿将服务监听在 0.0.0.0 或公网。"
+        )
+
+
 def _token() -> str:
-    return hashlib.sha256(f"mf|{load_env().get('ADMIN_PASSWORD', 'local-admin')}".encode()).hexdigest()
+    """签发单机管理 Cookie 的值：由进程内随机密钥派生，外部不可预测。"""
+    return hashlib.sha256(
+        f"mf|{_MF_SESSION_SECRET}|{_admin_password() or 'no-password'}".encode()
+    ).hexdigest()
+
+
+def _is_loopback(request: Request) -> bool:
+    """请求是否来自本机回环地址。"""
+    client_ip = request.client.host if request.client else ""
+    return client_ip in _LOOPBACK_HOSTS
+
+
+def _auto_admin_cookie(request: Request) -> dict:
+    """本机免密通行时可直接下发的管理用户；否则空 dict。"""
+    if _is_loopback(request) and _loopback_admin_allowed():
+        return {"id": "u-admin", "username": "admin", "role": "admin", "plan": "enterprise"}
+    return {}
 
 
 def get_current_user(request: Request) -> dict | None:
@@ -255,7 +353,7 @@ def get_current_user(request: Request) -> dict | None:
         token = auth_header[7:].strip()
     if not token:
         token = request.cookies.get("mf_v6_token") or request.cookies.get("mf_token", "")
-    
+
     if token:
         from core import auth
         payload = auth.verify_token(token)
@@ -263,28 +361,125 @@ def get_current_user(request: Request) -> dict | None:
             u = auth.get_user_by_id(payload["user_id"])
             if u and u.get("is_active"):
                 return u
-                
-    # 2. 兼容旧单机模式全局 Token
+
+    # 2. 兼容旧单机模式全局 Token（进程内随机签发，外部不可伪造）
     if request.cookies.get("mf_token") == _token():
         return {"id": "u-admin", "username": "admin", "role": "admin", "plan": "enterprise"}
-        
+
     # 3. 本地 loopback 自动免密通行（映射为系统超级管理员）
-    client_ip = request.client.host if request.client else ""
-    if client_ip in ("127.0.0.1", "::1", "localhost") and load_env().get("ADMIN_PASSWORD", "local-admin") == "local-admin":
-        return {"id": "u-admin", "username": "admin", "role": "admin", "plan": "enterprise"}
-        
-    return None
+    #    ⭐ fail-closed：未配置 ADMIN_PASSWORD 时不通行（原本恒为真）
+    return _auto_admin_cookie(request) or None
 
 
 def authed(request: Request) -> bool:
     return get_current_user(request) is not None
 
 
+#: R5-6：当前请求的用户上下文（ContextVar）。
+#: 为什么需要：require_credits(action, count, desc) 全仓 30+ 处调用，
+#: 若为了埋点加 request 参数会改动所有调用点并与 R1 的既有测试冲突。
+#: 改为在唯一的鉴权入口 guard() 里写入，require_credits 读取时
+#: 若为空则退化为「无用户」，埋点仍记事件但不归属到人。
+_CURRENT_USER: ContextVar = ContextVar("yimu_current_user", default=None)
+
+
 def guard(request: Request) -> dict:
     u = get_current_user(request)
     if not u:
         raise HTTPException(401, "未登录或登录态已失效，请先登录")
+    _CURRENT_USER.set(u)
     return u
+
+
+def guard_admin(request: Request) -> dict:
+    """管理员鉴权：已登录但角色不是 admin/owner → 403。
+
+    ⭐ 与 guard 的区别：guard 只验"是不是有人登录"，
+       管理类接口（发卡密、改配置等）必须再验角色，
+       否则任何普通登录用户都能调用（参考 web/gateway_ui.py:_require_admin）。
+    """
+    u = guard(request)
+    if (u or {}).get("role") not in ("admin", "owner"):
+        raise HTTPException(403, "需要管理员权限，请使用管理员账号登录后重试")
+    return u
+
+
+#: 额度不足时给用户看的动作中文名（用于组装引导文案，避免开发者黑话）
+_ACTION_LABELS = {
+    "rewrite": "AI 仿写",
+    "score": "质量评分",
+    "refine_single": "单点润色",
+    "refine_batch": "批量润色",
+    "furnace_round": "内容打磨",
+    "xhs_card_layout": "卡片排版",
+    "drama_decompose": "短剧分镜解构",
+    "drama_image": "图片生成",
+    "drama_tts": "配音合成",
+    "drama_render": "短剧成片渲染",
+    "deep_distill": "深度蒸馏",
+    "draft_create": "新建草稿",
+}
+
+
+def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
+    """⭐ 扣算力额度并校验结果：余额不足直接抛 402，调用方必须 return。
+
+    背景：全部扣费点此前都写成裸调用``billing.check_and_deduct(...)``，
+    返回值被丢弃——余额不足时业务照样执行，等于额度形同虚设。
+    现在统一走本函数：扣费成功返回 True，失败抛 HTTPException(402)
+    并带上可读的升级引导文案，路由层因此不会执行后续业务动作。
+
+    Raises:
+        HTTPException: 402 额度不足（含所需额度与当前余额）。
+    """
+    from core import billing
+    unit = billing.ACTION_COSTS.get(action, 500)
+    need = unit * max(1, count)
+    try:
+        ok = billing.check_and_deduct(action, count, desc)
+    except Exception as e:
+        # 扣费模块异常时按失败处理，宁可拦住也不放过（不抛 500 打扰用户）
+        print(f"[计费] 扣费异常，按余额不足处理: action={action} err={e}")
+        ok = False
+    if ok:
+        return True
+
+    label = _ACTION_LABELS.get(action, "该功能")
+    try:
+        balance = billing.get_billing_status().get("balance", 0)
+    except Exception:
+        balance = 0
+    # R5-3/R5-6：撞上额度墙时留痕 + 触发召回通知。
+    # 这是最有效的付费转化触点——用户已经想用而用不了，此时的召回
+    # 转化率远高于日常推送。事件记录失败绝不影响 402 本身。
+    _on_quota_blocked(action, label, need, balance)
+    raise HTTPException(
+        402,
+        f"算力额度不足：{label}本次需要 {need:,} 点，你的账户还剩 {balance:,} 点。"
+        f"可以通过「兑换卡密」充值，或前往「设置 - 会员与额度」升级套餐后继续使用。",
+    )
+
+
+def _on_quota_blocked(action: str, label: str, need: int, balance: int) -> None:
+    """额度不足的副作用：埋点 + 召回通知（24h 节流，失败静默）。
+
+    独立成函数是为了不把主流程的 402 逻辑撑大，也便于测试单独调用。
+    """
+    try:
+        from core import analytics
+        user = _CURRENT_USER.get() or {}
+        uid = str((user or {}).get("id") or "")
+        analytics.track("quota_blocked", uid,
+                        {"action": action, "label": label,
+                         "need": need, "balance": balance})
+        if not uid:
+            return
+        email = str((user or {}).get("email") or "")
+        from core import user_notify
+        title, body = user_notify.quota_recall_body(label, need, balance)
+        user_notify.deliver(uid, email, title, body, kind="quota_recall")
+    except Exception as e:
+        print(f"[召回] 额度墙通知触发异常（已忽略）: {e}")
 
 
 def _tier_quota_check(user: dict, capability: str) -> tuple:
@@ -368,8 +563,10 @@ async def api_login(request: Request):
     password = (body.get("password") or "").strip()
     
     # 兼容管理员旧口令登录
-    real_pwd = load_env().get("ADMIN_PASSWORD", "local-admin")
-    if username in ("admin", "") and password == real_pwd:
+    # ⭐ fail-closed：未配置 ADMIN_PASSWORD 时不接受任何口令（含历史默认
+    #   "local-admin"），否则等于把超管口令硬编码在源码里。
+    real_pwd = _admin_password()
+    if real_pwd and username in ("admin", "") and password == real_pwd:
         from core import auth
         auth.ensure_default_admin()
         token = auth.make_token({"user_id": "u-admin", "username": "admin", "role": "admin"})
@@ -485,12 +682,86 @@ def api_version():
     return {"version": APP_VERSION}
 
 
+# ---------------- R4 内容安全闸管理接口 ----------------
+
+@app.get("/api/compliance/guard")
+def guard_stats(request: Request):
+    """内容安全闸概况：开关状态、各词库条目数、白名单规模。"""
+    guard(request)
+    from core import content_guard
+    return content_guard.library_stats()
+
+
+@app.post("/api/compliance/topics/sweep")
+async def guard_sweep_topics(request: Request):
+    """扫描选题池，把命中内容安全闸的条目标记 blocked（**不删除**）。
+
+    body: {"apply": false} 预演；true 真正标记。等价于 `python -m scripts.r4_cleanup --apply`。
+    """
+    guard(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    res = db.sweep_blocked_topics(apply=bool(body.get("apply")))
+    return {"ok": True, **res}
+
+
+@app.get("/api/compliance/topics/blocked")
+def guard_blocked_topics(request: Request):
+    """列出被内容安全闸拦下的选题（供人工复核）。"""
+    guard(request)
+    items = db.list_blocked_topics()
+    return {"ok": True, "total": len(items), "items": items}
+
+
+@app.post("/api/compliance/drafts/sweep")
+async def guard_sweep_drafts(request: Request):
+    """扫描草稿箱，把命中内容安全闸的条目标记 needs_review（**不删除**）。"""
+    guard(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    res = db.sweep_drafts_needs_review(apply=bool(body.get("apply")))
+    return {"ok": True, **res}
+
+
+@app.get("/api/compliance/drafts/review")
+def guard_drafts_review(request: Request):
+    """列出待人工复核的草稿。"""
+    guard(request)
+    items = db.list_drafts_needs_review()
+    return {"ok": True, "total": len(items), "items": items}
+
+
+@app.post("/api/compliance/drafts/{did}/clear_review")
+async def guard_clear_review(did: str, request: Request):
+    """人工复核通过：清除 needs_review 标记（草稿本身保留）。"""
+    guard(request)
+    if not db.get_draft(did):
+        raise HTTPException(404, "草稿不存在")
+    return {"ok": db.clear_draft_needs_review(did)}
+
+
+@app.post("/api/compliance/drafts/{did}/check")
+async def guard_check_draft(did: str, request: Request):
+    """对单篇草稿做发布前内容安全检查（不写库，仅返回可读结论）。"""
+    guard(request)
+    from core import content_guard
+    d = db.get_draft(did)
+    if not d:
+        raise HTTPException(404, "草稿不存在")
+    res = content_guard.pre_publish_check(d.get("body_md"), d.get("title"))
+    return res.to_dict()
+
+
 @app.api_route("/m", methods=["GET", "HEAD"])
 def mobile_index(request: Request):
     """V6 专属全新设计的原生手机端页面"""
     resp = HTMLResponse(get_mobile_html_page(), headers={"Cache-Control": "no-store, must-revalidate"})
-    client_ip = request.client.host if request.client else ""
-    if client_ip in ("127.0.0.1", "::1", "localhost") and load_env().get("ADMIN_PASSWORD", "local-admin") == "local-admin":
+    # ⭐ 仅在已配置口令的本机访问时下发管理 Cookie（fail-closed）
+    if _is_loopback(request) and _loopback_admin_allowed():
         resp.set_cookie("mf_token", _token(), httponly=True, samesite="lax", max_age=30*86400, path="/")
     return resp
 
@@ -500,11 +771,11 @@ def index(request: Request):
     # 若请求来自手机浏览器 User-Agent，自动提供全新的手机专属页面
     ua = (request.headers.get("user-agent") or "").lower()
     is_mobile = any(m in ua for m in ("iphone", "android", "mobile", "ipod", "harmonyos", "micromessenger"))
-    
+
     html = get_mobile_html_page() if is_mobile else get_html_page()
     resp = HTMLResponse(html, headers={"Cache-Control": "no-store, must-revalidate"})
-    client_ip = request.client.host if request.client else ""
-    if client_ip in ("127.0.0.1", "::1", "localhost") and load_env().get("ADMIN_PASSWORD", "local-admin") == "local-admin":
+    # ⭐ 仅在已配置口令的本机访问时下发管理 Cookie（fail-closed）
+    if _is_loopback(request) and _loopback_admin_allowed():
         resp.set_cookie("mf_token", _token(), httponly=True, samesite="lax", max_age=30*86400, path="/")
     return resp
 
@@ -753,8 +1024,8 @@ async def draft_images_regenerate_one(did: str, request: Request):
     prompt = body.get("prompt", "")
     title = body.get("title", "")
     aspect = body.get("aspect", "1:1")
-    from core import billing, imagegen
-    billing.check_and_deduct("drama_image", 1, f"重绘文章配图 [{name}]")
+    from core import imagegen
+    require_credits("drama_image", 1, f"重绘文章配图 [{name}]")
     def _run():
         return imagegen.regenerate_draft_image(did, name=name, prompt=prompt, title=title, aspect=aspect)
     try:
@@ -1680,33 +1951,94 @@ async def ticket_run(request: Request):
 
 @app.post("/api/ticket/schedule")
 async def ticket_schedule(request: Request):
+    """设置每日工单的开关与时间（R5-2：应用内定时，不再依赖 macOS launchd）。
+
+    ⚠️ 行为变更：原实现往 ``~/Library/LaunchAgents/`` 写 plist 并
+    ``launchctl load``，那是**仅限 macOS 本机**的机制，云端部署
+    （容器 / Linux）既无 launchctl 也无该目录，定时功能会静默失效。
+    现改为只写配置，由应用内调度守护线程按点执行，跨平台一致。
+    """
     guard(request)
     body = await request.json()
     enabled = bool(body.get("enabled"))
     hh, mm = (body.get("time") or "07:30").split(":")
     write_env("TICKET_ENABLED", "1" if enabled else "0")
     write_env("TICKET_TIME", f"{int(hh):02d}:{int(mm):02d}")
-    plist = Path.home() / "Library/LaunchAgents/com.czmj.mediaflow-ticket.plist"
-    import subprocess as sp
-    sp.run(["launchctl", "unload", str(plist)], capture_output=True)
-    if enabled:
-        plist.write_text(f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-  <key>Label</key><string>com.czmj.mediaflow-ticket</string>
-  <key>ProgramArguments</key><array>
-    <string>{BASE / '.venv/bin/python'}</string>
-    <string>-m</string><string>core.ticket_cli</string>
-  </array>
-  <key>WorkingDirectory</key><string>{BASE}</string>
-  <key>StartCalendarInterval</key><dict>
-    <key>Hour</key><integer>{int(hh)}</integer><key>Minute</key><integer>{int(mm)}</integer>
-  </dict>
-  <key>StandardOutPath</key><string>{BASE}/logs/ticket.out</string>
-  <key>StandardErrorPath</key><string>{BASE}/logs/ticket.out</string>
-</dict></plist>""")
-        sp.run(["launchctl", "load", str(plist)], capture_output=True)
-    return {"ok": True, "enabled": enabled}
+    # 清理历史遗留的 launchd 任务（仅本机存在时才 unload，失败静默）
+    _unload_legacy_launchd()
+    from core import scheduler as _sched
+
+    st = _sched.ticket_status()
+    return {"ok": True, "enabled": enabled, "time": st["time"],
+            "mode": "in_app", "daemon_running": st["daemon_running"]}
+
+
+def _unload_legacy_launchd() -> None:
+    """卸载 R5 之前遗留的 launchd 工单任务（幂等，云端/Linux 上直接跳过）。"""
+    try:
+        if not sys.platform.startswith("darwin"):
+            return
+        plist = Path.home() / "Library/LaunchAgents/com.czmj.mediaflow-ticket.plist"
+        if not plist.exists():
+            return
+        import subprocess as sp
+
+        sp.run(["launchctl", "unload", str(plist)], capture_output=True, timeout=10)
+        plist.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
+@app.get("/api/ticket/schedule")
+def ticket_schedule_get(request: Request):
+    """读取每日工单定时状态（供设置页回显）。"""
+    guard(request)
+    from core import scheduler as _sched
+
+    st = _sched.ticket_status()
+    return {"ok": True, "enabled": st["enabled"], "time": st["time"],
+            "ran_today": st["ran_today"], "daemon_running": st["daemon_running"]}
+
+
+# ---------------------------------------------------------------------------
+# R5-6 运营看板：5 步漏斗指标
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/admin/metrics")
+def admin_metrics(request: Request):
+    """⭐ 运营漏斗看板数据（管理员）。
+
+    返回 5 步漏斗（注册 → 首次成稿 → 首次跑短剧 → 撞额度墙 → 兑换卡密）
+    的逐级转化，另附工单定时、账号健康、通知投递三个运营面板。
+
+    ⚠️ 口径说明：漏斗按**累计触达的去重用户数**统计，非严格同会话序列，
+    因此后段可能出现反超（如先撞墙再成稿）。看板已标注该口径。
+    """
+    guard_admin(request)
+    from core import analytics, pubguard
+    from core import scheduler as _sched
+
+    try:
+        days = int(request.query_params.get("days") or 30)
+    except Exception:
+        days = 30
+    fn = analytics.funnel(days)
+    return {
+        "ok": True,
+        "funnel": fn,
+        "recent_events": analytics.list_recent(20),
+        "ticket": _sched.ticket_status(),
+        "account_health": pubguard.health_summary(),
+        "generated_at": time.time(),
+    }
+
+
+@app.get("/admin/metrics")
+def admin_metrics_page(request: Request):
+    """运营漏斗看板页面（管理员）。纯前端拉接口，无构建步骤。"""
+    guard_admin(request)
+    return HTMLResponse(_METRICS_PAGE_HTML)
 
 
 HEALTH_SERVICES = [
@@ -1716,8 +2048,6 @@ HEALTH_SERVICES = [
      "repair": "kickstart:com.czmj.wae"},
     {"name": "xhsmcp", "label": "小红书数据源", "port": 18060, "path": "/mcp",
      "repair": "restart_xhsmcp"},
-    {"name": "mpt", "label": "短视频引擎界面", "port": 8501, "path": "/",
-     "repair": "optional"},
 ]
 
 
@@ -1760,14 +2090,9 @@ async def health_repair(request: Request):
             time.sleep(3)
         else:
             raise HTTPException(400, "组件未安装")
-    elif name == "mpt":
-        raise HTTPException(400, "短视频引擎按需启动：去「短视频引擎」页点启动")
     else:
         raise HTTPException(404, name)
     return {"ok": True}
-
-
-MPT_DIR = BASE / "vendors" / "MoneyPrinterTurbo"
 
 
 @app.get("/api/video/tasks")
@@ -1782,8 +2107,11 @@ def video_file(tid: str, request: Request):
     guard(request)
     if "/" in tid or ".." in tid:
         raise HTTPException(400, "bad tid")
-    f = MPT_DIR / "storage" / "tasks" / tid / "final-1.mp4"
-    if not f.exists():
+    # V7 原生成片（runs/videos/{tid}/final-*.mp4）
+    native_dir = BASE / "runs" / "videos" / tid
+    candidates = sorted(native_dir.glob("final-*.mp4")) if native_dir.exists() else []
+    f = candidates[0] if candidates else None
+    if not f or not f.exists():
         raise HTTPException(404, "成片不存在")
     from fastapi.responses import FileResponse
     return FileResponse(f, media_type="video/mp4", filename=f"{tid}.mp4")
@@ -1933,7 +2261,7 @@ async def video_make(request: Request):
     jid = f"vid-{did[:8]}-{uuid.uuid4().hex[:4]}"
     start_async_job(
         jid,
-        name=f"短视频合成 (MPT): {d_title[:16]}",
+        name=f"短视频合成: {d_title[:16]}",
         task_type="video_render",
         target_id=did,
         params={"draft_id": did},
@@ -1961,6 +2289,195 @@ async def video_make(request: Request):
             update_async_job(jid, status="failed", error=str(e)[:300], step="短视频生成失败")
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {"job": jid}
+
+
+@app.get("/api/advideo/ref_file")
+def advideo_ref_file(request: Request, path: str = ""):
+    """AI 广告短片：serving 上传的参考图/音频（预览用）。"""
+    guard(request)
+    import pathlib
+    from fastapi.responses import FileResponse
+    p = pathlib.Path(path)
+    # 安全：只允许 runs/advideo_refs 与 runs/advideo_audio 下的文件
+    try:
+        rp = p.resolve()
+        allowed = [pathlib.Path("runs/advideo_refs").resolve(),
+                   pathlib.Path("runs/advideo_audio").resolve()]
+        if not any(str(rp).startswith(str(a)) for a in allowed):
+            raise HTTPException(403, "非法路径")
+        if not rp.exists():
+            raise HTTPException(404, "文件不存在")
+        return FileResponse(str(rp))
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"读取失败: {e}")
+
+
+@app.post("/api/advideo/selling_points")
+async def advideo_selling_points(request: Request):
+    """AI 广告短片：单独生成卖点（供前端预览/编辑/重新生成）。"""
+    guard(request)
+    body = await request.json()
+    product_name = (body.get("product_name") or "").strip()
+    product_desc = (body.get("product_desc") or "").strip()
+    audience = (body.get("audience") or "大众消费者").strip()
+    if not product_name or not product_desc:
+        raise HTTPException(400, "请填写产品名称和产品描述")
+    from core import ad_video
+    sp = ad_video.extract_selling_points(product_name, product_desc, audience)
+    return {"points": sp["points"], "pain": sp.get("pain", "")}
+
+
+@app.post("/api/advideo/upload_ref")
+async def advideo_upload_ref(request: Request, file: UploadFile = File(...)):
+    """AI 广告短片：上传产品/人物参考图。"""
+    guard(request)
+    import pathlib, shutil, uuid
+    ref_dir = pathlib.Path("runs/advideo_refs")
+    ref_dir.mkdir(parents=True, exist_ok=True)
+    ext = pathlib.Path(file.filename or "").suffix.lower() or ".jpg"
+    if ext not in (".jpg", ".jpeg", ".png", ".webp"):
+        raise HTTPException(400, "只支持 jpg/png/webp 图片")
+    safe_name = f"ref_{uuid.uuid4().hex[:8]}{ext}"
+    dest = ref_dir / safe_name
+    try:
+        with open(dest, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return {"ok": True, "path": str(dest.resolve()), "name": file.filename}
+    except Exception as e:
+        raise HTTPException(500, f"参考图上传失败: {e}")
+
+
+@app.post("/api/advideo/upload_audio")
+async def advideo_upload_audio(request: Request, file: UploadFile = File(...)):
+    """AI 广告短片：上传配音音频（mp3/wav）。"""
+    guard(request)
+    import pathlib, shutil, uuid
+    audio_dir = pathlib.Path("runs/advideo_audio")
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    ext = pathlib.Path(file.filename or "").suffix.lower() or ".mp3"
+    if ext not in (".mp3", ".wav", ".m4a"):
+        raise HTTPException(400, "只支持 mp3/wav/m4a 音频")
+    safe_name = f"audio_{uuid.uuid4().hex[:8]}{ext}"
+    dest = audio_dir / safe_name
+    try:
+        with open(dest, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        return {"ok": True, "path": str(dest.resolve()), "name": file.filename}
+    except Exception as e:
+        raise HTTPException(500, f"音频上传失败: {e}")
+
+
+@app.post("/api/advideo/create")
+async def advideo_create(request: Request):
+    """AI 产品广告短片：一键生成（卖点提炼→广告脚本→分镜→合成）。"""
+    guard(request)
+    body = await request.json()
+    product_name = (body.get("product_name") or "").strip()
+    if not product_name:
+        raise HTTPException(400, "请填写产品名称")
+    product_desc = (body.get("product_desc") or "").strip()
+    if not product_desc:
+        raise HTTPException(400, "请填写产品描述")
+    seconds = int(body.get("seconds", 15))
+    aspect = body.get("aspect", "9:16")
+    audience = body.get("audience", "大众消费者")
+    voice = body.get("voice", "zh-CN-XiaoxiaoNeural")
+    # 新增：预生成卖点 / 参考图 / 配音模式
+    selling_points = body.get("selling_points") or None
+    ref_images = body.get("ref_images") or None
+    person_ref_image = body.get("person_ref_image") or None
+    voice_mode = body.get("voice_mode", "auto")
+    custom_audio_path = body.get("custom_audio_path") or None
+    import uuid
+    jid = f"ad-{uuid.uuid4().hex[:8]}"
+    start_async_job(
+        jid,
+        name=f"AI 广告短片: {product_name[:16]}",
+        task_type="ad_video_render",
+        target_id=product_name,
+        params={"product_name": product_name},
+        initial_step="广告创意生成中…",
+    )
+
+    def _run():
+        try:
+            from core import ad_video
+            res = ad_video.make_ad_video(
+                product_name, product_desc, seconds=seconds, aspect=aspect,
+                audience=audience, voice=voice,
+                selling_points=selling_points,
+                ref_images=ref_images, person_ref_image=person_ref_image,
+                voice_mode=voice_mode, custom_audio_path=custom_audio_path,
+                emit=lambda m: update_async_job(jid, step=m),
+            )
+            update_async_job(jid, status="done", step="广告短片合成完成！",
+                             progress=100, result=res)
+        except Exception as e:
+            log_exc = str(e)[:300]
+            update_async_job(jid, status="failed", error=log_exc,
+                             step="广告短片生成失败")
+    asyncio.get_event_loop().run_in_executor(None, _run)
+    return {"job": jid}
+
+
+# ===================== 🎥 AI 短视频生成（视频大模型分段生成） =====================
+
+@app.post("/api/aivideo/create")
+async def aivideo_create(request: Request):
+    """AI 短视频生成：口播文案 → 视频大模型分段生成 → 拼接成片。"""
+    u = guard(request)
+    body = await request.json()
+    script = (body.get("script") or "").strip()
+    if not script:
+        raise HTTPException(400, "请填写口播文案")
+    total_seconds = int(body.get("total_seconds") or 30)
+    aspect = body.get("aspect", "9:16")
+    video_model = (body.get("video_model") or "").strip()
+    title = (body.get("title") or script[:16]).strip()
+    from core import ai_video_gen
+    # 分段预览
+    from studio import ai_video_config as _acfg
+    _seg_s = int(_acfg.get_config()["segment_seconds"])
+    _segs = ai_video_gen.plan_segments(total_seconds if total_seconds > 0 else 30, _seg_s)
+    jid = ai_video_gen.start_ai_video_job(
+        script, total_seconds=total_seconds, aspect=aspect,
+        video_model=video_model, title=title,
+        user_id=str((u or {}).get("id") or ""))
+    return {"job": jid, "segments": len(_segs),
+            "plan": f"将分成 {len(_segs)} 段生成"}
+
+
+@app.get("/api/aivideo/config")
+def aivideo_config_get(request: Request):
+    guard(request)
+    from studio import ai_video_config as _acfg
+    return _acfg.get_config()
+
+
+@app.put("/api/aivideo/config")
+async def aivideo_config_put(request: Request):
+    guard(request)
+    body = await request.json()
+    from studio import ai_video_config as _acfg
+    return _acfg.save_config(body or {})
+
+
+@app.get("/api/aivideo/file/{jid}")
+def aivideo_file(jid: str, request: Request):
+    """下载/预览生成的 AI 短视频。"""
+    guard(request)
+    from pathlib import Path as _P
+    base = _P(__file__).resolve().parent.parent / "runs" / "ai_video" / jid
+    # 防目录穿越
+    if not str(base.resolve()).startswith(str((base.parent).resolve())):
+        raise HTTPException(400, "非法路径")
+    for _f in base.glob("final-*.mp4"):
+        from fastapi.responses import FileResponse
+        return FileResponse(str(_f), media_type="video/mp4",
+                            filename=f"ai-video-{jid}.mp4")
+    raise HTTPException(404, "成片尚未生成")
 
 
 @app.post("/api/drafts/{did}/storyboard")
@@ -2001,8 +2518,8 @@ async def storyboard_gen_image(did: str, request: Request):
     shot_index = int(body.get("shot_index", 1))
     prompt_en = body.get("prompt_en", "")
     aspect = body.get("aspect", "16:9")
-    from core import billing, storyboard
-    billing.check_and_deduct("drama_image", 1, f"电影分镜生图 #{shot_index}")
+    from core import storyboard
+    require_credits("drama_image", 1, f"电影分镜生图 #{shot_index}")
     def _run():
         return storyboard.generate_storyboard_image(did, shot_index, prompt_en=prompt_en, aspect=aspect)
     try:
@@ -2040,24 +2557,82 @@ def billing_status(request: Request):
     return billing.get_billing_status()
 
 
+@app.get("/api/llm/usage")
+def llm_usage(request: Request):
+    """各模型服务使用量统计 + 一幕官方通道消费汇总（双轨制）。"""
+    user = guard(request)
+    from studio import llm_metering
+    from core import llm as _llm
+
+    user_id = str((user or {}).get("id") or "")
+    usage = llm_metering.get_provider_usage()
+    # 补上模型服务展示信息（name/icon/badge/metered）
+    providers = _llm.MODEL_PROVIDERS
+    rows = []
+    for pid, u in usage.items():
+        info = providers.get(pid, {})
+        rows.append({
+            **u,
+            "name": info.get("name", pid),
+            "icon": info.get("icon", "⚡"),
+            "badge": info.get("badge", ""),
+            "billing_mode": "官方扣额度" if u.get("metered") else "自备Key·不计费",
+        })
+    # 按调用次数倒序
+    rows.sort(key=lambda r: r["calls"], reverse=True)
+    return {
+        "providers": rows,
+        "official_summary": llm_metering.get_yimu_official_summary(user_id or None),
+    }
+
+
 @app.post("/api/billing/redeem")
 async def billing_redeem(request: Request):
-    guard(request)
+    u = guard(request)
     body = await request.json()
     code = body.get("code") or body.get("cdkey", "")
-    from core import billing
-    return billing.redeem_cdkey(code)
+    # ⭐ 走 ledger-backed 版（studio/billing_adapter）：卡密原子核销防重放，
+    #   无任何万能码/前缀放行。此前的 core.billing.redeem_cdkey 是死代码分支，
+    #   且带写死通用码后门，已下线。
+    from studio import billing_adapter
+    try:
+        res = billing_adapter.redeem_cdkey_for_user(
+            code, str((u or {}).get("id") or "")
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"卡密兑换失败，请稍后重试: {e}")
+    # R5-6 埋点：兑换卡密（漏斗第 5 步 = 转化完成）。仅在兑换成功时记。
+    if isinstance(res, dict) and res.get("ok"):
+        try:
+            from core import analytics
+            analytics.track("cdkey_redeemed", str((u or {}).get("id") or ""),
+                            {"code": (code or "")[:8]})
+        except Exception:
+            pass
+    return res
 
 
 @app.post("/api/billing/admin/gen_keys")
 async def billing_gen_keys(request: Request):
-    guard(request)
+    # ⭐ 管理员专用：发卡密等于凭空造额度，普通登录用户不得调用
+    admin = guard_admin(request)
     body = await request.json()
     key_type = body.get("key_type", "tokens")
     amount = int(body.get("amount", 100000))
     count = int(body.get("count", 5))
-    from core import billing
-    keys = billing.generate_cdkeys(key_type, amount, count)
+    # 与 redeem 同源（都写 invites 表），否则生成的卡密无处可兑
+    from studio import billing_adapter
+    try:
+        keys = billing_adapter.generate_cdkeys_for_actor(
+            key_type=key_type, amount=amount, count=count,
+            actor=str((admin or {}).get("id") or ""),
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"生成卡密失败，请稍后重试: {e}")
     return {"ok": True, "keys": keys}
 
 
@@ -2076,8 +2651,7 @@ async def skills_distill_deep(request: Request):
     content = body.get("content", "")
     distill_type = body.get("distill_type", "all")
     author_name = body.get("author_name", "")
-    from core import billing
-    billing.check_and_deduct("deep_distill", 1, f"深度逆向蒸馏 [{author_name}]")
+    require_credits("deep_distill", 1, f"深度逆向蒸馏 [{author_name}]")
     def _run():
         return orchestrator.deep_distill_anything(content, distill_type, author_name)
     try:
@@ -2102,8 +2676,8 @@ async def drama_decompose(did: str, request: Request):
     style = body.get("style", "cinematic")
     script = body.get("script", "")
     mounted_persona = body.get("mounted_persona", "")
-    from core import billing, short_drama
-    billing.check_and_deduct("drama_decompose", 1, f"短剧分镜解构 [{did}]")
+    from core import short_drama
+    require_credits("drama_decompose", 1, f"短剧分镜解构 [{did}]")
     def _run():
         return short_drama.decompose_draft_to_drama(did, style_key=style, custom_script=script, mounted_persona=mounted_persona)
     try:
@@ -2162,8 +2736,8 @@ async def drama_gen_image(did: str, request: Request):
     shot_id = int(body.get("shot_id", 1))
     prompt_en = body.get("prompt_en", "")
     aspect = body.get("aspect", "9:16")
-    from core import billing, short_drama
-    billing.check_and_deduct("drama_image", 1, f"短剧分镜生图 #{shot_id}")
+    from core import short_drama
+    require_credits("drama_image", 1, f"短剧分镜生图 #{shot_id}")
     def _run():
         return short_drama.generate_scene_image(did, shot_id, prompt_en, aspect=aspect)
     try:
@@ -2227,6 +2801,16 @@ async def drama_render(did: str, request: Request):
     aspect = body.get("aspect", "9:16")
     d = db.get_draft(did) or {}
     d_title = d.get("title", did[:8])
+    # ⭐ 先扣费再起任务：额度不足直接 402，避免留下永远跑不动的僵尸任务
+    from core import short_drama
+    require_credits("drama_render", 1, f"全AI短剧渲染 [{did}]")
+    # R5-6 埋点：首次跑短剧（漏斗第 3 步）。失败静默，不影响渲染。
+    try:
+        from core import analytics
+        analytics.track("first_drama_run", str((u or {}).get("id") or ""),
+                        {"draft_id": did})
+    except Exception:
+        pass
     import uuid
     jid = f"drm-{did[:8]}-{uuid.uuid4().hex[:4]}"
     start_async_job(
@@ -2237,8 +2821,6 @@ async def drama_render(did: str, request: Request):
         params={"draft_id": did, "aspect": aspect},
         initial_step="短剧视频渲染队列中…"
     )
-    from core import billing, short_drama
-    billing.check_and_deduct("drama_render", 1, f"全AI短剧渲染 [{did}]")
     # ⭐ 会员分级：短剧成片时长帽（free：10 秒）——渲染期最终兜底（整镜头截取）
     _cap = _tier_capability_limit(u, "drama_max_seconds")
     _max_s = _cap if (isinstance(_cap, int) and _cap > 0) else None
@@ -2349,8 +2931,8 @@ async def drama_pipeline_step1(did: str, request: Request):
             _dt = 45
         if _dt > _cap:
             overrides["duration_target"] = _cap
-    from core import billing, short_drama
-    billing.check_and_deduct("drama_decompose", 1, f"短剧需求分析与剧本改写 [{did}]")
+    from core import short_drama
+    require_credits("drama_decompose", 1, f"短剧需求分析与剧本改写 [{did}]")
     def _run():
         return short_drama.step1_analyze_and_rewrite(did, text=text, overrides=overrides)
     try:
@@ -2392,8 +2974,8 @@ async def drama_pipeline_step4_single(did: str, request: Request):
     prompt = body.get("prompt", "")
     is_turnaround = bool(body.get("is_turnaround", False))
     aspect = body.get("aspect", "16:9")
-    from core import billing, short_drama
-    billing.check_and_deduct("drama_image", 1, f"短剧资产出图 [{asset_id}]")
+    from core import short_drama
+    require_credits("drama_image", 1, f"短剧资产出图 [{asset_id}]")
     def _run():
         return short_drama.step4_generate_asset_image(
             did, asset_type=asset_type, asset_id=asset_id,
@@ -2409,8 +2991,8 @@ async def drama_pipeline_step4_single(did: str, request: Request):
 @app.post("/api/video/drama/{did}/pipeline/step4_batch_assets")
 async def drama_pipeline_step4_batch(did: str, request: Request):
     guard(request)
-    from core import billing, short_drama
-    billing.check_and_deduct("drama_image", 2, f"短剧资产批量生成 [{did}]")
+    from core import short_drama
+    require_credits("drama_image", 2, f"短剧资产批量生成 [{did}]")
     def _run():
         return short_drama.step4_batch_generate_assets(did)
     try:
@@ -2423,8 +3005,8 @@ async def drama_pipeline_step4_batch(did: str, request: Request):
 @app.post("/api/video/drama/{did}/pipeline/step5_storyboard")
 async def drama_pipeline_step5(did: str, request: Request):
     u = guard(request)
-    from core import billing, short_drama
-    billing.check_and_deduct("drama_decompose", 1, f"短剧好莱坞分镜解构 [{did}]")
+    from core import short_drama
+    require_credits("drama_decompose", 1, f"短剧好莱坞分镜解构 [{did}]")
     # ⭐ 会员分级：短剧成片时长帽（free：10 秒）——分镜期按总时长整镜头截取
     _cap = _tier_capability_limit(u, "drama_max_seconds")
     _max_s = _cap if (isinstance(_cap, int) and _cap > 0) else None
@@ -2444,8 +3026,8 @@ async def drama_pipeline_step6_single(did: str, request: Request):
     shot_id = int(body.get("shot_id", 1))
     prompt_en = body.get("prompt_en", "")
     aspect = body.get("aspect", "9:16")
-    from core import billing, short_drama
-    billing.check_and_deduct("drama_image", 1, f"分镜头 #{shot_id} 生图")
+    from core import short_drama
+    require_credits("drama_image", 1, f"分镜头 #{shot_id} 生图")
     def _run():
         return short_drama.step6_generate_shot_image(did, shot_id=shot_id, prompt_en=prompt_en, aspect=aspect)
     try:
@@ -2520,6 +3102,9 @@ async def drama_pipeline_step8(did: str, request: Request):
     video_mode = body.get("video_mode", "ai_video")
     d = db.get_draft(did) or {}
     d_title = d.get("title", did[:8])
+    # ⭐ 先扣费再起任务：额度不足直接 402，避免留下永远跑不动的僵尸任务
+    from core import short_drama
+    require_credits("drama_render", 1, f"8步短剧最终成片合成 [{did}]")
     import uuid
     jid = f"drm-p8-{did[:8]}-{uuid.uuid4().hex[:4]}"
     start_async_job(
@@ -2530,8 +3115,6 @@ async def drama_pipeline_step8(did: str, request: Request):
         params={"draft_id": did, "aspect": aspect},
         initial_step="8步短剧流水线成片合成中…"
     )
-    from core import billing, short_drama
-    billing.check_and_deduct("drama_render", 1, f"8步短剧最终成片合成 [{did}]")
     def _run():
         try:
             res = short_drama.step8_render_final_drama(
@@ -2719,29 +3302,39 @@ def draft_score(did: str, request: Request):
 @app.post("/api/drafts/create")
 async def create_draft_endpoint(request: Request):
     """创作者在内容工作台手动新建空白草稿或导入外部草稿"""
-    guard(request)
+    user = guard(request)
     body = await request.json()
     title = (body.get("title") or "").strip()
     body_md = body.get("body_md") or ""
     workspace_id = (body.get("workspace_id") or "").strip()
+    # ⭐ 先扣费再建档：额度不足直接 402，绝不留下已落盘的草稿
+    require_credits("draft_create", 1, f"新建草稿 [{title[:16] or '未命名'}]")
     if not workspace_id:
         from core import workspace
         active_ws = workspace.get_active_workspace()
         if active_ws:
             workspace_id = active_ws.get("id", "")
-            
+
     draft = db.create_custom_draft(title=title, body_md=body_md, workspace_id=workspace_id)
     did = draft["id"]
-    
+
     # 初始化多平台文件产物与预览
     from core import orchestrator
     orchestrator.init_draft_artifacts(did, draft["title"], draft["body_md"])
-    
+
     # 执行初次基准评分（无 LLM 时跳过，避免 500）
     from core import judge
     from core import llm as _llm
     score = judge.judge_draft(did) if _llm.available() else {"total": 0, "grade": "未评分（未配置大模型）"}
-    
+
+    # R5-6 埋点：首次成稿（漏斗第 2 步）。失败静默，不影响建稿。
+    try:
+        from core import analytics
+        analytics.track("first_draft_created", str((user or {}).get("id") or ""),
+                        {"draft_id": did, "title_len": len(title)})
+    except Exception:
+        pass
+
     return {"ok": True, "draft": db.get_draft(did), "score": score}
 
 
@@ -3328,8 +3921,8 @@ async def draft_fission(did: str, request: Request):
     d = db.get_draft(did)
     if not d:
         raise HTTPException(404, "草稿不存在")
-    from core import billing, fission
-    billing.check_and_deduct("rewrite", 1, f"全域五端矩阵裂变 [{did}]")
+    from core import fission
+    require_credits("rewrite", 1, f"全域五端矩阵裂变 [{did}]")
     jid = f"fiss-{did[:8]}-{uuid.uuid4().hex[:4]}"
     d_title = d.get("title", "")
     start_async_job(
@@ -3365,8 +3958,8 @@ async def draft_derive_omni(did: str, request: Request):
     card_style = body.get("card_style") or "magazine"
     platforms = body.get("platforms")  # list of str or None
 
-    from core import billing, fission
-    billing.check_and_deduct("rewrite", 1, f"母稿驱动全域多端派生 [{did}]")
+    from core import fission
+    require_credits("rewrite", 1, f"母稿驱动全域多端派生 [{did}]")
     jid = f"derive-{did[:8]}-{uuid.uuid4().hex[:4]}"
     plat_str = f"({len(platforms)}端)" if platforms else "(全域)"
     start_async_job(
@@ -3567,6 +4160,24 @@ def cancel_task_endpoint(task_id: str, request: Request):
     return {"ok": ok, "msg": "任务已取消" if ok else "无法取消任务（可能已结束或不存在）"}
 
 
+@app.post("/api/tasks/clear")
+async def clear_tasks_endpoint(request: Request):
+    """清理任务：清除 N 天前的失败/已完成任务（不碰 running/queued）。"""
+    guard(request)
+    body = await request.json()
+    status_filter = (body.get("status") or "failed").strip().lower()
+    if status_filter not in ("failed", "completed"):
+        status_filter = "failed"
+    try:
+        days = int(body.get("days", 7))
+    except (TypeError, ValueError):
+        days = 7
+    if days not in (1, 3, 5, 7):
+        days = 7
+    from core import task_queue
+    return task_queue.clear_tasks(status_filter, days)
+
+
 # ===================== 🌊 SSE 实时流式打字机 API =====================
 
 
@@ -3574,7 +4185,12 @@ def cancel_task_endpoint(task_id: str, request: Request):
 
 @app.post("/api/copilot/chat")
 async def copilot_chat_endpoint(request: Request):
-    guard(request)
+    u = guard(request)
+    # ⭐ 会员分级：Copilot 对话每日配额（free：每日 20 次，pro/studio 不限）
+    # 配额扣减后会员剩余额度联动减少，顶部"算力"数字实时更新
+    _allowed, _reason, _tier = _tier_quota_check(u, "copilot_daily")
+    if not _allowed:
+        raise HTTPException(402, _reason)
     from core import copilot
     body = await request.json()
     message = (body.get("message") or "").strip()
@@ -3602,7 +4218,8 @@ async def copilot_chat_endpoint(request: Request):
                 style=style,
                 persona=persona,
                 image_model=image_model,
-                skills=skills
+                skills=skills,
+                user_id=str(u.get("id") or ""),
             )
         )
         return res
@@ -3612,7 +4229,11 @@ async def copilot_chat_endpoint(request: Request):
 
 @app.post("/api/copilot/chat_stream")
 async def copilot_chat_stream_endpoint(request: Request):
-    guard(request)
+    u = guard(request)
+    # ⭐ 会员分级：Copilot 对话每日配额（free：每日 20 次，pro/studio 不限）
+    _allowed, _reason, _tier = _tier_quota_check(u, "copilot_daily")
+    if not _allowed:
+        raise HTTPException(402, _reason)
     from core import copilot
     body = await request.json()
     message = (body.get("message") or "").strip()
@@ -3649,6 +4270,7 @@ async def copilot_chat_stream_endpoint(request: Request):
                 persona=persona,
                 image_model=image_model,
                 skills=skills,
+                user_id=str(u.get("id") or ""),
                 emit_step=_emit
             )
             q.put({"type": "result", "data": res})
@@ -4109,6 +4731,115 @@ def preview(did: str, platform: str):
     return FileResponse(f)
 
 
+# ---------------------------------------------------------------------------
+# R5-5 裂变产物分享：公网链接 + 二维码 + 海报
+# ---------------------------------------------------------------------------
+# ⭐ 归属校验说明：这些路由的地址里**只有随机令牌、没有 did**，
+#   令牌→稿件的映射只在服务端库里。因此无法通过「改 did」拿到
+#   他人稿件——请求里根本不存在 did 参数。
+
+
+@app.post("/api/drafts/{did}/share")
+async def draft_create_share(did: str, request: Request):
+    """为某篇稿件的裂变产物签发分享链接（含二维码与海报地址）。
+
+    只为**产物文件确实存在**的平台签发；没生成的平台会出现在 skipped 里
+    并说明原因（而不是给一个点开404 的死链）。
+    """
+    user = guard(request)
+    d = db.get_draft(did)
+    if not d:
+        raise HTTPException(404, "草稿不存在")
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    platforms = body.get("platforms") or ["wechat_mp", "xhs", "toutiao", "zhihu", "weibo", "twitter"]
+    ttl = int(body.get("ttl_days") or 14)
+    from core import share as _share
+
+    res = _share.create_share_set(did, platforms, str(user.get("id") or ""), ttl)
+    res["title"] = d.get("title", "")
+    return {"ok": True, **res}
+
+
+@app.get("/api/drafts/{did}/shares")
+def draft_list_shares(did: str, request: Request):
+    """列出某篇稿件的全部分享链接（含访问次数）。"""
+    guard(request)
+    from core import share as _share
+
+    return {"ok": True, "items": _share.list_shares(draft_id=did)}
+
+
+@app.post("/api/share/revoke")
+async def share_revoke(request: Request):
+    """吊销一个分享链接（立即失效）。"""
+    guard(request)
+    body = await request.json()
+    token = (body.get("token") or "").strip()
+    if not token:
+        raise HTTPException(400, "缺少 token")
+    from core import share as _share
+
+    return {"ok": _share.revoke(token)}
+
+
+@app.get("/s/{token}")
+def share_page(token: str):
+    """分享页：用令牌换取已排版产物并渲染。
+
+    令牌无效 / 过期 / 已吊销 / 产物丢失，一律404——不区分具体原因，
+    避免被拿去探测「某篇稿件是否存在」。
+    """
+    from core import share as _share
+
+    rec = _share.resolve(token)
+    if not rec:
+        raise HTTPException(404, "分享链接无效或已失效")
+    f = db.draft_dir(rec["draft_id"]) / f"preview-{rec['platform']}.html"
+    if not f.exists():
+        raise HTTPException(404, "分享链接无效或已失效")
+    return HTMLResponse(_share.render_share_page(rec, f.read_text(encoding="utf-8")))
+
+
+@app.get("/s/{token}/qr.svg")
+def share_qr(token: str):
+    """分享链接的二维码（SVG，矢量、体积小）。"""
+    from core import qrcode_min, share as _share
+
+    if not _share.resolve(token):
+        raise HTTPException(404, "分享链接无效或已失效")
+    svg = qrcode_min.encode_svg(f"{_share._base_url()}/s/{token}")
+    return Response(svg, media_type="image/svg+xml",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/s/{token}/qr.png")
+def share_qr_png(token: str):
+    """分享链接的二维码（PNG，便于不支持 SVG 的场景）。"""
+    from core import qrcode_min, share as _share
+
+    if not _share.resolve(token):
+        raise HTTPException(404, "分享链接无效或已失效")
+    png = qrcode_min.encode_png(f"{_share._base_url()}/s/{token}")
+    return Response(png, media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+
+@app.get("/s/{token}/poster.svg")
+def share_poster(token: str):
+    """分享海报（标题 + 二维码 + 品牌署名，可直接发社群）。"""
+    from core import share as _share
+
+    rec = _share.resolve(token)
+    if not rec:
+        raise HTTPException(404, "分享链接无效或已失效")
+    svg = _share.build_poster(rec["draft_id"], token)
+    return Response(svg, media_type="image/svg+xml")
+
+
 @app.get("/card/{did}/{name}")
 def card(did: str, name: str):
     if "/" in name or not name.startswith("card-"):
@@ -4331,6 +5062,118 @@ def get_mobile_html_page() -> str:
     if TEMPLATE_MOBILE_PATH.exists():
         return TEMPLATE_MOBILE_PATH.read_text(encoding="utf-8")
     return get_html_page()
+
+
+# R5-6 运营漏斗看板页面（自包含HTML，前端拉/api/admin/metrics渲染）
+# 不用前端框架：与项目「无构建步骤」的现状一致，双击即可用。
+_METRICS_PAGE_HTML = """<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>运营看板 · 一幕 YIMU</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0f1220;color:#e8ecf8;
+      font-family:PingFang SC,Microsoft YaHei,sans-serif}
+ .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px}
+ h1{font-size:22px;margin:0 0 4px}
+ .sub{color:#7d88b0;font-size:13px;margin-bottom:20px}
+ .bar{display:flex;gap:8px;align-items:center;margin-bottom:20px;flex-wrap:wrap}
+ button{background:#232a44;color:#cfd6ea;border:1px solid #313a5c;
+        border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer}
+ button.on{background:#4f7cff;border-color:#4f7cff;color:#fff}
+ .card{background:#171b2e;border:1px solid #262d47;border-radius:14px;
+       padding:20px;margin-bottom:18px}
+ .card h2{font-size:15px;margin:0 0 14px;color:#9fb0e0;font-weight:600}
+ .step{margin-bottom:16px}
+ .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+ .row b{color:#fff}
+ .barwrap{height:22px;background:#0f1220;border-radius:11px;overflow:hidden}
+ .fill{height:100%;background:linear-gradient(90deg,#4f7cff,#7c5cff);
+       border-radius:11px;transition:width .4s}
+ .pct{color:#8b93a7;font-size:12px}
+ table{width:100%;border-collapse:collapse;font-size:13px}
+ th,td{text-align:left;padding:7px 8px;border-bottom:1px solid #262d47}
+ th{color:#7d88b0;font-weight:500}
+ .tag{padding:2px 8px;border-radius:6px;font-size:12px}
+ .healthy{background:#16351f;color:#5fd08a}
+ .degraded{background:#3a2f14;color:#e0b45f}
+ .cooldown{background:#3a1a1a;color:#ef7b7b}
+ .empty{color:#6b7699;font-size:13px;padding:10px 0}
+</style></head><body>
+<div class="wrap">
+  <h1>运营看板</h1>
+  <div class="sub">口径：累计触达的去重用户数（非严格同会话序列），后段可能出现反超。</div>
+  <div class="bar">
+    <span style="font-size:13px;color:#7d88b0">时间窗</span>
+    <button class="on" onclick="load(7,this)">近 7 天</button>
+    <button onclick="load(30,this)">近 30 天</button>
+    <button onclick="load(0,this)">全部</button>
+    <button onclick="load()">刷新</button>
+  </div>
+  <div class="card"><h2>转化漏斗</h2><div id="funnel"><div class="empty">加载中…</div></div></div>
+  <div class="card"><h2>账号健康（自动发布）</h2><div id="health"><div class="empty">加载中…</div></div></div>
+  <div class="card"><h2>每日工单定时</h2><div id="ticket"><div class="empty">加载中…</div></div></div>
+  <div class="card"><h2>最近事件</h2><div id="events"><div class="empty">加载中…</div></div></div>
+</div>
+<script>
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const H={'Content-Type':'application/json'};
+function csrf(){const m=document.cookie.match(/(?:^|;\\s*)csrf_token=([^;]+)/);return m?m[1]:'';}
+
+async function load(days,btn){
+  if(days!==undefined&&btn){document.querySelectorAll('.bar button').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+  let r;
+  try{
+    r=await fetch('/api/admin/metrics'+(days!==undefined?'?days='+days:''),{credentials:'same-origin',headers:H});
+    if(r.status===401||r.status===403){document.getElementById('funnel').innerHTML='<div class="empty">需要管理员登录后才能查看运营数据。</div>';['health','ticket','events'].forEach(i=>document.getElementById(i).innerHTML='');return;}
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    renderFunnel(d.funnel);renderHealth(d.account_health||[]);
+    renderTicket(d.ticket||{});renderEvents(d.recent_events||[]);
+  }catch(e){
+    document.getElementById('funnel').innerHTML='<div class="empty">看板数据加载失败：'+esc(e.message)+'</div>';
+  }
+}
+
+function renderFunnel(fn){
+  const steps=(fn&&fn.steps)||[];
+  if(!steps.length){document.getElementById('funnel').innerHTML='<div class="empty">暂无数据</div>';return;}
+  const top=Math.max.apply(null,steps.map(s=>s.users).concat([1]));
+  document.getElementById('funnel').innerHTML=steps.map(s=>{
+    const w=Math.round(s.users/top*100);
+    const delta=s.step===1?'起始':('较上一步 '+s.rate_from_prev+'%');
+    return '<div class="step"><div class="row"><span>'+s.step+'. '+esc(s.label)+
+      ' <span class="pct">'+esc(delta)+'</span></span><span><b>'+s.users+'</b> 人 · '+
+      s.total+' 次</span></div><div class="barwrap"><div class="fill" style="width:'+w+'%"></div></div></div>';
+  }).join('');
+}
+
+function renderHealth(list){
+  if(!list.length){document.getElementById('health').innerHTML='<div class="empty">暂无账号记录（尚未发生自动发布）</div>';return;}
+  const L={'healthy':'正常','degraded':'波动','cooldown':'冷却中'};
+  document.getElementById('health').innerHTML='<table><tr><th>账号</th><th>平台</th><th>状态</th><th>连续失败</th></tr>'+
+    list.map(h=>'<tr><td>'+esc(h.account_key)+'</td><td>'+esc(h.platform)+
+      '</td><td><span class="tag '+esc(h.status)+'">'+esc(L[h.status]||h.status)+
+      '</span></td><td>'+esc(h.consecutive_failures)+'</td></tr>').join('')+'</table>';
+}
+
+function renderTicket(t){
+  document.getElementById('ticket').innerHTML=
+    '<table><tr><th>已启用</th><th>每日时间</th><th>今日已执行</th><th>调度线程</th></tr><tr><td>'+
+    (t.enabled?'是':'否')+'</td><td>'+esc(t.time)+'</td><td>'+
+    (t.ran_today?esc(t.ran_today):'否')+'</td><td>'+
+    (t.daemon_running?'运行中':'未运行')+'</td></tr></table>';
+}
+
+function renderEvents(list){
+  if(!list.length){document.getElementById('events').innerHTML='<div class="empty">暂无事件</div>';return;}
+  document.getElementById('events').innerHTML='<table><tr><th>时间</th><th>事件</th><th>用户</th></tr>'+
+    list.map(e=>'<tr><td>'+esc(new Date(e.created_at*1000).toLocaleString())+'</td><td>'+
+      esc(e.event)+'</td><td>'+esc(e.user_id||'—')+'</td></tr>').join('')+'</table>';
+}
+load();
+</script></body></html>"""
 
 
 if __name__ == "__main__":

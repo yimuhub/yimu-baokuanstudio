@@ -8,3 +8,7 @@
 # 示例：
 # tests/fixtures/ : sk-test-
 # docs/ : AKIAEXAMPLE
+
+# web/admin.py:_WEAK_DEFAULT_PASSWORD 是"要拒绝的弱口令"黑名单常量，
+# 不是可用口令：命中即视为未配置口令（fail-closed），因此豁免密钥扫描。
+web/admin.py : _WEAK_DEFAULT_PASSWORD\s*=

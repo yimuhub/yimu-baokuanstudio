@@ -1,6 +1,6 @@
 ---
 name: 自进化账号策略迭代顾问
-description: 借鉴 Easel: 依据历史表现与行业风向，动态给出新赛道拓展、文风微调、发布节奏优化建议
+description: "借鉴 Easel: 依据历史表现与行业风向，动态给出新赛道拓展、文风微调、发布节奏优化建议"
 category: 自主进化
 scope: writing
 icon: "🧠"

@@ -148,7 +148,12 @@ def test_login_sets_httponly_cookie_and_me_view(
     assert resp.status_code == 200
     me = resp.json()["data"]
     assert me["username"] == username
-    assert me["membership"]["credits_left"] == 10000, "新人默认额度应为 10000"
+    # R2-1：新人默认额度取自定价真源（免费档 3000），不再硬编码数字
+    from studio.pricing import TIER_CREDITS
+
+    assert me["membership"]["credits_left"] == TIER_CREDITS["free"], (
+        f"新人默认额度应为免费档额度 {TIER_CREDITS['free']}"
+    )
     assert "password_hash" not in resp.text, "/me 不得返回密码哈希"
     assert "salt" not in resp.text, "/me 不得返回盐值"
 
@@ -228,12 +233,15 @@ def test_billing_adapter_ledger_cdkey_and_tier(db_session):
     """计费桥接：扣费写账本行；卡密生成/兑换/重复兑换拒绝；旧万能卡拒绝；档位升级。"""
     from studio import billing_adapter
     from studio.db_models import Ledger, Membership
+    from studio.pricing import TIER_CREDITS
 
     stack = make_tenant_stack(db_session, unique_name("bill"))
     tid, uid = stack["tenant_id"], stack["user_id"]
 
     before = billing_adapter.get_billing_status(db_session, tid, uid)["balance"]
-    assert before == 10000
+    assert before == TIER_CREDITS["free"], (
+        f"新用户余额应等于免费档额度 {TIER_CREDITS['free']}，实际 {before}"
+    )
 
     # 扣费：写账本行，余额减少
     assert billing_adapter.check_and_deduct(db_session, tid, uid, "rewrite") is True

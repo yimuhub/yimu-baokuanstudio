@@ -1,6 +1,6 @@
 """MediaFlow 全 AI 短剧/短视频流水线工坊 (AI Short Drama Pipeline)。
 
-参考开源项目与专业平台：MoneyPrinterTurbo, StoryDiffusion, Pavo AI, ChatTTS, videolingo
+参考开源项目与专业平台：StoryDiffusion, Pavo AI, ChatTTS, videolingo
 8 步全流程工业级短剧出片管线：
 Step 1: 需求分析与剧本改写 (Story Analysis & Requirement Specs)
 Step 2: 剧本大纲与剧情脉络 (Beat Sheet, Outline & Entity Extraction)
@@ -161,8 +161,6 @@ def _find_bin(name: str) -> str:
         shutil.which(name),
         f"/opt/homebrew/bin/{name}",
         f"/usr/local/bin/{name}",
-        str(BASE_DIR / "vendors" / "MoneyPrinterTurbo" / ".venv" / "bin" / name),
-        str(Path.home() / "MoneyPrinterTurbo" / ".venv" / "bin" / name),
     ]
     for c in candidates:
         if c and Path(c).exists():
@@ -787,11 +785,14 @@ def step4_generate_asset_image(
         filename = f"{asset_id}_turnaround.png"
         out_file = assets_dir / filename
         p = prompt or target_asset.get("turnaround_prompt", "")
+        # 风格一致性：四视图用 character_sheet_style
+        _style_prompt = style_info.get("character_sheet_style", "") or style_info.get("suffix", "")
+        p_styled = f"{p}, {_style_prompt}" if p and _style_prompt else (p or _style_prompt)
         size = "1792x1024"
         success = imagegen.gen_image(
-            p, out_file, size=size, angle_idx=0,
+            p_styled, out_file, size=size, angle_idx=0,
             context_title=f"角色四视图 [{target_asset.get('name')}]",
-            context_sub=p[:40]
+            context_sub=p_styled[:40]
         )
         if not success or not out_file.exists() or out_file.stat().st_size < 1500:
             logger.info("启动影视级角色四视图专业蓝图生成器")
@@ -800,7 +801,7 @@ def step4_generate_asset_image(
                 char_name=target_asset.get("name", "主角"),
                 role=target_asset.get("role", "核心主角"),
                 appearance=target_asset.get("appearance", "深邃神情与专属服饰"),
-                prompt_en=p,
+                prompt_en=p_styled,
                 style_name=style_info["name"]
             )
         url = f"/img/drama/{draft_id}/assets/{filename}"
@@ -809,14 +810,17 @@ def step4_generate_asset_image(
         filename = f"{asset_id}.png"
         out_file = assets_dir / filename
         p = prompt or target_asset.get("portrait_prompt") or target_asset.get("prompt", "")
+        # 风格一致性：正面/场景/道具图用 suffix
+        _style_prompt = style_info.get("suffix", "")
+        p_styled = f"{p}, {_style_prompt}" if p and _style_prompt else (p or _style_prompt)
         size = "1024x1792" if aspect == "9:16" else "1792x1024"
         success = imagegen.gen_image(
-            p, out_file, size=size, angle_idx=1,
+            p_styled, out_file, size=size, angle_idx=1,
             context_title=f"{target_asset.get('name')}",
-            context_sub=p[:40]
+            context_sub=p_styled[:40]
         )
         if not success or not out_file.exists() or out_file.stat().st_size < 1500:
-            _generate_stylized_placeholder_image(out_file, 1, p, aspect=aspect)
+            _generate_stylized_placeholder_image(out_file, 1, p_styled, aspect=aspect)
         url = f"/img/drama/{draft_id}/assets/{filename}"
         target_asset["image_url"] = url
 
@@ -898,8 +902,35 @@ STORYBOARD_PROMPT = """你是一名顶级好莱坞导演兼电影分镜摄影大
 ]
 """
 
-def step5_generate_storyboard(draft_id: str) -> list[dict]:
-    """步骤 5：由分镜师 Agent (storyboard_artist) 解构影视分镜头剧本（穿透 5 维视听语言）。"""
+def _truncate_shots_to_duration(shots: list, max_total_seconds: float) -> tuple:
+    """会员分级：按成片最大秒数截取分镜（整镜头保留，不中途剪断）。
+
+    逐镜头累加 duration，保留累加不超过上限的镜头，保证至少保留第 1 个镜头。
+    返回 (保留的分镜列表, 被截掉的镜头数)。
+    """
+    kept: list = []
+    dropped = 0
+    total = 0.0
+    for sc in shots:
+        try:
+            dur = float(sc.get("duration", 4) or 4)
+        except (TypeError, ValueError):
+            dur = 4.0
+        if dur <= 0:
+            dur = 4.0
+        if kept and total + dur > max_total_seconds:
+            dropped += 1
+            continue
+        kept.append(sc)
+        total += dur
+    return kept, dropped
+
+
+def step5_generate_storyboard(draft_id: str, max_total_seconds: float | None = None) -> list[dict]:
+    """步骤 5：由分镜师 Agent (storyboard_artist) 解构影视分镜头剧本（穿透 5 维视听语言）。
+
+    max_total_seconds：会员分级时长帽（秒）；为正数时截取分镜使总时长不超过上限。
+    """
     proj = get_pipeline_project(draft_id)
     step1 = proj.get("step1", {})
     step2 = proj.get("step2", {})
@@ -970,6 +1001,12 @@ def step5_generate_storyboard(draft_id: str) -> list[dict]:
         sc["video_url"] = sc.get("video_url", "")
         sc["audio_url"] = sc.get("audio_url", "")
         sc["status"] = "ready"
+
+    # ⭐ 会员分级：短剧成片时长帽（free：10 秒）——分镜期按总时长整镜头截取
+    if isinstance(max_total_seconds, (int, float)) and max_total_seconds > 0:
+        shots, dropped = _truncate_shots_to_duration(shots, float(max_total_seconds))
+        if dropped:
+            logger.info(f"会员分级时长帽：分镜截取为 {len(shots)} 镜（上限 {max_total_seconds} 秒，截掉 {dropped} 镜）")
 
     proj["step5"]["shots"] = shots
     proj["current_step"] = max(proj.get("current_step", 1), 6)
@@ -1053,17 +1090,23 @@ def step6_generate_shot_image(draft_id: str, shot_id: int, prompt_en: str = "", 
     proj = get_pipeline_project(draft_id)
     shots = proj.get("step5", {}).get("shots", [])
     target_shot = next((s for s in shots if s.get("shot_id") == shot_id), None)
-    
+
+    # 风格一致性：分镜关键帧同样注入 Step 1 选择的风格 suffix
+    style_key = proj.get("step1", {}).get("style", "hollywood_cinematic")
+    style_info = DRAMA_STYLES.get(style_key, DRAMA_STYLES["hollywood_cinematic"])
+    _style_prompt = style_info.get("suffix", "")
+
     p = prompt_en or (target_shot.get("image_prompt_en") if target_shot else "")
+    p_styled = f"{p}, {_style_prompt}" if p and _style_prompt else (p or _style_prompt)
     size = "1024x1792" if aspect == "9:16" else "1792x1024"
     angle_idx = (shot_id - 1) % 5
 
     success = imagegen.gen_image(
-        p, out_file, size=size, angle_idx=angle_idx,
-        context_title=f"分镜头 #{shot_id}", context_sub=p[:40]
+        p_styled, out_file, size=size, angle_idx=angle_idx,
+        context_title=f"分镜头 #{shot_id}", context_sub=p_styled[:40]
     )
     if not success or not out_file.exists() or out_file.stat().st_size < 1500:
-        _generate_stylized_placeholder_image(out_file, shot_id, p, aspect=aspect)
+        _generate_stylized_placeholder_image(out_file, shot_id, p_styled, aspect=aspect)
 
     legacy_file = d_dir / "images" / f"shot_{shot_id}.png"
     try:

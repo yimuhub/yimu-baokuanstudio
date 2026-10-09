@@ -54,9 +54,9 @@ def extract_xhs_card_selling_points(title: str, body_md: str, model: Optional[st
     )
     try:
         if model:
-            raw = llm.chat([{"role": "user", "content": prompt}], model=model, temperature=0.6)
+            raw = llm.chat([{"role": "user", "content": prompt}], model=model, temperature=0.6, user_id=user_id)
         else:
-            raw = agents.chat_for("write", [{"role": "user", "content": prompt}], temperature=0.6)
+            raw = agents.chat_for("write", [{"role": "user", "content": prompt}], temperature=0.6, user_id=user_id)
         cleaned = re.sub(r"^```json\s*|^```\s*|```$", "", raw.strip(), flags=re.MULTILINE).strip()
         data = json.loads(cleaned)
         if isinstance(data, list) and len(data) >= 2:
@@ -257,6 +257,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
                         persona: Optional[str] = None,
                         image_model: Optional[str] = None,
                         skills: Optional[list] = None,
+                        user_id: Optional[str] = None,
                         emit_step: Optional[Callable[[str, int], None]] = None) -> dict:
     """Copilot 核心交互入口，返回给前端对话回复以及受影响的草稿数据。支持真实步骤上报。"""
     history = history or []
@@ -325,8 +326,8 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
 
     def _call_llm(msgs: list[dict], temp: float = 0.75) -> str:
         if target_model:
-            return llm.chat(msgs, model=target_model, temperature=temp)
-        return agents.chat_for("write", msgs, temperature=temp)
+            return llm.chat(msgs, model=target_model, temperature=temp, user_id=user_id)
+        return agents.chat_for("write", msgs, temperature=temp, user_id=user_id)
 
     # ================== 1. 标题赛马优化 ==================
     if intent == "TITLE" and cur_draft:

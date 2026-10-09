@@ -25,9 +25,9 @@ from ..db_models import Membership, QuotaCounter, new_id, utcnow
 # ---------------------------------------------------------------------------
 
 TIER_DISPLAY_NAMES: dict[str, str] = {
-    "free": "V7 Free",
-    "pro": "V7 Pro",
-    "studio": "V7 Studio",
+    "free": "Free",
+    "pro": "Pro",
+    "studio": "Studio",
 }
 
 # 升级引导文案统一出口
@@ -36,7 +36,7 @@ UPGRADE_HINT = "升级 V7 Pro 解锁完整体验"
 
 def tier_display_name(tier: str) -> str:
     """取档位的界面显示名；未知档位按 free 处理。"""
-    return TIER_DISPLAY_NAMES.get((tier or "free").lower(), "V7 Free")
+    return TIER_DISPLAY_NAMES.get((tier or "free").lower(), "Free")
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +62,7 @@ CAPABILITIES: dict[str, dict[str, int | bool]] = {
         "gateway_api": False,      # 网关 Key 创建/API 调用
         "task_concurrency": 1,     # 任务并发数
         "copilot_deep": False,     # Copilot 深度功能
+        "copilot_daily": 20,       # 每日 Copilot 对话次数
         "workspaces": 1,           # 工作区数量
         "sub_accounts": False,     # 子账号
     },
@@ -78,6 +79,7 @@ CAPABILITIES: dict[str, dict[str, int | bool]] = {
         "gateway_api": True,
         "task_concurrency": 5,
         "copilot_deep": True,
+        "copilot_daily": -1,
         "workspaces": -1,
         "sub_accounts": False,
     },
@@ -94,6 +96,7 @@ CAPABILITIES: dict[str, dict[str, int | bool]] = {
         "gateway_api": True,
         "task_concurrency": 20,
         "copilot_deep": True,
+        "copilot_daily": -1,
         "workspaces": -1,
         "sub_accounts": True,
     },
@@ -105,6 +108,7 @@ QUOTA_WINDOWS: dict[str, str] = {
     "image_race_weekly": "week",
     "tts_daily": "day",
     "drama_weekly": "week",
+    "copilot_daily": "day",
 }
 
 # 超限时的中文引导文案（按能力定制）
@@ -113,6 +117,7 @@ _QUOTA_REASONS: dict[str, str] = {
     "image_race_weekly": "本周图片赛马体验次数已用完（{used}/{limit}），下周一重置",
     "tts_daily": "今日语音合成次数已用完（{used}/{limit}），明日重置",
     "drama_weekly": "本周短剧流水线次数已用完（{used}/{limit}），下周一重置",
+    "copilot_daily": "今日 Copilot 对话次数已用完（{used}/{limit}），升级 Pro 可无限使用，明日重置",
 }
 
 

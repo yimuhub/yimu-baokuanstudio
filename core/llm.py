@@ -15,6 +15,19 @@ BASE = Path(__file__).resolve().parent.parent
 
 # 13 大主流模型供应商企业级预设（含国产主力：火山引擎、混元、星火、百川等）
 MODEL_PROVIDERS = {
+    "yimu_official": {
+        "id": "yimu_official",
+        "name": "一幕·YIMU 官方",
+        "icon": "🎭",
+        "badge": "官方计费",
+        "base_url": "https://gateway.yimu.studio/v1",
+        "default_model": "yimu-chat",
+        "models": ["yimu-chat", "yimu-reasoner", "yimu-vision"],
+        "doc_url": "https://yimu.studio",
+        "tips": "官方通道：按实际 Token 消耗扣减会员额度，免去自备 Key 的麻烦",
+        "official": True,
+        "metered": True,
+    },
     "deepseek": {
         "id": "deepseek",
         "name": "DeepSeek 深度求索 (官方)",
@@ -788,7 +801,28 @@ def chat(messages: list[dict], *, model: str | None = None,
             with httpx.Client(timeout=timeout, trust_env=not is_local) as client:
                 r = client.post(req_url, json=body, headers=headers)
                 if r.status_code == 200:
-                    return r.json()["choices"][0]["message"]["content"]
+                    payload = r.json()
+                    content = payload["choices"][0]["message"]["content"]
+                    # 双轨制计量：提取 usage，全 provider 记统计，官方通道扣费
+                    try:
+                        from studio import llm_metering as _metering
+
+                        _u = payload.get("usage") or {}
+                        _pt = int(_u.get("prompt_tokens") or 0)
+                        _ct = int(_u.get("completion_tokens") or 0)
+                        _tt = int(_u.get("total_tokens") or 0) or (_pt + _ct)
+                        _prompt_text = "\n".join(
+                            str(m.get("content", "")) for m in messages if isinstance(m, dict)
+                        )
+                        _metering.record_llm_call(
+                            curr_pid, curr_model, _pt, _ct, _tt, user_id=user_id,
+                            prompt_text=_prompt_text, completion_text=content or "",
+                        )
+                    except _metering.InsufficientCreditsError:
+                        raise
+                    except Exception as _me:  # noqa: BLE001
+                        logger.warning(f"[LLM] 用量计量失败（不阻塞返回）: {_me}")
+                    return content
                 else:
                     last_err = RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
                     logger.warning(f"[LLM] 渠道 [{curr_pid}] 返回异常状态码: {r.status_code}，尝试备用通道...")
@@ -800,7 +834,8 @@ def chat(messages: list[dict], *, model: str | None = None,
 
 
 def chat_stream(messages: list[dict], *, model: str | None = None,
-                temperature: float = 0.8, timeout_s: float | None = None, stage: str | None = None):
+                temperature: float = 0.8, timeout_s: float | None = None, stage: str | None = None,
+                user_id: str | None = None):
     """流式打字机输出生成器，实时 yield 文本 chunk (SSE)。"""
     base, key, target_model, provider_id = resolve_llm_endpoint(model, stage=stage)
     if not key and "localhost:11434" not in base and "127.0.0.1" not in base:
@@ -819,6 +854,8 @@ def chat_stream(messages: list[dict], *, model: str | None = None,
         "messages": messages,
         "temperature": temperature,
         "stream": True,
+        # OpenAI 兼容协议：流式需显式声明才会在最后一个 chunk 返回 usage
+        "stream_options": {"include_usage": True},
     }
     headers = {"Content-Type": "application/json"}
     if key:
@@ -832,6 +869,8 @@ def chat_stream(messages: list[dict], *, model: str | None = None,
     with httpx.Client(timeout=timeout, trust_env=not is_local) as client:
         with client.stream("POST", req_url, json=body, headers=headers) as response:
             response.raise_for_status()
+            _s_pt, _s_ct, _s_tt = 0, 0, 0
+            _s_text_parts = []  # 累积流式输出文本，用于 usage 缺失时估算
             for line in response.iter_lines():
                 if not line:
                     continue
@@ -842,12 +881,36 @@ def chat_stream(messages: list[dict], *, model: str | None = None,
                     try:
                         import json as _json
                         chunk = _json.loads(data_str)
+                        # SSE usage 累加（最后一个 chunk 通常带 usage；没有则记 0）
+                        _u = chunk.get("usage") or {}
+                        if _u:
+                            _s_pt = int(_u.get("prompt_tokens") or _s_pt)
+                            _s_ct = int(_u.get("completion_tokens") or _s_ct)
+                            _s_tt = int(_u.get("total_tokens") or _s_tt)
                         delta = chunk["choices"][0].get("delta", {})
                         content = delta.get("content", "")
                         if content:
+                            _s_text_parts.append(content)
                             yield content
                     except Exception:
                         pass
+            # 流结束：双轨制计量
+            try:
+                from studio import llm_metering as _metering
+
+                if not _s_tt:
+                    _s_tt = _s_pt + _s_ct
+                _prompt_text = "\n".join(
+                    str(m.get("content", "")) for m in messages if isinstance(m, dict)
+                )
+                _metering.record_llm_call(
+                    provider_id, target_model, _s_pt, _s_ct, _s_tt, user_id=user_id,
+                    prompt_text=_prompt_text, completion_text="".join(_s_text_parts),
+                )
+            except _metering.InsufficientCreditsError:
+                raise
+            except Exception as _me:  # noqa: BLE001
+                logger.warning(f"[LLM] 流式用量计量失败（不阻塞返回）: {_me}")
 
 
 def available() -> bool:

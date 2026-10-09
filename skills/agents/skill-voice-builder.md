@@ -1,6 +1,6 @@
 ---
 name: 专属语调声纹雕刻
-description: 借鉴 Easel: 锁定个人独特语气词、节奏断句惯性与金句表达方式，确保全网内容风格高度统一
+description: "借鉴 Easel: 锁定个人独特语气词、节奏断句惯性与金句表达方式，确保全网内容风格高度统一"
 category: 账号画像
 scope: writing
 icon: "🎙️"

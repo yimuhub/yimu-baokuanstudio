@@ -1,6 +1,6 @@
 ---
 name: 选题爆款潜力多维评分卡
-description: 借鉴 Easel: 从流量潜力、账号匹配、竞争差异、时效价值、变现空间5维度综合打分
+description: "借鉴 Easel: 从流量潜力、账号匹配、竞争差异、时效价值、变现空间5维度综合打分"
 category: 爆款策划
 scope: writing
 icon: "📊"

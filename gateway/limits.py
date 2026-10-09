@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import func, text
 from sqlalchemy.orm import Session
 
+from studio import pricing as pricing_truth
 from studio.db_models import GatewayKey, Ledger, Membership, utcnow
 
 from .config import GatewayError, credits_for_tokens
@@ -115,9 +116,27 @@ def charge_membership(db: Session, tenant_id: str, user_id: str, amount: int) ->
 
     返回 True=扣费成功；False=余额不足（调用方应返回 429）。
     成功后调用方必须 db.commit()；失败时不做任何写入。
+
+    ⭐ R2-6：扣费前先做周期判定并重置。
+       此前这条 SQL 带 ``period_end > :now`` 条件，而
+       ``membership.service.deduct_credits`` 不看period_end —— 两条路径
+       语义不一致：周期一过期，网关路径会把用户**永久**拒绝（额度再也用不了），
+       而官方通道照常扣费。现统一先调 reset_period_if_expired 重置，
+       再执行同样的原子扣费，两条路径语义对齐。
     """
     if amount <= 0:
         return True
+    # 周期过期先重置（自身会 flush，不 commit）
+    m = (
+        db.query(Membership)
+        .filter(Membership.tenant_id == tenant_id, Membership.user_id == user_id)
+        .first()
+    )
+    if m is not None:
+        from studio.membership.service import reset_period_if_expired
+
+        reset_period_if_expired(db, m)
+
     now = datetime.now(timezone.utc).replace(tzinfo=None)  # 与 SQLite 存储格式对齐比较
     sql = text(
         "UPDATE memberships SET credits_used = credits_used + :n, updated_at = :now "
@@ -195,20 +214,31 @@ def write_ledger_rows(
     model: str,
     input_tokens: int,
     output_tokens: int,
-    input_rate: int,
-    output_rate: int,
+    input_rate: int | None,
+    output_rate: int | None,
     latency_ms: int,
     cached: bool = False,
 ) -> tuple[int, int]:
     """⭐ 写 ledger 两行（direction=input / output），只增不改。
+
+    ⭐ R2-2：换算统一调 ``studio.pricing.credits_for_call``——与官方通道
+       ``studio/llm_metering.record_llm_call`` 是**同一个函数**，
+       因此「同一模型同一 token 数」两条计费路径必然扣出同样的 credits。
+       input_rate / output_rate 参数保留是为兼容既有调用方签名；
+       传入 None 时走 pricing 的模型单价表。
 
     返回 (input_cost, output_cost)；调用方负责 commit。
     """
     from studio.db_models import Ledger, new_id, utcnow
 
     now = utcnow()
-    cost_in = credits_for_tokens(input_tokens, input_rate)
-    cost_out = credits_for_tokens(output_tokens, output_rate)
+    if input_rate is None or output_rate is None:
+        cost_in, cost_out = pricing_truth.credits_for_call(
+            model, input_tokens, output_tokens
+        )
+    else:
+        cost_in = credits_for_tokens(input_tokens, input_rate)
+        cost_out = credits_for_tokens(output_tokens, output_rate)
     db.add(
         Ledger(
             id=new_id(),

@@ -28,7 +28,12 @@ DRAMA_STAGES = {
     "sound_designer": "🎧 声音总监 Agent（配音角色/BGM与情绪混音）",
 }
 
-STAGES = {**CONTENT_STAGES, **DRAMA_STAGES}
+AD_STAGES = {
+    "ad_creative": "📢 广告创意分析 Agent（卖点提炼/广告脚本/竞品拆解/成片评估）",
+    "ad_video": "🎬 广告视频生成 Agent（视频大模型/分镜转视频/运镜控制）",
+}
+
+STAGES = {**CONTENT_STAGES, **DRAMA_STAGES, **AD_STAGES}
 
 STAGE_DEFAULT_SKILLS = {
     "director": ["director-beat-sheet"],
@@ -36,6 +41,9 @@ STAGE_DEFAULT_SKILLS = {
     "storyboard_artist": ["storyboard-visual-grammar"],
     "cinematographer": ["cinematic-optics-lighting"],
     "sound_designer": ["sound-director-scoring"],
+    "ad_creative": ["ad-video-creative", "ad-reverse-engineer",
+                    "ad-creative-evaluator", "ad-category-playbook"],
+    "ad_video": ["ad-video-prompt-craft"],
 }
 
 

@@ -36,11 +36,11 @@ def db():
 
 class TestTierDisplayName:
     def test_display_names(self):
-        assert caps.tier_display_name("free") == "V7 Free"
-        assert caps.tier_display_name("pro") == "V7 Pro"
-        assert caps.tier_display_name("studio") == "V7 Studio"
-        assert caps.tier_display_name("unknown") == "V7 Free"
-        assert caps.tier_display_name("") == "V7 Free"
+        assert caps.tier_display_name("free") == "Free"
+        assert caps.tier_display_name("pro") == "Pro"
+        assert caps.tier_display_name("studio") == "Studio"
+        assert caps.tier_display_name("unknown") == "Free"
+        assert caps.tier_display_name("") == "Free"
 
 
 class TestCapabilityMatrix:
@@ -123,3 +123,20 @@ class TestQuotaEngine:
     def test_admin_always_studio(self, db):
         # 管理员 u-admin 恒为 studio 档（最高权限），无需会员记录
         assert caps.get_user_tier(db, tenant_id="t1", user_id="u-admin") == "studio"
+
+    def test_copilot_daily_free_20(self, db):
+        # free 每日 20 次：第 20 次允许，第 21 次拒绝
+        for _ in range(20):
+            ok, _ = caps.check_and_consume(
+                db, tenant_id="t1", user_id="u_copilot", tier="free", capability="copilot_daily")
+            assert ok is True
+        ok21, r21 = caps.check_and_consume(
+            db, tenant_id="t1", user_id="u_copilot", tier="free", capability="copilot_daily")
+        assert ok21 is False
+        assert "20/20" in r21
+
+    def test_copilot_daily_pro_unlimited(self, db):
+        for _ in range(25):
+            ok, _ = caps.check_and_consume(
+                db, tenant_id="t1", user_id="u_copilot_pro", tier="pro", capability="copilot_daily")
+            assert ok is True

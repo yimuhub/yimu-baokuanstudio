@@ -1,6 +1,6 @@
 ---
 name: 发布前双重质检与合规风控闸门
-description: 借鉴 Easel: 严格检测新广告法绝对化极限词、各社媒敏感违规词、平台去AI味判定与完整性
+description: "借鉴 Easel: 严格检测新广告法绝对化极限词、各社媒敏感违规词、平台去AI味判定与完整性"
 category: 品控质检
 scope: writing
 icon: "🛡️"

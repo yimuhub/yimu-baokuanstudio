@@ -1,6 +1,6 @@
 ---
 name: 对标竞品拆解与破局
-description: 借鉴 Easel: 深度解构同赛道爆款对标账号的选题公式、视觉卡片套路与互动诱饵，制定差异化突破点
+description: "借鉴 Easel: 深度解构同赛道爆款对标账号的选题公式、视觉卡片套路与互动诱饵，制定差异化突破点"
 category: 发现借势
 scope: writing
 icon: "🕵️"

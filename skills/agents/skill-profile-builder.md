@@ -1,6 +1,6 @@
 ---
 name: 账号数字画像构建器
-description: 借鉴 Easel: 从社媒主页与历史爆款逆向提取账号定位、受众年龄痛点、视觉色调与6维画像档案
+description: "借鉴 Easel: 从社媒主页与历史爆款逆向提取账号定位、受众年龄痛点、视觉色调与6维画像档案"
 category: 账号画像
 scope: writing
 icon: "👤"

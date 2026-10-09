@@ -1,6 +1,6 @@
 ---
 name: 多重叙事文风跨界迁移
-description: 借鉴 Easel: 支持严肃报告转口语密友、书面散文转科技极简、官方通稿转网感爆款文风
+description: "借鉴 Easel: 支持严肃报告转口语密友、书面散文转科技极简、官方通稿转网感爆款文风"
 category: 文风调优
 scope: writing
 icon: "🎭"

@@ -1,6 +1,6 @@
 ---
 name: 单篇复盘与爆款规律提炼
-description: 借鉴 Easel: 剖析爆款或翻车笔记的根本原因，从Hook、结构、排版、发布时间提炼可复制经验
+description: "借鉴 Easel: 剖析爆款或翻车笔记的根本原因，从Hook、结构、排版、发布时间提炼可复制经验"
 category: 自主进化
 scope: writing
 icon: "📈"

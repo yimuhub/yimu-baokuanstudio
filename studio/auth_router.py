@@ -109,6 +109,17 @@ def api_register(body: RegisterIn, db: Session = Depends(get_db)):
         email=body.email,
         invite_code=body.invite_code,
     )
+    # R5-6 埋点：注册（漏斗第 1 步）。
+    # 失败静默——埋点是旁路能力，不能因埋点异常让注册失败。
+    try:
+        from core import analytics
+
+        analytics.track("signup", str(user.id),
+                        {"username": user.username,
+                         "invited": bool(body.invite_code)},
+                        tenant_id=tenant.id)
+    except Exception:
+        pass
     return errors.ok({"user": _public_user(user)})
 
 

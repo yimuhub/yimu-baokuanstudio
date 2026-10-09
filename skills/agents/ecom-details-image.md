@@ -1,6 +1,6 @@
 ---
 name: 电商与视觉主图 Prompt 方案
-description: 借鉴 Easel: 输出电商商品主图概念、场景氛围图、细节特写与匹配 AI 生图专业英文 Prompt
+description: "借鉴 Easel: 输出电商商品主图概念、场景氛围图、细节特写与匹配 AI 生图专业英文 Prompt"
 category: 排版美学
 scope: both
 icon: "📦"

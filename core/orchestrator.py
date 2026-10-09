@@ -317,7 +317,12 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
 
 def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆款工作室",
                    platforms: list[str] | None = None) -> dict:
-    """对已通过选题生成草稿：LLM 成稿 → 按需多端渲染/配图/卡片 → 自动评分循环。"""
+    """对已通过选题生成草稿：LLM 成稿 → 按需多端渲染/配图/卡片 → 自动评分循环。
+
+    R4 合规：成稿后先过内容安全前置闸（core.content_guard），
+    **命中阻断档时不进入 7 维质量评分**——违规内容不该浪费评分算力，
+    更不该被「质量分高」误导为可发布。灰区标记 needs_review 交人工审。
+    """
     emit = emit or (lambda *_: None)
     emit("AI 写作中…（约20-40秒）")
     topic = db.get_topic(topic_id)
@@ -363,6 +368,22 @@ def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆
     _refresh_artifacts(draft["id"], parsed, title, body, media_name=media_name, platforms=selected_platforms)
     db.set_topic_status(topic_id, "drafted")
     result = {"draft": db.get_draft(draft["id"])}
+
+    # ── R4-1 内容安全前置闸：在 7 维评分之前独立拦截 ──
+    from core import content_guard
+    guard_res = content_guard.pre_publish_check(body, title)
+    result["guard"] = guard_res.to_dict()
+    if guard_res.needs_review:
+        db.mark_draft_needs_review(draft["id"], guard_res.reason())
+        result["draft"] = db.get_draft(draft["id"])
+    if guard_res.blocked:
+        # 阻断：不进入评分，也不允许后续发布
+        db.set_draft_status(draft["id"], "blocked")
+        emit("⚠️ 内容安全拦截，未进入评分")
+        result["blocked"] = True
+        result["score"] = None
+        return result
+
     if llm.available():
         emit("评审评分中…")
         result["score"] = judge_and_iterate(draft["id"], emit=emit)
@@ -1423,10 +1444,26 @@ def change_xhs_style(draft_id: str, style: str = "magazine") -> dict:
 
 
 def approve_and_publish(draft_id: str, platforms: list[str]) -> list[dict]:
-    """人工确认后执行发布。公众号走 API，其余进入发布队列（一期人工/二期 Playwright）。"""
+    """人工确认后执行发布。公众号走 API，其余进入发布队列（一期人工/二期 Playwright）。
+
+    R4 合规：发布前必经内容安全前置闸。命中阻断档时**一个平台都不发布**，
+    直接返回带可读原因的失败结果——这是最后一道闸，责任在 Licensor 侧。
+    """
     draft = db.get_draft(draft_id)
     if not draft:
         raise RuntimeError(f"草稿不存在: {draft_id}")
+
+    # ── R4-1 发布前最后一道闸：内容安全 ──
+    from core import content_guard
+    guard_res = content_guard.pre_publish_check(draft.get("body_md"), draft.get("title"))
+    if guard_res.needs_review:
+        db.mark_draft_needs_review(draft_id, guard_res.reason())
+    if guard_res.blocked:
+        logger.warning("[Publish] 草稿 %s 被内容安全闸拦截：%s", draft_id, guard_res.reason())
+        return [{"platform": ", ".join(platforms) or "-", "ok": False,
+                 "detail": f"发布被内容安全拦截——{guard_res.reason()}",
+                 "guard": guard_res.to_dict()}]
+
     ddir = db.draft_dir(draft_id)
     cfg = load_config().get("publish", {})
     theme, _ = _cfg_theme()

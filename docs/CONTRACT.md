@@ -249,8 +249,15 @@
 - `POST /api/video/upload_bgm` → video_upload_bgm：上传背景音乐【V7.0】[B]
 - `POST /api/video/upload_material` → video_upload_material：上传图片/视频素材【V7.0】[B]
 - `POST /api/video/make` → video_make：图文转视频合成【V7.0】[B]
-- `GET /api/video/status` → video_status：MPT 引擎状态（internal）【V7.0】[B]
-- `POST /api/video/launch` → video_launch：启动 MPT 引擎【V7.0】[B]
+- `POST /api/advideo/create` → advideo_create：AI 产品广告短片一键生成（异步 job，支持卖点/参考图/配音模式）【V7.0】[新增]
+- `POST /api/advideo/selling_points` → advideo_selling_points：AI 广告卖点单独生成（预览/编辑）【V7.0】[新增]
+- `POST /api/advideo/upload_ref` → advideo_upload_ref：广告参考图上传【V7.0】[新增]
+- `POST /api/advideo/upload_audio` → advideo_upload_audio：广告配音音频上传【V7.0】[新增]
+- `GET /api/advideo/ref_file` → advideo_ref_file：参考图/音频预览 serving【V7.0】[新增]
+- `POST /api/aivideo/create` → aivideo_create：AI 短视频生成（视频大模型分段生成，异步 job）【V7.0】[新增]
+- `GET /api/aivideo/config` → aivideo_config_get：AI 视频生成配置读取【V7.0】[新增]
+- `PUT /api/aivideo/config` → aivideo_config_put：AI 视频生成配置保存【V7.0】[新增]
+- `GET /api/aivideo/file/{jid}` → aivideo_file：AI 短视频成片下载/预览【V7.0】[新增]
 - `POST /api/video/upload_script_file` → video_upload_script：上传文档提取口播稿【V7.0】[B]
 - `POST /api/audio/make` → audio_make：TTS 配音合成（API 稳定；V7.1 实现换 A 的三引擎降级链）【V7.0】[B→重写] C-2
 - `GET /api/audio/file/{did}/{name}` → audio_file：音频文件下载【V7.0】[B]
@@ -303,9 +310,11 @@
 - `POST /api/models/save` → models_save：保存模型配置【V7.0】[B→重写]
 - `POST /api/models/provider/set_active` → models_set_active：切换活动供应商【V7.0】[B→重写]
 - `POST /api/models/provider/delete` → models_delete_provider：删除供应商【V7.0】[B→重写]
+- `GET /api/llm/usage` → llm_usage：各模型服务使用量统计+官方通道消费汇总（双轨制）【V7.0】[NEW]
 - `GET /api/tasks` → tasks_list：异步任务列表【V7.0】[B]
 - `GET /api/tasks/{task_id}` → tasks_get：任务状态/进度【V7.0】[B]
 - `POST /api/tasks/{task_id}/cancel` → tasks_cancel：取消任务【V7.0】[B]
+- `POST /api/tasks/clear` → tasks_clear：清理 N 天前的失败/已完成任务（不碰 running/queued）【V7.0】[NEW]
 - `POST /api/copilot/chat` → copilot_chat：Copilot 对话【V7.0】[B→重写]
 - `POST /api/copilot/chat_stream` → copilot_chat_stream：Copilot SSE 流式对话【V7.0】[B→重写]
 - `POST /api/stream/write` → stream_write：流式写作【V7.0】[B]
@@ -339,6 +348,18 @@
 ### 5.14 V7.1 新增（A 移植，骨架期预留，不阻塞 V7.0）
 > 2026-10-08 精简：独立热榜采集页与 `/api/hot/*` 接口已移除（与「灵感与选题」内置热榜功能重复），底层采集能力保留在 `studio/hot/` 供灵感模块调用。
 
+### 5.14b R4 内容合规与信任（内容安全闸 / CSRF）【R4 合规批次新增】
+> 内容安全前置闸（`core/content_guard.py`）：成稿与发布前独立于 7 维质量评分拦截违规内容。
+> 分级：block 阻断 / review 标记待人工审 / pass 放行。开关 `CONTENT_GUARD_ENABLED`。
+> 草稿 `needs_review` 为**标记**字段，不删除用户草稿；敏感选题标记 `blocked` 而非删除。
+- `GET /api/compliance/guard` → guard_stats：内容安全闸概况（开关/词库规模/白名单）【R4】[NEW]
+- `POST /api/compliance/topics/sweep` → guard_sweep_topics：扫描选题池标记 blocked（apply=false 预演）【R4】[NEW]
+- `GET /api/compliance/topics/blocked` → guard_blocked_topics：列出被拦下的选题供复核【R4】[NEW]
+- `POST /api/compliance/drafts/sweep` → guard_sweep_drafts：扫描草稿箱标记 needs_review【R4】[NEW]
+- `GET /api/compliance/drafts/review` → guard_drafts_review：列出待人工复核草稿【R4】[NEW]
+- `POST /api/compliance/drafts/{did}/clear_review` → guard_clear_review：人工复核通过后清除标记【R4】[NEW]
+- `POST /api/compliance/drafts/{did}/check` → guard_check_draft：单篇草稿发布前检查（不写库）【R4】[NEW]
+
 ### 5.15 网关 / 会员 / 热榜（V7.0 新增，真实可用）【V7.0】
 - `POST /v1/chat/completions` → gw_chat：OpenAI 兼容 chat（含 SSE；鉴权→限速→扣费→上游）【V7.0】[NEW]
 - `POST /v1/images/generations` → gw_images：OpenAI 兼容生图【V7.0】[NEW]
@@ -349,6 +370,10 @@
 - `GET /api/gw/ui/my-keys` → gw_ui_my_keys：我的 Key 列表【V7.0】[NEW]
 - `POST /api/gw/ui/keys/{key_id}/revoke` → gw_ui_revoke_key：吊销 Key（不删行）【V7.0】[NEW]
 - `POST /api/gw/ui/test-call` → gw_ui_test_call：网关测试调用（走真实流水线，echo 明确标注）【V7.0】[NEW]
+- `GET /api/gw/ui/upstream` → gw_ui_upstream：上游模型服务状态（JSON，供原生视图）【V7.0】[NEW]
+- `GET /api/video/config` → video_config_get：视频合成配置（Key 掩码，管理员）【V7.0】[NEW]
+- `PUT /api/video/config` → video_config_put：增量更新视频合成配置（管理员）【V7.0】[NEW]
+- `DELETE /api/video/config/keys/{provider}` → video_config_delete_key：删除素材站 Key（pexels/pixabay，管理员）【V7.0】[NEW]
 - `GET /api/billing/ui/me` → billing_ui_me：我的档位与剩余额度【V7.0】[NEW]
 - `POST /api/billing/ui/init` → billing_ui_init：会员一键初始化【V7.0】[NEW]
 - `GET /api/billing/ui/ledger` → billing_ui_ledger：账本历史（分页）【V7.0】[NEW]

@@ -421,3 +421,57 @@ def cancel_task(task_id: str) -> bool:
 def list_tasks(limit: int = 40, active_only: bool = False) -> List[dict]:
     return _global_task_manager.list(limit=limit, active_only=active_only)
 
+
+# 终态（可安全清理），running/queued 永不删除
+_TERMINAL_STATUSES = ("completed", "failed", "cancelled", "interrupted")
+
+_STATUS_GROUPS = {
+    "failed": ("failed",),
+    "completed": ("completed",),
+    "all": ("completed", "failed", "cancelled", "interrupted"),
+}
+
+
+def clear_tasks(status_filter: str = "failed", days: int = 7) -> dict:
+    """清理指定状态且超过 N 天未更新的任务。
+
+    status_filter: failed / completed / all（all=全部终态）
+    days: 仅允许 1/3/5/7，其他值按 7 处理
+    running/queued 状态的任务永不删除。
+    返回 {"deleted": N, "status": ..., "days": ...}
+    """
+    status_filter = (status_filter or "failed").strip().lower()
+    if status_filter not in _STATUS_GROUPS:
+        status_filter = "failed"
+    try:
+        days = int(days)
+    except (TypeError, ValueError):
+        days = 7
+    if days not in (1, 3, 5, 7):
+        days = 7
+
+    cutoff = time.time() - days * 86400
+    statuses = list(_STATUS_GROUPS[status_filter])
+
+    deleted = 0
+    try:
+        deleted = db.delete_old_tasks(statuses, cutoff)
+    except Exception as e:
+        logger.warning(f"[TaskQueue] 清理任务 DB 删除失败: {e}")
+
+    # 同步清理内存中的终态任务快照（仅终态，不碰 running/queued）
+    try:
+        with _global_task_manager._lock:
+            stale_ids = [
+                tid for tid, t in _global_task_manager._tasks.items()
+                if t.status in _TERMINAL_STATUSES
+                and (t.completed_at or t.created_at or 0) < cutoff
+            ]
+            for tid in stale_ids:
+                _global_task_manager._tasks.pop(tid, None)
+    except Exception as e:
+        logger.warning(f"[TaskQueue] 清理任务内存快照失败: {e}")
+
+    logger.info(f"[TaskQueue] 已清理 {deleted} 个 {status_filter} 任务（{days} 天前）")
+    return {"deleted": deleted, "status": status_filter, "days": days}
+

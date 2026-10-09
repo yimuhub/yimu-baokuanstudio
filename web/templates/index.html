@@ -3315,7 +3315,7 @@ input[type=text]:focus, textarea:focus, select:focus {
 
       <div class="token-pill" onclick="openBillingModal()" style="display:flex;align-items:center;gap:6px;background:rgba(240,136,62,0.12);border:1px solid rgba(240,136,62,0.35);padding:4px 12px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;color:var(--primary)" title="点击打开商业化充值与卡密兑换中心">
         <span>💎 算力:</span>
-        <span id="nav-token-bal">500,000</span>
+        <span id="nav-token-bal">—</span>
         <span style="color:var(--text-muted);font-weight:normal">Token</span>
         <span class="badge ok" style="margin-left:4px;padding:2px 6px;font-size:10px" id="nav-tier-badge">基础版</span>
       </div>
@@ -3333,8 +3333,8 @@ input[type=text]:focus, textarea:focus, select:focus {
         <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V7</span>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap">
-        <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">48 篇</strong></div>
-        <div><span style="color:var(--text-muted)">AI平均质量评分:</span> <strong style="color:var(--success)" id="stat-avg-score">88.6 分 (优秀率 94%)</strong></div>
+        <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">—</strong></div>
+        <div><span style="color:var(--text-muted)">AI平均质量评分:</span> <strong style="color:var(--success)" id="stat-avg-score">—</strong></div>
         <div><span style="color:var(--text-muted)">全域自适应分发:</span> <strong style="color:var(--purple)">公众号 · 头条 · 小红书 · 视频</strong></div>
       </div>
     </div>
@@ -3545,8 +3545,8 @@ input[type=text]:focus, textarea:focus, select:focus {
               <span>📡 全网热点雷达</span>
               <span class="live-pulse"></span>
             </div>
-            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-topics-count">200+</div>
-            <div style="font-size:11.5px;color:var(--text-muted)">聚合小红书/抖音/头条/微博等6大平台</div>
+            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-topics-count">—</div>
+            <div style="font-size:11.5px;color:var(--text-muted)" id="dash-topics-sub">尚未采集热点，去抓取第一批</div>
             <div style="font-size:11px;color:#f0883e;margin-top:6px;display:flex;align-items:center;gap:4px">
               <span>直达灵感热榜</span> <span>➔</span>
             </div>
@@ -3556,8 +3556,8 @@ input[type=text]:focus, textarea:focus, select:focus {
           <div class="card" onclick="document.querySelector('.nav-item[data-p=drafts]').click()" style="margin-bottom:0;background:linear-gradient(145deg, #121824, #0d121c);border:1px solid rgba(168,85,247,0.3);position:relative;overflow:hidden;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='#a855f7';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(168,85,247,0.3)';this.style.transform='none'" title="点击前往「内容工作台」：真机排版、7维评分与外科手术精修">
             <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%);border-radius:50%"></div>
             <div style="font-size:12px;color:var(--text-muted)">📝 爆款成稿储备</div>
-            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-drafts-count">30 篇</div>
-            <div style="font-size:11.5px;color:var(--success)">平均评分 88.6 分 (已过爆款线)</div>
+            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-drafts-count">—</div>
+            <div style="font-size:11.5px;color:var(--text-muted)" id="dash-drafts-sub">还没有成稿，去生成第一篇</div>
             <div style="font-size:11px;color:#a855f7;margin-top:6px;display:flex;align-items:center;gap:4px">
               <span>直达内容工作台</span> <span>➔</span>
             </div>
@@ -3567,8 +3567,8 @@ input[type=text]:focus, textarea:focus, select:focus {
           <div class="card" onclick="document.querySelector('.nav-item[data-p=studio]').click()" style="margin-bottom:0;background:linear-gradient(145deg, #121824, #0d121c);border:1px solid rgba(88,166,255,0.3);position:relative;overflow:hidden;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='#58a6ff';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(88,166,255,0.3)';this.style.transform='none'" title="点击前往「影音工坊」：AI短剧、影视分镜重构与口播TTS制作">
             <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle, rgba(88,166,255,0.2) 0%, transparent 70%);border-radius:50%"></div>
             <div style="font-size:12px;color:var(--text-muted)">🎬 影音资产成片</div>
-            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-videos-count">12 支</div>
-            <div style="font-size:11.5px;color:var(--info)">9:16竖屏 + 16:9横版双模驱动</div>
+            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-videos-count">—</div>
+            <div style="font-size:11.5px;color:var(--text-muted)" id="dash-videos-sub">还没有成片，去影音工坊制作</div>
             <div style="font-size:11px;color:#58a6ff;margin-top:6px;display:flex;align-items:center;gap:4px">
               <span>直达短剧影坊</span> <span>➔</span>
             </div>
@@ -3578,8 +3578,8 @@ input[type=text]:focus, textarea:focus, select:focus {
           <div class="card" onclick="openWorkspaceManageModal()" style="margin-bottom:0;background:linear-gradient(145deg, #121824, #0d121c);border:1px solid rgba(63,185,80,0.3);position:relative;overflow:hidden;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='#3fb950';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(63,185,80,0.3)';this.style.transform='none'" title="点击打开工作室矩阵管理中枢：查看各矩阵号空间与技能配置">
             <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle, rgba(63,185,80,0.2) 0%, transparent 70%);border-radius:50%"></div>
             <div style="font-size:12px;color:var(--text-muted)">🏢 矩阵工作空间</div>
-            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0">98.6%</div>
-            <div style="font-size:11.5px;color:var(--text-muted)">目标分自进化达标率</div>
+            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-workspaces-count">—</div>
+            <div style="font-size:11.5px;color:var(--text-muted)" id="dash-workspaces-sub">尚未创建工作空间</div>
             <div style="font-size:11px;color:#3fb950;margin-top:6px;display:flex;align-items:center;gap:4px">
               <span>管理工作室中枢</span> <span>➔</span>
             </div>
@@ -3626,13 +3626,11 @@ input[type=text]:focus, textarea:focus, select:focus {
                 <circle cx="400" cy="35" r="4" fill="#a855f7" stroke="#fff" stroke-width="1.5"/>
               </svg>
             </div>
-            <!-- X轴刻度与图例 -->
-            <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px">
-              <span>09-15</span><span>09-16</span><span>09-17</span><span>09-18</span><span>09-19</span><span>09-20</span><span style="color:#58a6ff;font-weight:700">今日 09-21</span>
-            </div>
+            <!-- X轴刻度与图例：R4-7 改为 JS 按当天日期动态生成（此前为写死日期） -->
+            <div id="trend-x-axis" style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px"></div>
             <div style="display:flex;gap:12px;font-size:11px;margin-top:6px">
-              <span style="display:flex;align-items:center;gap:4px;color:#58a6ff">● 全网热点捕获量 (峰值240条)</span>
-              <span style="display:flex;align-items:center;gap:4px;color:#a855f7">╌ 转化成稿数 (今日48篇)</span>
+              <span style="display:flex;align-items:center;gap:4px;color:#58a6ff">● 全网热点捕获量 <span id="trend-peak-label"></span></span>
+              <span style="display:flex;align-items:center;gap:4px;color:#a855f7">╌ 转化成稿数 <span id="trend-draft-label"></span></span>
             </div>
           </div>
 
@@ -3647,7 +3645,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div class="bar-row" onclick="jumpToPlatformInspire('xhs')" style="cursor:pointer;padding:2px 4px;border-radius:4px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'" title="点击直接进入小红书灵感热榜">
                 <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
                   <span style="color:#ff2442;font-weight:600">📕 小红书 (图文卡片)</span>
-                  <span style="color:#fff;font-size:10.5px">38% · 19 篇</span>
+                  <span style="color:#fff;font-size:10.5px"><span id="bar-xhs">—</span></span>
                 </div>
                 <div style="background:#161b22;height:7px;border-radius:4px;overflow:hidden">
                   <div style="width:76%;height:100%;background:linear-gradient(90deg,#ff2442,#ff6b81);border-radius:4px"></div>
@@ -3657,7 +3655,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div class="bar-row" onclick="jumpToPlatformInspire('wechat')" style="cursor:pointer;padding:2px 4px;border-radius:4px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'" title="点击直接进入微信深度好文热榜">
                 <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
                   <span style="color:#07c160;font-weight:600">💬 微信公众号 (深度长文)</span>
-                  <span style="color:#fff;font-size:10.5px">28% · 14 篇</span>
+                  <span style="color:#fff;font-size:10.5px"><span id="bar-wechat">—</span></span>
                 </div>
                 <div style="background:#161b22;height:7px;border-radius:4px;overflow:hidden">
                   <div style="width:56%;height:100%;background:linear-gradient(90deg,#07c160,#2bd97c);border-radius:4px"></div>
@@ -3667,7 +3665,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div class="bar-row" onclick="jumpToPlatformInspire('toutiao')" style="cursor:pointer;padding:2px 4px;border-radius:4px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'" title="点击直接进入今日头条热点">
                 <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
                   <span style="color:#f04134;font-weight:600">📰 今日头条 (微头条/热讯)</span>
-                  <span style="color:#fff;font-size:10.5px">18% · 9 篇</span>
+                  <span style="color:#fff;font-size:10.5px"><span id="bar-toutiao">—</span></span>
                 </div>
                 <div style="background:#161b22;height:7px;border-radius:4px;overflow:hidden">
                   <div style="width:36%;height:100%;background:linear-gradient(90deg,#f04134,#ff7875);border-radius:4px"></div>
@@ -3677,7 +3675,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div class="bar-row" onclick="jumpToPlatformInspire('douyin')" style="cursor:pointer;padding:2px 4px;border-radius:4px;transition:background 0.15s" onmouseover="this.style.background='rgba(255,255,255,0.04)'" onmouseout="this.style.background='transparent'" title="点击进入短剧与影视口播制作">
                 <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px">
                   <span style="color:#00f2fe;font-weight:600">🎵 抖音 / 视频号 (影视短剧)</span>
-                  <span style="color:#fff;font-size:10.5px">16% · 8 篇</span>
+                  <span style="color:#fff;font-size:10.5px"><span id="bar-douyin">—</span></span>
                 </div>
                 <div style="background:#161b22;height:7px;border-radius:4px;overflow:hidden">
                   <div style="width:32%;height:100%;background:linear-gradient(90deg,#00f2fe,#4facfe);border-radius:4px"></div>
@@ -3708,8 +3706,8 @@ input[type=text]:focus, textarea:focus, select:focus {
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#3fb950" stroke-width="4.5" stroke-dasharray="7.1 88" stroke-dashoffset="-80.9"/>
                 </svg>
                 <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff">
-                  <span>88.6分</span>
-                  <span style="font-size:8px;color:var(--text-muted);font-weight:normal">达标率98%</span>
+                  <span id="ring-score">—</span>
+                  <span style="font-size:8px;color:var(--text-muted);font-weight:normal" id="ring-rate">暂无评分数据</span>
                 </div>
               </div>
               <!-- 图例 -->
@@ -3762,7 +3760,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div onclick="document.querySelector('.nav-item[data-p=inspire]').click()" style="cursor:pointer" title="点击前往选题抓取">
                 <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
                   <span style="color:var(--text-muted)">1. 选题抓取与基因拆解 ➔</span>
-                  <span style="color:#fff">200 条 (100%)</span>
+                  <span style="color:#fff" id="funnel-1-val">—</span>
                 </div>
                 <div style="background:#1e2636;height:6px;border-radius:3px;overflow:hidden">
                   <div style="width:100%;height:100%;background:linear-gradient(90deg, #f0883e, #ff9d55)"></div>
@@ -3771,7 +3769,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div onclick="document.querySelector('.nav-item[data-p=drafts]').click()" style="cursor:pointer" title="点击前往AI仿写与适配">
                 <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
                   <span style="color:var(--text-muted)">2. AI 针对仿写与三平台适配 ➔</span>
-                  <span style="color:#fff">54 篇 (27%)</span>
+                  <span style="color:#fff" id="funnel-2-val">—</span>
                 </div>
                 <div style="background:#1e2636;height:6px;border-radius:3px;overflow:hidden">
                   <div style="width:70%;height:100%;background:linear-gradient(90deg, #a855f7, #c084fc)"></div>
@@ -3780,7 +3778,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div onclick="document.querySelector('.nav-item[data-p=drafts]').click()" style="cursor:pointer" title="点击前往微创外科切除">
                 <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
                   <span style="color:var(--text-muted)">3. 外科手术微创定点切除补齐 ➔</span>
-                  <span style="color:#fff">38 篇 (70% 达标转化)</span>
+                  <span style="color:#fff" id="funnel-3-val">—</span>
                 </div>
                 <div style="background:#1e2636;height:6px;border-radius:3px;overflow:hidden">
                   <div style="width:55%;height:100%;background:linear-gradient(90deg, #58a6ff, #79b8ff)"></div>
@@ -3789,7 +3787,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div onclick="openScheduleCalendarModal()" style="cursor:pointer" title="点击前往全平台发布排期">
                 <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
                   <span style="color:var(--text-muted)">4. 终审成稿与全域矩阵就绪 ➔</span>
-                  <span style="color:#3fb950">30 篇 (就绪发布)</span>
+                  <span style="color:#3fb950" id="funnel-4-val">—</span>
                 </div>
                 <div style="background:#1e2636;height:6px;border-radius:3px;overflow:hidden">
                   <div style="width:40%;height:100%;background:linear-gradient(90deg, #2ea043, #3fb950)"></div>
@@ -3808,7 +3806,7 @@ input[type=text]:focus, textarea:focus, select:focus {
                 🚀 一键扒全网爆款
               </button>
               <button class="btn info" style="padding:14px" onclick="document.querySelector('.nav-item[data-p=studio]').click()">
-                🎬 全自动AI 短视频
+                🎬 全自动 AI 短剧
               </button>
               <button class="btn ok" style="padding:14px" onclick="document.querySelector('.nav-item[data-p=drafts]').click()">
                 📝 内容工作台排版
@@ -4424,21 +4422,23 @@ input[type=text]:focus, textarea:focus, select:focus {
     <!-- ================== 3. 影音工坊面板 ================== -->
     <section class="panel" id="p-studio">
       <div class="sub-tabs">
-        <div class="sub-tab on" data-sp="sp-drama" onclick="switchSubTab('studio','sp-drama')">🎬 全自动AI 短视频 (分镜/生图/配音)</div>
-        <div class="sub-tab" data-sp="sp-video" onclick="switchSubTab('studio','sp-video')">⚡ 快速短视频合成 (MPT横竖双模)</div>
+        <div class="sub-tab on" data-sp="sp-drama" onclick="switchSubTab('studio','sp-drama')">🎬 全自动 AI 短剧</div>
+        <div class="sub-tab" data-sp="sp-video" onclick="switchSubTab('studio','sp-video')">⚡ 快速短视频合成</div>
+        <div class="sub-tab" data-sp="sp-aivideo" onclick="switchSubTab('studio','sp-aivideo')">🎥 AI 短视频生成</div>
         <div class="sub-tab" data-sp="sp-storyboard" onclick="switchSubTab('studio','sp-storyboard')">🎥 电影级好莱坞分镜脚本</div>
         <div class="sub-tab" data-sp="sp-audio" onclick="switchSubTab('studio','sp-audio')">🎧 AI 口播配音 TTS</div>
         <div class="sub-tab" data-sp="sp-video-tasks" onclick="switchSubTab('studio','sp-video-tasks')">📂 成片资产资料库</div>
+        <div class="sub-tab" data-sp="sp-advideo" onclick="switchSubTab('studio','sp-advideo')">📢 AI 产品广告短片</div>
       </div>
 
-      <!-- 子视图：全自动AI 短视频工坊 (8 步工业级全自动AI 短视频流水线) -->
+      <!-- 子视图：全自动 AI 短剧工坊 (8 步工业级全自动 AI 短剧流水线) -->
       <div id="sp-drama" class="sub-view">
         <div class="card">
           <!-- 顶部标题与快速操作栏 -->
           <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">
             <div>
               <div style="font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px">
-                <span>🎬</span> 8 步工业级全自动AI 短视频 (借鉴 Pavo AI / StoryDiffusion / ComfyUI Director 架构)
+                <span>🎬</span> 8 步工业级全自动 AI 短剧
               </div>
               <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
                 从需求分析、剧情脉络、角色四视图资产、逐镜头分镜，到视频切片动效合成与全剧母带封装。支持单步微调重绘与一键连续流转。
@@ -4579,7 +4579,10 @@ input[type=text]:focus, textarea:focus, select:focus {
             <div id="drama-step1-result" style="margin-top:16px;display:none;background:rgba(13,17,23,0.7);border:1px solid var(--border);border-radius:8px;padding:16px">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
                 <span style="font-weight:700;font-size:14px;color:#fff">📋 剧本需求分析产物 (故事梗概与高概念定位)</span>
-                <button class="btn info btn-sm" onclick="switchDramaStep(2)">确认无误，进入 Step 2: 剧情大纲 ➔</button>
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-sm ghost" style="border-color:rgba(240,136,62,0.5);color:var(--primary)" onclick="reeditDramaStep1()">✏️ 重新编辑改写</button>
+                  <button class="btn info btn-sm" onclick="switchDramaStep(2)">确认无误，进入 Step 2: 剧情大纲 ➔</button>
+                </div>
               </div>
               <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;line-height:1.6">
                 <div><strong style="color:#e3b341">片名意向：</strong><span id="res-s1-title" style="color:#fff;font-weight:600"></span></div>
@@ -4785,7 +4788,7 @@ input[type=text]:focus, textarea:focus, select:focus {
         <div style="background:#121824;border:1px solid var(--border);border-radius:12px;width:92%;max-width:680px;max-height:90vh;overflow-y:auto;padding:22px;box-shadow:0 16px 40px rgba(0,0,0,0.6);display:flex;flex-direction:column;gap:14px">
           <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:10px">
             <div style="font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:6px">
-              <span>🎬</span> 短剧制作需求分析与设定确认 (借鉴 Pavo AI)
+              <span>🎬</span> 短剧制作需求分析与设定确认
             </div>
             <button class="btn ghost btn-sm" onclick="closeDramaRequirementModal()">✕</button>
           </div>
@@ -4904,7 +4907,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <!-- 子视图：短视频 (MPT 核心流水线) -->
       <div id="sp-video" class="sub-view" style="display:none">
         <div class="card">
-          <div style="font-size:15px;font-weight:700;margin-bottom:6px;color:#fff">⚡ 快速短视频合成流水线 (MoneyPrinterTurbo 横竖双模)</div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:6px;color:#fff">⚡ 快速短视频合成流水线</div>
           <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px">
             支持输入专属口播稿或上传剧本，可自由配置背景音乐、字幕特效与画面素材源（草稿AI图/素材库/本地素材/Pexels）。
           </div>
@@ -4945,7 +4948,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <textarea id="vd-script-input" style="width:100%;height:95px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:12.5px;padding:10px 12px;line-height:1.7;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box" placeholder="选择上方草稿自动提取纯口播文案，或点击「📤 上传文档」，也可以直接在此手动粘贴口播文案…" oninput="updateVdScriptStats()"></textarea>
             </div>
 
-            <!-- 🎵 MPT 进阶设置：音乐/字幕/素材源 -->
+            <!-- 🎵 进阶设置：音乐/字幕/素材源 -->
             <div style="background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:12px">
               <div style="font-size:12px;font-weight:700;color:#e3b341;display:flex;align-items:center;gap:6px">
                 <span>🎛️</span> MPT 成片效果设置 (背景音乐 · 动效字幕 · 画面素材源)
@@ -5036,6 +5039,7 @@ input[type=text]:focus, textarea:focus, select:focus {
                   <option value="15">15 秒（黄金抓人）</option>
                   <option value="30" selected>30 秒（标准口播）</option>
                   <option value="60">60 秒（深度解析）</option>
+                  <option value="0">♾️ 不限时长（按配音自动）</option>
                 </select>
                 <input type="text" id="vd-subject-input" placeholder="主题（留空=跟随草稿标题）" style="flex:1;min-width:160px;font-size:12px;padding:6px 10px">
               </div>
@@ -5137,6 +5141,164 @@ input[type=text]:focus, textarea:focus, select:focus {
         </div>
       </div>
 
+      <div id="sp-advideo" class="sub-view" style="display:none">
+        <div class="card">
+          <div style="font-size:15px;font-weight:700;margin-bottom:6px;color:#fff">📢 AI 产品广告短片</div>
+          <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:16px">
+            🎬 全AI 视频大模型生成：AI 按分镜逐镜头生成视频（7-slot 产品镜头公式，产品全片一致），ffmpeg 无损拼接成片。
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px;background:rgba(255,255,255,0.02);padding:16px;border-radius:8px;border:1px solid var(--border)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:13px;font-weight:600;color:#e3b341">📦 产品名称 <span style="color:#f85149">*</span></label>
+                <input id="ad-product-name" type="text" placeholder="例如：一幕智能护眼台灯" style="width:100%;padding:8px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:13px;outline:none;box-sizing:border-box">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:13px;font-weight:600;color:#e3b341">👥 目标受众</label>
+                <input id="ad-audience" type="text" value="大众消费者" placeholder="例如：25-35岁职场妈妈" style="width:100%;padding:8px 12px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:13px;outline:none;box-sizing:border-box">
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <label style="font-size:13px;font-weight:600;color:#e3b341">✨ 产品描述 / 卖点 <span style="color:#f85149">*</span></label>
+              <textarea id="ad-product-desc" style="width:100%;height:90px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:12.5px;padding:10px 12px;line-height:1.7;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box" placeholder="描述产品核心卖点、功能亮点、适用场景…（AI 会自动提炼成广告话术）"></textarea>
+            </div>
+
+            <!-- 卖点生成 → 预览 → 重新生成 -->
+            <div style="display:flex;flex-direction:column;gap:8px;background:rgba(240,136,62,0.05);border:1px dashed rgba(240,136,62,0.35);border-radius:8px;padding:12px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px;font-weight:600;color:#e3b341">🎯 广告卖点</span>
+                <button class="btn btn-sm" style="background:rgba(240,136,62,0.15);border:1px solid rgba(240,136,62,0.4);color:#f0883e" onclick="genAdSellingPoints()">✨ AI 生成卖点</button>
+                <button class="btn btn-sm ghost" onclick="genAdSellingPoints()" title="不满意？再生成一版">🔄 重新生成</button>
+                <span style="font-size:11px;color:var(--text-muted)">可手动编辑，每行一个卖点</span>
+              </div>
+              <textarea id="ad-selling-points" style="width:100%;height:80px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:12.5px;padding:10px 12px;line-height:1.7;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box" placeholder="点击「✨ AI 生成卖点」，或直接手动输入（每行一个）…"></textarea>
+            </div>
+
+            <!-- 参考图上传：产品图 + 人物图（深度 AI 创作，全片贯穿） -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:13px;font-weight:600;color:#e3b341">📦 产品参考图（可多张）</label>
+                <div style="font-size:11px;color:var(--text-muted)">AI 将分析图片特征，全片 1/4、1/2、3/4 处穿插展示，保持产品一致性</div>
+                <input id="ad-ref-images" type="file" multiple accept="image/*" style="font-size:12px;color:var(--text-muted)" onchange="uploadAdRefImages(this,'product')">
+                <div id="ad-ref-images-preview" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <label style="font-size:13px;font-weight:600;color:#e3b341">🧑‍💼 卖货人员参考图（单张）</label>
+                <div style="font-size:11px;color:var(--text-muted)">AI 将提取人物特征，注入每个分镜，结尾 CTA 段重点展示</div>
+                <input id="ad-person-ref" type="file" accept="image/*" style="font-size:12px;color:var(--text-muted)" onchange="uploadAdRefImages(this,'person')">
+                <div id="ad-person-ref-preview" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+              </div>
+            </div>
+
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+              <div style="display:flex;align-items:center;gap:8px">
+                <label style="font-size:13px;color:var(--text-muted)">⏱️ 时长</label>
+                <select id="ad-seconds" style="font-size:12px;padding:6px 10px">
+                  <option value="15">15 秒</option>
+                  <option value="30">30 秒</option>
+                  <option value="60">60 秒</option>
+                </select>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <label style="font-size:13px;color:var(--text-muted)">🖼️ 画幅</label>
+                <select id="ad-aspect" style="font-size:12px;padding:6px 10px">
+                  <option value="9:16">📱 9:16 竖屏（抖音/视频号/小红书）</option>
+                  <option value="16:9">🖥️ 16:9 横屏（B站/YouTube）</option>
+                </select>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <label style="font-size:13px;color:var(--text-muted)">🎙️ 配音</label>
+                <select id="ad-voice" style="font-size:12px;padding:6px 10px">
+                  <option value="zh-CN-XiaoxiaoNeural">晓晓（女声·温柔）</option>
+                  <option value="zh-CN-YunxiNeural">云希（男声·活力）</option>
+                  <option value="zh-CN-YunjianNeural">云健（男声·沉稳）</option>
+                  <option value="zh-CN-XiaoyiNeural">晓伊（女声·活泼）</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 全AI 视频大模型生成模式：单轨 TTS 配音（旧三选一已下线） -->
+
+            <div>
+              <button class="btn" style="background:linear-gradient(135deg,#f0883e,#e8590c);color:#fff;border:none;font-weight:700;padding:10px 28px;font-size:14px" onclick="createAdVideo()">🚀 生成广告短片</button>
+            </div>
+
+            <div id="ad-job-status" style="display:none;font-size:13px;color:#79c0ff;padding:10px 12px;background:rgba(88,166,255,0.08);border:1px solid rgba(88,166,255,0.2);border-radius:8px"></div>
+            <div id="ad-result" style="display:none;flex-direction:column;gap:12px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 子视图：AI 短视频生成（视频大模型分段生成） -->
+      <div id="sp-aivideo" class="sub-view" style="display:none">
+        <div class="card">
+          <div style="font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px">
+            <span>🎥</span> AI 短视频生成（全AI 视频大模型）
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+            口播文案 → 视频大模型按分段逐镜头生成 → 自动拼接成片。大模型有单次时长限制时自动分多段（如 60 秒 → 7×8 秒 + 4 秒），可在配置中调整分段与并行。
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+              <label style="font-size:12px;font-weight:600;color:#e3b341;display:flex;align-items:center;gap:4px">
+                <span>🎙️</span> 选择草稿口播稿
+              </label>
+              <select id="aiv-draft-sel" style="min-width:220px;font-size:12px;padding:5px 8px" onchange="loadAivDraftScript()"></select>
+              <button type="button" class="btn ghost btn-sm" style="color:#e3b341;border-color:rgba(212,136,10,0.4)" onclick="$('aiv-doc-upload-input').click()" title="支持上传 .txt / .md / .docx 本本文档">📤 上传文档</button>
+              <button type="button" class="btn ghost btn-sm" onclick="copyAivScript()" title="复制当前口播稿">📋 复制</button>
+              <button type="button" class="btn ghost btn-sm" onclick="reloadAivScript()" title="重新提取草稿口播稿">🔄 重新提取</button>
+              <button type="button" class="btn ghost btn-sm" onclick="clearAivScript()" title="清空文本框方便手动粘贴">🧹 清空</button>
+              <input type="file" id="aiv-doc-upload-input" accept=".txt,.md,.docx,.doc" style="display:none" onchange="handleAivDocUpload(this)">
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <label style="font-size:12px;color:var(--text-muted)">📝 口播文案</label>
+                <span id="aiv-script-stats" style="font-size:11.5px;color:#79c0ff">字数：0 字</span>
+              </div>
+              <textarea id="aiv-script-input" style="width:100%;height:110px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:12.5px;padding:10px 12px;line-height:1.7;resize:vertical;outline:none;box-sizing:border-box" placeholder="选择上方草稿自动提取口播文案，或点击「📤 上传文档」，也可以直接粘贴口播文案，AI 按段落逐镜头生成视频…" oninput="updateAivScriptStats()"></textarea>
+            </div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+              <label style="font-size:12px;color:var(--text-muted)">时长</label>
+              <select id="aiv-sec-sel" style="font-size:12px;padding:5px 8px">
+                <option value="15">15 秒</option>
+                <option value="30" selected>30 秒</option>
+                <option value="60">60 秒</option>
+                <option value="0">♾️ 不限时长（按文案估算）</option>
+              </select>
+              <label style="font-size:12px;color:var(--text-muted)">画幅</label>
+              <div class="aspect-pill-group">
+                <button type="button" class="aspect-pill-btn active" id="btn-aiv-asp-916" onclick="setAivAspect('9:16')">📱 9:16 竖版</button>
+                <button type="button" class="aspect-pill-btn" id="btn-aiv-asp-169" onclick="setAivAspect('16:9')">🖥️ 16:9 横版</button>
+              </div>
+              <label style="font-size:12px;color:var(--text-muted)">视频模型</label>
+              <select id="aiv-model-sel" style="font-size:12px;padding:5px 8px;min-width:160px">
+                <option value="">（用默认配置）</option>
+              </select>
+              <button class="btn ghost btn-sm" onclick="toggleAivConfig()" title="分段时长/间隔/并行数">⚙️ 生成配置</button>
+            </div>
+            <div id="aiv-config-box" style="display:none;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;flex-wrap:wrap;gap:12px">
+              <label style="font-size:12px;color:var(--text-muted)">每段时长(秒) <input id="aiv-cfg-seg" type="number" min="4" max="30" value="8" style="width:64px;font-size:12px;padding:4px 6px"></label>
+              <label style="font-size:12px;color:var(--text-muted)">段间间隔(秒) <input id="aiv-cfg-interval" type="number" min="0" max="60" value="2" style="width:64px;font-size:12px;padding:4px 6px"></label>
+              <label style="font-size:12px;color:var(--text-muted)">并行数 <input id="aiv-cfg-parallel" type="number" min="1" max="4" value="1" style="width:56px;font-size:12px;padding:4px 6px" title="1=逐个排队，>1=多路并行"></label>
+              <button class="btn btn-sm ok" onclick="saveAivConfig()">💾 保存配置</button>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button class="btn ok" style="padding:8px 22px;font-weight:700" onclick="createAiVideo()">🚀 生成 AI 短视频</button>
+              <span id="aiv-plan-hint" style="font-size:12px;color:var(--text-muted)"></span>
+            </div>
+            <div id="aiv-progress-box" style="display:none">
+              <div style="font-size:12px;color:var(--text-muted)" id="aiv-progress-text">准备中…</div>
+              <div style="height:8px;background:rgba(255,255,255,0.08);border-radius:4px;margin-top:6px;overflow:hidden">
+                <div id="aiv-progress-bar" style="height:100%;width:0%;background:linear-gradient(135deg,#f0883e,#e8590c);border-radius:4px;transition:width 0.3s"></div>
+              </div>
+            </div>
+            <div id="aiv-result-box" style="display:none"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- 子视图：成片资料库 (按 9:16 竖屏与 16:9 横屏分类大卡片展示) -->
       <div id="sp-video-tasks" class="sub-view" style="display:none">
         <div class="card">
@@ -5160,11 +5322,13 @@ input[type=text]:focus, textarea:focus, select:focus {
     <section class="panel" id="p-console">
       <div class="sub-tabs">
         <div class="sub-tab on" data-sp="sp-ticket" onclick="switchSubTab('console','sp-ticket')">📮 每日工单自动化</div>
-        <div class="sub-tab" data-sp="sp-agents" onclick="switchSubTab('console','sp-agents')">🤖 Agent 分工与技能</div>
+        <div class="sub-tab" data-sp="sp-agent-config" onclick="switchSubTab('console','sp-agent-config')">🤖 Agent 配置</div>
+        <div class="sub-tab" data-sp="sp-skills" onclick="switchSubTab('console','sp-skills')">📚 技能库</div>
         <div class="sub-tab" data-sp="sp-health" onclick="switchSubTab('console','sp-health')">⛑ 服务健康自检</div>
         <div class="sub-tab" data-sp="sp-settings" onclick="switchSubTab('console','sp-settings')">⚙ 系统与 API 配置</div>
-        <div class="sub-tab" data-sp="sp-gateway" data-pro-only="1" onclick="switchSubTab('console','sp-gateway')">🔌 网关管理</div>
+        <div class="sub-tab" data-sp="sp-gateway" data-pro-only="1" onclick="switchSubTab('console','sp-gateway')">🔌 API 网关服务</div>
         <div class="sub-tab" data-sp="sp-billing" onclick="switchSubTab('console','sp-billing')">💳 会员与账本</div>
+        <div class="sub-tab" data-sp="sp-video-config" onclick="switchSubTab('console','sp-video-config')">🎬 视频合成配置</div>
       </div>
 
       <!-- 子视图：每日工单 -->
@@ -5191,12 +5355,20 @@ input[type=text]:focus, textarea:focus, select:focus {
         </div>
       </div>
 
-      <!-- 子视图：Agent分工 -->
-      <div id="sp-agents" class="sub-view" style="display:none">
+      <!-- 子视图：Agent 配置 -->
+      <div id="sp-agent-config" class="sub-view" style="display:none">
         <div class="card">
-          <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px">🤖 企业级多 Agent 矩阵中枢与技能调度</div>
+          <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px">🤖 企业级多 Agent 矩阵中枢</div>
           <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">涵盖「新媒体内容图文矩阵」与「AI 短剧影视制作矩阵」共 11 个专职 Agent。每个岗位支持独立模型引擎、专属专业技能库与系统级行为指令。</div>
           <div id="agent-config-list" style="display:flex;flex-direction:column;gap:12px"></div>
+        </div>
+      </div>
+
+      <!-- 子视图：技能库 -->
+      <div id="sp-skills" class="sub-view" style="display:none">
+        <div class="card">
+          <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px">📚 技能库 (Skills)</div>
+          <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">Agent 可调用的专业技能：内容方法论、名家文风、平台风格与自主进化技能。点击任意技能查看详情。</div>
         </div>
         <div class="card" style="margin-top:14px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -5239,7 +5411,7 @@ input[type=text]:focus, textarea:focus, select:focus {
 
         <div class="card" style="margin-top:14px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-            <div style="font-size:14px;font-weight:700">技能库 (Skills)</div>
+            <div style="font-size:14px;font-weight:700">🧩 方法论与平台技能</div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-sm ghost" onclick="skillNew()">＋ 新建技能</button>
               <button class="btn btn-sm info" onclick="skillDistillModal()">⚡ AI 蒸馏技能</button>
@@ -5269,6 +5441,15 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-gw-info"></div>
             </div>
             <button class="btn btn-sm" style="background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;border:none;font-weight:700" onclick="modal('m-gateway')">⚙️ 配置模型服务与API</button>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--border)">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:14px">📊 各模型服务使用量统计</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:3px">🎭 一幕官方通道按 Token 扣额度；其他模型服务自备 Key，仅统计不计费</div>
+              <div id="llm-usage-table" style="margin-top:8px;font-size:12px;color:var(--text-muted)">加载中…</div>
+            </div>
+            <button class="btn btn-sm ghost" onclick="loadLlmUsage()">↻ 刷新统计</button>
           </div>
 
           <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
@@ -5375,18 +5556,972 @@ input[type=text]:focus, textarea:focus, select:focus {
         </div>
       </div>
 
-      <!-- 子视图：网关管理（内嵌独立页，sidebar 常驻） -->
+      <!-- 子视图：API 网关服务（原生重建，与主站 UI 融合） -->
       <div id="sp-gateway" class="sub-view" style="display:none">
-        <iframe src="/admin/gateway?embed=1" style="width:100%;height:calc(100vh - 220px);border:none;border-radius:12px;background:transparent" title="网关管理"></iframe>
+        <style>
+          .gwN-input,.gwN-select,.gwN-textarea{background:#0d1117;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13.5px;font-family:inherit;outline:none}
+          .gwN-input:focus,.gwN-select:focus,.gwN-textarea:focus{border-color:var(--primary)}
+          .gwN-keybox{margin-bottom:12px;background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;display:none}
+          .gwN-keybox.show{display:block}
+          .gwN-result{margin-top:12px;background:#0d1117;border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;display:none}
+          .gwN-result.show{display:block}
+          .gwN-result pre{background:#07090e;border-radius:6px;padding:12px;white-space:pre-wrap;word-break:break-word;font-size:13px;margin:10px 0}
+          .gwN-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);margin-top:8px}
+          /* 主站表格与辅助文字（补全缺失定义） */
+          .tbl{width:100%;border-collapse:collapse;font-size:13px;margin-top:12px}
+          .tbl th,.tbl td{border-bottom:1px solid var(--border);padding:10px 8px;text-align:left;vertical-align:top}
+          .tbl th{color:var(--text-muted);font-weight:600;font-size:12px;white-space:nowrap}
+          .tbl tr:last-child td{border-bottom:none}
+          .tbl tbody tr:hover{background:rgba(255,255,255,.02)}
+          .sub{font-size:12.5px;color:var(--text-muted);margin:4px 0 12px;line-height:1.6}
+          .badge{display:inline-flex;align-items:center;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+          .badge.green{background:rgba(63,185,80,.18);color:#56d364;border:1px solid rgba(63,185,80,.3)}
+          .badge.red{background:rgba(248,81,73,.18);color:#ff7b72;border:1px solid rgba(248,81,73,.3)}
+          .badge.blue{background:rgba(88,166,255,.18);color:#58a6ff;border:1px solid rgba(88,166,255,.3)}
+          .badge.gold{background:rgba(227,179,65,.18);color:#f2cc60;border:1px solid rgba(227,179,65,.3)}
+        </style>
+        <div class="card" style="border-left:3px solid var(--primary)">
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.8">
+            🔌 <b style="color:var(--text)">API 网关服务</b>（下游）：对外提供 OpenAI 兼容接口，供外部系统调用，按量扣费。<br>
+            ⚡ 上游模型配置（驱动各 Agent 的大模型 Key）请去 <a href="javascript:void(0)" onclick="switchSubTab('console','sp-settings')" style="color:var(--primary)">⚙ 系统与 API 配置</a>。
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px">🌐 上游模型服务状态</h3>
+          <p class="sub">内置模型服务预设的 Key 配置状态（只读）。配置 Key 请去「系统与 API 配置」。</p>
+          <table class="tbl"><thead><tr><th>模型服务</th><th>Key 状态</th><th>配置指引</th></tr></thead>
+          <tbody id="gwN-upstream-tb"><tr><td colspan="3" style="color:var(--text-muted)">加载中…</td></tr></tbody></table>
+        </div>
+        <div class="card" id="gwN-key-card">
+          <h3 style="margin:0 0 4px;font-size:15px">🔑 网关 Key 管理</h3>
+          <div id="gwN-key-admin" style="display:none">
+            <p class="sub">发放给调用方的凭证。明文 Key 只在创建成功时显示一次，入库仅保存哈希。</p>
+            <div class="gwN-keybox" id="gwN-key-created"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">
+              <label style="font-size:12.5px;color:var(--text-muted)">名称<br><input id="gwN-key-name" class="gwN-input" placeholder="如：公众号推文服务" style="width:220px"></label>
+              <label style="font-size:12.5px;color:var(--text-muted)">配额（点）<br><input id="gwN-key-quota" class="gwN-input" type="number" value="100000" min="0" step="1000" style="width:140px"></label>
+              <button class="btn" onclick="gwNCreateKey()">创建 Key</button>
+            </div>
+            <table class="tbl"><thead><tr><th>名称</th><th>前缀</th><th>配额（点）</th><th>限速</th><th>状态</th><th>操作</th></tr></thead>
+            <tbody id="gwN-keys-tb"><tr><td colspan="6" style="color:var(--text-muted)">加载中…</td></tr></tbody></table>
+          </div>
+          <div id="gwN-key-nonadmin" style="display:none">
+            <p class="sub">Key 的发放与吊销需要管理员权限。如需调用网关，请联系管理员为你发放 Key。</p>
+            <table class="tbl"><thead><tr><th>名称</th><th>前缀</th><th>状态</th></tr></thead>
+            <tbody id="gwN-mykeys-tb"><tr><td colspan="3" style="color:var(--text-muted)">加载中…</td></tr></tbody></table>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px">🧪 测试调用</h3>
+          <p class="sub">用指定 Key 发起一次真实的 chat 调用：鉴权 → 限速 → 扣费 → 模型服务，并写入调用账本。</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">
+            <label style="font-size:12.5px;color:var(--text-muted)">调用 Key<br><select id="gwN-test-key" class="gwN-select" style="width:240px"></select></label>
+            <label style="font-size:12.5px;color:var(--text-muted)">模型<br><input id="gwN-test-model" class="gwN-input" value="yimu-chat" style="width:200px"></label>
+          </div>
+          <label style="font-size:12.5px;color:var(--text-muted);display:block;margin-bottom:10px">测试消息<br>
+          <textarea id="gwN-test-msg" class="gwN-textarea" placeholder="输入一句话，例如：用一句话介绍一幕·YIMU" style="width:100%;min-height:70px"></textarea></label>
+          <button class="btn" id="gwN-test-btn" onclick="gwNTestCall()">发起测试调用</button>
+          <div class="gwN-result" id="gwN-test-result"></div>
+        </div>
       </div>
 
-      <!-- 子视图：会员与账本（内嵌独立页，sidebar 常驻） -->
+      <!-- 子视图：会员与账本（原生重建，与主站 UI 融合） -->
       <div id="sp-billing" class="sub-view" style="display:none">
-        <iframe src="/admin/billing?embed=1" style="width:100%;height:calc(100vh - 220px);border:none;border-radius:12px;background:transparent" title="会员与账本"></iframe>
+        <style>
+          .blN-tierrow{display:flex;gap:28px;flex-wrap:wrap;align-items:center;margin:12px 0}
+          .blN-tiername{font-size:22px;font-weight:800;color:var(--primary)}
+          .blN-stat .v{font-size:20px;font-weight:700;color:var(--text);display:block}
+          .blN-stat .k{font-size:11.5px;color:var(--text-muted)}
+          .blN-bar{height:8px;background:#0d1117;border-radius:4px;overflow:hidden;margin-top:8px}
+          .blN-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),#ff9d55);border-radius:4px;transition:width .3s}
+        </style>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px">👤 我的会员</h3>
+          <p class="sub">会员额度与网关调用额度为同一账本：每次模型调用都会从这里扣减，明细见下方账本。</p>
+          <div id="blN-tier"><span style="color:var(--text-muted)">加载中…</span></div>
+          <div id="blN-upgrade" style="display:none;margin-top:14px;padding:14px;background:rgba(240,136,62,.07);border:1px solid rgba(240,136,62,.25);border-radius:10px">
+            <div style="font-size:13.5px;font-weight:700;margin-bottom:8px">🚀 升级 V7 Pro，解锁完整体验</div>
+            <div style="font-size:12.5px;color:var(--text-muted);line-height:1.8;margin-bottom:10px">
+              • 短剧流水线不限次、成片时长不限<br>
+              • 图片赛马 3 候选 + Judge 优选不限次<br>
+              • 热榜 24 平台全开、TTS 三引擎、网关 API
+            </div>
+            <button class="btn" onclick="showUpgradeModal()">了解 Pro 档位</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px">📒 调用账本</h3>
+          <p class="sub">每次模型调用的计量记录（只增不改），费用为整数点数。</p>
+          <table class="tbl"><thead><tr><th>时间</th><th>模型</th><th>方向</th><th>Token</th><th>费用（点）</th><th>延迟</th></tr></thead>
+          <tbody id="blN-ledger-tb"><tr><td colspan="6" style="color:var(--text-muted)">加载中…</td></tr></tbody></table>
+          <div style="text-align:center;margin-top:12px"><button class="btn ghost" id="blN-more" onclick="blNLoadLedger(false)">加载更多</button></div>
+        </div>
+        <div class="card" id="blN-inv-card" style="display:none">
+          <h3 style="margin:0 0 4px;font-size:15px">✉️ 邀请码管理</h3>
+          <p class="sub">邀请制模式下，用于发放注册 / 升级资格，核销后按设定赠送额度。</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:flex-end">
+            <label style="font-size:12.5px;color:var(--text-muted)">可用次数<br><input id="blN-inv-uses" class="gwN-input" type="number" value="1" min="1" style="width:110px"></label>
+            <label style="font-size:12.5px;color:var(--text-muted)">赠送额度（点）<br><input id="blN-inv-grant" class="gwN-input" type="number" value="10000" min="0" step="1000" style="width:140px"></label>
+            <label style="font-size:12.5px;color:var(--text-muted)">有效天数（0=永不过期）<br><input id="blN-inv-days" class="gwN-input" type="number" value="30" min="0" style="width:150px"></label>
+            <button class="btn" onclick="blNCreateInvite()">创建邀请码</button>
+          </div>
+          <table class="tbl"><thead><tr><th>邀请码</th><th>已用/可用</th><th>赠送额度</th><th>状态</th><th>过期时间</th></tr></thead>
+          <tbody id="blN-inv-tb"><tr><td colspan="5" style="color:var(--text-muted)">加载中…</td></tr></tbody></table>
+        </div>
+        <div class="card" id="blN-mode-card" style="display:none">
+          <h3 style="margin:0 0 4px;font-size:15px">🚀 上线模式</h3>
+          <p class="sub">云端首发的注册策略：邀请制（凭邀请码注册）或公开注册。</p>
+          <p style="font-size:13.5px">当前模式：<span id="blN-mode">加载中…</span></p>
+          <div style="display:flex;gap:10px">
+            <button class="btn ghost" onclick="blNSetMode('invite-only')">切换为邀请制</button>
+            <button class="btn ghost" onclick="blNSetMode('public')">切换为公开注册</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 子视图：视频合成配置（原生，与主站 UI 融合） -->
+      <div id="sp-video-config" class="sub-view" style="display:none">
+        <style>
+          .vdCfg-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);flex-wrap:wrap}
+          .vdCfg-row:last-child{border-bottom:none}
+          .vdCfg-label{font-size:13.5px;font-weight:600}
+          .vdCfg-desc{font-size:12px;color:var(--text-muted);margin-top:2px}
+          .vdCfg-key{font-family:monospace;font-size:13px;background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:4px 10px}
+          .vdCfg-input{background:#0d1117;border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;width:100%;max-width:420px;outline:none}
+          .vdCfg-input:focus{border-color:var(--primary)}
+          .vdCfg-opt{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;cursor:pointer}
+          .vdCfg-opt.on{border-color:var(--primary);background:rgba(240,136,62,.06)}
+          .vdCfg-opt input{margin-top:3px}
+        </style>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px">🖼️ 免费素材 API</h3>
+          <p class="sub">Pexels / Pixabay 免费图库 Key。不填也能用，会自动改用 AI 图片。Key 仅存本机，可随时修改删除。</p>
+          <div class="vdCfg-row">
+            <div>
+              <div class="vdCfg-label">Pexels <span id="vdCfg-pexels-badge"></span></div>
+              <div class="vdCfg-desc">200 次/小时免费 · <a href="https://www.pexels.com/api/" target="_blank" rel="noopener" style="color:var(--primary)">免费申请 ↗</a></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span class="vdCfg-key" id="vdCfg-pexels-masked">加载中…</span>
+              <button class="btn btn-sm ghost" onclick="vdCfgEditKey('pexels')">编辑</button>
+              <button class="btn btn-sm ghost" onclick="vdCfgDeleteKey('pexels')" style="color:#ff7b72">删除</button>
+            </div>
+          </div>
+          <div id="vdCfg-pexels-editor" style="display:none;padding:10px 0">
+            <input class="vdCfg-input" id="vdCfg-pexels-input" placeholder="粘贴 Pexels API Key">
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button class="btn btn-sm" onclick="vdCfgSaveKey('pexels')">保存</button>
+              <button class="btn btn-sm ghost" onclick="vdCfgCancelEdit('pexels')">取消</button>
+            </div>
+          </div>
+          <div class="vdCfg-row">
+            <div>
+              <div class="vdCfg-label">Pixabay <span id="vdCfg-pixabay-badge"></span></div>
+              <div class="vdCfg-desc">100 次/分钟免费（Pexels 备选）· <a href="https://pixabay.com/api/docs/" target="_blank" rel="noopener" style="color:var(--primary)">免费申请 ↗</a></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <span class="vdCfg-key" id="vdCfg-pixabay-masked">加载中…</span>
+              <button class="btn btn-sm ghost" onclick="vdCfgEditKey('pixabay')">编辑</button>
+              <button class="btn btn-sm ghost" onclick="vdCfgDeleteKey('pixabay')" style="color:#ff7b72">删除</button>
+            </div>
+          </div>
+          <div id="vdCfg-pixabay-editor" style="display:none;padding:10px 0">
+            <input class="vdCfg-input" id="vdCfg-pixabay-input" placeholder="粘贴 Pixabay API Key">
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button class="btn btn-sm" onclick="vdCfgSaveKey('pixabay')">保存</button>
+              <button class="btn btn-sm ghost" onclick="vdCfgCancelEdit('pixabay')">取消</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px">🎞️ 素材模式</h3>
+          <p class="sub">视频画面的素材来源。混合模式优先搜索 Pexels / Pixabay 免费素材，不足时用 AI 生成图片补足。</p>
+          <div id="vdCfg-material-opts">
+            <label class="vdCfg-opt" id="vdCfg-opt-stock_only">
+              <input type="radio" name="vdCfg-material" value="stock_only" onchange="vdCfgSetMaterialMode('stock_only')">
+              <div>
+                <div class="vdCfg-label">🔍 仅在线素材</div>
+                <div class="vdCfg-desc">只用 Pexels / Pixabay 免费视频。搜不到素材时会报错，请先配置上方 Key 或换模式。</div>
+              </div>
+            </label>
+            <label class="vdCfg-opt" id="vdCfg-opt-ai_only">
+              <input type="radio" name="vdCfg-material" value="ai_only" onchange="vdCfgSetMaterialMode('ai_only')">
+              <div>
+                <div class="vdCfg-label">🎨 仅 AI 生成</div>
+                <div class="vdCfg-desc">只用 AI 生成图片做轮播，不联网搜索素材。</div>
+              </div>
+            </label>
+            <label class="vdCfg-opt" id="vdCfg-opt-mixed">
+              <input type="radio" name="vdCfg-material" value="mixed" onchange="vdCfgSetMaterialMode('mixed')">
+              <div>
+                <div class="vdCfg-label">🔀 混合模式 <span class="badge green">默认推荐</span></div>
+                <div class="vdCfg-desc">优先搜索免费在线素材；素材不足时自动用 AI 生成图片补足，保证每次都能出片。</div>
+              </div>
+            </label>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px">💬 字幕</h3>
+          <p class="sub">合成视频时是否烧录口播字幕到底部。</p>
+          <div style="display:flex;gap:10px" id="vdCfg-sub-btns">
+            <button class="btn" id="vdCfg-sub-on" onclick="vdCfgSetSubtitle(true)">有字幕</button>
+            <button class="btn ghost" id="vdCfg-sub-off" onclick="vdCfgSetSubtitle(false)">无字幕</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="margin:0 0 4px;font-size:15px">🎙️ 声音引擎</h3>
+          <p class="sub">视频配音的引擎选择。TTS 为保底，永远可用。</p>
+          <div id="vdCfg-voice-opts">
+            <label class="vdCfg-opt" id="vdCfg-opt-tts">
+              <input type="radio" name="vdCfg-voice" value="tts" onchange="vdCfgSetVoice('tts')">
+              <div>
+                <div class="vdCfg-label">🔊 TTS <span class="badge green">保底</span></div>
+                <div class="vdCfg-desc">A 的 TTS 多引擎链路（自动切换备用引擎），永远可用，无需配置。</div>
+              </div>
+            </label>
+            <label class="vdCfg-opt" id="vdCfg-opt-voice_clone">
+              <input type="radio" name="vdCfg-voice" value="voice_clone" onchange="vdCfgSetVoice('voice_clone')">
+              <div style="flex:1">
+                <div class="vdCfg-label">🧬 声音克隆 API</div>
+                <div class="vdCfg-desc">POST {text} 到你的克隆服务，返回音频字节。调用失败时自动改用 TTS。</div>
+                <div id="vdCfg-vc-fields" style="display:none;margin-top:10px">
+                  <input class="vdCfg-input" id="vdCfg-vc-url" placeholder="API 地址，如 https://xxx/v1/clone" style="margin-bottom:8px">
+                  <input class="vdCfg-input" id="vdCfg-vc-key" placeholder="API Key（可选）" style="margin-bottom:8px">
+                  <button class="btn btn-sm" onclick="vdCfgSaveVoiceClone()">保存克隆配置</button>
+                </div>
+              </div>
+            </label>
+            <label class="vdCfg-opt" id="vdCfg-opt-local_model">
+              <input type="radio" name="vdCfg-voice" value="local_model" onchange="vdCfgSetVoice('local_model')">
+              <div style="flex:1">
+                <div class="vdCfg-label">💻 本地声音模型</div>
+                <div class="vdCfg-desc">使用本机部署的声音模型配音。</div>
+                <div id="vdCfg-lm-fields" style="display:none;margin-top:10px">
+                  <input class="vdCfg-input" id="vdCfg-lm-path" placeholder="模型路径，如 /models/voice" style="margin-bottom:8px">
+                  <div><button class="btn btn-sm" onclick="vdCfgSaveLocalModel()">保存路径</button></div>
+                  <p class="sub" style="margin:8px 0 0;color:#e3b341">⚠️ 本地模型推理暂未实现：当前选择后会先用 TTS 配音代替，路径会先保存，待引擎上线后生效。</p>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+        <!-- 🎥 AI 视频生成配置卡 -->
+        <div class="card" style="margin-top:14px">
+          <h3 style="margin:0 0 4px;font-size:15px">🎥 AI 视频生成配置</h3>
+          <p class="sub">视频大模型分段生成：长视频自动切多段，逐段生成后拼接。段间间隔防限流，并行数&gt;1 时多路并行。</p>
+          <div class="vdCfg-row">
+            <div><div class="vdCfg-label">每段时长（秒）</div><div class="vdCfg-desc">视频大模型单次生成上限，如 8 秒</div></div>
+            <input class="vdCfg-input" id="aivCfg-seg" type="number" min="4" max="30" style="max-width:120px">
+          </div>
+          <div class="vdCfg-row">
+            <div><div class="vdCfg-label">段间间隔（秒）</div><div class="vdCfg-desc">每段生成后等待，避免触发限流</div></div>
+            <input class="vdCfg-input" id="aivCfg-interval" type="number" min="0" max="60" style="max-width:120px">
+          </div>
+          <div class="vdCfg-row">
+            <div><div class="vdCfg-label">并行数</div><div class="vdCfg-desc">1=逐个排队生成，2~4=多路并行（更快，但更耗配额）</div></div>
+            <input class="vdCfg-input" id="aivCfg-parallel" type="number" min="1" max="4" style="max-width:120px">
+          </div>
+          <div class="vdCfg-row">
+            <div><div class="vdCfg-label">默认视频模型</div><div class="vdCfg-desc">留空则用「🎬 广告视频生成 Agent」配置的模型</div></div>
+            <input class="vdCfg-input" id="aivCfg-model" placeholder="如 sora / runway-gen3" style="max-width:220px">
+          </div>
+          <div style="margin-top:10px"><button class="btn btn-sm ok" onclick="aivCfgSave()">💾 保存 AI 视频配置</button></div>
+        </div>
       </div>
     </section>
   </main>
 </div>
+
+<script>
+/* ==================== V7 原生：API 网关服务 + 会员与账本 ==================== */
+function gwNEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+/* ---- 上游模型服务状态 ---- */
+async function gwNLoadUpstream(){
+  const tb=document.getElementById('gwN-upstream-tb');
+  try{
+    const d=await api('/api/gw/ui/upstream');
+    const items=(d.data&&d.data.items)||[];
+    if(!items.length){tb.innerHTML='<tr><td colspan="3" style="color:var(--text-muted)">暂无模型服务预设。</td></tr>';return;}
+    tb.innerHTML=items.map(function(p){
+      const keyCell=p.has_key?'<span class="badge green">已配置</span>':'<span class="badge red">未配置</span>';
+      let guide=p.has_key?'<span class="sub">Key 已就绪，可直接调用。</span>'
+        :' <span class="sub">尚未配置：去「⚙ 系统与 API 配置」→ 模型服务配置（上游）填写 Key。</span>';
+      if(p.doc_url)guide+='<br><a href="'+gwNEsc(p.doc_url)+'" target="_blank" rel="noopener" style="color:var(--primary);font-size:12px">申请地址 ↗</a>';
+      const badge=p.badge?' <span class="badge blue">'+gwNEsc(p.badge)+'</span>':'';
+      return '<tr><td>'+gwNEsc(p.icon)+' <b>'+gwNEsc(p.name)+'</b>'+badge
+        +'<br><span class="sub">'+p.models_count+' 个模型 · 默认 '+gwNEsc(p.default_model)+'</span></td>'
+        +'<td>'+keyCell+'</td><td>'+guide+'</td></tr>';
+    }).join('');
+  }catch(e){tb.innerHTML='<tr><td colspan="3" style="color:var(--text-muted)">加载失败：'+gwNEsc(e.message)+'</td></tr>';}
+}
+/* ---- Key 管理 ---- */
+let gwNIsAdmin=false;
+async function gwNLoadKeys(){
+  const tb=document.getElementById('gw-keys-tb')||document.getElementById('gwN-keys-tb');
+  const sel=document.getElementById('gwN-test-key');
+  const adminBox=document.getElementById('gwN-key-admin');
+  const nonAdminBox=document.getElementById('gwN-key-nonadmin');
+  try{
+    const d=await api('/api/gw/ui/keys');
+    gwNIsAdmin=true;
+    adminBox.style.display='';nonAdminBox.style.display='none';
+    const items=(d.data&&d.data.items)||[];
+    if(!items.length){tb.innerHTML='<tr><td colspan="6" style="color:var(--text-muted)">暂无 Key，请先创建一个。</td></tr>';}
+    else{
+      tb.innerHTML=items.map(function(k){
+        const st=k.status==='active'?'<span class="badge green">有效</span>':'<span class="badge red">'+gwNEsc(k.status)+'</span>';
+        const op=k.status==='active'?'<button class="btn warn btn-sm" onclick="gwNRevokeKey(\''+k.id+'\')">吊销</button>':'—';
+        return '<tr><td>'+gwNEsc(k.name||'(未命名)')+'</td><td><span class="code">'+gwNEsc(k.key_prefix)+'…</span></td>'
+          +'<td>'+k.quota_credits+'</td><td>'+k.rate_limit_rpm+' / '+k.rate_limit_tpm+'</td>'
+          +'<td>'+st+'</td><td>'+op+'</td></tr>';
+      }).join('');
+    }
+    sel.innerHTML='';
+    items.filter(function(k){return k.status==='active';}).forEach(function(k){
+      const o=document.createElement('option');o.value=k.id;
+      o.textContent=(k.name||'(未命名)')+' ('+k.key_prefix+'…)';sel.appendChild(o);
+    });
+  }catch(e){
+    gwNIsAdmin=false;
+    adminBox.style.display='none';nonAdminBox.style.display='';
+    try{
+      const d2=await api('/api/gw/ui/my-keys');
+      const items2=(d2.data&&d2.data.items)||[];
+      const myTb=document.getElementById('gwN-mykeys-tb');
+      const sel2=document.getElementById('gwN-test-key');
+      if(!items2.length){myTb.innerHTML='<tr><td colspan="3" style="color:var(--text-muted)">暂无可用 Key，请联系管理员发放。</td></tr>';}
+      else{myTb.innerHTML=items2.map(function(k){
+        return '<tr><td>'+gwNEsc(k.name||'(未命名)')+'</td><td><span class="code">'+gwNEsc(k.key_prefix)+'…</span></td>'
+          +'<td><span class="badge green">有效</span></td></tr>';}).join('');}
+      sel2.innerHTML='';
+      items2.forEach(function(k){
+        const o=document.createElement('option');o.value=k.id;
+        o.textContent=(k.name||'(未命名)')+' ('+k.key_prefix+'…)';sel2.appendChild(o);
+      });
+    }catch(e2){
+      document.getElementById('gwN-mykeys-tb').innerHTML='<tr><td colspan="3" style="color:var(--text-muted)">加载失败</td></tr>';
+    }
+  }
+}
+async function gwNCreateKey(){
+  const name=document.getElementById('gwN-key-name').value.trim();
+  const quota=parseInt(document.getElementById('gwN-key-quota').value,10)||0;
+  const box=document.getElementById('gwN-key-created');
+  try{
+    const d=await api('/api/gw/ui/keys',{method:'POST',body:JSON.stringify({name:name,quota:quota})});
+    const k=d.data;
+    box.className='gwN-keybox show';
+    box.innerHTML='<b>Key 创建成功，请立即复制保存，明文只显示一次：</b><br><br>'
+      +'<span class="code" style="font-size:14px;user-select:all">'+gwNEsc(k.key)+'</span>'
+      +'<br><br><span class="sub">刷新或离开页面后将无法再次查看明文。</span>';
+    document.getElementById('gwN-key-name').value='';
+    gwNLoadKeys();
+  }catch(e){toast('创建失败：'+e.message);}
+}
+async function gwNRevokeKey(id){
+  if(!confirm('确定吊销该 Key 吗？吊销后立即失效，历史账本保留。'))return;
+  try{await api('/api/gw/ui/keys/'+id+'/revoke',{method:'POST',body:JSON.stringify({})});gwNLoadKeys();}
+  catch(e){toast('吊销失败：'+e.message);}
+}
+async function gwNTestCall(){
+  const keyId=document.getElementById('gwN-test-key').value;
+  const model=document.getElementById('gwN-test-model').value.trim()||'yimu-chat';
+  const message=document.getElementById('gwN-test-msg').value.trim();
+  const box=document.getElementById('gwN-test-result');
+  const btn=document.getElementById('gwN-test-btn');
+  if(!keyId){toast('请先创建一个网关 Key');return;}
+  if(!message){toast('请输入要发送的测试消息');return;}
+  btn.disabled=true;btn.textContent='调用中…';
+  try{
+    const d=await api('/api/gw/ui/test-call',{method:'POST',body:JSON.stringify({key_id:keyId,model:model,message:message})});
+    const r=d.data;
+    const echoTag=r.echo?'<span class="badge gold">回显测试，未走真实上游</span>':'<span class="badge green">真实服务调用</span>';
+    box.className='gwN-result show';
+    box.innerHTML=echoTag+' <span class="badge blue">'+gwNEsc(r.model)+'</span><pre></pre>'
+      +'<div class="gwN-meta"><span>本次扣费：<b>'+r.credits_charged+'</b> 点</span>'
+      +'<span>输入/输出 Token：'+r.input_tokens+' / '+r.output_tokens+'</span>'
+      +'<span>账本行：'+r.ledger_ids.length+' 行已落账</span>'
+      +'<span>延迟：'+r.latency_ms+' ms</span></div>';
+    box.querySelector('pre').textContent=r.text;
+    blNLoadLedger(true);
+  }catch(e){
+    box.className='gwN-result show';
+    box.innerHTML='<span class="badge red">失败</span><pre style="margin-top:8px"></pre>';
+    box.querySelector('pre').textContent=e.message;
+  }finally{btn.disabled=false;btn.textContent='发起测试调用';}
+}
+/* ---- 会员与账本 ---- */
+var blNOffset=0;
+async function blNLoadMe(){
+  const box=document.getElementById('blN-tier');
+  try{
+    const d=await api('/api/billing/ui/me');
+    const m=d.data;
+    if(!m.initialized){
+      box.innerHTML='<p class="sub">'+gwNEsc(m.message||'会员未初始化')+'</p>'
+        +'<button class="btn" onclick="blNInit()">一键初始化（免费体验档）</button>';
+      return;
+    }
+    const pct=m.credits_total>0?Math.min(100,Math.round(m.credits_used/m.credits_total*100)):0;
+    box.innerHTML='<div class="blN-tierrow">'
+      +'<div><div class="blN-tiername">'+gwNEsc(m.tier_display||m.tier_name)+'</div><div class="sub">当前档位</div></div>'
+      +'<div class="blN-stat"><span class="v">'+m.credits_left+'</span><span class="k">剩余额度（点）</span></div>'
+      +'<div class="blN-stat"><span class="v">'+m.credits_used+'</span><span class="k">累计使用（点）</span></div>'
+      +'<div class="blN-stat"><span class="v">'+m.credits_total+'</span><span class="k">本周期总额（点）</span></div>'
+      +'</div><div class="blN-bar"><i style="width:'+pct+'%"></i></div>';
+    const upg=document.getElementById('blN-upgrade');
+    if(upg)upg.style.display=((m.tier||'free').toLowerCase()==='free')?'':'none';
+    try{
+      await api('/api/billing/ui/invites');
+      document.getElementById('blN-inv-card').style.display='';
+      document.getElementById('blN-mode-card').style.display='';
+      blNLoadInvites();blNLoadMode();
+    }catch(e){}
+  }catch(e){box.innerHTML='<span style="color:var(--text-muted)">加载失败：'+gwNEsc(e.message)+'</span>';}
+}
+async function blNInit(){
+  try{await api('/api/billing/ui/init',{method:'POST',body:JSON.stringify({})});blNLoadMe();blNLoadLedger(true);}
+  catch(e){toast('初始化失败：'+e.message);}
+}
+async function blNLoadLedger(reset){
+  if(reset)blNOffset=0;
+  const tb=document.getElementById('blN-ledger-tb');
+  const more=document.getElementById('blN-more');
+  try{
+    const d=await api('/api/billing/ui/ledger?limit=50&offset='+blNOffset);
+    const items=(d.data&&d.data.items)||[];
+    if(!items.length&&blNOffset===0){
+      tb.innerHTML='<tr><td colspan="6" style="color:var(--text-muted)">暂无调用记录，完成一次测试调用后这里会显示账本。</td></tr>';
+      more.style.display='none';return;
+    }
+    const html=items.map(function(it){
+      const dir=it.direction==='input'?'<span class="badge blue">输入</span>':'<span class="badge gold">输出</span>';
+      return '<tr><td style="white-space:nowrap">'+gwNEsc(it.created_at)+'</td><td>'+gwNEsc(it.model)+'</td><td>'+dir+'</td>'
+        +'<td>'+it.tokens+'</td><td>'+it.cost+'</td><td>'+it.latency_ms+' ms</td></tr>';
+    }).join('');
+    tb.innerHTML=reset?html:tb.innerHTML+html;
+    blNOffset+=items.length;
+    more.style.display=(d.data.total>blNOffset)?'':'none';
+  }catch(e){
+    tb.innerHTML='<tr><td colspan="6" style="color:var(--text-muted)">加载失败：'+gwNEsc(e.message)+'</td></tr>';
+    more.style.display='none';
+  }
+}
+async function blNLoadInvites(){
+  const tb=document.getElementById('blN-inv-tb');
+  try{
+    const d=await api('/api/billing/ui/invites');
+    const items=(d.data&&d.data.items)||[];
+    if(!items.length){tb.innerHTML='<tr><td colspan="5" style="color:var(--text-muted)">暂无邀请码。</td></tr>';return;}
+    tb.innerHTML=items.map(function(it){
+      return '<tr><td><span class="code">'+gwNEsc(it.code)+'</span></td><td>'+it.used_count+' / '+it.max_uses+'</td>'
+        +'<td>'+it.credits_grant+'</td><td>'+gwNEsc(it.status)+'</td><td style="white-space:nowrap">'+gwNEsc(it.expires_at||'永不过期')+'</td></tr>';
+    }).join('');
+  }catch(e){tb.innerHTML='<tr><td colspan="5" style="color:var(--text-muted)">加载失败</td></tr>';}
+}
+async function blNCreateInvite(){
+  const maxUses=parseInt(document.getElementById('blN-inv-uses').value,10)||1;
+  const grant=parseInt(document.getElementById('blN-inv-grant').value,10)||0;
+  const days=parseInt(document.getElementById('blN-inv-days').value,10)||0;
+  try{
+    const d=await api('/api/billing/ui/invites',{method:'POST',body:JSON.stringify({max_uses:maxUses,credits_grant:grant,expires_in_days:days})});
+    toast('邀请码已创建：'+d.data.code);blNLoadInvites();
+  }catch(e){toast('创建失败：'+e.message);}
+}
+async function blNLoadMode(){
+  const el=document.getElementById('blN-mode');
+  try{
+    const d=await api('/api/billing/ui/launch_mode');
+    const m=d.data.launch_mode;
+    el.innerHTML='<span class="badge '+(m==='public'?'green':'blue')+'">'+(m==='public'?'公开注册':'邀请制')+'</span>'
+      +' <span class="code">'+gwNEsc(m)+'</span>';
+  }catch(e){el.textContent='加载失败';}
+}
+async function blNSetMode(mode){
+  if(!confirm('确定切换为「'+(mode==='public'?'公开注册':'邀请制')+'」吗？'))return;
+  try{await api('/api/billing/ui/launch_mode',{method:'PUT',body:JSON.stringify({launch_mode:mode})});blNLoadMode();}
+  catch(e){toast('切换失败：'+e.message);}
+}
+/* ============ AI 广告短片：卖点 / 参考图 / 配音 ============ */
+let _adRefImages = [];      // 产品参考图 path 列表
+let _adPersonRef = '';      // 人物参考图 path
+let _adCustomAudio = '';    // 上传配音 path
+
+async function genAdSellingPoints() {
+  const name = ($('ad-product-name')?.value || '').trim();
+  const desc = ($('ad-product-desc')?.value || '').trim();
+  const audience = ($('ad-audience')?.value || '').trim() || '大众消费者';
+  if (!name) return toast('请先填写产品名称');
+  if (!desc) return toast('请先填写产品描述 / 卖点');
+  const box = $('ad-selling-points');
+  if (box) box.value = '✨ AI 正在提炼卖点…';
+  try {
+    const r = await api('/api/advideo/selling_points', {
+      method: 'POST',
+      body: JSON.stringify({ product_name: name, product_desc: desc, audience }),
+    });
+    const pts = (r && r.points) || [];
+    if (box) box.value = pts.join('\n');
+    toast(`✅ 已生成 ${pts.length} 个卖点，可编辑后使用`);
+  } catch (e) { if (box) box.value = ''; toast('卖点生成失败: ' + e.message); }
+}
+
+async function uploadAdRefImages(input, kind) {
+  const files = input.files;
+  if (!files || !files.length) return;
+  for (const f of files) {
+    const fd = new FormData();
+    fd.append('file', f);
+    try {
+      const r = await api('/api/advideo/upload_ref', { method: 'POST', body: fd });
+      const path = r.path || '';
+      if (kind === 'person') {
+        _adPersonRef = path;
+        renderAdRefPreview('ad-person-ref-preview', [path], 'person');
+      } else {
+        _adRefImages.push(path);
+        renderAdRefPreview('ad-ref-images-preview', _adRefImages, 'product');
+      }
+      toast('✅ 参考图已上传');
+    } catch (e) { toast('上传失败: ' + e.message); }
+  }
+  input.value = '';
+}
+
+function renderAdRefPreview(boxId, paths, kind) {
+  const box = $(boxId);
+  if (!box) return;
+  box.innerHTML = paths.map((p, i) => `
+    <div style="position:relative;width:64px;height:64px;border-radius:6px;overflow:hidden;border:1px solid rgba(255,255,255,0.15)">
+      <img src="/api/advideo/ref_file?path=${encodeURIComponent(p)}" style="width:100%;height:100%;object-fit:cover"
+           onerror="this.style.display='none'">
+      <span style="position:absolute;top:0;right:0;background:rgba(0,0,0,0.7);color:#fff;font-size:10px;padding:0 4px;cursor:pointer"
+            onclick="removeAdRef('${kind}',${i})">✕</span>
+    </div>`).join('');
+}
+
+function removeAdRef(kind, idx) {
+  if (kind === 'person') { _adPersonRef = ''; renderAdRefPreview('ad-person-ref-preview', [], 'person'); }
+  else { _adRefImages.splice(idx, 1); renderAdRefPreview('ad-ref-images-preview', _adRefImages, 'product'); }
+}
+
+function toggleAdVoiceMode() {
+  const mode = document.querySelector('input[name="ad-voice-mode"]:checked')?.value || 'auto';
+  $('ad-voice-clone-tip').style.display = mode === 'clone' ? 'block' : 'none';
+  $('ad-voice-upload-box').style.display = mode === 'upload' ? 'flex' : 'none';
+}
+
+async function uploadAdAudio(input) {
+  const f = input.files && input.files[0];
+  if (!f) return;
+  const fd = new FormData();
+  fd.append('file', f);
+  try {
+    const r = await api('/api/advideo/upload_audio', { method: 'POST', body: fd });
+    _adCustomAudio = r.path || '';
+    $('ad-custom-audio-name').textContent = '✅ ' + (f.name || '已上传');
+    toast('✅ 配音音频已上传');
+  } catch (e) { toast('上传失败: ' + e.message); }
+  input.value = '';
+}
+
+/* ================== 🎥 AI 短视频生成（视频大模型分段） ================== */
+async function toggleAivConfig() {
+  const box = $('aiv-config-box');
+  if (!box) return;
+  const show = box.style.display === 'none';
+  box.style.display = show ? 'flex' : 'none';
+  if (show) {
+    try {
+      const c = await api('/api/aivideo/config');
+      if ($('aiv-cfg-seg')) $('aiv-cfg-seg').value = c.segment_seconds || 8;
+      if ($('aiv-cfg-interval')) $('aiv-cfg-interval').value = c.interval_seconds || 2;
+      if ($('aiv-cfg-parallel')) $('aiv-cfg-parallel').value = c.max_parallel || 1;
+    } catch(e) {}
+  }
+}
+
+async function saveAivConfig() {
+  try {
+    await api('/api/aivideo/config', { method: 'PUT', body: JSON.stringify({
+      segment_seconds: parseInt($('aiv-cfg-seg').value || '8', 10),
+      interval_seconds: parseInt($('aiv-cfg-interval').value || '2', 10),
+      max_parallel: parseInt($('aiv-cfg-parallel').value || '1', 10),
+    })});
+    toast('✅ AI 视频生成配置已保存');
+  } catch(e) { toast('保存失败: ' + e.message); }
+}
+
+/* ============ AI 短视频生成：草稿工具条 ============ */
+let currentAivAspect = '9:16';
+
+function setAivAspect(asp) {
+  currentAivAspect = asp;
+  const b916 = $('btn-aiv-asp-916'), b169 = $('btn-aiv-asp-169');
+  if (b916) b916.classList.toggle('active', asp === '9:16');
+  if (b169) b169.classList.toggle('active', asp === '16:9');
+}
+
+async function loadAivDraftScript() {
+  const did = $('aiv-draft-sel') ? $('aiv-draft-sel').value : '';
+  if (!did) return;
+  const ta = $('aiv-script-input');
+  if (!ta) return;
+  try {
+    const res = await api(`/api/drafts/${did}/voiceover_script`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({})
+    });
+    if (res && res.script) {
+      ta.value = res.script;
+    } else {
+      const d = (S.drafts || []).find(x => x.id === did);
+      if (d && d.body_md) {
+        ta.value = d.body_md.replace(/!\[.*?\]\(.*?\)/g, '').replace(/[#*`>-]/g, '').trim();
+      }
+    }
+  } catch(e) {
+    const d = (S.drafts || []).find(x => x.id === did);
+    if (d && d.body_md) ta.value = d.body_md.replace(/!\[.*?\]\(.*?\)/g, '').trim();
+  }
+  updateAivScriptStats();
+}
+
+function updateAivScriptStats() {
+  const ta = $('aiv-script-input');
+  const statsEl = $('aiv-script-stats');
+  if (!ta || !statsEl) return;
+  const len = (ta.value || '').replace(/\s/g, '').length;
+  const estSeconds = Math.ceil(len / 4.5);
+  const mins = Math.floor(estSeconds / 60);
+  const secs = estSeconds % 60;
+  const timeStr = mins > 0 ? `${mins}分${secs<10?'0':''}${secs}秒` : `${secs}秒`;
+  statsEl.textContent = `字数：${len} 字 · 预估朗读约 ${timeStr}`;
+}
+
+function copyAivScript() {
+  const ta = $('aiv-script-input');
+  if (!ta || !ta.value.trim()) return toast('口播稿为空');
+  navigator.clipboard.writeText(ta.value.trim()).then(() => toast('✅ 口播稿已复制！'));
+}
+
+async function reloadAivScript() {
+  toast('🔄 重新提取草稿口播稿…', 1500);
+  await loadAivDraftScript();
+  toast('✅ 口播稿已刷新！');
+}
+
+function clearAivScript() {
+  const ta = $('aiv-script-input');
+  if (ta) { ta.value = ''; ta.focus(); updateAivScriptStats(); toast('已清空文案输入框'); }
+}
+
+async function handleAivDocUpload(inputEl) {
+  if (!inputEl.files || !inputEl.files[0]) return;
+  const file = inputEl.files[0];
+  toast(`📤 正在解析并上传文档【${file.name}】…`, 3000);
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await fetch('/api/video/upload_script_file', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      const ta = $('aiv-script-input');
+      if (ta) { ta.value = data.text || ''; updateAivScriptStats(); }
+      toast(`🎉 文档【${file.name}】导入成功！共提取 ${data.char_count || 0} 字`, 3500);
+    } else {
+      toast('文档导入失败: ' + (data.error || '未知'));
+    }
+  } catch(e) { toast('导入异常: ' + e.message); }
+  finally { inputEl.value = ''; }
+}
+
+async function createAiVideo() {
+  const script = ($('aiv-script-input') ? $('aiv-script-input').value : '').trim();
+  if (!script) return toast('请填写口播文案');
+  const total_seconds = parseInt($('aiv-sec-sel').value || '30', 10);
+  const aspect = (typeof currentAivAspect !== 'undefined' ? currentAivAspect : '9:16');
+  const video_model = $('aiv-model-sel').value || '';
+  const pbox = $('aiv-progress-box'), ptxt = $('aiv-progress-text'), pbar = $('aiv-progress-bar');
+  const rbox = $('aiv-result-box'), hint = $('aiv-plan-hint');
+  if (rbox) rbox.style.display = 'none';
+  try {
+    const r = await api('/api/aivideo/create', { method: 'POST', body: JSON.stringify({
+      script, total_seconds, aspect, video_model, title: script.slice(0, 16) }) });
+    if (hint) hint.textContent = r.plan || '';
+    if (pbox) pbox.style.display = 'block';
+    pollAiVideoJob(r.job);
+  } catch(e) { toast('创建失败: ' + e.message); }
+}
+
+async function pollAiVideoJob(jid) {
+  const ptxt = $('aiv-progress-text'), pbar = $('aiv-progress-bar');
+  const rbox = $('aiv-result-box');
+  const tick = async () => {
+    try {
+      const r = await api('/api/tasks/' + jid);
+      const t = (r && r.task) || {};
+      if (ptxt) ptxt.textContent = t.step || t.status || '生成中…';
+      if (pbar) pbar.style.width = (t.progress || 0) + '%';
+      if (t.status === 'done') {
+        const res = t.result || {};
+        if (rbox) {
+          rbox.style.display = 'block';
+          rbox.innerHTML = `<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px">✅ 生成完成（${escapeHtml(res.segments||'?')} 段）</div>
+            ${res.url ? `<video src="${escapeHtml(res.url)}" controls style="width:100%;max-height:420px;border-radius:8px;background:#000"></video>
+            <div style="margin-top:8px"><a class="btn btn-sm ok" href="${res.url}" download>⬇️ 下载成片</a></div>` : ''}`;
+        }
+        toast('🎥 AI 短视频生成完成！');
+        return;
+      }
+      if (t.status === 'failed') {
+        if (ptxt) ptxt.textContent = '❌ 失败：' + (t.error || t.step || '');
+        toast('生成失败: ' + (t.error || ''), 4000);
+        return;
+      }
+      setTimeout(tick, 2500);
+    } catch(e) { setTimeout(tick, 4000); }
+  };
+  tick();
+}
+
+async function createAdVideo() {
+  const name = ($('ad-product-name')?.value || '').trim();
+  const desc = ($('ad-product-desc')?.value || '').trim();
+  if (!name) return toast('请填写产品名称');
+  if (!desc) return toast('请填写产品描述 / 卖点');
+  const seconds = parseInt($('ad-seconds')?.value || '15', 10);
+  const aspect = $('ad-aspect')?.value || '9:16';
+  const audience = ($('ad-audience')?.value || '').trim() || '大众消费者';
+  const voice = $('ad-voice')?.value || 'zh-CN-XiaoxiaoNeural';
+  // 卖点（textarea 每行一个，用户可编辑）
+  const spText = ($('ad-selling-points')?.value || '').trim();
+  const selling_points = spText ? spText.split('\n').map(s => s.trim()).filter(Boolean) : null;
+  // 配音模式
+  const voice_mode = document.querySelector('input[name="ad-voice-mode"]:checked')?.value || 'auto';
+  if (voice_mode === 'upload' && !_adCustomAudio) return toast('请先上传配音音频');
+
+  const statusBox = $('ad-job-status');
+  const resultBox = $('ad-result');
+  if (statusBox) { statusBox.style.display = 'block'; statusBox.textContent = '🚀 正在提交广告短片任务…'; }
+  if (resultBox) { resultBox.style.display = 'none'; resultBox.innerHTML = ''; }
+
+  try {
+    const res = await api('/api/advideo/create', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_name: name, product_desc: desc, seconds, aspect, audience, voice,
+        selling_points, ref_images: _adRefImages.length ? _adRefImages : null,
+        person_ref_image: _adPersonRef || null,
+        voice_mode, custom_audio_path: _adCustomAudio || null,
+      }),
+    });
+    if (!res.job) throw new Error('未获取到任务ID');
+    const jid = res.job;
+    // 轮询任务状态（复用 /api/jobs 异步任务机制）
+    while (true) {
+      await new Promise(r => setTimeout(r, 2000));
+      const j = await api(`/api/jobs/${jid}`);
+      if (statusBox) statusBox.textContent = `⏳ ${j.step || '广告短片生成中…'}`;
+      if (j.status === 'done') {
+        if (statusBox) { statusBox.textContent = '✅ 广告短片生成完成！'; }
+        renderAdVideoResult(j.result || {});
+        toast('✅ AI 广告短片生成完成！', 4000);
+        break;
+      } else if (j.status === 'failed') {
+        if (statusBox) statusBox.textContent = `❌ 生成失败：${j.error || '未知错误'}`;
+        toast(`广告短片生成失败：${j.error || '未知错误'}`);
+        break;
+      }
+    }
+  } catch (e) {
+    if (statusBox) statusBox.textContent = `❌ 提交失败：${e.message}`;
+    toast(`提交失败：${e.message}`);
+  }
+}
+
+function renderAdVideoResult(r) {
+  const box = $('ad-result');
+  if (!box) return;
+  // 从 work_dir 提取 tid，构造 /api/video/file/{tid} 下载链接
+  let fileUrl = '';
+  const wd = r.work_dir || '';
+  const m = wd.match(/([^\\/]+)$/);
+  if (m) fileUrl = `/api/video/file/${encodeURIComponent(m[1])}`;
+  const points = (r.selling_points || []).map(p => `<li style="font-size:12.5px;color:var(--text-muted);margin-bottom:4px">${escapeHtml(p)}</li>`).join('');
+  const info = r.script_info || {};
+  const vc = r.visual_context || {};
+  // ⭐ 安全：卖点/脚本/视觉分析均来自 LLM 输出，而 LLM 的输入来自用户可控的
+  //   采集源（链接/粘贴文案），裸插值进 innerHTML 等于把采集源变成 XSS 入口。
+  //   全部经escapeHtml 转义后再拼进模板。
+  const vcHtml = (vc.product_desc || vc.person_desc || vc.style_desc)
+    ? `<div style="font-size:13px;font-weight:700;color:#e3b341">👁️ AI 视觉分析（全片一致性）</div>
+      <div style="font-size:12.5px;color:var(--text-muted);line-height:1.8;background:rgba(240,136,62,0.06);border:1px solid rgba(240,136,62,0.25);padding:10px 12px;border-radius:8px">
+        ${vc.product_desc ? `<div><b style="color:#f0883e">产品：</b>${escapeHtml(vc.product_desc)}</div>` : ''}
+        ${vc.person_desc ? `<div><b style="color:#f0883e">人物：</b>${escapeHtml(vc.person_desc)}</div>` : ''}
+        ${vc.style_desc ? `<div><b style="color:#f0883e">风格：</b>${escapeHtml(vc.style_desc)}</div>` : ''}
+        <div style="font-size:11px;opacity:0.7;margin-top:4px">以上特征已注入每个分镜，参考图在全片多点位穿插</div>
+      </div>` : '';
+  box.style.display = 'flex';
+  box.innerHTML = `
+    ${fileUrl ? `<video controls preload="metadata" style="width:100%;max-width:420px;border-radius:10px;border:1px solid var(--border)" src="${fileUrl}"></video>
+    <div><a class="btn btn-sm" style="background:linear-gradient(135deg,#f0883e,#e8590c);color:#fff;border:none;font-weight:700" href="${fileUrl}" download>⬇️ 下载成片 (${r.duration_s || '?'}s${r.size_kb ? ' · ' + Math.round(r.size_kb) + 'KB' : ''})</a></div>` : ''}
+    ${vcHtml}
+    ${points ? `<div style="font-size:13px;font-weight:700;color:#e3b341">✨ 提炼卖点</div><ul style="margin:0;padding-left:18px">${points}</ul>` : ''}
+    ${(info.hook || info.body || info.cta) ? `<div style="font-size:13px;font-weight:700;color:#e3b341">📝 广告脚本</div>
+      <div style="font-size:12.5px;color:var(--text-muted);line-height:1.8;background:rgba(0,0,0,0.25);padding:10px 12px;border-radius:8px">
+        ${info.hook ? `<div><b style="color:#f0883e">Hook：</b>${escapeHtml(info.hook)}</div>` : ''}
+        ${info.body ? `<div><b style="color:#f0883e">正文：</b>${escapeHtml(info.body)}</div>` : ''}
+        ${info.cta ? `<div><b style="color:#f0883e">CTA：</b>${escapeHtml(info.cta)}</div>` : ''}
+      </div>` : ''}`;
+}
+
+/* ==================== V7：视频合成配置（vdCfg） ==================== */
+let _vdCfgData = null;
+async function vdCfgLoad(){
+  try{
+    const d = await api('/api/video/config');
+    _vdCfgData = d.data;
+    const cfg = d.data.config || {};
+    // 🎥 AI 视频生成配置联动加载
+    try {
+      const ac = await api('/api/aivideo/config');
+      if ($('aivCfg-seg')) $('aivCfg-seg').value = ac.segment_seconds || 8;
+      if ($('aivCfg-interval')) $('aivCfg-interval').value = ac.interval_seconds ?? 2;
+      if ($('aivCfg-parallel')) $('aivCfg-parallel').value = ac.max_parallel || 1;
+      if ($('aivCfg-model')) $('aivCfg-model').value = ac.video_model || '';
+    } catch(e) { console.warn('[aivCfg] 加载失败:', e.message); }
+    const avail = d.data.stock_available || {};
+    // Key 掩码 + 可用徽章
+    for (const p of ['pexels','pixabay']){
+      const masked = cfg[p+'_api_key'] || '';
+      document.getElementById('vdCfg-'+p+'-masked').textContent = masked || '未配置';
+      const badge = document.getElementById('vdCfg-'+p+'-badge');
+      badge.innerHTML = avail[p]
+        ? '<span class="badge green">可用</span>'
+        : '<span class="badge" style="background:rgba(255,255,255,.06);color:var(--text-muted)">未配置</span>';
+    }
+    // 字幕开关
+    vdCfgRenderSubtitle(!!cfg.subtitle_enabled);
+    // 声音引擎
+    vdCfgRenderVoice(cfg.voice_engine || 'tts', cfg);
+    // 素材模式
+    vdCfgRenderMaterialMode(cfg.material_mode || 'mixed');
+  }catch(e){
+    toast('视频配置加载失败：'+e.message);
+  }
+}
+function vdCfgRenderMaterialMode(mode){
+  for (const m of ['stock_only','ai_only','mixed']){
+    document.getElementById('vdCfg-opt-'+m).classList.toggle('on', mode===m);
+    const radio = document.querySelector('input[name="vdCfg-material"][value="'+m+'"]');
+    if (radio) radio.checked = (mode===m);
+  }
+}
+async function vdCfgSetMaterialMode(mode){
+  try{
+    await api('/api/video/config',{method:'PUT',body:JSON.stringify({material_mode:mode})});
+    vdCfgRenderMaterialMode(mode);
+    toast('素材模式已切换');
+  }catch(e){toast('保存失败：'+e.message);vdCfgLoad();}
+}
+function vdCfgRenderSubtitle(on){
+  document.getElementById('vdCfg-sub-on').className = 'btn' + (on ? '' : ' ghost');
+  document.getElementById('vdCfg-sub-off').className = 'btn' + (on ? ' ghost' : '');
+}
+async function vdCfgSetSubtitle(on){
+  try{
+    await api('/api/video/config',{method:'PUT',body:JSON.stringify({subtitle_enabled:!!on})});
+    vdCfgRenderSubtitle(!!on);
+    toast(on ? '已开启字幕' : '已关闭字幕');
+  }catch(e){toast('保存失败：'+e.message);}
+}
+function vdCfgRenderVoice(engine, cfg){
+  cfg = cfg || {};
+  for (const v of ['tts','voice_clone','local_model']){
+    document.getElementById('vdCfg-opt-'+v).classList.toggle('on', engine===v);
+    const radio = document.querySelector('input[name="vdCfg-voice"][value="'+v+'"]');
+    if (radio) radio.checked = (engine===v);
+  }
+  document.getElementById('vdCfg-vc-fields').style.display = engine==='voice_clone' ? 'block' : 'none';
+  document.getElementById('vdCfg-lm-fields').style.display = engine==='local_model' ? 'block' : 'none';
+  if (engine==='voice_clone'){
+    document.getElementById('vdCfg-vc-url').value = cfg.voice_clone_api_url || '';
+    // Key 不回填明文（掩码），留空即不修改
+    document.getElementById('vdCfg-vc-key').placeholder = cfg.voice_clone_api_key ? '已配置（'+cfg.voice_clone_api_key+'），留空不修改' : 'API Key（可选）';
+  }
+  if (engine==='local_model'){
+    document.getElementById('vdCfg-lm-path').value = cfg.local_model_path || '';
+  }
+}
+async function vdCfgSetVoice(engine){
+  try{
+    await api('/api/video/config',{method:'PUT',body:JSON.stringify({voice_engine:engine})});
+    vdCfgRenderVoice(engine, (_vdCfgData&&_vdCfgData.config)||{});
+    toast('声音引擎已切换');
+  }catch(e){toast('保存失败：'+e.message);vdCfgLoad();}
+}
+async function vdCfgSaveVoiceClone(){
+  const url = document.getElementById('vdCfg-vc-url').value.trim();
+  const key = document.getElementById('vdCfg-vc-key').value.trim();
+  if (!url){toast('请填写 API 地址');return;}
+  const patch = {voice_clone_api_url:url};
+  if (key) patch.voice_clone_api_key = key;
+  try{
+    await api('/api/video/config',{method:'PUT',body:JSON.stringify(patch)});
+    toast('声音克隆配置已保存');vdCfgLoad();
+  }catch(e){toast('保存失败：'+e.message);}
+}
+async function vdCfgSaveLocalModel(){
+  const p = document.getElementById('vdCfg-lm-path').value.trim();
+  try{
+    await api('/api/video/config',{method:'PUT',body:JSON.stringify({local_model_path:p})});
+    toast('路径已保存（引擎上线后生效，当前先用 TTS 配音）');
+  }catch(e){toast('保存失败：'+e.message);}
+}
+async function aivCfgSave(){
+  try{
+    await api('/api/aivideo/config',{method:'PUT',body:JSON.stringify({
+      segment_seconds: parseInt(($('aivCfg-seg')||{}).value || '8', 10),
+      interval_seconds: parseInt(($('aivCfg-interval')||{}).value || '2', 10),
+      max_parallel: parseInt(($('aivCfg-parallel')||{}).value || '1', 10),
+      video_model: (($('aivCfg-model')||{}).value || '').trim(),
+    })});
+    toast('✅ AI 视频生成配置已保存');
+  }catch(e){toast('保存失败：'+e.message);}
+}
+function vdCfgEditKey(p){
+  document.getElementById('vdCfg-'+p+'-editor').style.display = 'block';
+  document.getElementById('vdCfg-'+p+'-input').value = '';
+  document.getElementById('vdCfg-'+p+'-input').focus();
+}
+function vdCfgCancelEdit(p){
+  document.getElementById('vdCfg-'+p+'-editor').style.display = 'none';
+}
+async function vdCfgSaveKey(p){
+  const key = document.getElementById('vdCfg-'+p+'-input').value.trim();
+  if (!key){toast('请粘贴 Key');return;}
+  try{
+    await api('/api/video/config',{method:'PUT',body:JSON.stringify({[p+'_api_key']:key})});
+    toast('Key 已保存');vdCfgCancelEdit(p);vdCfgLoad();
+  }catch(e){toast('保存失败：'+e.message);}
+}
+async function vdCfgDeleteKey(p){
+  if (!confirm('确定删除 '+p+' 的 Key 吗？'))return;
+  try{
+    await api('/api/video/config/keys/'+p,{method:'DELETE'});
+    toast('已删除');vdCfgLoad();
+  }catch(e){toast('删除失败：'+e.message);}
+}
+/* 子标签首次打开时懒加载数据 */
+const _gwNLoaded={};
+function gwNEnsureLoaded(sp){
+  if(_gwNLoaded[sp])return;_gwNLoaded[sp]=true;
+  if(sp==='sp-gateway'){gwNLoadUpstream();gwNLoadKeys();}
+  if(sp==='sp-billing'){blNLoadMe();blNLoadLedger(true);}
+}
+</script>
 
 <!-- 全局 Toast 提示 -->
 <div id="toast"></div>
@@ -5468,10 +6603,10 @@ input[type=text]:focus, textarea:focus, select:focus {
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:16px">
       <div>
         <h3 style="margin:0;font-size:17px;display:flex;align-items:center;gap:8px;color:#fff">
-          <span style="color:#f0883e">⚡</span> 企业级 AI 大模型服务与 API 中枢
+          <span style="color:#f0883e">⚡</span> 模型服务配置（上游）
         </h3>
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
-          支持管理多个官方预设与自定义 OpenAI 兼容网关，全生命周期增删改查、连通性测速与多 Agent 路由
+          配置驱动各 Agent 的大模型 Key（上游）。对外提供 API 服务请去「控制中心 → API 网关服务」。
         </div>
       </div>
       <button class="btn btn-sm ghost" onclick="closeModal()">✕</button>
@@ -5495,6 +6630,7 @@ input[type=text]:focus, textarea:focus, select:focus {
           <div style="position:relative">
             <select id="preset-provider-sel" style="font-size:12px;padding:4px 8px" onchange="if(this.value){selectProvider(this.value);this.value='';}">
               <option value="">⚡ 快速载入官方预设通道…</option>
+              <option value="yimu_official">🎭 一幕·YIMU 官方（官方计费）</option>
               <option value="deepseek">🚀 DeepSeek 官方</option>
               <option value="openai">🧠 OpenAI (GPT-4o/o1)</option>
               <option value="claude">🟣 Anthropic Claude</option>
@@ -6205,8 +7341,28 @@ input[type=text]:focus, textarea:focus, select:focus {
           <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px">全域多端派生 · 文章创作 · AI改写 · 智能生图 · 视频短剧 · 实时解耦调度</div>
         </div>
       </div>
-      <div style="display:flex;gap:8px">
+      <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-sm ghost" onclick="loadTasksList()" title="即时刷新任务状态">↻ 刷新</button>
+        <div style="position:relative">
+          <button class="btn btn-sm ghost" onclick="toggleTaskClearMenu(event)" title="清理 N 天前的失败/已完成任务">🧹 清理</button>
+          <div id="task-clear-menu" style="display:none;position:absolute;top:calc(100% + 6px);right:0;z-index:50;min-width:230px;background:#161d27;border:1px solid rgba(240,136,62,0.4);border-radius:10px;box-shadow:0 8px 28px rgba(0,0,0,0.5);padding:10px 12px">
+            <div style="font-size:12px;font-weight:700;color:#f0883e;margin-bottom:6px">🧹 清理任务 <span style="color:var(--text-muted);font-weight:400">（不碰进行中）</span></div>
+            <div style="font-size:11px;color:var(--text-muted);margin:6px 0 4px">清除失败任务</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-sm ghost" style="font-size:11px;padding:3px 10px" onclick="clearTasks('failed',1)">1天</button>
+              <button class="btn btn-sm ghost" style="font-size:11px;padding:3px 10px" onclick="clearTasks('failed',3)">3天</button>
+              <button class="btn btn-sm ghost" style="font-size:11px;padding:3px 10px" onclick="clearTasks('failed',5)">5天</button>
+              <button class="btn btn-sm ghost" style="font-size:11px;padding:3px 10px" onclick="clearTasks('failed',7)">7天</button>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin:8px 0 4px">清除已完成任务</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-sm ghost" style="font-size:11px;padding:3px 10px" onclick="clearTasks('completed',1)">1天</button>
+              <button class="btn btn-sm ghost" style="font-size:11px;padding:3px 10px" onclick="clearTasks('completed',3)">3天</button>
+              <button class="btn btn-sm ghost" style="font-size:11px;padding:3px 10px" onclick="clearTasks('completed',5)">5天</button>
+              <button class="btn btn-sm ghost" style="font-size:11px;padding:3px 10px" onclick="clearTasks('completed',7)">7天</button>
+            </div>
+          </div>
+        </div>
         <button class="btn btn-sm ghost" onclick="closeModal()">✕</button>
       </div>
     </div>
@@ -6701,7 +7857,11 @@ function escapeHtml(str) {
 
 function toast(msg, duration = 3500) {
   const t = $('toast');
-  t.innerHTML = msg;
+  // ⭐ 安全：用 textContent 而非 innerHTML。本函数被20+ 处调用，其中大量
+  //   传入后端 j.error（会带上用户提交的标题/正文/文件名等原始输入），
+  //   用 innerHTML 等于把任意输入当 HTML 执行（存储型 XSS）。
+  //   与 mobile.html:toast 的既有写法保持一致。
+  t.textContent = msg;
   t.classList.add('on');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('on'), duration);
@@ -6797,11 +7957,50 @@ function initUserMediaInputs() {
   });
 }
 
+/* =================== 🛡️ R4-8 CSRF 防护 =================== */
+// Double Submit Cookie：服务端下发 csrf_token Cookie（非 HttpOnly，供 JS 读取），
+// 前端每次状态变更请求都把它放进 X-CSRF-Token 头；服务端比对两者是否一致。
+// 攻击者的跨站页面读不到本域 Cookie，因此无法伪造该头。
+function csrfHeaders() {
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+    if (m && m[1]) return { 'X-CSRF-Token': decodeURIComponent(m[1]) };
+  } catch(e) {}
+  return {};
+}
+
+// 兜底：页面里还有若干处直接用 fetch() 发起的 POST（如视频上传、AI 问答流），
+// 这里统一包装 fetch，自动为同源写请求补上 CSRF 头，避免漏改导致 403。
+(function patchFetchForCsrf() {
+  const origFetch = window.fetch.bind(window);
+  window.fetch = function(input, init) {
+    try {
+      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+      const sameOrigin = url.startsWith('/') || url.startsWith(location.origin);
+      if (sameOrigin && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        init = Object.assign({}, init || {});
+        const h = new Headers(init.headers || (input && input.headers) || {});
+        if (!h.has('X-CSRF-Token')) {
+          const t = csrfHeaders()['X-CSRF-Token'];
+          if (t) h.set('X-CSRF-Token', t);
+        }
+        init.headers = h;
+        if (typeof input !== 'string' && input) input = new Request(input, init);
+        else return origFetch(input, init);
+      }
+    } catch(e) { /* 包装失败则退回原始行为 */ }
+    return origFetch(input, init);
+  };
+})();
+
 async function api(path, opts = {}) {
   const fetchOpts = Object.assign({}, opts);
   if (fetchOpts.body && typeof fetchOpts.body === 'string' && !(fetchOpts.body instanceof FormData)) {
     fetchOpts.headers = Object.assign({ 'Content-Type': 'application/json' }, fetchOpts.headers || {});
   }
+  // R4-8 CSRF：状态变更请求带上 Double Submit Cookie 的 token
+  fetchOpts.headers = Object.assign({}, csrfHeaders(), fetchOpts.headers || {});
   const r = await fetch(path, fetchOpts);
   if (r.status === 401) {
     updateAuthUI(false);
@@ -6998,6 +8197,17 @@ function switchSubTab(parentPanel, subId) {
   const p = $('p-' + parentPanel);
   p.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('on', t.dataset.sp === subId));
   p.querySelectorAll('.sub-view').forEach(v => v.style.display = (v.id === subId ? 'block' : 'none'));
+  /* ⭐ 网关/账本/视频配置原生视图懒加载 */
+  if (typeof gwNEnsureLoaded === 'function' && (subId === 'sp-gateway' || subId === 'sp-billing')) {
+    try { gwNEnsureLoaded(subId); } catch(e) { console.warn('[gwN] 懒加载失败:', e); }
+  }
+  if (subId === 'sp-video-config' && typeof vdCfgLoad === 'function') {
+    try { vdCfgLoad(); } catch(e) { console.warn('[vdCfg] 懒加载失败:', e); }
+  }
+  /* ⭐ LLM 双轨制使用量统计懒加载 */
+  if (subId === 'sp-settings' && typeof loadLlmUsage === 'function') {
+    try { loadLlmUsage(); } catch(e) { console.warn('[llm-usage] 懒加载失败:', e); }
+  }
 }
 
 
@@ -7073,6 +8283,54 @@ function switchSystemMode(mode) {
   }
   updateWbAgentVisibility();
 }
+
+function makeSubTabsSortable(panelId) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  const bar = panel.querySelector('.sub-tabs');
+  if (!bar) return;
+  const KEY = 'yimu_subtabs_order_' + panelId;
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || '[]');
+    if (saved.length) {
+      const map = {};
+      bar.querySelectorAll('.sub-tab').forEach(t => { map[t.dataset.sp] = t; });
+      saved.forEach(sp => { if (map[sp]) bar.appendChild(map[sp]); });
+    }
+  } catch(e) {}
+  let dragEl = null;
+  bar.querySelectorAll('.sub-tab').forEach(t => {
+    t.setAttribute('draggable', 'true');
+    t.style.cursor = 'grab';
+    t.addEventListener('dragstart', e => { dragEl = t; t.style.opacity = '0.4'; e.dataTransfer.effectAllowed = 'move'; });
+    t.addEventListener('dragend', () => {
+      t.style.opacity = '';
+      bar.querySelectorAll('.sub-tab').forEach(x => x.classList.remove('drag-over'));
+      try { const order = [...bar.querySelectorAll('.sub-tab')].map(x => x.dataset.sp); localStorage.setItem(KEY, JSON.stringify(order)); } catch(e) {}
+    });
+    t.addEventListener('dragover', e => {
+      e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+      if (t === dragEl) return;
+      bar.querySelectorAll('.sub-tab').forEach(x => x.classList.remove('drag-over'));
+      t.classList.add('drag-over');
+    });
+    t.addEventListener('drop', e => {
+      e.preventDefault();
+      if (!dragEl || t === dragEl) return;
+      const tabs = [...bar.querySelectorAll('.sub-tab')];
+      const from = tabs.indexOf(dragEl), to = tabs.indexOf(t);
+      if (from < to) bar.insertBefore(dragEl, t.nextSibling);
+      else bar.insertBefore(dragEl, t);
+    });
+  });
+  if (!document.getElementById('subtabs-drag-style')) {
+    const st = document.createElement('style');
+    st.id = 'subtabs-drag-style';
+    st.textContent = '.sub-tab.drag-over{box-shadow:inset 3px 0 0 #f0883e !important;} .sub-tab[draggable]{user-select:none;}';
+    document.head.appendChild(st);
+  }
+}
+document.addEventListener('DOMContentLoaded', () => { try { makeSubTabsSortable('p-studio'); } catch(e) {} });
 
 // 载入指定草稿并渲染真实排版成品 + 完整还原历史对话
 async function loadLiteDraftById(did) {
@@ -7681,6 +8939,13 @@ function closeImageLightbox() {
   if (modal) modal.style.display = 'none';
 }
 
+function openFullLightbox(url) {
+  if (!url) return;
+  if (typeof openImageLightbox === 'function') {
+    openImageLightbox(url, '');
+  }
+}
+
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeImageLightbox();
@@ -7911,6 +9176,60 @@ function openLiteDraftsModal() {
   if (searchInput) searchInput.value = '';
   filterLiteModalDrafts();
 }
+
+// 3.1 极简模式：左侧草稿箱抽屉开合
+// 抽屉 #lite-drafts-drawer 默认 display:none（见 CSS），此处负责开合 + 渲染列表。
+// 打开时重置搜索框并渲染全量，关闭时清空搜索词，保证下次打开状态干净。
+function toggleLiteDraftsDrawer() {
+  const drawer = $('lite-drafts-drawer');
+  if (!drawer) return;
+  const opening = getComputedStyle(drawer).display === 'none';
+  if (opening) {
+    drawer.style.display = 'flex';
+    const searchInput = $('lite-drafts-search');
+    if (searchInput) searchInput.value = '';
+    filterLiteDraftsList('');
+  } else {
+    drawer.style.display = 'none';
+  }
+}
+
+// 3.2 极简模式：草稿箱抽屉按标题搜索过滤
+// 抽屉内搜索框 oninput 调用；空字符串即显示全部。
+function filterLiteDraftsList(keyword) {
+  const container = $('lite-drafts-list-container');
+  if (!container) return;
+  const kw = String(keyword || '').trim().toLowerCase();
+  const drafts = (S && S.drafts) ? S.drafts : [];
+  const filtered = kw
+    ? drafts.filter(d => (d.title || '').toLowerCase().includes(kw))
+    : drafts;
+
+  if (!filtered.length) {
+    container.innerHTML = `
+      <div style="padding:40px 16px;text-align:center;color:var(--text-muted);font-size:12px">
+        ${kw ? '没有标题匹配的草稿' : '还没有草稿，去创建第一篇吧'}
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(d => {
+    const isCur = d.id === currentLiteDraftId;
+    const timeStr = d.created_at
+      ? new Date(d.created_at * 1000).toLocaleString('zh-CN', {month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit'})
+      : '';
+    // ⭐ 安全：标题来自用户输入，必须转义后再拼 HTML
+    return `
+      <div class="lite-draft-item ${isCur ? 'active' : ''}" onclick="loadLiteDraftById('${d.id}')">
+        <div style="font-size:12.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+          ${isCur ? '<span style="color:#8b5cf6;margin-right:4px">●</span>' : ''}${escapeHtml(d.title || '无标题草稿')}
+        </div>
+        <div style="font-size:10.5px;color:var(--text-muted);margin-top:3px">⏱️ ${escapeHtml(timeStr)}</div>
+      </div>`;
+  }).join('');
+}
+window.toggleLiteDraftsDrawer = toggleLiteDraftsDrawer;
+window.filterLiteDraftsList = filterLiteDraftsList;
 
 function closeLiteDraftsModal() {
   const modal = $('lite-drafts-modal');
@@ -8376,8 +9695,8 @@ function updateWbAgentVisibility() {
   const btn = $('wb-float-agent-btn');
   const win = $('wb-floating-agent-window');
   const pDrafts = $('p-drafts');
-  // 严格规则：仅当处于全功能专业模式 (pro) 且内容工作台面板 (p-drafts) 激活时才显示
-  const isDraftsActive = (currentSystemMode === 'pro') && pDrafts && pDrafts.classList.contains('on');
+  // V7: 内容工作台激活时即显示（不再限制 pro 模式，lite/pro 通用）
+  const isDraftsActive = pDrafts && pDrafts.classList.contains('on');
   if (btn) {
     btn.style.display = isDraftsActive ? 'inline-flex' : 'none';
   }
@@ -8798,9 +10117,125 @@ async function sendCopilotMessage() {
 }
 
 
+/* =================== 📊 R4-7 首页真实数据渲染 ===================
+   此前首页多处展示写死数字（自进化达标率、平均分、热点数、成稿数、成片数、
+   折线图固定日期刻度），用户跑一年数字也不变，属于误导性假数据。此处全部改为：
+     · 有真实数据 → 显示真实值
+     · 无数据     → 显示「—」+ 引导文案（去生成第一篇 / 去抓取第一批）
+   数据来源：/api/status（S.topics / S.drafts）。
+*/
+function _fmtScore(n) {
+  return (n === null || n === undefined || isNaN(n)) ? null : (Math.round(n * 10) / 10).toFixed(1);
+}
+
+function renderDashboardRealStats() {
+  const topics = (S && S.topics) || [];
+  const drafts = (S && S.drafts) || [];
+
+  // 选题池：区分待处理与已被内容安全闸拦下的
+  const blockedTopics = topics.filter(t => t.status === 'blocked').length;
+  const openTopics = topics.filter(t => t.status !== 'blocked');
+  const elT = $('dash-topics-count');
+  if (elT) {
+    elT.textContent = openTopics.length ? `${openTopics.length} 条` : '—';
+    const sub = $('dash-topics-sub');
+    if (sub) {
+      sub.textContent = openTopics.length
+        ? (blockedTopics ? `已拦下 ${blockedTopics} 条敏感选题` : '聚合小红书/抖音/头条/微博等6大平台')
+        : '尚未采集热点，去抓取第一批';
+    }
+  }
+
+  // 成稿储备：平均分只统计真正打过分的稿件
+  const scored = drafts.map(d => d.score).filter(s => s !== null && s !== undefined && s !== '' && !isNaN(s));
+  const avg = scored.length ? scored.reduce((a, b) => a + Number(b), 0) / scored.length : null;
+  const elD = $('dash-drafts-count');
+  if (elD) {
+    elD.textContent = drafts.length ? `${drafts.length} 篇` : '—';
+    const sub = $('dash-drafts-sub');
+    if (sub) {
+      sub.textContent = drafts.length
+        ? (avg !== null ? `平均评分 ${_fmtScore(avg)} 分（${scored.length}/${drafts.length} 篇已评分）` : '尚未评分')
+        : '还没有成稿，去生成第一篇';
+    }
+  }
+
+  // 顶栏两个统计
+  const elCap = $('stat-captured-count');
+  if (elCap) elCap.textContent = openTopics.length ? `${openTopics.length} 条` : '—';
+  const elAvg = $('stat-avg-score');
+  if (elAvg) elAvg.textContent = avg !== null ? `${_fmtScore(avg)} 分` : '—';
+
+  // 环形图中心（此前写死平均分与达标率）
+  const ringS = $('ring-score');
+  if (ringS) ringS.textContent = avg !== null ? `${_fmtScore(avg)}分` : '—';
+  const ringR = $('ring-rate');
+  if (ringR) {
+    const thr = (S && S.quality && S.quality.threshold) || 75;
+    if (scored.length) {
+      const ok = scored.filter(s => Number(s) >= thr).length;
+      ringR.textContent = `达标 ${ok}/${scored.length} 篇`;
+    } else {
+      ringR.textContent = '暂无评分数据';
+    }
+  }
+
+  // 平台产能分布：按草稿实际 platforms 统计，无数据留「—」
+  const byPlat = { xhs: 0, wechat: 0, toutiao: 0, douyin: 0 };
+  drafts.forEach(d => (d.platforms || []).forEach(p => { if (p in byPlat) byPlat[p] += 1; }));
+  const totalPlat = Object.values(byPlat).reduce((a, b) => a + b, 0);
+  const barMap = { 'bar-xhs': 'xhs', 'bar-wechat': 'wechat', 'bar-toutiao': 'toutiao', 'bar-douyin': 'douyin' };
+  Object.entries(barMap).forEach(([elId, plat]) => {
+    const el = $(elId);
+    if (!el) return;
+    el.textContent = totalPlat
+      ? `${Math.round(byPlat[plat] / totalPlat * 100)}% · ${byPlat[plat]} 篇`
+      : '暂无数据';
+  });
+
+  // 流水线漏斗：全部由真实计数推导
+  const drafted = topics.filter(t => t.status === 'drafted').length;
+  const ready = drafts.filter(d => ['approved', 'published'].includes(d.status)).length;
+  const funnel = [
+    { id: 'funnel-1-val', n: openTopics.length, unit: ' 条', pct: 100 },
+    { id: 'funnel-2-val', n: drafts.length, unit: ' 篇', pct: drafted ? Math.min(100, Math.round(drafted / Math.max(drafts.length, 1) * 100)) : (drafts.length ? 100 : 0) },
+    { id: 'funnel-3-val', n: scored.length, unit: ' 篇', pct: drafts.length ? Math.round(scored.length / drafts.length * 100) : 0 },
+    { id: 'funnel-4-val', n: ready, unit: ' 篇', pct: drafts.length ? Math.round(ready / drafts.length * 100) : 0 },
+  ];
+  funnel.forEach(f => {
+    const el = $(f.id);
+    if (el) el.textContent = f.n ? `${f.n}${f.unit} (${f.pct}%)` : '—';
+  });
+}
+
+/* 折线图 X 轴：按当天真实日期动态生成近 7 天刻度（此前为写死的固定日期） */
+function renderTrendXAxis() {
+  const box = $('trend-x-axis');
+  if (!box) return;
+  const today = new Date();
+  const parts = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today.getTime() - i * 86400000);
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    if (i === 0) {
+      parts.push(`<span style="color:#58a6ff;font-weight:700">今日 ${mm}-${dd}</span>`);
+    } else {
+      parts.push(`<span>${mm}-${dd}</span>`);
+    }
+  }
+  box.innerHTML = parts.join('');
+  // 图例里的峰值/今日数也是写死的，改为真实统计或留白
+  const topics = (S && S.topics) || [];
+  const drafts = (S && S.drafts) || [];
+  const peak = $('trend-peak-label');
+  if (peak) peak.textContent = topics.length ? `（当前库存 ${topics.length} 条）` : '（暂无数据）';
+  const dl = $('trend-draft-label');
+  if (dl) dl.textContent = drafts.length ? `（当前 ${drafts.length} 篇）` : '（暂无数据）';
+}
+
 /* 状态刷新 */
-async function refresh() {
-  try {
+async function refresh() {  try {
     S = await api('/api/status');
   } catch(e) { return; }
 
@@ -8815,8 +10250,8 @@ async function refresh() {
     showLlmMissingModal();
   }
 
-  if ($('dash-topics-count')) $('dash-topics-count').textContent = (S.topics ? S.topics.length : 0) + '+';
-  if ($('dash-drafts-count')) $('dash-drafts-count').textContent = (S.drafts ? S.drafts.length : 0) + ' 篇';
+  renderDashboardRealStats();
+  renderTrendXAxis();
 
   loadBillingStatus();
   initUserMediaInputs();
@@ -9261,10 +10696,12 @@ async function runExtract() {
     const statsBox = $('ext-res-stats');
     statsBox.innerHTML = '';
     const stats = data.stats || {};
-    if (stats.likes != null && stats.likes !== '') statsBox.innerHTML += `<span class="stat-tag">❤️ 点赞 ${stats.likes}</span>`;
-    if (stats.collects != null && stats.collects !== '') statsBox.innerHTML += `<span class="stat-tag">⭐ 收藏 ${stats.collects}</span>`;
-    if (stats.comments != null && stats.comments !== '') statsBox.innerHTML += `<span class="stat-tag">💬 评论 ${stats.comments}</span>`;
-    if (stats.reads != null && stats.reads !== '') statsBox.innerHTML += `<span class="stat-tag">👁️ 阅读 ${stats.reads}</span>`;
+    // ⭐ 安全：点赞/收藏/评论数来自对标平台采集结果（外部内容），
+    //   属于不可信输入，转义后再拼进 HTML。
+    if (stats.likes != null && stats.likes !== '') statsBox.innerHTML += `<span class="stat-tag">❤️ 点赞 ${escapeHtml(stats.likes)}</span>`;
+    if (stats.collects != null && stats.collects !== '') statsBox.innerHTML += `<span class="stat-tag">⭐ 收藏 ${escapeHtml(stats.collects)}</span>`;
+    if (stats.comments != null && stats.comments !== '') statsBox.innerHTML += `<span class="stat-tag">💬 评论 ${escapeHtml(stats.comments)}</span>`;
+    if (stats.reads != null && stats.reads !== '') statsBox.innerHTML += `<span class="stat-tag">👁️ 阅读 ${escapeHtml(stats.reads)}</span>`;
     if (!statsBox.innerHTML) statsBox.innerHTML = '<span class="stat-tag">⚡ 爆款热文</span>';
     
     // 原图图集
@@ -9274,7 +10711,12 @@ async function runExtract() {
     if (data.images && data.images.length > 0) {
       imgsCont.style.display = 'block';
       data.images.slice(0, 10).forEach(imgUrl => {
-        imgsBox.innerHTML += `<img src="${imgUrl}" class="extract-img-thumb" title="点击查看原图" onclick="window.open('${imgUrl}')" onerror="this.style.display='none'">`;
+        // ⭐ 安全：图集 URL 来自对标页面采集结果（外部内容），
+        //   同时进入 src 属性与 onclick 字符串，非转义即等于执行任意脚本。
+        //   非 http(s) 协议直接丢弃，防 javascript: 伪协议。
+        if (!/^https?:\/\//i.test(String(imgUrl || ''))) return;
+        const safeUrl = escapeHtml(imgUrl);
+        imgsBox.innerHTML += `<img src="${safeUrl}" class="extract-img-thumb" title="点击查看原图" onclick="window.open('${safeUrl}')" onerror="this.style.display='none'">`;
       });
     } else {
       imgsCont.style.display = 'none';
@@ -9629,9 +11071,10 @@ function renderBenchmarkAndTitleForge(d) {
 
   geneStats.innerHTML = '';
   const st = d.source_stats || {};
-  if (st.likes != null && st.likes !== '') geneStats.innerHTML += `<span class="stat-tag">❤️ ${st.likes}赞</span>`;
-  if (st.collects != null && st.collects !== '') geneStats.innerHTML += `<span class="stat-tag">⭐ ${st.collects}藏</span>`;
-  if (st.comments != null && st.comments !== '') geneStats.innerHTML += `<span class="stat-tag">💬 ${st.comments}评</span>`;
+  // ⭐ 安全：来源统计数据来自采集结果（外部内容），转义后再拼 HTML
+  if (st.likes != null && st.likes !== '') geneStats.innerHTML += `<span class="stat-tag">❤️ ${escapeHtml(st.likes)}赞</span>`;
+  if (st.collects != null && st.collects !== '') geneStats.innerHTML += `<span class="stat-tag">⭐ ${escapeHtml(st.collects)}藏</span>`;
+  if (st.comments != null && st.comments !== '') geneStats.innerHTML += `<span class="stat-tag">💬 ${escapeHtml(st.comments)}评</span>`;
 
   // 2. 标题五式赛马池
   const chipsBox = $('stage-candidate-chips');
@@ -9654,7 +11097,7 @@ function renderBenchmarkAndTitleForge(d) {
       chipsBox.appendChild(chip);
     });
   } else {
-    chipsBox.innerHTML = `<span style="font-size:12px;color:var(--text-muted)">《${d.title}》</span>`;
+    chipsBox.innerHTML = `<span style="font-size:12px;color:var(--text-muted)">《${escapeHtml(d.title)}》</span>`;
   }
 }
 
@@ -10135,7 +11578,7 @@ async function runFurnaceEvolution() {
       await new Promise(r => setTimeout(r, 1200));
       const j = await api(`/api/rewrite/job/${job}`);
       if (trackText) {
-        trackText.innerHTML = `<span>⚙️ 熔炉状态: <strong>${j.step || '打磨中…'}</strong></span><span>目标分: ${currentFurnaceTarget > 0 ? currentFurnaceTarget + '分' : '单发'}</span>`;
+        trackText.innerHTML = `<span>⚙️ 熔炉状态: <strong>${escapeHtml(j.step || '打磨中…')}</strong></span><span>目标分: ${currentFurnaceTarget > 0 ? currentFurnaceTarget + '分' : '单发'}</span>`;
       }
       if (j.status === 'done') {
         const result = j.result || {};
@@ -11255,6 +12698,10 @@ function renderStudioDropdowns() {
     $('vd-draft-sel').innerHTML = opts || '<option value="">无草稿</option>';
     if(curDraft) loadVideoDraftScript();
   }
+  if($('aiv-draft-sel')) {
+    $('aiv-draft-sel').innerHTML = opts || '<option value="">无草稿</option>';
+    if(curDraft) loadAivDraftScript();
+  }
   if($('drama-draft-sel')) {
     $('drama-draft-sel').innerHTML = opts || '<option value="">无草稿</option>';
     if(curDraft) loadDramaDraftScenes();
@@ -11673,7 +13120,7 @@ function renderDramaAllPanels() {
     const chars = p.step3.characters || [];
     turnSec.innerHTML = `
       <div style="font-size:14px;font-weight:700;color:#e3b341;display:flex;align-items:center;gap:6px">
-        <span>⭐</span> 角色一致性蓝图四视图专区 (StoryDiffusion 4-View Turnaround Sheets)
+        <span>⭐</span> 角色一致性蓝图四视图专区（角色四视图蓝图）
       </div>
       <div style="display:flex;flex-direction:column;gap:16px;margin-top:6px">
         ${chars.map(c => {
@@ -11951,6 +13398,12 @@ function confirmDramaStepModalNext() {
 /* ================= 各步骤具体触发函数 ================= */
 
 // Step 1: 需求分析与剧本改写
+async function reeditDramaStep1() {
+  // Step 1 重新编辑改写：保留当前输入（用户可手动修改），确认后用当前表单值重跑一遍 AI 需求分析
+  if (!confirm("将用当前输入重新跑一遍 AI 需求分析与剧本改写，覆盖当前产物，确定吗？")) return;
+  await runDramaStep1Analyze();
+}
+
 async function runDramaStep1Analyze(customOverrides, isContinuous) {
   const did = $('drama-draft-sel').value;
   if (!did) return toast('请选择草稿');
@@ -12285,7 +13738,7 @@ async function runDramaFinalRender() {
     while(true) {
       await new Promise(r => setTimeout(r, 2000));
       const j = await api(`/api/rewrite/job/${job}`);
-      if (btn) btn.innerHTML = `<span class="live-pulse"></span> ⏳ ${j.step || '封装中…'}`;
+      if (btn) btn.innerHTML = `<span class="live-pulse"></span> ⏳ ${escapeHtml(j.step || '封装中…')}`;
       if (j.status === 'done') {
         toast('🎉 全 AI 短剧成片出炉并已归档资料库！', 5000);
         await loadDramaDraftScenes();
@@ -12980,17 +14433,61 @@ async function runXhsDirectPublish() {
 /* ================== 商业化与 Token 账本 ================== */
 async function loadBillingStatus() {
   try {
-    const r = await api('/api/billing/status');
-    const balFormatted = (r.balance || 0).toLocaleString();
-    if ($('nav-token-bal')) $('nav-token-bal').textContent = balFormatted;
-    if ($('nav-tier-badge')) $('nav-tier-badge').textContent = r.tier_name || 'Pro月卡';
-    if ($('dash-billing-balance')) $('dash-billing-balance').textContent = balFormatted;
-    if ($('dash-billing-consumed')) $('dash-billing-consumed').textContent = (r.total_consumed || 0).toLocaleString();
-    if ($('dash-billing-tier')) $('dash-billing-tier').textContent = r.tier_name || 'Pro 创作者月卡';
-    if ($('billing-modal-balance')) $('billing-modal-balance').textContent = balFormatted;
-    if ($('billing-modal-consumed')) $('billing-modal-consumed').textContent = (r.total_consumed || 0).toLocaleString();
-    if ($('billing-modal-tier')) $('billing-modal-tier').textContent = r.tier_name || 'Pro 创作者';
-  } catch(e) {}
+    const r = await api('/api/billing/ui/me');
+    const d = (r && r.data) || r || {};
+    // 剩余额度：还剩多少可用（不是已用量）
+    const leftFormatted = (d.credits_left || 0).toLocaleString();
+    const usedFormatted = (d.credits_used || 0).toLocaleString();
+    const tierDisplay = d.tier_display || 'Free';
+    if ($('nav-token-bal')) {
+      $('nav-token-bal').textContent = leftFormatted;
+      // tooltip 解释含义：剩余额度 + 累计已用
+      $('nav-token-bal').title = `剩余额度：${leftFormatted}（累计已用 ${usedFormatted}）`;
+    }
+    if ($('nav-tier-badge')) $('nav-tier-badge').textContent = tierDisplay;
+    if ($('dash-billing-balance')) $('dash-billing-balance').textContent = leftFormatted;
+    if ($('dash-billing-consumed')) $('dash-billing-consumed').textContent = usedFormatted;
+    if ($('dash-billing-tier')) $('dash-billing-tier').textContent = tierDisplay;
+    if ($('billing-modal-balance')) $('billing-modal-balance').textContent = leftFormatted;
+    if ($('billing-modal-consumed')) $('billing-modal-consumed').textContent = usedFormatted;
+    if ($('billing-modal-tier')) $('billing-modal-tier').textContent = tierDisplay;
+  } catch(e) { console.warn('[billing] 额度加载失败:', e.message); }
+}
+
+/* ================== LLM 双轨制：各模型服务使用量统计 ================== */
+async function loadLlmUsage() {
+  const box = $('llm-usage-table');
+  if (box) box.innerHTML = '加载中…';
+  try {
+    const r = await api('/api/llm/usage');
+    const rows = (r && r.providers) || [];
+    const off = (r && r.official_summary) || {};
+    if (!rows.length) {
+      if (box) box.innerHTML = '<span style="color:var(--text-muted)">暂无调用记录</span>';
+      return;
+    }
+    const officialNote = off.calls
+      ? `<div style="margin-top:8px;padding:8px 10px;border:1px solid rgba(240,136,62,0.4);border-radius:8px;background:rgba(240,136,62,0.06);font-size:12px">
+           🎭 <b>一幕官方通道</b>：累计调用 ${off.calls} 次，累计扣减 <b style="color:#f0883e">${(off.deducted_total||0).toLocaleString()}</b> Token
+           ${off.credits_left !== undefined ? `（剩余额度 ${(off.credits_left||0).toLocaleString()}）` : ''}
+         </div>`
+      : '';
+    const tbl = `<table class="tbl" style="width:100%;font-size:12px;margin-top:4px">
+      <thead><tr><th>模型服务</th><th>调用次数</th><th>消耗 Token</th><th>计费方式</th><th>最后使用</th></tr></thead>
+      <tbody>${rows.map(p => `
+        <tr${p.metered ? ' style="background:rgba(240,136,62,0.06)"' : ''}>
+          <td>${p.icon||'⚡'} ${p.name||p.provider_id}${p.metered ? ' <span class="badge" style="font-size:9px;padding:0 5px;background:linear-gradient(135deg,#f0883e,#e8590c);color:#fff">官方计费</span>' : ''}</td>
+          <td>${p.calls}</td>
+          <td>${(p.total_tokens||0).toLocaleString()}${p.metered && p.deducted_total ? ` <span style="color:#f0883e;font-size:11px">(已扣 ${(p.deducted_total||0).toLocaleString()})</span>` : ''}</td>
+          <td><span class="badge ${p.metered ? 'gold' : 'gray'}" style="font-size:10px">${p.billing_mode||''}</span></td>
+          <td style="color:var(--text-muted)">${p.last_used||'—'}</td>
+        </tr>`).join('')}
+      </tbody></table>`;
+    if (box) box.innerHTML = tbl + officialNote;
+  } catch(e) {
+    console.warn('[llm-usage] 统计加载失败:', e.message);
+    if (box) box.innerHTML = '<span style="color:var(--text-muted)">统计加载失败</span>';
+  }
 }
 
 function openBillingModal() {
@@ -13199,7 +14696,7 @@ async function runVideoMake() {
   if(!did) return toast('请选择草稿或输入口播文案');
   const btn = $('btn-video-make');
   btn.disabled = true;
-  btn.textContent = `⏳ MPT智能压制出片中（${currentVideoAspect}）…`;
+  btn.textContent = `⏳ 智能压制出片中（${currentVideoAspect}）…`;
 
   const script = $('vd-script-input') ? $('vd-script-input').value.trim() : '';
   const bgmType = $('vd-bgm-type') ? $('vd-bgm-type').value : 'random';
@@ -13529,7 +15026,7 @@ async function runAudioMake() {
 async function loadTicketStatus() {
   try {
     const r = await api('/api/ticket/last');
-    $('tk-state-text').innerHTML = `状态: ${r.enabled ? '<span style="color:var(--success)">已开启 (每天 '+r.time+' 运行)</span>' : '<span style="color:var(--warn)">定时未开启</span>'} · 钉钉通知: ${r.dingtalk ? '<span style="color:var(--success)">已配置</span>' : '<span style="color:var(--danger)">未配置</span>'}`;
+    $('tk-state-text').innerHTML = `状态: ${r.enabled ? '<span style="color:var(--success)">已开启 (每天 '+escapeHtml(r.time)+' 运行)</span>' : '<span style="color:var(--warn)">定时未开启</span>'} · 钉钉通知: ${r.dingtalk ? '<span style="color:var(--success)">已配置</span>' : '<span style="color:var(--danger)">未配置</span>'}`;
     if(r.last) {
       $('tk-last-card').style.display = 'block';
       $('tk-last-title').textContent = `最近一次工单: ${r.last.date} (耗时 ${r.last.duration_min} 分钟)`;
@@ -13730,6 +15227,7 @@ function renderAgentList() {
 
   const contentStages = ['collect', 'analyze', 'write', 'image', 'layout', 'review'];
   const dramaStages = ['director', 'character_designer', 'storyboard_artist', 'cinematographer', 'sound_designer'];
+  const adStages = ['ad_creative', 'ad_video'];
 
   const renderGroup = (title, icon, stageKeys) => {
     let html = `
@@ -13766,6 +15264,7 @@ function renderAgentList() {
 
   L.innerHTML += renderGroup('新媒体内容创作 Agent 矩阵 (6 个阶段)', '📝', contentStages);
   L.innerHTML += renderGroup('AI 短剧影视制作 Agent 矩阵 (5 个专职)', '🎬', dramaStages);
+  L.innerHTML += renderGroup('AI 广告短片 Agent (2 个专职)', '📢', adStages);
 }
 
 function openAgent(stage) {
@@ -14684,7 +16183,7 @@ async function runModelPingTest() {
         pingBox.style.background = 'rgba(63, 185, 80, 0.15)';
         pingBox.style.border = '1px solid rgba(63, 185, 80, 0.4)';
         pingBox.style.color = '#3fb950';
-        pingBox.innerHTML = `✅ <b>连通性极佳</b> · 往返延迟: <b>${res.latency_ms}ms</b> · 模型: <b>${res.model}</b> · 响应: <i>"${(res.reply||res.response_preview||'pong').slice(0, 40)}"</i>`;
+        pingBox.innerHTML = `✅ <b>连通性极佳</b> · 往返延迟: <b>${res.latency_ms}ms</b> · 模型: <b>${escapeHtml(res.model)}</b> · 响应: <i>"${escapeHtml((res.reply||res.response_preview||'pong').slice(0, 40))}"</i>`;
       }
       toast(`✅ 测速成功！延迟: ${res.latency_ms}ms`);
     } else {
@@ -14692,7 +16191,7 @@ async function runModelPingTest() {
         pingBox.style.background = 'rgba(248, 81, 73, 0.15)';
         pingBox.style.border = '1px solid rgba(248, 81, 73, 0.4)';
         pingBox.style.color = '#f85149';
-        pingBox.innerHTML = `❌ <b>连接失败</b> · 延迟: ${res.latency_ms||0}ms · 报错: <code>${res.error||'网络不可达'}</code>`;
+        pingBox.innerHTML = `❌ <b>连接失败</b> · 延迟: ${res.latency_ms||0}ms · 报错: <code>${escapeHtml(res.error||'网络不可达')}</code>`;
       }
       toast(`❌ 连通失败: ${res.error || '不可达'}`);
     }
@@ -15017,19 +16516,23 @@ function renderImageManagerUI(data) {
     const hasImg = img.exists;
     const labelMap = {cover: '封面图', 'sec-0': '第1节配图', 'sec-1': '第2节配图', 'sec-2': '第3节配图', 'sec-3': '第4节配图', 'sec-4': '第5节配图', 'sec-5': '第6节配图'};
     const label = labelMap[img.name] || img.section_title || img.name;
+    // ⭐ 安全：slot 名/小节标题来自 LLM 解析结果（受文章内容影响），
+    //   会进入 data-slot 属性、URL 与 onclick 字符串，统一先转义 + URL 编码。
+    const slotSafe = escapeHtml(img.name);
+    const slotUrl = encodeURIComponent(img.name);
     const promptZh = (img.prompt_zh || '').replace(/"/g, '&quot;');
     const promptEn = (img.prompt_en || img.prompt || '').replace(/"/g, '&quot;');
     const displayPrompt = promptEn || promptZh || '';
     return `
-    <div data-slot="${img.name}" style="background:rgba(22,27,34,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:12px;display:flex;flex-direction:column;transition:border-color 0.2s" onmouseover="this.style.borderColor='rgba(240,136,62,0.4)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
+    <div data-slot="${slotSafe}" style="background:rgba(22,27,34,0.9);border:1px solid rgba(255,255,255,0.1);border-radius:12px;display:flex;flex-direction:column;transition:border-color 0.2s" onmouseover="this.style.borderColor='rgba(240,136,62,0.4)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'">
       <!-- 图片预览区 -->
       <div style="position:relative;width:100%;aspect-ratio:16/9;background:#0d1117;border-radius:12px 12px 0 0;overflow:hidden;flex-shrink:0">
         ${hasImg
-          ? `<img src="/img/${curDraft}/${img.name}.png?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'" onclick="showImgLightbox('/img/${curDraft}/${img.name}.png')" title="点击放大查看" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px\\'>图片加载失败</div>'">`
+          ? `<img src="/img/${encodeURIComponent(curDraft)}/${slotUrl}.png?t=${Date.now()}" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in;transition:transform 0.2s" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'" onclick="showImgLightbox('/img/${encodeURIComponent(curDraft)}/${slotUrl}.png')" title="点击放大查看" onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:12px\\'>图片加载失败</div>'">`
           : `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text-muted)"><div style="font-size:28px;margin-bottom:8px">🖼️</div><div style="font-size:11.5px">暂未生成</div></div>`
         }
-        <div style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);padding:3px 10px;border-radius:20px;font-size:11px;color:#fff;font-weight:600">${label}</div>
-        ${img.section_title && img.section_title !== label ? `<div style="position:absolute;bottom:8px;left:8px;right:8px;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);padding:4px 10px;border-radius:6px;font-size:10.5px;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${img.section_title}</div>` : ''}
+        <div style="position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);padding:3px 10px;border-radius:20px;font-size:11px;color:#fff;font-weight:600">${escapeHtml(label)}</div>
+        ${img.section_title && img.section_title !== label ? `<div style="position:absolute;bottom:8px;left:8px;right:8px;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);padding:4px 10px;border-radius:6px;font-size:10.5px;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(img.section_title)}</div>` : ''}
       </div>
       <!-- 要点描述（完整展示，不截断） -->
       ${img.prompt_zh ? `<div style="padding:8px 12px;font-size:11.5px;color:#79c0ff;background:rgba(31,111,235,0.07);border-top:1px solid rgba(31,111,235,0.1);line-height:1.6;word-break:break-all">📖 ${img.prompt_zh}</div>` : ''}
@@ -16022,6 +17525,39 @@ async function saveWatermarkSettings() {
 let taskMonitorTimer = null;
 window._taskDrawerFilter = 'all';
 
+/* ---- 任务清理：dropdown 开关 ---- */
+function toggleTaskClearMenu(ev) {
+  if (ev) ev.stopPropagation();
+  const m = $('task-clear-menu');
+  if (!m) return;
+  const show = m.style.display === 'none';
+  m.style.display = show ? 'block' : 'none';
+  if (show) {
+    const closer = (e) => {
+      if (!m.contains(e.target)) { m.style.display = 'none'; document.removeEventListener('click', closer); }
+    };
+    setTimeout(() => document.addEventListener('click', closer), 0);
+  }
+}
+
+/* ---- 任务清理：清除 N 天前的失败/已完成任务 ---- */
+async function clearTasks(status, days) {
+  const m = $('task-clear-menu');
+  if (m) m.style.display = 'none';
+  const label = status === 'failed' ? '失败' : '已完成';
+  if (!confirm(`确定清除 ${days} 天前的${label}任务吗？此操作不可恢复，进行中的任务不受影响。`)) return;
+  try {
+    const r = await api('/api/tasks/clear', {
+      method: 'POST',
+      body: JSON.stringify({ status, days })
+    });
+    toast(`🧹 已清除 ${r.deleted || 0} 个${label}任务`);
+    loadTasksList();
+  } catch (e) {
+    toast('清理失败: ' + (e.message || e));
+  }
+}
+
 function toggleTaskDrawer() {
   modal('m-task-monitor');
   loadTasksList();
@@ -16055,7 +17591,7 @@ function getTaskCategory(taskType) {
   if (['article_gen', 'ai_rewrite', 'article_layout'].includes(taskType)) return 'writing';
   if (['omni_derive', 'omni_fission'].includes(taskType)) return 'fission';
   if (['image_gen', 'batch_image'].includes(taskType)) return 'image';
-  if (['video_render', 'drama_pipeline', 'audio_tts'].includes(taskType)) return 'video';
+  if (['video_render', 'drama_pipeline', 'ad_video_render', 'audio_tts'].includes(taskType)) return 'video';
   if (['voice_distill', 'crucible', 'ticket_exec', 'account_auth', 'auto_publish'].includes(taskType)) return 'system';
   return 'writing';
 }
@@ -16068,7 +17604,8 @@ const TASK_META_MAP = {
   article_layout: { label: '📰 智能排版', color: '#79c0ff', bg: 'rgba(121,192,255,0.14)', border: 'rgba(121,192,255,0.35)' },
   image_gen: { label: '🎨 智能生图', color: '#f0883e', bg: 'rgba(240,136,62,0.14)', border: 'rgba(240,136,62,0.35)' },
   video_render: { label: '🎬 视频合成', color: '#f43f5e', bg: 'rgba(244,63,94,0.14)', border: 'rgba(244,63,94,0.35)' },
-  drama_pipeline: { label: '🎥 短剧渲染', color: '#d946ef', bg: 'rgba(217,70,239,0.14)', border: 'rgba(217,70,239,0.35)' },
+  drama_pipeline: { label: '🎥 全自动AI短视频', color: '#d946ef', bg: 'rgba(217,70,239,0.14)', border: 'rgba(217,70,239,0.35)' },
+  ad_video_render: { label: '📢 AI广告短片', color: '#f0883e', bg: 'rgba(240,136,62,0.14)', border: 'rgba(240,136,62,0.35)' },
   audio_tts: { label: '🎧 配音合成', color: '#10b981', bg: 'rgba(16,185,129,0.14)', border: 'rgba(16,185,129,0.35)' },
   voice_distill: { label: '🧬 文风蒸馏', color: '#8b5cf6', bg: 'rgba(139,92,246,0.14)', border: 'rgba(139,92,246,0.35)' },
   crucible: { label: '🔥 提示词熔炉', color: '#ef4444', bg: 'rgba(239,68,68,0.14)', border: 'rgba(239,68,68,0.35)' },
@@ -16894,21 +18431,34 @@ async function loadScheduledPostsList() {
       listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:13px"><div style="font-size:30px;margin-bottom:8px">📅</div>暂无排期发布的任务</div>';
       return;
     }
-    listEl.innerHTML = posts.map(p => `
-      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center">
-        <div>
+    listEl.innerHTML = posts.map(p => {
+      // R4：状态徽章 + 说明。manual_pending = 该平台不支持自动发布，需人工复制粘贴。
+      const SCHED_STATUS = {
+        pending: ['待触发', 'gray'],
+        running: ['执行中', 'blue'],
+        published: ['已发布', 'green'],
+        failed: ['失败', 'red'],
+        cancelled: ['已取消', 'gray'],
+        manual_pending: ['待手动发布', 'warn'],
+      };
+      const [label, tone] = SCHED_STATUS[p.status] || [p.status, 'gray'];
+      const detail = (p.detail || '').trim();
+      return `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div style="min-width:0">
           <div style="font-weight:700;color:#fff;font-size:13px">${p.draft_title || ('草稿 #' + p.draft_id)}</div>
           <div style="font-size:11.5px;color:var(--text-muted);margin-top:4px">
             <span class="badge info">${p.platform === 'xhs' ? '小红书' : (p.platform === 'wechat_mp' ? '微信公众号' : p.platform)}</span>
             <span style="margin-left:8px">设定发布时间: <strong>${p.target_time_fmt || ''}</strong></span>
           </div>
+          ${detail ? `<div style="font-size:11.5px;margin-top:6px;color:${p.status === 'failed' ? 'var(--danger)' : 'var(--warning,#f0883e)'};line-height:1.5">${detail}</div>` : ''}
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <span class="badge ${p.status === 'published' ? 'green' : (p.status === 'running' ? 'blue' : 'gray')}">${p.status === 'pending' ? '待触发' : (p.status === 'published' ? '已发布' : p.status)}</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+          <span class="badge ${tone}">${label}</span>
           ${p.status === 'pending' ? `<button class="btn btn-sm ghost warn" onclick="cancelScheduledPost('${p.id}')">取消排期</button>` : ''}
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   } catch (e) {
     listEl.innerHTML = `<div style="color:var(--danger)">加载排期失败: ${e}</div>`;
   }
@@ -17238,15 +18788,15 @@ const TIER_BADGE_TEXT = {free: 'V7 Free', pro: 'V7 Pro', studio: 'V7 Studio'};
 async function refreshTierBadge() {
   try {
     const r = await fetch('/api/billing/ui/me');
-    if (!r.ok) return;
+    if (!r.ok) { console.warn('[tier] 徽章更新失败: /api/billing/ui/me 返回 HTTP', r.status); return; }
     const res = await r.json();
     const d = res.data || res;
-    if (!d || d.initialized === false) return;
+    if (!d || d.initialized === false) { console.warn('[tier] 会员未初始化，徽章保持默认'); return; }
     yimuUserTier = (d.tier || 'free').toLowerCase();
     const label = TIER_BADGE_TEXT[yimuUserTier] || 'V7 Free';
     document.querySelectorAll('.version-badge').forEach(el => { el.textContent = label; });
     markProLockedMenus();
-  } catch(e) { /* 静默失败，保持默认显示 */ }
+  } catch(e) { console.warn('[tier] 徽章更新失败:', e); }
 }
 
 function markProLockedMenus() {
@@ -17538,19 +19088,9 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 </div>
 
-<!-- ==================== 🔍 v4.3 全局小红书/卡片高清放大预览弹窗 (Lightbox) ==================== -->
-<div id="image-lightbox-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.92);backdrop-filter:blur(10px);z-index:9999999;align-items:center;justify-content:center;padding:24px" onclick="if(event.target===this)closeImageLightbox()">
-  <div style="position:relative;max-width:92vw;max-height:92vh;display:flex;flex-direction:column;align-items:center">
-    <button type="button" class="lightbox-close-btn" onclick="closeImageLightbox()" title="关闭预览 (Esc)">✕</button>
-    <img id="image-lightbox-img" src="" style="max-width:100%;max-height:84vh;object-fit:contain;border-radius:12px;box-shadow:0 16px 56px rgba(0,0,0,0.9);border:1.5px solid rgba(255,255,255,0.25)">
-    <div style="display:flex;gap:12px;align-items:center;margin-top:14px">
-      <span id="image-lightbox-title" style="color:#fff;font-size:13.5px;font-weight:700;background:rgba(0,0,0,0.7);padding:6px 16px;border-radius:20px;border:1px solid rgba(255,255,255,0.2)">高清卡片预览</span>
-      <button class="btn btn-xs" style="background:#ff2442;color:#fff;border:none;font-weight:700;padding:6px 14px;border-radius:20px" onclick="window.open($('image-lightbox-img').src, '_blank')">新标签打开原图 ➔</button>
-    </div>
-  </div>
-</div>
-
 <!-- ==================== 🤖 v4.3 内容工作台右下角常驻贴边 Copilot 浮动按钮与智能对话卡片 ==================== -->
+</div>
+</div>
 <div id="wb-float-agent-btn" class="wb-floating-agent-btn" onclick="toggleWbAgentModal()" title="随时呼唤 AI 爆款创作主编协助重写、换标题或提分">
   <span class="live-pulse" style="width:8px;height:8px;background:#fff"></span>
   <span>🤖 爆款 Agent</span>

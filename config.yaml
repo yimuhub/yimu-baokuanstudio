@@ -1,6 +1,19 @@
 admin:
   port: 8790
 agents:
+  ad_creative:
+    instruction: ''
+    model: ''
+    skills:
+    - ad-video-creative
+    - ad-reverse-engineer
+    - ad-creative-evaluator
+    - ad-category-playbook
+  ad_video:
+    instruction: ''
+    model: ''
+    skills:
+    - ad-video-prompt-craft
   analyze:
     instruction: ''
     model: agnes-3.0-flash
@@ -47,20 +60,20 @@ agents:
     - viral-formulas
 creation:
   card_style: ai_visual_dark
+  draft_expire_days: 0
   styles:
     toutiao: 资讯体，信息密度高，标题带地域/数字钩子
     wechat_mp: 深度长文，讲故事+干货，结尾引导关注
     xhs: 短句分点，口语化，第一人称体验感，适配竖版卡片节奏
-  use_viral_formulas: true
-  wechat_theme: spring-fresh
-  draft_expire_days: 0
   target_platforms:
   - wechat_mp
   - xhs
   - toutiao
+  use_viral_formulas: true
+  wechat_theme: spring-fresh
 gateway:
   agent_routing:
-    analyzer: agnes-2.5-flash
+    analyzer: agnes-3.0-flash
     critic: agnes-3.0-flash
     drama: agnes-3.0-flash
     image: agnes-image-2.5-flash
@@ -84,12 +97,32 @@ gateway:
     id: agnes-video-v2.0
     is_enabled: true
     name: agnes-video-v2.0
+  - category: video
+    id: agnes-video-2.5-flash
+    is_enabled: true
+    name: agnes-video-2.5-flash
   model: agnes-3.0-flash
-  provider_id: custom
+  provider_id: yimu_official
   providers:
     custom:
       base_url: http://127.0.0.1:8787/v1
-      configured_models: *id001
+      configured_models:
+      - category: text
+        id: agnes-2.5-flash
+        is_enabled: true
+        name: agnes-2.5-flash
+      - category: text
+        id: agnes-3.0-flash
+        is_enabled: true
+        name: agnes-3.0-flash
+      - category: image
+        id: agnes-image-2.5-flash
+        is_enabled: true
+        name: agnes-image-2.5-flash
+      - category: video
+        id: agnes-video-v2.0
+        is_enabled: true
+        name: agnes-video-v2.0
       model: agnes-3.0-flash
       name: 自定义聚合网关 (硅基流动 / OneAPI)
     deepseek:
@@ -98,6 +131,11 @@ gateway:
     qwen:
       base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
       model: qwen-max
+    yimu_official:
+      base_url: http://127.0.0.1:8787/v1
+      configured_models: *id001
+      model: agnes-3.0-flash
+      name: 一幕·YIMU 官方
   timeout_s: 180
 image:
   card_bg: true

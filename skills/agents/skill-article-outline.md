@@ -1,6 +1,6 @@
 ---
 name: 公众号深度长文骨架生成器
-description: 借鉴 Easel: 基于受众认知路径生成 H2/H3 逻辑层级、段落目标字数、插图锚点与核心金句规划
+description: "借鉴 Easel: 基于受众认知路径生成 H2/H3 逻辑层级、段落目标字数、插图锚点与核心金句规划"
 category: 爆款策划
 scope: writing
 icon: "🏗️"

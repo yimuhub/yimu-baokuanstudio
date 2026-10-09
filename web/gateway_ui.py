@@ -865,6 +865,32 @@ async def ui_create_key(request: Request):
         db.close()
 
 
+@router.get("/api/gw/ui/upstream")
+@_api
+async def ui_upstream_status(request: Request):
+    """上游模型服务状态（JSON 版，供控制中心原生视图使用）。"""
+    _require_login(request)
+    try:
+        states = get_all_configured_providers()
+    except Exception:
+        states = {}
+    items = []
+    for pid, pinfo in MODEL_PROVIDERS.items():
+        st = states.get(pid, {}) if isinstance(states, dict) else {}
+        items.append({
+            "id": pid,
+            "name": st.get("name") or pinfo.get("name", pid),
+            "icon": pinfo.get("icon", "⚡"),
+            "badge": st.get("badge") or pinfo.get("badge", ""),
+            "models_count": len(pinfo.get("models", [])),
+            "default_model": pinfo.get("default_model", ""),
+            "has_key": bool(st.get("has_key")),
+            "doc_url": pinfo.get("doc_url", ""),
+            "tips": st.get("tips") or pinfo.get("tips", ""),
+        })
+    return JSONResponse(ok_body({"items": items, "total": len(items)}))
+
+
 @router.get("/api/gw/ui/keys")
 @_api
 async def ui_list_keys(request: Request):
@@ -1295,3 +1321,54 @@ async def ui_set_launch_mode(request: Request):
         return JSONResponse(ok_body({"launch_mode": mode}))
     finally:
         db.close()
+
+
+# ------------------------------------------------- 视频合成配置中心 ---
+
+@router.get("/api/video/config")
+@_api
+async def video_config_get(request: Request):
+    """获取视频合成配置（Key 做掩码显示）。需要管理员权限。"""
+    _require_admin(request)
+    from studio import video_config as _vc
+    from studio import stock as _stock
+    cfg = _vc.get_masked_config()
+    avail = _stock.stock_available()
+    return JSONResponse(ok_body({
+        "config": cfg,
+        "stock_available": avail,  # 各素材引擎当前是否可用（含环境变量兜底）
+        "voice_engines": list(_vc.VOICE_ENGINES),
+    }))
+
+
+@router.put("/api/video/config")
+@_api
+async def video_config_put(request: Request):
+    """增量更新视频合成配置。需要管理员权限。"""
+    _require_admin(request)
+    try:
+        body = await request.json()
+    except Exception:
+        raise GatewayError("BAD_REQUEST", "请求体不是合法的 JSON", "请检查 Content-Type 与请求体格式")
+    if not isinstance(body, dict):
+        raise GatewayError("BAD_REQUEST", "请求体格式错误", "请求体应为 JSON 对象")
+    from studio import video_config as _vc
+    try:
+        cfg = _vc.save_config(body)
+    except ValueError as e:
+        raise GatewayError("BAD_REQUEST", str(e), "请检查字段取值")
+    masked = _vc.get_masked_config()
+    return JSONResponse(ok_body({"config": masked}))
+
+
+@router.delete("/api/video/config/keys/{provider}")
+@_api
+async def video_config_delete_key(request: Request, provider: str):
+    """删除指定素材站 Key（provider: pexels / pixabay）。需要管理员权限。"""
+    _require_admin(request)
+    from studio import video_config as _vc
+    try:
+        _vc.delete_key(provider)
+    except ValueError as e:
+        raise GatewayError("BAD_REQUEST", str(e), "provider 仅支持 pexels / pixabay")
+    return JSONResponse(ok_body({"deleted": provider, "config": _vc.get_masked_config()}))

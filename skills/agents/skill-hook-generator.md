@@ -1,6 +1,6 @@
 ---
 name: 黄金前3秒超级钩子工坊
-description: 借鉴 Easel: 针对主题高产 10 种顶级 Hook 变体（反常识、数字悬念、身份代入、扎心刺痛）
+description: "借鉴 Easel: 针对主题高产 10 种顶级 Hook 变体（反常识、数字悬念、身份代入、扎心刺痛）"
 category: 爆款策划
 scope: writing
 icon: "🪝"

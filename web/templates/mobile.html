@@ -23,8 +23,29 @@
   --info: #3b82f6;
   --text: #f8fafc;
   --text-muted: #94a3b8;
+  --input-bg: rgba(0, 0, 0, 0.3);
   --safe-bottom: env(safe-area-inset-bottom, 16px);
 }
+/* 浅色明亮主题 */
+[data-theme="light"] {
+  --bg: #f5f6fa;
+  --card: #ffffff;
+  --card-subtle: #eef0f6;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(240, 136, 62, 0.5);
+  --text: #1a1d26;
+  --text-muted: #6b7280;
+  --input-bg: #f0f2f8;
+}
+[data-theme="light"] body { background: var(--bg); color: var(--text); }
+[data-theme="light"] .app-header { background: rgba(255,255,255,0.92); border-bottom-color: var(--border); }
+[data-theme="light"] .m-card { background: var(--card); border-color: var(--border); box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+[data-theme="light"] input, [data-theme="light"] textarea, [data-theme="light"] select {
+  background: var(--input-bg) !important; color: var(--text) !important; border-color: var(--border) !important;
+}
+[data-theme="light"] input::placeholder, [data-theme="light"] textarea::placeholder { color: #9ca3af; }
+[data-theme="light"] .bottom-nav { background: rgba(255,255,255,0.95); border-top-color: var(--border); }
+[data-theme="light"] .modal-box, [data-theme="light"] .sheet { background: #fff; color: var(--text); }
 * {
   box-sizing: border-box;
   margin: 0;
@@ -840,7 +861,7 @@ body {
         <!-- 剧本来源切换与管理（关联草稿 / 上传小说文档 / 直接粘贴） -->
         <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <span style="font-size:12px;font-weight:700;color:#fff;display:flex;align-items:center;gap:4px">
+            <span style="font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:4px">
               <span>🎙️</span> 剧本与小说文案来源
             </span>
             <div style="display:flex;gap:4px">
@@ -891,7 +912,7 @@ body {
         <!-- 步骤 1 容器: 剧本分析与影视分镜拆解 (默认只显示第一步) -->
         <div id="m-drama-step-panel-1" style="display:block">
           <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
-            <div style="font-weight:700;font-size:12.5px;color:#fff;margin-bottom:6px">第 1 步：剧本解构与好莱坞影视分镜规划</div>
+            <div style="font-weight:700;font-size:12.5px;color:var(--text);margin-bottom:6px">第 1 步：剧本解构与好莱坞影视分镜规划</div>
             <div style="font-size:11.5px;color:var(--text-muted);line-height:1.4;margin-bottom:8px">
               AI 导演 Agent 将解析剧本文案，按黄金节拍拆解景别、运镜镜头、台词旁白与光影提示词。
             </div>
@@ -921,7 +942,7 @@ body {
         <!-- 步骤 2 容器: 关键帧生图出图 -->
         <div id="m-drama-step-panel-2" style="display:none">
           <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
-            <div style="font-weight:700;font-size:12.5px;color:#fff;margin-bottom:6px">第 2 步：影视关键帧画面批量绘制</div>
+            <div style="font-weight:700;font-size:12.5px;color:var(--text);margin-bottom:6px">第 2 步：影视关键帧画面批量绘制</div>
             <div style="font-size:11.5px;color:var(--text-muted);line-height:1.4;margin-bottom:10px">
               基于第 1 步解构的 Prompt，启动生图大模型为所有镜头绘制一致性高清关键帧。
             </div>
@@ -934,7 +955,7 @@ body {
         <!-- 步骤 3 容器: 批量合成镜头动效切片 -->
         <div id="m-drama-step-panel-3" style="display:none">
           <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
-            <div style="font-weight:700;font-size:12.5px;color:#fff;margin-bottom:6px">第 3 步：分镜动态视频切片与配音动效</div>
+            <div style="font-weight:700;font-size:12.5px;color:var(--text);margin-bottom:6px">第 3 步：分镜动态视频切片与配音动效</div>
             <div style="font-size:11.5px;color:var(--text-muted);line-height:1.4;margin-bottom:10px">
               为每个镜头画面注入运镜动效、情感配音 TTS 与中文字幕。
             </div>
@@ -950,7 +971,7 @@ body {
         <!-- 步骤 4 容器: 全剧成片母带封包 -->
         <div id="m-drama-step-panel-4" style="display:none">
           <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px">
-            <div style="font-weight:700;font-size:12.5px;color:#fff;margin-bottom:6px">第 4 步：全剧母带智能缝合与成片封包</div>
+            <div style="font-weight:700;font-size:12.5px;color:var(--text);margin-bottom:6px">第 4 步：全剧母带智能缝合与成片封包</div>
             <div style="font-size:11.5px;color:var(--text-muted);line-height:1.4;margin-bottom:10px">
               将全部独立镜头切片、背景音乐与情绪母带轨道无缝混流封装为最终全剧成片。
             </div>
@@ -1282,7 +1303,7 @@ body {
       <!-- 综合总分卡 -->
       <div style="background:var(--card-subtle);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div>
-          <div style="font-weight:700;font-size:15px;color:#fff">综合爆款健康指数</div>
+          <div style="font-weight:700;font-size:15px;color:var(--text)">综合爆款健康指数</div>
           <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px" id="m-score-grade-tip">全网7维爆款矩阵与多端适配把关</div>
         </div>
         <div style="text-align:right">
@@ -1418,7 +1439,7 @@ body {
             <!-- Agent 1: 写作 Agent -->
             <div style="background:rgba(0,0,0,0.25);padding:8px;border-radius:8px;border:1px solid var(--border)">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <span style="font-size:12px;font-weight:700;color:#fff">✍️ 写作生成 Agent (Writer)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--text)">✍️ 写作生成 Agent (Writer)</span>
                 <span style="font-size:10.5px;color:var(--text-muted)">负责正文、改写、多平台派生</span>
               </div>
               <select id="m-routing-writer" class="m-input" style="width:100%;border-radius:6px;font-size:12px;padding:7px">
@@ -1429,7 +1450,7 @@ body {
             <!-- Agent 2: 拆解 Agent -->
             <div style="background:rgba(0,0,0,0.25);padding:8px;border-radius:8px;border:1px solid var(--border)">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <span style="font-size:12px;font-weight:700;color:#fff">🔍 拆解分析 Agent (Analyzer)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--text)">🔍 拆解分析 Agent (Analyzer)</span>
                 <span style="font-size:10.5px;color:var(--text-muted)">负责热榜拆解、爆款基因提炼</span>
               </div>
               <select id="m-routing-analyzer" class="m-input" style="width:100%;border-radius:6px;font-size:12px;padding:7px">
@@ -1440,7 +1461,7 @@ body {
             <!-- Agent 3: 评审 Agent -->
             <div style="background:rgba(0,0,0,0.25);padding:8px;border-radius:8px;border:1px solid var(--border)">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <span style="font-size:12px;font-weight:700;color:#fff">⚖️ 严格评审 Agent (Critic)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--text)">⚖️ 严格评审 Agent (Critic)</span>
                 <span style="font-size:10.5px;color:var(--text-muted)">负责多维质检评分、黄金钩子严审</span>
               </div>
               <select id="m-routing-critic" class="m-input" style="width:100%;border-radius:6px;font-size:12px;padding:7px">
@@ -1451,7 +1472,7 @@ body {
             <!-- Agent 4: 短剧影视 Agent -->
             <div style="background:rgba(0,0,0,0.25);padding:8px;border-radius:8px;border:1px solid var(--border)">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <span style="font-size:12px;font-weight:700;color:#fff">🎬 短剧分镜 Agent (Drama Director)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--text)">🎬 短剧分镜 Agent (Drama Director)</span>
                 <span style="font-size:10.5px;color:var(--text-muted)">负责影视节拍大纲、镜头与四视图蓝图</span>
               </div>
               <select id="m-routing-drama" class="m-input" style="width:100%;border-radius:6px;font-size:12px;padding:7px">
@@ -1462,7 +1483,7 @@ body {
             <!-- Agent 5: 配图/生图 Agent -->
             <div style="background:rgba(0,0,0,0.25);padding:8px;border-radius:8px;border:1px solid var(--border)">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <span style="font-size:12px;font-weight:700;color:#fff">🎨 智能生图 Agent (Image Generator)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--text)">🎨 智能生图 Agent (Image Generator)</span>
                 <span style="font-size:10.5px;color:var(--text-muted)">负责爆款封面、卡片配图与分镜首帧</span>
               </div>
               <select id="m-routing-image" class="m-input" style="width:100%;border-radius:6px;font-size:12px;padding:7px">
@@ -1473,7 +1494,7 @@ body {
             <!-- Agent 6: 生成视频 Agent -->
             <div style="background:rgba(0,0,0,0.25);padding:8px;border-radius:8px;border:1px solid var(--border)">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <span style="font-size:12px;font-weight:700;color:#fff">🎥 视频生成 Agent (Video Generator)</span>
+                <span style="font-size:12px;font-weight:700;color:var(--text)">🎥 视频生成 Agent (Video Generator)</span>
                 <span style="font-size:10.5px;color:var(--text-muted)">负责镜头首帧驱动、物理运镜动态合成</span>
               </div>
               <select id="m-routing-video" class="m-input" style="width:100%;border-radius:6px;font-size:12px;padding:7px">
@@ -1754,7 +1775,7 @@ body {
 <div class="m-theater-mask" id="m-theater-modal" onclick="closeMobileTheaterModal()">
   <div class="m-theater-card" onclick="event.stopPropagation()">
     <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08)">
-      <div style="font-weight:700;font-size:14px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px" id="m-theater-title">
+      <div style="font-weight:700;font-size:14px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:260px" id="m-theater-title">
         媒体资产播放
       </div>
       <button class="header-btn" onclick="closeMobileTheaterModal()" style="padding:2px 8px;font-size:13px">✕</button>
@@ -1789,7 +1810,7 @@ body {
       勾选需要批量清除的模型服务配置及其保存在本地的密钥：
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:rgba(255,255,255,0.04);border-radius:8px;margin-bottom:10px">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#fff;cursor:pointer;margin:0">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);cursor:pointer;margin:0">
         <input type="checkbox" id="m-batch-select-all" onchange="toggleSelectAllMobileProviders(this.checked)" style="cursor:pointer"> 全选所有模型服务
       </label>
       <span style="font-size:11px;color:var(--text-muted)" id="m-batch-selected-count-label">已选 0 家</span>
@@ -1828,7 +1849,7 @@ body {
 <div class="m-theater-mask" id="m-xhs-login-modal" onclick="closeMobileXhsLoginModal()">
   <div class="m-theater-card" onclick="event.stopPropagation()" style="max-width:380px;text-align:center">
     <div style="padding:14px 16px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.08)">
-      <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px">
+      <div style="font-weight:700;font-size:14px;color:var(--text);display:flex;align-items:center;gap:6px">
         <span>📕</span> 小红书创作者扫码登录
       </div>
       <button class="header-btn" onclick="closeMobileXhsLoginModal()" style="padding:2px 8px;font-size:13px">✕</button>
@@ -1842,7 +1863,7 @@ body {
         <div style="background:#fff;padding:10px;border-radius:12px;margin-bottom:12px">
           <img id="m-xhs-qr-img" src="" alt="二维码" style="width:180px;height:180px;display:block">
         </div>
-        <div style="font-size:12.5px;color:#fff;font-weight:700">请使用【小红书 App】右上角扫一扫</div>
+        <div style="font-size:12.5px;color:var(--text);font-weight:700">请使用【小红书 App】右上角扫一扫</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:4px">登录态将自动本地持久化，直发无需重复扫码</div>
       </div>
     </div>
@@ -1982,8 +2003,41 @@ function renderMobilePlusMenuItems() {
   `).join('');
 }
 
+/* R4-8 CSRF：Double Submit Cookie，状态变更请求带 X-CSRF-Token */
+function csrfHeaders() {
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+    if (m && m[1]) return { 'X-CSRF-Token': decodeURIComponent(m[1]) };
+  } catch(e) {}
+  return {};
+}
+
+/* 兜底：直接用 fetch() 的写请求自动补 CSRF 头 */
+(function patchFetchForCsrf() {
+  const origFetch = window.fetch.bind(window);
+  window.fetch = function(input, init) {
+    try {
+      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      const method = String((init && init.method) || (input && input.method) || 'GET').toUpperCase();
+      const sameOrigin = url.startsWith('/') || url.startsWith(location.origin);
+      if (sameOrigin && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+        init = Object.assign({}, init || {});
+        const h = new Headers(init.headers || (input && input.headers) || {});
+        if (!h.has('X-CSRF-Token')) {
+          const t = csrfHeaders()['X-CSRF-Token'];
+          if (t) h.set('X-CSRF-Token', t);
+        }
+        init.headers = h;
+        if (typeof input !== 'string' && input) input = new Request(input, init);
+        else return origFetch(input, init);
+      }
+    } catch(e) {}
+    return origFetch(input, init);
+  };
+})();
+
 async function api(path, opts = {}) {
-  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  const headers = Object.assign({ 'Content-Type': 'application/json' }, csrfHeaders(), opts.headers || {});
   const res = await fetch(path, Object.assign({}, opts, { headers }));
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -2625,7 +2679,7 @@ async function reloadMobileXhsHistoryList() {
       return `
         <div style="background:var(--card-subtle);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px">
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <span style="font-weight:700;font-size:12.5px;color:#fff">${escapeHtml(s.title || '小红书快照')}</span>
+            <span style="font-weight:700;font-size:12.5px;color:var(--text)">${escapeHtml(s.title || '小红书快照')}</span>
             <span style="font-size:11px;color:var(--text-muted)">${escapeHtml(s.created_at || '')}</span>
           </div>
           <div style="font-size:11.5px;color:var(--text-muted);line-height:1.4">${escapeHtml(s.summary || s.note || '历史快照存档')}</div>
@@ -2854,7 +2908,7 @@ async function openMobileHistorySheet() {
       return `
         <div style="background:var(--card-subtle);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px">
           <div style="flex:1;min-width:0">
-            <div style="font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(h.title || '无标题快照')}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(h.title || '无标题快照')}</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:6px">
               <span>🕒 ${timeStr}</span>
               <span class="badge gray" style="font-size:10px;padding:1px 5px">评分: ${scoreStr}</span>
@@ -3429,7 +3483,8 @@ async function loadUserProfile() {
       document.getElementById('user-display-name').textContent = me.user.username;
       document.getElementById('prof-username').textContent = me.user.username;
       document.getElementById('prof-plan').textContent = '套餐等级: ' + (me.user.plan || 'free');
-      document.getElementById('prof-quota').textContent = (me.user.quota_max || 500000).toLocaleString() + ' Token';
+      // R2-1：兜底额度改为免费档 3000 credits（不再硬编码 500000）
+      document.getElementById('prof-quota').textContent = (me.user.quota_max || 3000).toLocaleString() + ' Token';
     }
     loadVaultKeys();
   } catch(e) {}
@@ -3769,7 +3824,7 @@ async function loadMobileVideoAssets() {
       return `
         <div style="background:var(--card-subtle);border-radius:10px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border)">
           <div style="max-width:70%">
-            <div style="font-weight:700;font-size:12.5px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title || v.tid}</div>
+            <div style="font-weight:700;font-size:12.5px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${v.title || v.tid}</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px">
               ${isDrama ? '🎬 全AI短剧' : '⚡ 爆款短视频'} · 画幅: ${v.aspect || '9:16'} · 时长: ${v.seconds || v.duration || 30}s
             </div>
@@ -3968,7 +4023,7 @@ async function loadMobileDramaScenes() {
             <span style="font-weight:700;font-size:12px;color:var(--primary)">镜头 #${s.shot_id || idx+1} · ${s.shot_type || '中景'}</span>
             <span style="font-size:10.5px;color:var(--text-muted)">⏱️ ${s.duration_s || 3}s</span>
           </div>
-          <div style="font-size:12px;color:#fff;margin-bottom:6px">【台词】${s.voiceover_zh || s.content || '无台词旁白'}</div>
+          <div style="font-size:12px;color:var(--text);margin-bottom:6px">【台词】${s.voiceover_zh || s.content || '无台词旁白'}</div>
           <div style="font-size:11px;color:var(--text-muted);line-height:1.4">【画面】${s.visual_zh || s.prompt || '电影级构图与光影'}</div>
           ${s.image_url ? `<img src="${s.image_url}" style="width:100%;height:140px;object-fit:cover;border-radius:6px;margin-top:8px">` : ''}
         </div>
@@ -4467,7 +4522,7 @@ function openMobileBatchDeleteModal() {
           <div style="display:flex;align-items:center;gap:10px">
             <input type="checkbox" class="m-batch-prov-cb" value="${p.id}" onchange="updateMobileBatchSelectedCount()" style="cursor:pointer;width:16px;height:16px">
             <div>
-              <div style="font-size:13px;font-weight:700;color:#fff">${p.name || p.id}</div>
+              <div style="font-size:13px;font-weight:700;color:var(--text)">${p.name || p.id}</div>
               <div style="font-size:11px;color:var(--text-muted)">${p.base_url || '官方端点'}</div>
             </div>
           </div>
@@ -4570,7 +4625,7 @@ async function runMobileHealthCheck() {
       box.innerHTML = (r.services || []).map(s => `
         <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center">
           <div>
-            <div style="font-size:12px;font-weight:700;color:#fff">${s.label} (${s.name})</div>
+            <div style="font-size:12px;font-weight:700;color:var(--text)">${s.label} (${s.name})</div>
             <div style="font-size:10.5px;color:var(--text-muted)">状态: ${s.status} · ${s.detail || ''}</div>
           </div>
           <div>${s.ok ? '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,0.18);color:#10b981;font-weight:700">在线 ✓</span>' : '<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(239,68,68,0.18);color:#ef4444;font-weight:700">离线 ✗</span>'}</div>
@@ -4736,7 +4791,7 @@ async function loadMobileSkills() {
       return `
         <div style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between">
           <div style="max-width:80%">
-            <div style="font-weight:700;font-size:12px;color:#fff">${s.icon || '⚡'} ${s.name || k}</div>
+            <div style="font-weight:700;font-size:12px;color:var(--text)">${s.icon || '⚡'} ${s.name || k}</div>
             <div style="font-size:10.5px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(s.body || s.description || '').slice(0, 40)}…</div>
           </div>
           <span style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(59,130,246,0.15);color:var(--info);flex-shrink:0">已挂载</span>
@@ -4859,7 +4914,7 @@ async function loadMobileTasks() {
       return `
         <div style="background:var(--card-subtle);border:1px solid ${isRunning ? 'rgba(59,130,246,0.35)' : 'var(--border)'};border-radius:12px;padding:12px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-            <div style="font-weight:700;font-size:13.5px;color:#fff;flex:1;margin-right:8px">${t.name || '异步任务'}</div>
+            <div style="font-weight:700;font-size:13.5px;color:var(--text);flex:1;margin-right:8px">${t.name || '异步任务'}</div>
             <span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;color:${stColor};background:${stBg}">${stText}</span>
           </div>
           <div style="font-size:11.5px;color:var(--text-muted);margin-bottom:8px">

@@ -1,6 +1,6 @@
 ---
 name: 文字浓缩与高浓度金句蒸馏
-description: 借鉴 Easel: 3级压缩模式：严格字数硬裁剪、核心要点摘要、10倍密度金句蒸馏
+description: "借鉴 Easel: 3级压缩模式：严格字数硬裁剪、核心要点摘要、10倍密度金句蒸馏"
 category: 文风调优
 scope: writing
 icon: "🧪"

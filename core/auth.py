@@ -17,12 +17,20 @@ import time
 import uuid
 from pathlib import Path
 
+# R2-1：额度数字的唯一真源。注册/建管理员一律从这里取，禁止硬编码。
+from studio.pricing import TIER_CREDITS
+
 BASE = Path(__file__).resolve().parent.parent
 DATA = BASE / "data"
 DB_PATH = DATA / "mediaflow.db"
 
 _PBKDF2_ITERATIONS = 210_000  # OWASP 对 HMAC-SHA-256 的建议量级（新哈希）
 _LEGACY_ITERATIONS = 100_000  # 老版本哈希轮数（仅用于验证存量口令）
+
+
+def _free_quota() -> int:
+    """免费档额度（credits）：取自定价真源，禁止在业务代码里硬编码额度数字。"""
+    return TIER_CREDITS["free"]
 
 
 def _secret_key() -> str:
@@ -165,10 +173,13 @@ def ensure_default_admin(password: str | None = None) -> bool:
         uid = "u-admin"
         now_ts = time.time()
         pwd_hash, salt = hash_password(pwd)
+        #⭐ R2-1：管理员额度同样取自定价真源。历史硬编码 10,000,000 credits
+        #   按 0.01 元/credit 折算≈ 100 万元，属同类漏钱口子，一并收敛。
         c.execute(
             "INSERT OR REPLACE INTO users (id, username, email, password_hash, salt, role, plan, quota_used, quota_max, created_at, last_login, is_active) "
-            "VALUES (?,?,?,?,?,?,?,0,10000000,?,?,1)",
-            (uid, "admin", "admin@localhost", pwd_hash, salt, "admin", "enterprise", now_ts, now_ts)
+            "VALUES (?,?,?,?,?,?,?,0,?,?,?,1)",
+            (uid, "admin", "admin@localhost", pwd_hash, salt, "admin", "enterprise",
+             TIER_CREDITS["studio"], now_ts, now_ts)
         )
         c.commit()
     c.close()
@@ -193,11 +204,14 @@ def register_user(username: str, password: str, email: str = "") -> dict:
     now_ts = time.time()
     pwd_hash, salt = hash_password(password)
 
-    # 默认赠送 500,000 Token 初始体验额度
+    #⭐ R2-1：新用户初始体验额度取自定价真源（studio/pricing.TIER_CREDITS），
+    #   不再硬编码 500000。历史硬编码值按 0.05 元/篇折算≈ 25000 元白送，
+    #   是比卡密后门更隐蔽的漏钱口子。免费档现为 3000 credits（=30 元）。
+    free_quota = TIER_CREDITS["free"]
     c.execute(
         "INSERT INTO users (id, username, email, password_hash, salt, role, plan, quota_used, quota_max, created_at, last_login, is_active) "
-        "VALUES (?,?,?,?,?,?,'free',0,500000,?,?,1)",
-        (uid, username, email.strip(), pwd_hash, salt, "user", now_ts, now_ts)
+        "VALUES (?,?,?,?,?,?,'free',0,?,?,?,1)",
+        (uid, username, email.strip(), pwd_hash, salt, "user", free_quota, now_ts, now_ts)
     )
     c.commit()
     c.close()
@@ -212,7 +226,7 @@ def register_user(username: str, password: str, email: str = "") -> dict:
             "email": email,
             "role": "user",
             "plan": "free",
-            "quota_max": 500000,
+            "quota_max": free_quota,
             "quota_used": 0
         }
     }
@@ -251,7 +265,7 @@ def login_user(username: str, password: str) -> dict:
             "email": user_dict.get("email", ""),
             "role": user_dict["role"],
             "plan": user_dict.get("plan", "free"),
-            "quota_max": user_dict.get("quota_max", 500000),
+            "quota_max": user_dict.get("quota_max") or _free_quota(),
             "quota_used": user_dict.get("quota_used", 0)
         }
     }

@@ -19,37 +19,13 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-# B 的档位与动作单价：优先从移植后的 core.billing 导入，保持同源；
-# 导入失败时用本地副本（与 port/core/billing.py 同源，改动时请同步）。
-try:
-    from core.billing import ACTION_COSTS as _B_ACTION_COSTS
-    from core.billing import DEFAULT_TIERS as _B_DEFAULT_TIERS
+# ⭐ R2-1/R2-3：档位与动作单价的唯一真源是 studio/pricing.py。
+#   历史做法是「优先 core.billing，失败回落到本地副本」——那等于把价格
+#   复制了两份，改价必然漂移。现改为无条件从 pricing 取，删掉 vendored 副本。
+from .pricing import ACTION_COSTS, DEFAULT_TIERS
 
-    DEFAULT_TIERS = _B_DEFAULT_TIERS
-    ACTION_COSTS = _B_ACTION_COSTS
-    _CONFIG_SOURCE = "core.billing"
-except ImportError:  # pragma: no cover - ws-b 独立工作区时的回退
-    _CONFIG_SOURCE = "vendored"
-    # 与 port/core/billing.py 同源（2026-10-06），修改时请同步两处。
-    DEFAULT_TIERS = {
-        "free": {"name": "新人体验官", "tokens_grant": 10000,
-                 "max_drafts_daily": 3,
-                 "features": ["basic_rewrite", "basic_video", "single_furnace"]},
-        "pro": {"name": "超级创作者 (Pro)", "tokens_grant": 500000,
-                "max_drafts_daily": 50,
-                "features": ["all_xhs_styles", "full_furnace", "voices",
-                             "export_jianying", "ai_drama"]},
-        "studio": {"name": "MCN 机构矩阵版 (Studio)", "tokens_grant": 6000000,
-                   "max_drafts_daily": 500,
-                   "features": ["all_features", "auto_matrix_publish",
-                                "deep_distill", "priority_compute"]},
-    }
-    ACTION_COSTS = {
-        "rewrite": 800, "score": 300, "refine_single": 400,
-        "refine_batch": 1200, "furnace_round": 1000, "xhs_card_layout": 500,
-        "drama_decompose": 1000, "drama_image": 1000, "drama_tts": 500,
-        "drama_render": 5000, "deep_distill": 2500,
-    }
+#: 保留字段兼容既有调用方（历史值为 "core.billing"）
+_CONFIG_SOURCE = "studio.pricing"
 
 
 def _membership_svc():
@@ -213,6 +189,10 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
 
     手术式变更：B 内置的通用体验卡密（VIP999 / MEDIAFLOW888 / PRO2026）
     是写死的万能后门，V7 不再保留；如需体验额度请走 generate_cdkeys 发放。
+
+    ⭐ 核销与发放必须同生共死：额度发放失败（如用户不存在）时回滚
+       核销，把卡密还给用户。否则会出现"卡密已作废、额度没到账"，
+       用户既拿不到额度也无法重试。
     """
     from sqlalchemy import update
 
@@ -237,18 +217,30 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
         .values(used_count=Invite.used_count + 1)
     )
     if res.rowcount == 0:
+        db.rollback()
         return {"ok": False, "msg": "该卡密已被兑换使用过"}
     db.commit()
 
-    if code.startswith("YIMU-PRO-"):
-        set_tier(db, tenant_id, user_id, "pro")
-        return {"ok": True, "msg": "兑换成功！已升级为超级创作者 Pro 并获得配额"}
-    if code.startswith("YIMU-STUDIO-"):
-        set_tier(db, tenant_id, user_id, "studio")
-        return {"ok": True, "msg": "兑换成功！已升级为 MCN 机构版并获得配额"}
-    amt = inv.credits_grant or 0
-    bal = grant_tokens(db, tenant_id, user_id, amt, "兑换卡密: " + code)
-    return {"ok": True, "msg": "兑换成功！已为账户注入 %s 点数" % f"{amt:,}", "balance": bal}
+    # ⭐ 发放环节：任何异常都把核销回滚，卡密退还用户（可重试）
+    try:
+        if code.startswith("YIMU-PRO-"):
+            set_tier(db, tenant_id, user_id, "pro")
+            return {"ok": True, "msg": "兑换成功！已升级为超级创作者 Pro 并获得配额"}
+        if code.startswith("YIMU-STUDIO-"):
+            set_tier(db, tenant_id, user_id, "studio")
+            return {"ok": True, "msg": "兑换成功！已升级为 MCN 机构版并获得配额"}
+        amt = inv.credits_grant or 0
+        bal = grant_tokens(db, tenant_id, user_id, amt, "兑换卡密: " + code)
+        return {"ok": True, "msg": "兑换成功！已为账户注入 %s 点数" % f"{amt:,}", "balance": bal}
+    except Exception:
+        db.rollback()
+        db.execute(
+            update(Invite)
+            .where(Invite.id == inv.id, Invite.used_count > 0)
+            .values(used_count=Invite.used_count - 1)
+        )
+        db.commit()
+        raise
 
 
 def get_default_billing_user(db, tenant_name: str = "default"):
@@ -267,9 +259,67 @@ def get_default_billing_user(db, tenant_name: str = "default"):
     return tenant, user
 
 
+# ---------------------------------------------------------------------------
+# web 层便捷封装（B 风格的 web/admin.py 单机调用方使用）
+#
+# ⭐ 为什么不直接把db 依赖塞进路由：web/admin.py 走自己的 V6 鉴权
+#    （core.auth，返回 dict 用户，不是 studio.auth 的 User 行），
+#    且用的是 core.billing 的 JSON 账本。这里补一层薄封装：
+#    自己开session、自己关session，路由侧只传 user_id。
+#    ⭐ 只做编排，不改 redeem_cdkey / generate_cdkeys 的对外签名与返回结构。
+# ---------------------------------------------------------------------------
+
+#: web 层单机模式使用的租户名（与 web/admin.py 的 _tier_quota_check 保持一致）
+WEB_TENANT_NAME = "default"
+
+
+def _web_session():
+    """web 层取一个 studio DB session（调用方负责 close）。"""
+    from studio.membership.capabilities import get_db_session
+
+    return get_db_session()
+
+
+def redeem_cdkey_for_user(code: str, user_id: str,
+                         tenant_name: str = WEB_TENANT_NAME) -> dict:
+    """web 层卡密兑换：按 web 用户 id 兑换，返回结构同 redeem_cdkey。
+
+    与 core.billing.redeem_cdkey 的差异（刻意为之）：
+    - 走 invites 表（ledger-backed），有原子核销防重放，不认任何万能码/前缀码；
+    - 无需路由层自己管DB session。
+    """
+    db = _web_session()
+    try:
+        tenant, _user = get_default_billing_user(db, tenant_name)
+        tenant_id = tenant.id if tenant is not None else tenant_name
+        return redeem_cdkey(db, tenant_id, user_id, code)
+    finally:
+        db.close()
+
+
+def generate_cdkeys_for_actor(key_type: str = "tokens", amount: int = 100000,
+                              count: int = 5, actor: str = "u-admin",
+                              tenant_name: str = WEB_TENANT_NAME) -> list:
+    """web 层卡密生成：按 web 用户 id 记审计，返回卡密列表。
+
+    ⭐ 必须与 redeem_cdkey_for_user 同源（都写 invites 表），否则
+       生成的卡密无处可兑——历史上core.billing 写 JSON、adapter 读
+       invites，两套账本曾各说各话。
+    """
+    db = _web_session()
+    try:
+        tenant, _user = get_default_billing_user(db, tenant_name)
+        tenant_id = tenant.id if tenant is not None else tenant_name
+        return generate_cdkeys(db, tenant_id, actor, key_type=key_type,
+                               amount=amount, count=count)
+    finally:
+        db.close()
+
+
 __all__ = [
     "DEFAULT_TIERS", "ACTION_COSTS",
     "get_billing_status", "check_and_deduct", "grant_tokens",
     "set_tier", "generate_cdkeys", "redeem_cdkey",
     "get_default_billing_user",
+    "redeem_cdkey_for_user", "generate_cdkeys_for_actor",
 ]

@@ -1,6 +1,6 @@
 ---
 name: 目标受众痛点与心理画像
-description: 借鉴 Easel: 深度解析受众年龄、心理防线、痛点阈值与渴望获得的正反馈
+description: "借鉴 Easel: 深度解析受众年龄、心理防线、痛点阈值与渴望获得的正反馈"
 category: 账号画像
 scope: writing
 icon: "🎯"

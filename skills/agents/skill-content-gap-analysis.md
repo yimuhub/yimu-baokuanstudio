@@ -1,6 +1,6 @@
 ---
 name: 蓝海选题空白探测器
-description: 借鉴 Easel: 扫描社媒赛道的高需求、低竞争的蓝海内容机会，规避过度饱和红海
+description: "借鉴 Easel: 扫描社媒赛道的高需求、低竞争的蓝海内容机会，规避过度饱和红海"
 category: 发现借势
 scope: writing
 icon: "🧭"

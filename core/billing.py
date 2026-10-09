@@ -16,54 +16,28 @@ DATA_DIR = BASE_DIR / "data"
 BILLING_FILE = DATA_DIR / "billing.json"
 
 # 默认配额规则与产品矩阵
-DEFAULT_TIERS = {
-    "free": {
-        "name": "新人体验官",
-        "tokens_grant": 10000,
-        "max_drafts_daily": 3,
-        "features": ["basic_rewrite", "basic_video", "single_furnace"]
-    },
-    "pro": {
-        "name": "超级创作者 (Pro)",
-        "tokens_grant": 500000,
-        "max_drafts_daily": 50,
-        "features": ["all_xhs_styles", "full_furnace", "voices", "export_jianying", "ai_drama"]
-    },
-    "studio": {
-        "name": "MCN 机构矩阵版 (Studio)",
-        "tokens_grant": 6000000,
-        "max_drafts_daily": 500,
-        "features": ["all_features", "auto_matrix_publish", "deep_distill", "priority_compute"]
-    }
-}
-
-# 动作 Token 消耗基准
-ACTION_COSTS = {
-    "rewrite": 800,           # AI 仿写/重构
-    "score": 300,             # 7维评审官打分
-    "refine_single": 400,     # 外科手术单点修补
-    "refine_batch": 1200,     # 外科手术批量修补
-    "furnace_round": 1000,    # 自进化熔炉每轮
-    "xhs_card_layout": 500,   # 小红书12套卡片排版
-    "drama_decompose": 1000,  # 短剧好莱坞分镜解构
-    "drama_image": 1000,      # 短剧分镜参考生图 (每张)
-    "drama_tts": 500,         # 短剧情感配音 (每段)
-    "drama_render": 5000,     # 全AI短剧渲染合成 (每支)
-    "deep_distill": 2500,     # 深度博主音色/排版逆向蒸馏
-}
+#
+# R2-1：档位额度与动作单价的**唯一真源**已收敛到 studio/pricing.py。
+# 这里保留同名常量仅为兼容既有调用方（billing_adapter / web/admin.py），
+# 禁止在此另立一套数字——改价只能改 studio/pricing.py。
+from studio.pricing import (  # noqa: E402  (放在常量区，保持历史导入位置不变)
+    ACTION_COSTS,
+    DEFAULT_TIERS,
+    TIER_CREDITS,
+)
 
 
 def _load_data() -> dict:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     if not BILLING_FILE.exists():
+        # ⭐ R2-3：本JSON 账本已废弃（全局单例，多用户互相覆盖），
+        #   余额真源是 memberships.credits_total - credits_used。
+        #   这里仅保留「首次运行时建一个空壳文件」以兼容旧读取路径。
         initial = {
-            "tier": "pro",  # 本地默认赋予 Pro 权限体验
-            "balance": 458000,
-            "total_consumed": 42000,
-            "history": [
-                {"time": int(time.time() - 3600), "action": "系统初始体验金赠送", "delta": +500000, "balance": 500000},
-                {"time": int(time.time() - 1800), "action": "爆款仿写与自进化打磨", "delta": -42000, "balance": 458000}
-            ],
+            "tier": "free",
+            "balance": 0,
+            "total_consumed": 0,
+            "history": [],
             "cdkeys": {}
         }
         _save_data(initial)
@@ -71,7 +45,7 @@ def _load_data() -> dict:
     try:
         return json.loads(BILLING_FILE.read_text(encoding="utf-8"))
     except Exception:
-        return {"tier": "free", "balance": 10000, "total_consumed": 0, "history": [], "cdkeys": {}}
+        return {"tier": "free", "balance": 0, "total_consumed": 0, "history": [], "cdkeys": {}}
 
 
 def _save_data(data: dict):
@@ -166,35 +140,36 @@ def generate_cdkeys(key_type: str = "tokens", amount: int = 100000, count: int =
 
 
 def redeem_cdkey(code: str) -> dict:
-    """兑换商业化卡密。"""
+    """兑换商业化卡密。
+
+    ⭐ 安全红线：只认cdkeys 表内精确匹配且未使用的卡密。
+       历史版本存在两类万能后门，均已下线，不得 reintroduce：
+       1) 硬编码通用体验码（VIP999 / MEDIAFLOW888 / PRO2026）——任何人可白嫖额度；
+       2) 按前缀放行（TOKEN- / PRO- / MCN- 开头即认）——可自行编造卡密，
+          且完全绕过 used 防重放，同一张"卡"可无限次兑换。
+       需要发放额度请走 generate_cdkeys 正式生成。
+    """
     code = (code or "").strip().upper()
     data = _load_data()
     cdkeys = data.get("cdkeys", {})
-    
-    # 内置通用测试体验卡密
-    if code in ["VIP999", "MEDIAFLOW888", "PRO2026"]:
-        new_bal = grant_tokens(200000, f"激活通用体验卡密 [{code}]")
-        return {"ok": True, "msg": f"兑换成功！已为您的账户注入 200,000 Token 算力", "balance": new_bal}
-    
+
+    # ⭐ 精确匹配：不存在（含伪造前缀码）一律判无效，不做任何额度动作
     if code not in cdkeys:
-        if code.startswith("TOKEN-"):
-            new_bal = grant_tokens(100000, f"激活卡密 [{code}]")
-            return {"ok": True, "msg": "兑换成功！已注入 100,000 Token 算力", "balance": new_bal}
-        if code.startswith("PRO-"):
-            set_tier("pro")
-            return {"ok": True, "msg": "兑换成功！已升级为超级创作者 Pro 月卡，包含 500,000 Token！"}
-        if code.startswith("MCN-"):
-            set_tier("studio")
-            return {"ok": True, "msg": "兑换成功！已升级为 MCN 机构矩阵版年卡，包含 6,000,000 Token！"}
         return {"ok": False, "msg": "无效的卡密兑换码，请检查拼写"}
-        
+
     item = cdkeys[code]
     if item.get("used"):
         return {"ok": False, "msg": "该卡密已被兑换使用过"}
-        
+
     item["used"] = True
     item["used_at"] = int(time.time())
-    
+
+    #⭐ 先把「已核销」落盘，再发放额度。
+    #   grant_tokens / set_tier 内部各自 _load_data + _save_data；若把
+    #   _save_data(data) 放在它们之后，会用这份核销前的内存快照覆盖掉
+    #   刚发放的额度（历史 bug：兑换提示成功但余额纹丝不动）。
+    _save_data(data)
+
     if item["type"] == "pro":
         set_tier("pro")
         msg = "兑换成功！已升级为超级创作者 Pro 月卡并获得 500,000 Token！"
@@ -203,8 +178,8 @@ def redeem_cdkey(code: str) -> dict:
         msg = "兑换成功！已升级为 MCN 机构年卡并获得 6,000,000 Token！"
     else:
         amt = item.get("amount", 100000)
-        grant_tokens(amt, f"兑换卡密: {code}")
+        new_bal = grant_tokens(amt, f"兑换卡密: {code}")
         msg = f"兑换成功！已为您的账户注入 {amt:,} Token 算力"
-        
-    _save_data(data)
+        return {"ok": True, "msg": msg, "balance": new_bal}
+
     return {"ok": True, "msg": msg}

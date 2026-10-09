@@ -118,8 +118,13 @@ def test_membership_isolated_by_tenant_and_user(db_session, studio_client):
     )
     assert resp.status_code == 200
     me_b = resp.json()["data"]
-    assert me_b["credits_total"] == 10000, "B 应看到自己的默认额度"
-    assert me_b["credits_left"] == 10000
+    # R2-1：默认额度取自定价真源（免费档 3000），不再硬编码
+    from studio.pricing import TIER_CREDITS
+
+    assert me_b["credits_total"] == TIER_CREDITS["free"], (
+        f"B 应看到自己的默认额度 {TIER_CREDITS['free']}"
+    )
+    assert me_b["credits_left"] == TIER_CREDITS["free"]
 
     # 拿 B 的身份去扣 A 租户的账 → 失败，A 的额度纹丝不动
     left_a_before = credits_left(

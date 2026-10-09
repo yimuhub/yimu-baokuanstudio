@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 import uuid
 from dataclasses import dataclass, field
@@ -28,6 +27,10 @@ from typing import Any
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
+
+# R2-4：计费换算与 credits 单价的唯一真源在 studio.pricing，
+# 网关只做转调，避免两处算法漂移。
+from studio import pricing as _pricing_truth
 
 # ---------------------------------------------------------------------------
 # 统一错误体：code → HTTP 状态码（与 docs/CONTRACT.md §2.2 一致）
@@ -112,40 +115,17 @@ async def gateway_error_handler(request: Request, exc: GatewayError) -> JSONResp
 # ---------------------------------------------------------------------------
 # 定价：每 1k tokens 的 credits 点数（整数）
 # ---------------------------------------------------------------------------
+#
+# ⭐ R2-2：定价表已收敛到 studio/pricing.DEFAULT_MODEL_PRICING（唯一真源），
+#   网关与 llm_metering 共用同一份，保证「同一模型两条计费路径扣减一致」。
+#   DEFAULT_PRICING / load_pricing 保留为转调，供既有调用方使用。
 
-DEFAULT_PRICING: dict[str, dict[str, int]] = {
-    # 网关别名与内置测试模型
-    "yimu-auto": {"input_credits_per_1k": 2, "output_credits_per_1k": 4},
-    "yimu-chat": {"input_credits_per_1k": 2, "output_credits_per_1k": 4},
-    "yimu-embed": {"input_credits_per_1k": 1, "output_credits_per_1k": 0},
-    "yimu-image": {"input_credits_per_1k": 2, "output_credits_per_1k": 50},
-    # 常见上游模型（可通过 YIMU_PRICING 覆盖）
-    "gpt-4o": {"input_credits_per_1k": 5, "output_credits_per_1k": 15},
-    "gpt-4o-mini": {"input_credits_per_1k": 1, "output_credits_per_1k": 2},
-    "deepseek-chat": {"input_credits_per_1k": 2, "output_credits_per_1k": 3},
-    "deepseek-reasoner": {"input_credits_per_1k": 4, "output_credits_per_1k": 8},
-    "qwen-max": {"input_credits_per_1k": 4, "output_credits_per_1k": 12},
-    "glm-4": {"input_credits_per_1k": 5, "output_credits_per_1k": 5},
-    "doubao-pro-32k": {"input_credits_per_1k": 2, "output_credits_per_1k": 6},
-    "claude-3-5-sonnet": {"input_credits_per_1k": 6, "output_credits_per_1k": 30},
-}
+DEFAULT_PRICING: dict[str, dict[str, int]] = _pricing_truth.DEFAULT_MODEL_PRICING
 
 
 def load_pricing() -> dict[str, dict[str, int]]:
-    """合并默认定价与 YIMU_PRICING 环境变量覆盖。"""
-    pricing = {k: dict(v) for k, v in DEFAULT_PRICING.items()}
-    raw = os.environ.get("YIMU_PRICING", "").strip()
-    if raw:
-        try:
-            override = json.loads(raw)
-            for model, rates in override.items():
-                pricing[model] = {
-                    "input_credits_per_1k": int(rates.get("input_credits_per_1k", 0)),
-                    "output_credits_per_1k": int(rates.get("output_credits_per_1k", 0)),
-                }
-        except (ValueError, AttributeError, TypeError):
-            pass  # 环境变量格式错误时沿用默认定价，不阻断启动
-    return pricing
+    """合并默认定价与 YIMU_PRICING 环境变量覆盖（实现见 studio.pricing）。"""
+    return _pricing_truth.load_model_pricing()
 
 
 def estimate_tokens(text: str) -> int:
@@ -158,11 +138,11 @@ def estimate_tokens(text: str) -> int:
 def credits_for_tokens(tokens: int, per_1k: int) -> int:
     """⭐ 计费换算：credits = ceil(tokens/1000 × 单价)，至少 1 点（0 tokens 则为 0）。
 
-    ledger.cost_cents 与 credits 1:1 对应（整数，杜绝浮点误差）。
+    R2-4：实现已收敛到 studio.pricing.credits_for_tokens（唯一真源），
+    本函数保留仅为网关模块自治与向后兼容，**不要在此另立算法**。
+    cost_cents 列存的语义就是 credits，1:1 对应（整数，杜绝浮点误差）。
     """
-    if tokens <= 0 or per_1k <= 0:
-        return 0
-    return max(1, math.ceil(tokens / 1000 * per_1k))
+    return _pricing_truth.credits_for_tokens(tokens, per_1k)
 
 
 # ---------------------------------------------------------------------------

@@ -105,6 +105,9 @@ def handle_generate(body: dict, ctx: dict) -> dict:
         db_url=ctx.get("db_url"),
         client=ctx.get("image_client"),
         size="1024x1024",
+        race_allowed=ctx.get("race_allowed", True),
+        # ⭐ R2-5：带上调用者，生图才扣得到他的 memberships 额度
+        user_id=ctx.get("user_id"),
     )
     return ok(result, request_id=_request_id(ctx))
 

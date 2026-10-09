@@ -1,6 +1,6 @@
 ---
 name: 账号垂直度与起号体检
-description: 借鉴 Easel: 诊断账号垂直度、流量池阶段、限流信号，给出处方式改进方案
+description: "借鉴 Easel: 诊断账号垂直度、流量池阶段、限流信号，给出处方式改进方案"
 category: 账号画像
 scope: writing
 icon: "🩺"

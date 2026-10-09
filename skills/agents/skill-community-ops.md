@@ -1,6 +1,6 @@
 ---
 name: 评论区神评埋梗与舆情运营
-description: 借鉴 Easel: 预设评论区置顶神评、第一热评互动诱饵、分级应对提问/质疑/黑粉回复模板
+description: "借鉴 Easel: 预设评论区置顶神评、第一热评互动诱饵、分级应对提问/质疑/黑粉回复模板"
 category: 爆款转化
 scope: writing
 icon: "💬"

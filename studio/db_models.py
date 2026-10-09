@@ -247,7 +247,12 @@ class Ledger(Base, HasTenant):
     """网关调用账本：每次模型调用的计量记录。
 
     【只增不改】：禁止 UPDATE / DELETE，只能 INSERT。
-    金额统一整数分（cost_cents），杜绝浮点误差。
+
+    ⭐ R2-4 单位统一：``cost_cents`` 存的语义是 **credits 点数**（不是人民币分）。
+       历史上有三种语义混写同一列（网关写点数 / 生图写 5×100 / adapter 写点数），
+       差 100 倍，导致任何 SUM(cost_cents) 都得出无意义数字（含 key_used_credits）。
+       现统一为「1 行 = N credits」，与 memberships.credits_used 同量纲，可直接对账。
+       列名 cost_cents 保留仅为兼容既有库与 UI 字段，不再表示「分」。
     """
 
     __tablename__ = "ledger"
@@ -264,7 +269,7 @@ class Ledger(Base, HasTenant):
     direction: Mapped[str] = mapped_column(String(16), nullable=False)
     # token 数量
     tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    # 费用（整数分）
+    # 费用（⭐ R2-4：语义为 credits 点数，非人民币分）
     cost_cents: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # 延迟毫秒
     latency_ms: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
@@ -303,6 +308,12 @@ class Invite(Base, HasTenant):
     )
     # 状态：active（有效）/ exhausted（用完）/ revoked（作废）/ expired（过期）
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
+    # R5-4 邀请人：发放这张邀请码的用户 user_id。
+    # ⭐ 空串= 运营在后台批量发放的卡密（无邀请人，不发奖励）。
+    #    这是裂变动机的来源——没有 inviter_id 就无法回答「谁带来了谁」。
+    inviter_id: Mapped[str] = mapped_column(
+        String(32), nullable=False, default=""
+    )
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow
@@ -313,6 +324,34 @@ class Invite(Base, HasTenant):
             "status IN ('active','exhausted','revoked','expired')",
             name="ck_invites_status",
         ),
+    )
+
+
+class InviteReferral(Base, HasTenant):
+    """R5-4 邀请关系流水：谁邀请了谁、奖励了多少额度。
+
+    与 ``invites.inviter_id`` 的分工：invites 记「这张码是谁发的」，
+    本表记「每一次实际核销」，因此一个邀请人可以有多条记录
+    （一张多��码），也才能算出累计邀请数与累计奖励（裂变 ROI）。
+    """
+
+    __tablename__ = "invite_referrals"
+
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    # 邀请人
+    inviter_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    # 被邀请人
+    invitee_id: Mapped[str] = mapped_column(String(32), nullable=False)
+    # 使用的邀请码（便于对账）
+    invite_code: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    # 本次核销给邀请人的奖励点数
+    reward_credits: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        Index("idx_invite_referrals_inviter", "inviter_id"),
     )
 
 
@@ -385,6 +424,11 @@ class Draft(Base, HasTenant):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
     # 质检评分（0-100，NULL 表示未评分）
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    # R4 合规：内容安全前置闸判定「需人工复核」标记（1=待审，0=正常）。
+    # ⚠️ 只标记不删除——用户草稿必须保留，由人工决定改写或放行。
+    needs_review: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # R4 合规：命中的可读原因（面向小白用户的中文说明）
+    guard_reason: Mapped[str] = mapped_column(Text, nullable=False, default="")
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utcnow

@@ -1,6 +1,6 @@
 ---
 name: 经典社媒传播框架格式化
-description: 借鉴 Easel: 采用 PAS、AIDA、BAB、SLAY 等经过数十年验证的营销叙事心理学框架
+description: "借鉴 Easel: 采用 PAS、AIDA、BAB、SLAY 等经过数十年验证的营销叙事心理学框架"
 category: 爆款转化
 scope: writing
 icon: "📐"

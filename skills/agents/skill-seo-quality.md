@@ -1,6 +1,6 @@
 ---
 name: 平台原生搜索流量 SEO 优化
-description: 借鉴 Easel: 布局小红书/微信搜一搜/今日头条搜索核心词、蓝海长尾词与封面搜索锚点
+description: "借鉴 Easel: 布局小红书/微信搜一搜/今日头条搜索核心词、蓝海长尾词与封面搜索锚点"
 category: 品控质检
 scope: writing
 icon: "🔍"

@@ -1,6 +1,6 @@
 ---
 name: 全域跨平台语话体系转换
-description: 借鉴 Easel: 同一核心母稿深度适配小红书、微信公众号、今日头条、知乎等原生话语语态
+description: "借鉴 Easel: 同一核心母稿深度适配小红书、微信公众号、今日头条、知乎等原生话语语态"
 category: 发现借势
 scope: writing
 icon: "🔄"

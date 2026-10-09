@@ -1,6 +1,6 @@
 ---
 name: 多平台推荐算法动态追踪
-description: 借鉴 Easel: 追踪小红书、微信搜一搜、头条推荐与短视频分发机制变化，提供应对策略
+description: "借鉴 Easel: 追踪小红书、微信搜一搜、头条推荐与短视频分发机制变化，提供应对策略"
 category: 发现借势
 scope: writing
 icon: "⚡"

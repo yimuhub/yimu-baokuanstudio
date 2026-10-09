@@ -1,6 +1,6 @@
 ---
 name: 爆款高潜模板库复用
-description: 借鉴 Easel: 将验证成功的排版框架与叙事结构保存为可复用模板，随时快速套用
+description: "借鉴 Easel: 将验证成功的排版框架与叙事结构保存为可复用模板，随时快速套用"
 category: 账号画像
 scope: writing
 icon: "📑"

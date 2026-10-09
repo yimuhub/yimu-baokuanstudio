@@ -1,6 +1,6 @@
 ---
 name: 全网实时热搜与二创借势
-description: 借鉴 Easel: 抓取微博/抖音/知乎/头条热点，从垂直赛道角度切入，输出强关联二创方案
+description: "借鉴 Easel: 抓取微博/抖音/知乎/头条热点，从垂直赛道角度切入，输出强关联二创方案"
 category: 发现借势
 scope: writing
 icon: "🔥"

@@ -1,6 +1,6 @@
 ---
 name: 高转化带货与种草文案引擎
-description: 借鉴 Easel: 提炼痛点卖点，产出高点击信息流、电商详情、种草私域转化文案与行动呼吁
+description: "借鉴 Easel: 提炼痛点卖点，产出高点击信息流、电商详情、种草私域转化文案与行动呼吁"
 category: 爆款转化
 scope: writing
 icon: "🛍️"

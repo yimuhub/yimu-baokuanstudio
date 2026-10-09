@@ -1,6 +1,6 @@
 ---
 name: 7轮聚焦深度文字抛光与去AI感
-description: 借鉴 Easel: 扫描清晰度/活人感/事实密度/情感节奏/风险防范，彻底粉碎AI公文味
+description: "借鉴 Easel: 扫描清晰度/活人感/事实密度/情感节奏/风险防范，彻底粉碎AI公文味"
 category: 文风调优
 scope: writing
 icon: "💎"

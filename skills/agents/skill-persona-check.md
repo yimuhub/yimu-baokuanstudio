@@ -1,6 +1,6 @@
 ---
 name: 人设一致性与品牌调性自检
-description: 借鉴 Easel: 对比稿件与创作者画像的垂直定位、表达语气、忌讳用词，输出偏离诊断报告
+description: "借鉴 Easel: 对比稿件与创作者画像的垂直定位、表达语气、忌讳用词，输出偏离诊断报告"
 category: 品控质检
 scope: writing
 icon: "🎯"

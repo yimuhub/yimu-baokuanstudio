@@ -3,13 +3,47 @@
  */
 
 (function () {
+  // ⭐ 命令面板统一异常出口：命令执行失败必须让用户看见，
+  //   此前只有 console.error，用户点了没反应却毫无提示。
+  function notifyError(context, err) {
+    const msg = (err && err.message) ? err.message : String(err);
+    if (typeof window.toast === 'function') {
+      window.toast(`「${context}」执行失败：${msg}`);
+    } else {
+      console.error(`[${context}]`, err);
+    }
+  }
+
+  // ⭐ 命令动作与真实实现的映射。
+  //   历史遗留：runDecorateImages / runJudgeScore / exportJianyingDraft
+  //   三个名字全仓无定义（函数重命名后未同步），命令面板点了必然抛
+  //   ReferenceError 且被静默吞掉。这里接到 index.html 里的真实实现：
+  //     runDecorateImages      → triggerAutoImages（AI 智能配图）
+  //     runJudgeScore          → rescoreCurrent（7维评审官重新打分）
+  //     exportJianyingDraft→ exportJianying（导出剪映工程包）
+  const ACTIONS = {
+    runDecorateImages: 'triggerAutoImages',
+    runJudgeScore: 'rescoreCurrent',
+    exportJianyingDraft: 'exportJianying',
+  };
+
+  /** 调用全局函数；不存在则给出可读提示而不是 ReferenceError。 */
+  function callGlobal(name, fallbackLabel) {
+    const fn = window[name];
+    if (typeof fn !== 'function') {
+      notifyError(fallbackLabel || name, new Error(`功能入口「${name}」未加载，请刷新页面后重试`));
+      return;
+    }
+    return fn();
+  }
+
   const COMMANDS = [
     { id: 'search', icon: '🔍', title: '搜索全网对标爆款并仿写', desc: '输入赛道关键词，深度抓取 3-5 篇真实长文', shortcut: 'S', action: () => { switchSubTab('inspire', 'sp-search'); closeModal(); } },
     { id: 'editor', icon: '✍️', title: '打开一幕·富文本编辑器', desc: '图文混排、段落微调与排版直出', shortcut: 'E', action: () => { openYimuRichEditor(); } },
-    { id: 'image', icon: '🎨', title: '一键电影级智能配图 (5图)', desc: 'AI 通读全文提炼视觉主体，双通道高清渲染', shortcut: 'P', action: () => { runDecorateImages(); } },
-    { id: 'review', icon: '⚖️', title: '7维爆款质量评审与定向提分', desc: '按网感、情绪共鸣、结构钩子自动润色', shortcut: 'R', action: () => { runJudgeScore(); } },
+    { id: 'image', icon: '🎨', title: '一键电影级智能配图 (5图)', desc: 'AI 通读全文提炼视觉主体，双通道高清渲染', shortcut: 'P', action: () => { callGlobal(ACTIONS.runDecorateImages, 'AI 智能配图'); } },
+    { id: 'review', icon: '⚖️', title: '7维爆款质量评审与定向提分', desc: '按网感、情绪共鸣、结构钩子自动润色', shortcut: 'R', action: () => { callGlobal(ACTIONS.runJudgeScore, '7维质量评审'); } },
     { id: 'xhs_pub', icon: '📕', title: '一键直发小红书', desc: '自动带图文、标签发布到小号', shortcut: 'X', action: () => { runXhsDirectPublish(); } },
-    { id: 'jianying', icon: '🎬', title: '导出剪映短剧工程 (Draft)', desc: '含分镜、旁白音频、母带工程文件', shortcut: 'J', action: () => { exportJianyingDraft(); } },
+    { id: 'jianying', icon: '🎬', title: '导出剪映短剧工程 (Draft)', desc: '含分镜、旁白音频、母带工程文件', shortcut: 'J', action: () => { callGlobal(ACTIONS.exportJianyingDraft, '导出剪映工程'); } },
     { id: 'watermark', icon: '🏷️', title: '输出水印与品牌印记设置', desc: '自由选择开启/关闭磨砂印记', shortcut: 'W', action: () => { openWatermarkModal(); } },
     { id: 'settings', icon: '⚙️', title: '系统与企业级 AI 模型配置', desc: '多网关、多模态模型无缝切换', shortcut: ',', action: () => { modal('m-cfg'); } },
   ];
@@ -111,7 +145,16 @@
     const cmd = filteredCmds[selectedIdx];
     if (cmd && typeof cmd.action === 'function') {
       hideCmdK();
-      try { cmd.action(); } catch (err) { console.error(err); }
+      // ⭐ 异常必须可见：命令执行失败时给用户明确提示，不静默吞掉
+      try {
+        const ret = cmd.action();
+        // action 可能是 async：补挂 rejection 捕获，避免异步失败无感知
+        if (ret && typeof ret.catch === 'function') {
+          ret.catch(err => notifyError(cmd.title, err));
+        }
+      } catch (err) {
+        notifyError(cmd.title, err);
+      }
     }
   }
 

@@ -12,11 +12,15 @@ v3.33新增功能：
 - 抓取每个平台热榜 Top5 的文章摘要内容存入热榜库
 - 自动清理过期热榜（按天数）
 - 立即清空热榜库
+
+R4 合规新增：
+- 采集入库前经 core.content_guard 敏感过滤，命中者**标记 blocked 不入 pending 池**
+- 统计数据新增 blocked / blocked_titles 字段，便于前端展示「已拦下 N 条敏感选题」
 """
 import re
 import httpx
 
-from core.db import add_topic, save_topic_content
+from core.db import add_topic, block_topic, save_topic_content
 from core.llm import load_config
 
 UA = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
@@ -139,17 +143,36 @@ def fetch_article_content(items: list[dict], top_n: int = 5) -> dict[str, str]:
     return contents
 
 
+def _admit_topic(source: str, title: str, reason: str, matched: bool):
+    """R4-3 选题入池前的敏感过滤闸门。
+
+    返回 ``(topic_dict, blocked: bool)``：
+    - 通过 → 正常写入 pending 池，返回 ``(topic, False)``
+    - 命中阻断 → **不进入 pending 池**，但仍写库并标记 ``blocked``（保留痕迹，不删除）
+    """
+    from core import content_guard
+
+    guard_res = content_guard.check_topic_title(title)
+    topic = add_topic(source, title, reason, matched)
+    if guard_res.blocked:
+        block_topic(topic["id"], guard_res.reason())
+        return topic, True
+    return topic, False
+
+
 def collect_topics() -> dict:
     """按 config.topics.sources 抓取并入库，返回统计。
-    
+
     v3.33: 同时抓取每平台前5条的文章内容存入热榜库。
+    R4-3: 入池前经内容安全闸过滤，敏感选题标记 blocked 而非进入 pending。
     """
     import time
     from core import db
 
     cfg = load_config().get("topics", {})
     keywords = cfg.get("keywords", [])
-    total = hit = 0
+    total = hit = blocked = 0
+    blocked_titles: list[str] = []
     per_source = {}
 
     c = db.conn()
@@ -176,7 +199,13 @@ def collect_topics() -> dict:
                 recent_titles.add(title)
                 matched = any(k in title for k in keywords) if keywords else False
                 hot_str = f" 热度{it.get('hot', '')}" if it.get("hot") else ""
-                topic = db.add_topic("dailyhotapi", title, f"热榜第{i+1}位{hot_str}", matched)
+                topic, was_blocked = _admit_topic("dailyhotapi", title,
+                                                  f"热榜第{i+1}位{hot_str}", matched)
+                if was_blocked:
+                    blocked += 1
+                    if len(blocked_titles) < 50:
+                        blocked_titles.append(title)
+                    continue
                 # 如果是前5，保存文章内容
                 if i < 5 and title in article_map:
                     try:
@@ -208,7 +237,13 @@ def collect_topics() -> dict:
                         matched = any(k in title for k in keywords) if keywords else False
                         hot_val = it.get("hot", "")
                         hot_str = f" 热度{hot_val}" if hot_val else ""
-                        topic = db.add_topic(name, title, f"热榜第{i+1}位{hot_str}", matched)
+                        topic, was_blocked = _admit_topic(name, title,
+                                                          f"热榜第{i+1}位{hot_str}", matched)
+                        if was_blocked:
+                            blocked += 1
+                            if len(blocked_titles) < 50:
+                                blocked_titles.append(title)
+                            continue
                         # 如果是前5，保存文章内容
                         if i < 5 and title in article_map:
                             try:
@@ -221,7 +256,8 @@ def collect_topics() -> dict:
                     per_source[name] = f"fail({str(e)[:60]})"
 
     return {"total": total, "matched": hit, "keywords": keywords,
-            "per_source": per_source}
+            "per_source": per_source,
+            "blocked": blocked, "blocked_titles": blocked_titles}
 
 
 def auto_clean_topics(days: int) -> int:

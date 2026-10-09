@@ -1,6 +1,6 @@
 ---
 name: 小红书轮播知识卡片分镜规划
-description: 借鉴 Easel: 规划 4-7 幕小红书卡片节奏：封面抓眼球、痛点拆解、实操步骤、避坑总结、CTA收尾
+description: "借鉴 Easel: 规划 4-7 幕小红书卡片节奏：封面抓眼球、痛点拆解、实操步骤、避坑总结、CTA收尾"
 category: 爆款策划
 scope: writing
 icon: "🖼️"

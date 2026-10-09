@@ -1,6 +1,6 @@
 ---
 name: 节点营销与节日借势日历
-description: 借鉴 Easel: 锁定未来节日、电商大促、行业节点，提前排期前瞻性借势内容
+description: "借鉴 Easel: 锁定未来节日、电商大促、行业节点，提前排期前瞻性借势内容"
 category: 发现借势
 scope: writing
 icon: "📅"

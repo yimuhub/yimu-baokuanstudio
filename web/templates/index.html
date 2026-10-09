@@ -3320,6 +3320,14 @@ input[type=text]:focus, textarea:focus, select:focus {
         <span class="badge ok" style="margin-left:4px;padding:2px 6px;font-size:10px" id="nav-tier-badge">基础版</span>
       </div>
       <button class="btn btn-sm ghost" onclick="refresh()">↻ 刷新状态</button>
+      <!-- R3/R5 入口：价格与升级总览。7.1 新增能力原本只有二级路径，
+           顶栏没有入口会导致「功能做了但用户看不见」，故固定挂此处。 -->
+      <a class="btn btn-sm ghost" href="/pricing" title="查看三档价格与权益，7.1 新增"
+         style="text-decoration:none">💰 价格</a>
+      <a class="btn btn-sm" href="/admin/releases" id="nav-release-entry"
+         title="7.1 升级总览：本次改了什么、在哪里、怎么验证"
+         style="text-decoration:none;background:var(--primary);color:#fff;border:0;font-weight:700"
+      >🆕 <span id="nav-ver-text">7.1</span></a>
       <span id="header-extra"></span>
     </div>
   </header>
@@ -7995,6 +8003,19 @@ function csrfHeaders() {
     } catch(e) { /* 包装失败则退回原始行为 */ }
     return origFetch(input, init);
   };
+})();
+
+/* 顶栏版本号读接口真实版本（单一真源是 version.py，勿在此写死） */
+(function syncVersionBadge(){
+  try {
+    fetch('/api/version', {credentials:'same-origin'})
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        const el = document.getElementById('nav-ver-text');
+        if (el && d && d.version) el.textContent = String(d.version).split('.').slice(0, 2).join('.');
+      })
+      .catch(() => {});
+  } catch(e) {}
 })();
 
 async function api(path, opts = {}) {

@@ -1080,9 +1080,17 @@ body {
     <div style="margin: 14px 0 10px;text-align:center">
       <div style="font-size:11.5px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:6px">
         <span>🎬 一幕·YIMU 爆款工作室</span>
-        <span style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(168,85,247,0.18);color:#d8b4fe;border:1px solid rgba(168,85,247,0.3);font-weight:700">V7</span>
+        <span id="mobile-ver-badge" style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(168,85,247,0.18);color:#d8b4fe;border:1px solid rgba(168,85,247,0.3);font-weight:700">…</span>
       </div>
       <div style="font-size:10.5px;color:rgba(255,255,255,0.3);margin-top:4px">全媒体创作引擎 · PC与移动端数据100%全域实时互联</div>
+    </div>
+
+    <!-- R3/R5 入口：7.1 新增能力的移动端直达 -->
+    <div style="padding:0 8px;display:flex;gap:8px;margin-bottom:10px">
+      <a class="btn-block btn-secondary" href="/pricing"
+         style="text-decoration:none;text-align:center;line-height:2.4">💰 价格与权益</a>
+      <a class="btn-block btn-secondary" href="/admin/releases"
+         style="text-decoration:none;text-align:center;line-height:2.4">🆕 7.1 升级总览</a>
     </div>
 
     <div style="padding:0 8px">
@@ -4958,6 +4966,14 @@ window.addEventListener('DOMContentLoaded', () => {
   refreshHotTopics();
   applyMobilePlatformsVisibility();
   loadMobileGatewayData();
+  // 版本徽章读接口真实版本，避免写死 'V7' 与实际版本脱节
+  fetch('/api/version', {credentials:'same-origin'})
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      const el = document.getElementById('mobile-ver-badge');
+      if (el && d && d.version) el.textContent = 'V' + String(d.version).split('.').slice(0, 2).join('.');
+    })
+    .catch(() => {});
 });
 </script>
 

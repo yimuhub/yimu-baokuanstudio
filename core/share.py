@@ -109,7 +109,8 @@ def resolve(token: str) -> dict | None:
 
     c = db.conn()
     row = c.execute(
-        "SELECT id, draft_id, platform, token, owner_user_id, created_at, expires_at, hits "
+        "SELECT id, draft_id, platform, token, owner_user_id, created_at, "
+        "expires_at, revoked_at, hits "
         "FROM share_links WHERE token=?",
         (token.strip(),)).fetchone()
     if row is None:

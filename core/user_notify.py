@@ -35,8 +35,15 @@ def _now() -> float:
 
 
 def recent_count(user_id: str, kind: str, window_s: int,
-                 tenant_id: str = "default") -> int:
-    """统计窗口内该用户同类型通知的条数（用于节流判断）。"""
+                 tenant_id: str = "default", exclude_id: str = "") -> int:
+    """统计窗口内该用户同类型通知的条数（用于节流判断）。
+
+    ⭐ 两个关键细节：
+    1. ``exclude_id`` 排除本次刚落库的那条台账——否则会把自己当成
+       「刚刚发过一封」，导致**首次发送永远被节流掉**。
+    2. 只统计 ``status='sent'``——未配置通道时留下的 pending 记录
+       不算「已发」，否则用户日后补好邮箱也会被永久锁死。
+    """
     if window_s <= 0:
         return 0
     try:
@@ -46,13 +53,13 @@ def recent_count(user_id: str, kind: str, window_s: int,
         since = _now() - window_s
         # kind 编在 subject 前缀里（如「[额度召回]...」），
         # 这里用 props 无关的稳定前缀匹配，避免额外加列。
-        row = c.execute(
-            "SELECT COUNT(*) n FROM user_notifications "
-            "WHERE user_id=? AND tenant_id=? AND subject LIKE ? AND created_at>=?",
-            (str(user_id), tenant_id, f"%[{kind}]%", since)).fetchone()
-        n = int(row["n"]) if row else 0
+        rows = c.execute(
+            "SELECT id FROM user_notifications "
+            "WHERE user_id=? AND tenant_id=? AND subject LIKE ? AND created_at>=? "
+            "AND status='sent'",
+            (str(user_id), tenant_id, f"%[{kind}]%", since)).fetchall()
         c.close()
-        return n
+        return sum(1 for r in rows if r["id"] != exclude_id)
     except Exception:
         return 0
 
@@ -120,10 +127,10 @@ def deliver(user_id: str, recipient: str, title: str, body: str,
             out.update(extra)
         return out
 
-    # ② 节流判定
+    # ② 节流判定（排除本条台账自身）
     window = THROTTLE_WINDOWS.get(kind, 0)
     if not force and window > 0:
-        sent_n = recent_count(user_id, kind, window, tenant_id)
+        sent_n = recent_count(user_id, kind, window, tenant_id, exclude_id=nid)
         if sent_n > 0:
             return _finish("skipped", f"{window // 3600} 小时内已发过 {sent_n} 封召回邮件")
 

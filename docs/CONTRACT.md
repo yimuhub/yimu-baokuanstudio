@@ -360,6 +360,23 @@
 - `POST /api/compliance/drafts/{did}/clear_review` → guard_clear_review：人工复核通过后清除标记【R4】[NEW]
 - `POST /api/compliance/drafts/{did}/check` → guard_check_draft：单篇草稿发布前检查（不写库）【R4】[NEW]
 
+### 5.14c R5 留存与增长（通知 / 定时 / 邀请 / 分享 / 埋点 / 频控）【R5 批次新增】
+> 用户侧通知走可插拔 provider（`core/notify.py`，邮件通道标准库 smtplib）；钉钉保留给运营。
+> 每日工单改为**应用内定时**（原 macOS launchd 云端失效），接 `core/scheduler.py` 同一生命周期。
+> 裂变分享地址**只含不可猜测令牌、不含 did**（`secrets.token_urlsafe(24)`），令牌→稿件映射仅存服务端。
+> 埋点 5 事件：signup → first_draft_created → first_drama_run → quota_blocked → cdkey_redeemed。
+> 自动发布频控：1 小时≤3 条 + 最小间隔 300 秒；连续失败 3 次进冷却。
+- `GET /api/ticket/schedule` → ticket_schedule_get：读取每日工单定时状态【R5】[NEW]
+- `GET /api/admin/metrics` → admin_metrics：5 步漏斗 + 账号健康 + 工单状态（管理员）【R5】[NEW]
+- `GET /admin/metrics` → admin_metrics_page：运营漏斗看板页面（管理员）【R5】[NEW]
+- `POST /api/drafts/{did}/share` → draft_create_share：为裂变产物签发分享链接/二维码【R5】[NEW]
+- `GET /api/drafts/{did}/shares` → draft_list_shares：列出该稿件的全部分享链接【R5】[NEW]
+- `POST /api/share/revoke` → share_revoke：吊销分享链接（立即失效）【R5】[NEW]
+- `GET /s/{token}` → share_page：分享页（令牌换已排版产物；无效/过期/吊销一律 404）【R5】[NEW]
+- `GET /s/{token}/qr.svg` → share_qr：分享链接二维码（SVG，纯标准库实现）【R5】[NEW]
+- `GET /s/{token}/qr.png` → share_qr_png：分享链接二维码（PNG）【R5】[NEW]
+- `GET /s/{token}/poster.svg` → share_poster：分享海报（标题+二维码+署名）【R5】[NEW]
+
 ### 5.15 网关 / 会员 / 热榜（V7.0 新增，真实可用）【V7.0】
 - `POST /v1/chat/completions` → gw_chat：OpenAI 兼容 chat（含 SSE；鉴权→限速→扣费→上游）【V7.0】[NEW]
 - `POST /v1/images/generations` → gw_images：OpenAI 兼容生图【V7.0】[NEW]

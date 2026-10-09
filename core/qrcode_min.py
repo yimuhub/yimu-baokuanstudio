@@ -290,26 +290,27 @@ def _version_bits(version: int) -> int:
 
 
 def _place_format_info(m, mask, size):
-    """把 15 位格式信息写入两处。"""
+    """把 15 位格式信息写入两处（规范 § 8.9）。
+
+    ⭐ 位序极易写错：15 位格式信息的 **bit0（最低位）** 放在
+    左上角的 (8,0)，而右下半条是**高位在前**的镜像排列。
+    """
     bits = _format_bits(mask)
-    for i in range(15):
-        bit = (bits >> i) & 1
-        # 左上角：第 8 行（左→右，跳过第 6 位定时）
-        if i < 6:
-            m[8][i] = bit
-        elif i == 6:
-            m[8][7] = bit
-        elif i == 7:
-            m[8][8] = bit
-        elif i == 8:
-            m[7][8] = bit
-        else:
-            m[14 - i][8] = bit
-        # 右下角：第 8 列（上→下）
-        if i < 8:
-            m[size - 1 - i][8] = bit
-        else:
-            m[8][size - 15 + i] = bit
+    # ① 左上角：bit0..bit6 → (8,0)..(8,6)；bit7 → (8,7)；bit8 → (8,8)；
+    #    bit9..bit14 → (7,8)..(2,8)
+    for i in range(6):
+        m[8][i] = (bits >> i) & 1
+    m[8][7] = (bits >> 6) & 1
+    m[8][8] = (bits >> 7) & 1
+    m[7][8] = (bits >> 8) & 1
+    for i in range(9, 15):
+        m[14 - i][8] = (bits >> i) & 1
+    # ② 右下角：bit0..bit7 → (size-1,8)..(size-8,8)（自下而上）；
+    #    bit8..bit14 → (8,size-8)..(8,size-1)
+    for i in range(8):
+        m[size - 1 - i][8] = (bits >> i) & 1
+    for i in range(8, 15):
+        m[8][size - 15 + i] = (bits >> i) & 1
 
 
 def _place_version_info(m, version, size):
@@ -423,6 +424,17 @@ def encode(text: str, *, version: int | None = None) -> list[list[int]]:
 
     # ② 分块 + 纠错（标准 § 8.6）
     ec_count, groups = _VERSION_L[version]
+    total_data_codewords = sum(cnt * size for cnt, size in groups)
+
+    # 先用填充码字把数据区补满（§ 8.5.2 的交替序列 0xEC / 0x11）
+    codewords = list(codewords)
+    pad_seq = (0xEC, 0x11)
+    pad_i = 0
+    while len(codewords) < total_data_codewords:
+        codewords.append(pad_seq[pad_i % 2])
+        pad_i += 1
+
+    # 按 (块数, 每块数据码字数) 顺序切块，每块独立算纠错码
     data_blocks: list[list[int]] = []
     ec_blocks: list[list[int]] = []
     idx = 0
@@ -432,22 +444,6 @@ def encode(text: str, *, version: int | None = None) -> list[list[int]]:
             idx += size_each
             data_blocks.append(block)
             ec_blocks.append(_rs_encode(block, ec_count))
-    # 剩余填充码字（版本 1 的特殊填充序列见规范§ 8.5.2）
-    total_data = sum(len(b) for b in data_blocks)
-    pad_pos = total_data
-    pad_seq = [0xEC, 0x11]
-    while pad_pos < max(len(b) for b in data_blocks):
-        need = max(len(b) for b in data_blocks) - pad_pos
-        for val in pad_seq:
-            if need <= 0:
-                break
-            # 补进最后一个数据块
-            last = len(data_blocks) - 1
-            if len(data_blocks[last]) < _VERSION_L[version][1][-1][1]:
-                data_blocks[last].append(val)
-                ec_blocks[last] = _rs_encode(data_blocks[last], ec_count)
-            pad_pos += 1
-            need -= 1
 
     # ③ 交错（标准 § 8.7）
     final: list[int] = []

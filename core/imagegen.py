@@ -528,15 +528,15 @@ def _reset_gen_diagnosis(model: str = "", provider: str = "") -> None:
     _GEN_DIAG.update({"channel": "none", "model": model, "provider": provider, "commercial_error": ""})
 
 
-def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_title: str = "", context_sub: str = "", angle_idx: int = 0, is_cover: bool = False) -> bool:
+def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_title: str = "", context_sub: str = "", angle_idx: int = 0, is_cover: bool = False, model: str = "") -> bool:
     """生成一张配图并存入 out_path。
     智能多通道真实生图机制：
     1. 商业通道：若配置了支持生图的商业供应商（如 agnes-image、OpenAI dall-e-3、阿里 wanx-v1、智谱 cogview 或自建网关），调用 /images/generations；
     2. 全球开源保底通道：Pollinations Flux 真实文生图引擎，全国全网免 Key，100% 真实摄影画面；
-    3. 极端断网降级：Pillow 美学信息卡片。
+    3. 极端断网保底：Pillow 美学信息卡片。
     """
     cfg = image_cfg()
-    req_model = cfg.get("model", "").strip() or "flux-schnell"
+    req_model = (model or "").strip() or cfg.get("model", "").strip() or "flux-schnell"
 
     # 全局通过纪实摄影引擎升华 Prompt（彻底去除 AI 塑料感与假人感）
     enhanced_prompt = photojournalism_prompt_engine(prompt, context=context_sub or context_title)

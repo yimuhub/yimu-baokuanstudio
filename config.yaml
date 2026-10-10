@@ -11,7 +11,7 @@ agents:
     - ad-video-creative
   ad_video:
     instruction: ''
-    model: agnes-video-v2.0
+    model: agnes-video-2.5-flash
     skills:
     - ad-video-prompt-craft
   analyze:

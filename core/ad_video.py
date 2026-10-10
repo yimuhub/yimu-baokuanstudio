@@ -590,10 +590,11 @@ def generate_video_shots(storyboard: list, product_std_desc: str,
                          ref_images: list | None = None,
                          person_ref_image: str | None = None,
                          ad_mode: str = "avatar",
+                         video_model: str = "",
                          emit=None) -> dict:
     """ad_video Agent：按分镜逐镜头调用视频大模型。支持数字人出镜与产品参考图双轨驱动。"""
     emit = emit or (lambda *_: None)
-    info = ad_video_model_info()
+    info = ad_video_model_info(video_model)
     if not info["ok"]:
         log.warning("[ad_video] %s，走 AI 图片保底", info["reason"])
         return {"clips": [], "prompts": [], "video_model": "",
@@ -717,7 +718,8 @@ def make_ad_video(product_name: str, product_desc: str, seconds: int = 15,
                   voice_mode: str = "auto",
                   custom_audio_path: str | None = None,
                   ad_mode: str = "avatar",
-                  custom_script: str = "") -> dict:
+                  custom_script: str = "",
+                  video_model: str = "") -> dict:
     """AI 产品广告短片一键生成（全AI 视频大模型生成模式，支持 AI 数字人口播）。
 
     流程：
@@ -770,7 +772,7 @@ def make_ad_video(product_name: str, product_desc: str, seconds: int = 15,
         shots, product_std_desc, work_dir, aspect=aspect,
         person_desc=person_desc, style_desc=style_desc,
         ref_images=ref_list, person_ref_image=person_ref_image,
-        ad_mode=ad_mode, emit=emit)
+        ad_mode=ad_mode, video_model=video_model, emit=emit)
 
     # ---- 3. 拼接成片 ----
     if gen["clips"]:

@@ -186,9 +186,10 @@ def classify_model(model_id: str) -> str:
     m = (model_id or "").lower()
     
     # 视频生成特征词
-    video_keywords = ["video", "sora", "kling", "runway", "gen-2", "gen-3", "gen2", "gen3",
-                      "cogvideox", "cogvideo", "hailuo", "pika", "luma", "viggle", "wanx-v", "wanx-video"]
-    if any(k in m for k in video_keywords):
+    video_keywords = ["video", "sora", "kling", "runway", "gen-3", "gen3",
+                      "cogvideox", "cogvideo", "hailuo", "pika", "luma", "viggle",
+                      "wanx-video", "wanx-v2-video", "veo", "pixverse", "seedance"]
+    if any(k in m for k in video_keywords) or ("gen-2" in m and "generate" not in m) or ("gen2" in m and "generate" not in m):
         return "video"
         
     # 图片生成特征词

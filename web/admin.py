@@ -2713,6 +2713,7 @@ async def advideo_create(request: Request):
     custom_audio_path = body.get("custom_audio_path") or None
     ad_mode = body.get("ad_mode", "avatar")
     custom_script = (body.get("custom_script") or "").strip()
+    video_model = (body.get("video_model") or "").strip()
     import uuid
     jid = f"ad-{uuid.uuid4().hex[:8]}"
     start_async_job(
@@ -2720,7 +2721,7 @@ async def advideo_create(request: Request):
         name=f"AI 广告短片: {product_name[:16]}",
         task_type="ad_video_render",
         target_id=product_name,
-        params={"product_name": product_name, "ad_mode": ad_mode},
+        params={"product_name": product_name, "ad_mode": ad_mode, "video_model": video_model},
         initial_step="广告创意生成中…",
     )
 
@@ -2734,6 +2735,7 @@ async def advideo_create(request: Request):
                 ref_images=ref_images, person_ref_image=person_ref_image,
                 voice_mode=voice_mode, custom_audio_path=custom_audio_path,
                 ad_mode=ad_mode, custom_script=custom_script,
+                video_model=video_model,
                 emit=lambda m: update_async_job(jid, step=m),
             )
             update_async_job(jid, status="done", step="广告短片合成完成！",
@@ -3075,8 +3077,9 @@ async def storyboard_gen_image(did: str, request: Request):
     aspect = body.get("aspect", "16:9")
     from core import storyboard
     require_credits("drama_image", 1, f"电影分镜生图 #{shot_index}")
+    image_model = (body.get("image_model") or "").strip()
     def _run():
-        return storyboard.generate_storyboard_image(did, shot_index, prompt_en=prompt_en, aspect=aspect)
+        return storyboard.generate_storyboard_image(did, shot_index, prompt_en=prompt_en, aspect=aspect, image_model=image_model)
     try:
         url = await asyncio.get_event_loop().run_in_executor(None, _run)
         return {"ok": True, "image_url": url, "shot_index": shot_index}
@@ -3089,9 +3092,10 @@ async def storyboard_batch_gen_images(did: str, request: Request):
     guard(request)
     body = await request.json()
     aspect = body.get("aspect", "16:9")
+    image_model = (body.get("image_model") or "").strip()
     from core import storyboard
     def _run():
-        return storyboard.batch_generate_storyboard_images(did, aspect=aspect)
+        return storyboard.batch_generate_storyboard_images(did, aspect=aspect, image_model=image_model)
     try:
         results = await asyncio.get_event_loop().run_in_executor(None, _run)
         return {"ok": True, "results": results}
@@ -4096,10 +4100,16 @@ async def drama_pipeline_step4_single(did: str, request: Request):
 @app.post("/api/video/drama/{did}/pipeline/step4_batch_assets")
 async def drama_pipeline_step4_batch(did: str, request: Request):
     guard(request)
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    image_model = (body.get("image_model") or "").strip()
     from core import short_drama
     require_credits("drama_image", 2, f"短剧资产批量生成 [{did}]")
     def _run():
-        return short_drama.step4_batch_generate_assets(did)
+        return short_drama.step4_batch_generate_assets(did, image_model=image_model)
     try:
         res = await asyncio.get_event_loop().run_in_executor(None, _run)
         return res
@@ -4131,10 +4141,11 @@ async def drama_pipeline_step6_single(did: str, request: Request):
     shot_id = int(body.get("shot_id", 1))
     prompt_en = body.get("prompt_en", "")
     aspect = body.get("aspect", "9:16")
+    image_model = (body.get("image_model") or "").strip()
     from core import short_drama
     require_credits("drama_image", 1, f"分镜头 #{shot_id} 生图")
     def _run():
-        return short_drama.step6_generate_shot_image(did, shot_id=shot_id, prompt_en=prompt_en, aspect=aspect)
+        return short_drama.step6_generate_shot_image(did, shot_id=shot_id, prompt_en=prompt_en, aspect=aspect, image_model=image_model)
     try:
         res = await asyncio.get_event_loop().run_in_executor(None, _run)
         return res
@@ -4147,9 +4158,10 @@ async def drama_pipeline_step6_batch(did: str, request: Request):
     guard(request)
     body = await request.json()
     aspect = body.get("aspect", "9:16")
+    image_model = (body.get("image_model") or "").strip()
     from core import short_drama
     def _run():
-        return short_drama.step6_batch_generate_shots(did, aspect=aspect)
+        return short_drama.step6_batch_generate_shots(did, aspect=aspect, image_model=image_model)
     try:
         res = await asyncio.get_event_loop().run_in_executor(None, _run)
         return res
@@ -4165,11 +4177,13 @@ async def drama_pipeline_step7_single(did: str, request: Request):
     aspect = body.get("aspect", "9:16")
     subtitle_enabled = body.get("subtitle_enabled", None)
     video_mode = body.get("video_mode", "ai_video")
+    video_model = (body.get("video_model") or "").strip()
     from core import short_drama
     def _run():
         return short_drama.step7_generate_shot_video(
             did, shot_id=shot_id, aspect=aspect,
-            subtitle_enabled=subtitle_enabled, video_mode=video_mode
+            subtitle_enabled=subtitle_enabled, video_mode=video_mode,
+            video_model=video_model
         )
     try:
         res = await asyncio.get_event_loop().run_in_executor(None, _run)
@@ -4185,11 +4199,13 @@ async def drama_pipeline_step7_batch(did: str, request: Request):
     aspect = body.get("aspect", "9:16")
     subtitle_enabled = body.get("subtitle_enabled", None)
     video_mode = body.get("video_mode", "ai_video")
+    video_model = (body.get("video_model") or "").strip()
     from core import short_drama
     def _run():
         return short_drama.step7_batch_generate_videos(
             did, aspect=aspect,
-            subtitle_enabled=subtitle_enabled, video_mode=video_mode
+            subtitle_enabled=subtitle_enabled, video_mode=video_mode,
+            video_model=video_model
         )
     try:
         res = await asyncio.get_event_loop().run_in_executor(None, _run)
@@ -4205,6 +4221,7 @@ async def drama_pipeline_step8(did: str, request: Request):
     aspect = body.get("aspect", "9:16")
     subtitle_enabled = body.get("subtitle_enabled", None)
     video_mode = body.get("video_mode", "ai_video")
+    video_model = (body.get("video_model") or "").strip()
     d = db.get_draft(did) or {}
     d_title = d.get("title", did[:8])
     # ⭐ 先扣费再起任务：额度不足直接 402，避免留下永远跑不动的僵尸任务
@@ -4217,7 +4234,7 @@ async def drama_pipeline_step8(did: str, request: Request):
         name=f"8步短剧最终成片合成: {d_title[:16]}",
         task_type="drama_pipeline",
         target_id=did,
-        params={"draft_id": did, "aspect": aspect},
+        params={"draft_id": did, "aspect": aspect, "video_model": video_model},
         initial_step="8步短剧流水线成片合成中…"
     )
     def _run():
@@ -4225,6 +4242,7 @@ async def drama_pipeline_step8(did: str, request: Request):
             res = short_drama.step8_render_final_drama(
                 did, aspect=aspect,
                 subtitle_enabled=subtitle_enabled, video_mode=video_mode,
+                video_model=video_model,
                 emit=lambda m: update_async_job(jid, step=m)
             )
             update_async_job(jid, status="done", step="短剧全流程流水线成片合成完成！", progress=100, result=res)
@@ -5161,6 +5179,7 @@ def get_model_providers(request: Request):
         } for pid, pinfo in llm.MODEL_PROVIDERS.items()
     }
 
+    from core import video_rules
     return {
         "providers": all_providers,
         "all_presets": all_presets,
@@ -5168,7 +5187,8 @@ def get_model_providers(request: Request):
         "active_provider_id": active_pid,
         "configured_models": llm.get_configured_models(),
         "cross_models": cross_models,
-        "env_key_set": has_active_key
+        "env_key_set": has_active_key,
+        "video_rules": video_rules.load_rules().get("rules", []),
     }
 
 

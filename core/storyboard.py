@@ -158,7 +158,7 @@ def get_storyboard(draft_id: str) -> dict:
             return json.loads(sb_file.read_text(encoding="utf-8"))
         except Exception:
             pass
-def generate_storyboard_image(draft_id: str, shot_index: int, prompt_en: str = "", aspect: str = "16:9") -> str:
+def generate_storyboard_image(draft_id: str, shot_index: int, prompt_en: str = "", aspect: str = "16:9", image_model: str = "") -> str:
     """为电影级分镜生成真实 AI 配图并持久化。"""
     from core import imagegen
     ddir = db.draft_dir(draft_id)
@@ -174,7 +174,8 @@ def generate_storyboard_image(draft_id: str, shot_index: int, prompt_en: str = "
     size = "1792x1024" if aspect == "16:9" else "1024x1792"
     imagegen.gen_image(
         prompt_en, out_file, size=size,
-        context_title=f"电影分镜 #{shot_index}", context_sub=prompt_en[:40]
+        context_title=f"电影分镜 #{shot_index}", context_sub=prompt_en[:40],
+        model=image_model
     )
     rel_path = f"/img/storyboard/{draft_id}/images/shot_{shot_index}.png"
     if matched:
@@ -186,14 +187,14 @@ def generate_storyboard_image(draft_id: str, shot_index: int, prompt_en: str = "
     return rel_path
 
 
-def batch_generate_storyboard_images(draft_id: str, aspect: str = "16:9") -> list[dict]:
+def batch_generate_storyboard_images(draft_id: str, aspect: str = "16:9", image_model: str = "") -> list[dict]:
     """一键批量生成电影级分镜全部分镜的真实 AI 图。"""
     sb = get_storyboard(draft_id)
     results = []
     for s in sb.get("shots", []):
         idx = s.get("shot_index", 1)
         p = s.get("ai_prompt_en", "")
-        url = generate_storyboard_image(draft_id, idx, prompt_en=p, aspect=aspect)
+        url = generate_storyboard_image(draft_id, idx, prompt_en=p, aspect=aspect, image_model=image_model)
         results.append({"shot_index": idx, "image_url": url})
     return results
 

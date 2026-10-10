@@ -761,7 +761,8 @@ def step4_generate_asset_image(
     asset_id: str,
     prompt: str = "",
     is_turnaround: bool = False,
-    aspect: str = "16:9"
+    aspect: str = "16:9",
+    image_model: str = ""
 ) -> dict:
     """生成指定资产图片（角色正面照、角色四视图、场景图、道具图）。"""
     d_dir = _get_drama_dir(draft_id)
@@ -792,7 +793,8 @@ def step4_generate_asset_image(
         success = imagegen.gen_image(
             p_styled, out_file, size=size, angle_idx=0,
             context_title=f"角色四视图 [{target_asset.get('name')}]",
-            context_sub=p_styled[:40]
+            context_sub=p_styled[:40],
+            model=image_model
         )
         if not success or not out_file.exists() or out_file.stat().st_size < 1500:
             logger.info("启动影视级角色四视图专业蓝图生成器")
@@ -817,7 +819,8 @@ def step4_generate_asset_image(
         success = imagegen.gen_image(
             p_styled, out_file, size=size, angle_idx=1,
             context_title=f"{target_asset.get('name')}",
-            context_sub=p_styled[:40]
+            context_sub=p_styled[:40],
+            model=image_model
         )
         if not success or not out_file.exists() or out_file.stat().st_size < 1500:
             _generate_stylized_placeholder_image(out_file, 1, p_styled, aspect=aspect)
@@ -828,7 +831,7 @@ def step4_generate_asset_image(
     return {"ok": True, "asset_id": asset_id, "url": url, "is_turnaround": is_turnaround}
 
 
-def step4_batch_generate_assets(draft_id: str) -> dict:
+def step4_batch_generate_assets(draft_id: str, image_model: str = "") -> dict:
     """一键批量生成全部资产参考图（含所有角色的四视图与正面照、场景图、道具图）。"""
     proj = get_pipeline_project(draft_id)
     step3 = proj.get("step3", {})
@@ -840,21 +843,21 @@ def step4_batch_generate_assets(draft_id: str) -> dict:
     # 1. 角色生成：四视图 + 正面立绘
     for c in chars:
         cid = c.get("id")
-        r1 = step4_generate_asset_image(draft_id, "character", cid, prompt=c.get("turnaround_prompt", ""), is_turnaround=True)
+        r1 = step4_generate_asset_image(draft_id, "character", cid, prompt=c.get("turnaround_prompt", ""), is_turnaround=True, image_model=image_model)
         results.append(r1)
-        r2 = step4_generate_asset_image(draft_id, "character", cid, prompt=c.get("portrait_prompt", ""), is_turnaround=False)
+        r2 = step4_generate_asset_image(draft_id, "character", cid, prompt=c.get("portrait_prompt", ""), is_turnaround=False, image_model=image_model)
         results.append(r2)
 
     # 2. 场景生成
     for s in scenes:
         sid = s.get("id")
-        r = step4_generate_asset_image(draft_id, "scene", sid, prompt=s.get("prompt", ""), is_turnaround=False)
+        r = step4_generate_asset_image(draft_id, "scene", sid, prompt=s.get("prompt", ""), is_turnaround=False, image_model=image_model)
         results.append(r)
 
     # 3. 道具生成
     for p in props:
         pid = p.get("id")
-        r = step4_generate_asset_image(draft_id, "prop", pid, prompt=p.get("prompt", ""), is_turnaround=False)
+        r = step4_generate_asset_image(draft_id, "prop", pid, prompt=p.get("prompt", ""), is_turnaround=False, image_model=image_model)
         results.append(r)
 
     proj = get_pipeline_project(draft_id)
@@ -1081,7 +1084,7 @@ def _fallback_drama_scenes(title: str, text: str) -> list[dict]:
 # 7. Step 6: 分镜头关键帧生图 (Shot Keyframe Image Generation)
 # -------------------------------------------------------------
 
-def step6_generate_shot_image(draft_id: str, shot_id: int, prompt_en: str = "", aspect: str = "9:16") -> dict:
+def step6_generate_shot_image(draft_id: str, shot_id: int, prompt_en: str = "", aspect: str = "9:16", image_model: str = "") -> dict:
     """生成指定分镜头的真实 AI 画面，保存在 drama/shots/shot_{shot_id}.png。"""
     d_dir = _get_drama_dir(draft_id)
     shots_dir = d_dir / "shots"
@@ -1103,7 +1106,8 @@ def step6_generate_shot_image(draft_id: str, shot_id: int, prompt_en: str = "", 
 
     success = imagegen.gen_image(
         p_styled, out_file, size=size, angle_idx=angle_idx,
-        context_title=f"分镜头 #{shot_id}", context_sub=p_styled[:40]
+        context_title=f"分镜头 #{shot_id}", context_sub=p_styled[:40],
+        model=image_model
     )
     if not success or not out_file.exists() or out_file.stat().st_size < 1500:
         _generate_stylized_placeholder_image(out_file, shot_id, p_styled, aspect=aspect)
@@ -1125,14 +1129,14 @@ def step6_generate_shot_image(draft_id: str, shot_id: int, prompt_en: str = "", 
     return {"ok": True, "shot_id": shot_id, "image_url": rel_url}
 
 
-def step6_batch_generate_shots(draft_id: str, aspect: str = "9:16") -> dict:
+def step6_batch_generate_shots(draft_id: str, aspect: str = "9:16", image_model: str = "") -> dict:
     """一键批量生成全部分镜画面。"""
     proj = get_pipeline_project(draft_id)
     shots = proj.get("step5", {}).get("shots", [])
     results = []
     for sc in shots:
         sid = sc.get("shot_id", 1)
-        r = step6_generate_shot_image(draft_id, sid, prompt_en=sc.get("image_prompt_en", ""), aspect=aspect)
+        r = step6_generate_shot_image(draft_id, sid, prompt_en=sc.get("image_prompt_en", ""), aspect=aspect, image_model=image_model)
         results.append(r)
     
     proj = get_pipeline_project(draft_id)
@@ -1318,7 +1322,8 @@ def step7_generate_shot_video(
     shot_id: int,
     aspect: str = "9:16",
     subtitle_enabled: Optional[bool] = None,
-    video_mode: str = "ai_video"
+    video_mode: str = "ai_video",
+    video_model: str = ""
 ) -> dict:
     """步骤 7：为单个分镜头渲染配音并生成动态视频片段（优先调用 AI 视频大模型，支持字幕自由开关）。"""
     d_dir = _get_drama_dir(draft_id)
@@ -1379,7 +1384,7 @@ def step7_generate_shot_video(
         ai_raw_mp4 = shots_dir / f"ai_raw_{shot_id}.mp4"
         prompt_en = target_shot.get("video_prompt_en") or target_shot.get("image_prompt_en", "")
         logger.info(f"正在调用真实 AI 视频大模型为镜头 #{shot_id} 生成首帧驱动动态视频...")
-        ok = generate_ai_video_clip(img_file, prompt_en, ai_raw_mp4, aspect=aspect, duration_s=int(dur))
+        ok = generate_ai_video_clip(img_file, prompt_en, ai_raw_mp4, aspect=aspect, duration_s=int(dur), preferred_model=video_model)
         if ok and ai_raw_mp4.exists() and ai_raw_mp4.stat().st_size > 5000:
             try:
                 _align_ai_video_with_audio_and_subtitle(
@@ -1394,7 +1399,7 @@ def step7_generate_shot_video(
                 is_ai_video = True
                 logger.info(f"🎉 镜头 #{shot_id} 成功由原生 AI 视频大模型驱动并对齐成片！")
             except Exception as e:
-                logger.warning(f"AI 视频对齐异常，降级至电影级动态渲染: {e}")
+                logger.warning(f"AI 视频对齐异常，无缝切换至电影级动态渲染: {e}")
 
     # 4. 若未采用 AI 视频或大模型排队未就绪，使用电影级多轴动态光学镜头渲染
     if not is_ai_video or not clip_out.exists() or clip_out.stat().st_size < 1000:
@@ -1447,7 +1452,8 @@ def step7_batch_generate_videos(
     draft_id: str,
     aspect: str = "9:16",
     subtitle_enabled: Optional[bool] = None,
-    video_mode: str = "ai_video"
+    video_mode: str = "ai_video",
+    video_model: str = ""
 ) -> dict:
     """批量生成所有镜头的动态视频切片。"""
     proj = get_pipeline_project(draft_id)
@@ -1462,7 +1468,8 @@ def step7_batch_generate_videos(
             draft_id, sid,
             aspect=aspect,
             subtitle_enabled=subtitle_enabled,
-            video_mode=video_mode
+            video_mode=video_mode,
+            video_model=video_model
         )
         results.append(r)
 
@@ -1470,6 +1477,8 @@ def step7_batch_generate_videos(
     proj["step7"]["status"] = "ready"
     proj["step7"]["subtitle_enabled"] = subtitle_enabled
     proj["step7"]["video_mode"] = video_mode
+    if video_model:
+        proj["step7"]["video_model"] = video_model
     proj["current_step"] = max(proj.get("current_step", 1), 8)
     save_pipeline_project(draft_id, proj)
     return {"ok": True, "count": len(results), "results": results}
@@ -1484,6 +1493,7 @@ def step8_render_final_drama(
     aspect: str = "9:16",
     subtitle_enabled: Optional[bool] = None,
     video_mode: str = "ai_video",
+    video_model: str = "",
     emit=None
 ) -> dict:
     """步骤 8：将所有分镜头视频切片无缝拼接、背景音乐混音与母带导出。"""
@@ -1509,7 +1519,8 @@ def step8_render_final_drama(
                 draft_id, sid,
                 aspect=aspect,
                 subtitle_enabled=subtitle_enabled,
-                video_mode=video_mode
+                video_mode=video_mode,
+                video_model=video_model
             )
         clips.append(clip_file)
 

@@ -2070,6 +2070,34 @@ input[type=text]:focus, textarea:focus, select:focus {
   box-shadow: 0 2px 6px rgba(240, 136, 62, 0.3);
 }
 
+/* 影音工坊统一大模型下拉选择样式（带深色拟态与下拉箭头） */
+.studio-model-select {
+  background-color: rgba(13, 17, 23, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  color: #e6edf3;
+  padding: 5px 26px 5px 10px;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.studio-model-select:focus, .studio-model-select:hover {
+  border-color: #58a6ff;
+  box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.18);
+}
+[data-theme="light"] .studio-model-select {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
 /* 模型服务矩阵与分类勾选样式 */
 .filter-tab-btn {
   padding: 4px 10px;
@@ -4559,6 +4587,15 @@ input[type=text]:focus, textarea:focus, select:focus {
                     <option value="narration">纯第一人称爆款口播旁白 (故事感更强)</option>
                   </select>
                 </div>
+                <div>
+                  <label style="font-size:11.5px;color:var(--text-muted);display:block;margin-bottom:4px">🎨 AI 生图模型 (四视图与关键帧)</label>
+                  <select id="drama-image-model-sel" class="studio-model-select" style="width:100%" onchange="onStudioModelChange('drama-image', this.value)"></select>
+                </div>
+                <div>
+                  <label style="font-size:11.5px;color:var(--text-muted);display:block;margin-bottom:4px">🎬 AI 视频模型 (镜头切片与母带)</label>
+                  <select id="drama-video-model-sel" class="studio-model-select" style="width:100%" onchange="onStudioModelChange('drama-video', this.value)"></select>
+                </div>
+                <div id="drama-model-rule-tip" style="grid-column:1/-1;display:none;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
                 <div style="grid-column:1/-1">
                   <label style="font-size:11.5px;color:var(--text-muted);display:block;margin-bottom:4px">🎬 导演补充要求 / 核心看点备注</label>
                   <input type="text" id="drama-director-notes" style="width:100%;font-size:12px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:#fff" value="节奏明快、开门见山、反转跌宕、突出视听细节与人物微表情">

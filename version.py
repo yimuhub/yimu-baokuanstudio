@@ -4,7 +4,7 @@
 不许在别处手写版本号。
 """
 
-__version__ = "8.2.2"
+__version__ = "8.2.3"
 __codename__ = "星河引"
 __slogan_cn__ = "一念起 一幕开 万象生"
 __slogan_en__ = "One Thought. One Scene. Infinite Worlds."

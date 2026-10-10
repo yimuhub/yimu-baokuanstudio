@@ -4699,12 +4699,18 @@ input[type=text]:focus, textarea:focus, select:focus {
                   <div style="font-size:14px;font-weight:700;color:#fff">🖼️ 视觉资产与角色四视图工作台 (Asset Images & Turnaround Sheets)</div>
                   <div style="font-size:12px;color:var(--text-muted);margin-top:2px">支持单张重绘、修改 Prompt、原图放大与一键批量并发生成</div>
                 </div>
-                <div style="display:flex;gap:8px">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:12px;color:var(--text-muted)">生图模型:</span>
+                    <select id="drama-step4-image-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('drama-image', this.value)"></select>
+                  </div>
                   <button class="btn ghost btn-sm" onclick="switchDramaStep(3)">⬅️ 上一步</button>
                   <button class="btn info btn-sm" id="btn-drama-step4-batch" onclick="runDramaBatchAssets()">⚡ 一键批量生成全部资产 (含四视图)</button>
                   <button class="btn ok btn-sm" onclick="switchDramaStep(5)">🎬 资产就绪，解构分镜 (Step 5) ➔</button>
                 </div>
               </div>
+
+              <div id="drama-step4-model-rule-tip" style="display:none;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
 
               <!-- 角色四视图卡片区 -->
               <div id="drama-turnaround-section"></div>
@@ -4744,12 +4750,18 @@ input[type=text]:focus, textarea:focus, select:focus {
                   <div style="font-size:14px;font-weight:700;color:#fff">🖼️ 分镜头关键帧生图画卷 (Shot Keyframe Images)</div>
                   <div style="font-size:12px;color:var(--text-muted);margin-top:2px">基于分镜提示词与角色一致性生成的电影级画面，支持单张重绘与 Prompt 微调</div>
                 </div>
-                <div style="display:flex;gap:8px">
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:12px;color:var(--text-muted)">生图模型:</span>
+                    <select id="drama-step6-image-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('drama-image', this.value)"></select>
+                  </div>
                   <button class="btn ghost btn-sm" onclick="switchDramaStep(5)">⬅️ 上一步</button>
                   <button class="btn info btn-sm" id="btn-drama-step6-batch" onclick="runDramaBatchShots()">🚀 一键批量生成全部分镜关键帧</button>
                   <button class="btn ok btn-sm" onclick="switchDramaStep(7)">🎥 进入 Step 7 渲染镜头动效视频 ➔</button>
                 </div>
               </div>
+
+              <div id="drama-step6-model-rule-tip" style="display:none;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
 
               <div id="drama-step6-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(300px, 1fr));gap:14px"></div>
             </div>
@@ -4780,6 +4792,10 @@ input[type=text]:focus, textarea:focus, select:focus {
                       <option value="motion">🎬 电影级多轴动态运镜 (即时高速渲染)</option>
                     </select>
                   </div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span style="font-size:12px;color:var(--text-muted)">视频模型:</span>
+                    <select id="drama-step7-video-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('drama-video', this.value)"></select>
+                  </div>
                   <div style="display:flex;align-items:center;gap:10px">
                     <span style="font-size:12px;color:var(--text-muted)">字幕显示控制:</span>
                     <label style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#79c0ff;cursor:pointer">
@@ -4790,6 +4806,7 @@ input[type=text]:focus, textarea:focus, select:focus {
                     </label>
                   </div>
                 </div>
+                <div id="drama-step7-model-rule-tip" style="width:100%;display:none;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
                 <div style="font-size:11.5px;color:#a371f7">
                   💡 默认纯净无字幕零遮挡，由 AI 大模型生成真实物理微动作与光影
                 </div>
@@ -5099,6 +5116,12 @@ input[type=text]:focus, textarea:focus, select:focus {
                   <input type="file" id="vd-material-file-input" accept="image/*,video/*" multiple style="display:none" onchange="handleVdMaterialUpload(this)">
                   <span id="vd-material-badge" class="badge info" style="display:none;font-size:11px"></span>
                 </div>
+
+                <div style="display:flex;align-items:center;gap:6px">
+                  <label style="font-size:12px;color:var(--text-muted)">生图模型</label>
+                  <select id="vd-image-model-sel" class="studio-model-select" style="min-width:170px" onchange="onStudioModelChange('vd-image', this.value)"></select>
+                </div>
+                <div id="vd-model-rule-tip" style="width:100%;display:none;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
               </div>
             </div>
 
@@ -5142,11 +5165,17 @@ input[type=text]:focus, textarea:focus, select:focus {
             </div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
               <select id="sb-draft-sel" style="min-width:240px" onchange="loadStoryboard()"></select>
+              <div style="display:flex;align-items:center;gap:6px">
+                <span style="font-size:12px;color:var(--text-muted)">生图模型:</span>
+                <select id="sb-image-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('sb-image', this.value)"></select>
+              </div>
               <button class="btn ghost btn-sm" onclick="regenerateStoryboard()">✨ 重新生成分镜</button>
               <button class="btn info btn-sm" id="btn-sb-batch-gen" onclick="runStoryboardBatchGenImages()">🚀 一键生成全部分镜图</button>
               <button class="btn ok btn-sm" onclick="exportJianying()">📦 一键导出剪映草稿工程</button>
             </div>
           </div>
+
+          <div id="sb-model-rule-tip" style="display:none;margin-bottom:12px;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
 
           <div id="sb-content-box">
             <div style="text-align:center;padding:40px;color:var(--text-muted)">请在上方选择一篇草稿查看或生成电影级分镜。</div>
@@ -5319,7 +5348,13 @@ input[type=text]:focus, textarea:focus, select:focus {
                   <option value="zh-CN-XiaoyiNeural">晓伊（女声·活泼）</option>
                 </select>
               </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <label style="font-size:13px;color:var(--text-muted)">🎬 视频模型</label>
+                <select id="ad-video-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('ad-video', this.value)"></select>
+              </div>
             </div>
+
+            <div id="ad-model-rule-tip" style="display:none;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
 
             <!-- 全AI 视频大模型生成模式：单轨 TTS 配音（旧三选一已下线） -->
 
@@ -5467,10 +5502,8 @@ input[type=text]:focus, textarea:focus, select:focus {
                   <input type="radio" name="aiv-voice-mode" value="voice_clone" onchange="toggleAivVoiceMode()"> 🧬 声音克隆
                 </label>
               </div>
-              <label style="font-size:12px;color:var(--text-muted)">视频模型</label>
-              <select id="aiv-model-sel" style="font-size:12px;padding:5px 8px;min-width:160px" onchange="updateAivModelTip()">
-                <option value="">（用默认配置）</option>
-              </select>
+              <label style="font-size:12px;color:var(--text-muted)">🎬 视频模型</label>
+              <select id="aiv-model-sel" class="studio-model-select" style="min-width:170px" onchange="onStudioModelChange('aiv-video', this.value)"></select>
               <button class="btn ghost btn-sm" onclick="toggleAivConfig()" title="分段时长/间隔/并行数">⚙️ 生成配置</button>
               <div id="aiv-model-tip2" style="font-size:11.5px;line-height:1.6;color:var(--text-muted);max-width:420px;margin-top:4px"></div>
             </div>
@@ -7130,6 +7163,7 @@ async function createAdVideo() {
         ad_mode: (typeof currentAdMode !== 'undefined' ? currentAdMode : 'avatar'),
         custom_script: custom_script,
         voice_mode, custom_audio_path: _adCustomAudio || null,
+        video_model: ($('ad-video-model-sel')?.value || localStorage.getItem('yimu_studio_video_model') || '').trim(),
       }),
     });
     if (!res.job) throw new Error('未获取到任务ID');
@@ -7377,94 +7411,311 @@ async function vdCfgSaveLocalModel(){
     toast('路径已保存（引擎上线后生效，当前先用 TTS 配音）');
   }catch(e){toast('保存失败：'+e.message);}
 }
-// 🎥 填充「默认视频模型」下拉：直接列出「模型服务」里接入的全部大模型（按模型服务分组）。
-// value 用「provider_id/模型」前缀形式，后端 resolve_llm_endpoint 据此精确路由到对应模型服务；
-// 激活模型服务且带 key 的模型排前，未带 key 的灰显标注。
-async function fillAivVideoModelSelects() {
+// 🎨 影音工坊统一模型选择与规则自动联动中枢
+let _studioProvidersData = null;
+
+async function fetchStudioProvidersData() {
+  if (_studioProvidersData) return _studioProvidersData;
   try {
     const res = await api('/api/models/providers');
+    _studioProvidersData = res;
+    return res;
+  } catch (e) {
+    console.warn('[studioModelProviders] 拉取模型服务失败:', e.message);
+    return null;
+  }
+}
+
+// 影音工坊全部模型下拉槽位配置（严格只展示 has_key: true 的已绑定密钥模型）
+const STUDIO_IMAGE_SELECT_IDS = [
+  'drama-image-model-sel',
+  'drama-step4-image-model-sel',
+  'drama-step6-image-model-sel',
+  'vd-image-model-sel',
+  'sb-image-model-sel',
+];
+const STUDIO_VIDEO_SELECT_IDS = [
+  'drama-video-model-sel',
+  'drama-step7-video-model-sel',
+  'ad-video-model-sel',
+  'aiv-model-sel',
+  'aivCfg-model',
+];
+
+async function initStudioModelSelects() {
+  try {
+    const res = await fetchStudioProvidersData();
+    if (!res) return;
     const cross = (res.cross_models || []);
     const providers = res.providers || {};
     const activePid = res.active_provider_id || '';
-    // 按模型服务分组聚合模型
-    const groups = new Map(); // pid -> {name, models: Set}
-    const order = [];
-    for (const pid of Object.keys(providers)) order.push(pid);
+
+    // 严格过滤：只保留已绑定密钥（has_key === true）的模型服务
+    const imageGroups = new Map(); // pid -> { name, models: Set }
+    const videoGroups = new Map(); // pid -> { name, models: Set }
+
     for (const m of cross) {
+      if (!m.has_key) continue; // 🔒 严格过滤未配 Key 的模型服务
       const pid = m.provider_id || '';
       const mid = m.id || m.name || '';
       if (!mid) continue;
-      if (!groups.has(pid)) {
-        groups.set(pid, { name: (providers[pid] && providers[pid].name) || m.provider_name || pid, hasKey: !!(m.has_key), models: new Map() });
-        if (pid && !order.includes(pid)) order.push(pid);
+      const cat = m.category || 'text';
+      const pName = (providers[pid] && providers[pid].name) || m.provider_name || pid;
+
+      if (cat === 'image') {
+        if (!imageGroups.has(pid)) imageGroups.set(pid, { name: pName, models: new Map() });
+        imageGroups.get(pid).models.set(mid, mid);
+      } else if (cat === 'video') {
+        if (!videoGroups.has(pid)) videoGroups.set(pid, { name: pName, models: new Map() });
+        videoGroups.get(pid).models.set(mid, mid);
       }
-      const g = groups.get(pid);
-      g.hasKey = g.hasKey || !!m.has_key;
-      g.models.set(mid, mid);
     }
-    // 激活模型服务排前，其余按名称
-    order.sort((a, b) => {
-      if (a === activePid) return -1;
-      if (b === activePid) return 1;
-      return (groups.get(a)?.name || a).localeCompare(groups.get(b)?.name || b);
+
+    const sortGroups = (gMap) => {
+      const keys = Array.from(gMap.keys());
+      keys.sort((a, b) => {
+        if (a === activePid) return -1;
+        if (b === activePid) return 1;
+        return (gMap.get(a)?.name || a).localeCompare(gMap.get(b)?.name || b);
+      });
+      return keys;
+    };
+
+    const sortedImagePids = sortGroups(imageGroups);
+    const sortedVideoPids = sortGroups(videoGroups);
+
+    // 填充生图模型下拉框
+    const savedImgModel = localStorage.getItem('yimu_studio_image_model') || '';
+    STUDIO_IMAGE_SELECT_IDS.forEach(id => {
+      const el = $(id);
+      if (!el) return;
+      const cur = el.value || savedImgModel;
+      el.innerHTML = '';
+      const defOpt = document.createElement('option');
+      defOpt.value = '';
+      defOpt.textContent = '▼ 系统默认生图模型 (推荐)';
+      el.appendChild(defOpt);
+
+      sortedImagePids.forEach(pid => {
+        const g = imageGroups.get(pid);
+        if (!g || !g.models.size) return;
+        const og = document.createElement('optgroup');
+        og.label = `🎨 ${g.name}${pid === activePid ? '（当前激活）' : ''}`;
+        g.models.forEach(mid => {
+          const opt = document.createElement('option');
+          opt.value = pid ? `${pid}/${mid}` : mid;
+          opt.textContent = mid;
+          og.appendChild(opt);
+        });
+        el.appendChild(og);
+      });
+
+      if (cur) {
+        el.value = cur;
+        if (el.value !== cur) {
+          const plain = cur.split('/').pop();
+          const match = Array.from(el.options).find(o => o.value && o.value.split('/').pop() === plain);
+          el.value = (match && match.value) || '';
+        }
+      }
     });
 
-    const targets = [$('aivCfg-model'), $('aiv-model-sel')].filter(Boolean);
-    for (const sel of targets) {
-      const cur = sel.value; // 保留已保存/已选值（可能是纯模型名或带前缀）
-      sel.innerHTML = '';
-      const empty = document.createElement('option');
-      empty.value = '';
-      empty.textContent = sel.id === 'aiv-model-sel'
-        ? '（用默认配置）'
-        : '▼ 留空 · 跟随「广告视频生成 Agent」默认模型';
-      sel.appendChild(empty);
-      order.forEach(pid => {
-        const g = groups.get(pid);
+    // 填充视频模型下拉框
+    const savedVidModel = localStorage.getItem('yimu_studio_video_model') || '';
+    STUDIO_VIDEO_SELECT_IDS.forEach(id => {
+      const el = $(id);
+      if (!el) return;
+      const cur = el.value || savedVidModel;
+      el.innerHTML = '';
+      const defOpt = document.createElement('option');
+      defOpt.value = '';
+      defOpt.textContent = id === 'aivCfg-model'
+        ? '▼ 留空 · 跟随「广告视频生成 Agent」默认模型'
+        : '▼ 系统默认视频大模型 (推荐)';
+      el.appendChild(defOpt);
+
+      sortedVideoPids.forEach(pid => {
+        const g = videoGroups.get(pid);
         if (!g || !g.models.size) return;
-        const isAct = pid === activePid;
-        const optGroup = document.createElement('optgroup');
-        optGroup.label = `🏭 ${g.name}${isAct ? '（当前激活）' : ''}${g.hasKey ? '' : ' · 未配 Key'}`;
-        sel.appendChild(optGroup);
+        const og = document.createElement('optgroup');
+        og.label = `🎬 ${g.name}${pid === activePid ? '（当前激活）' : ''}`;
         g.models.forEach(mid => {
-          const o = document.createElement('option');
-          o.value = pid ? `${pid}/${mid}` : mid; // 带模型服务前缀保证精确路由
-          o.textContent = mid;
-          optGroup.appendChild(o);
+          const opt = document.createElement('option');
+          opt.value = pid ? `${pid}/${mid}` : mid;
+          opt.textContent = mid;
+          og.appendChild(opt);
         });
+        el.appendChild(og);
       });
-      // 回填：优先按带前缀匹配；否则按纯模型名匹配到任一 option
-      sel.value = cur;
-      if (sel.value !== cur) {
-        const plain = (cur || '').split('/').pop();
-        const match = Array.from(sel.options).find(o => o.value && o.value.split('/').pop() === plain);
-        sel.value = (match && match.value) || '';
+
+      if (cur) {
+        el.value = cur;
+        if (el.value !== cur) {
+          const plain = cur.split('/').pop();
+          const match = Array.from(el.options).find(o => o.value && o.value.split('/').pop() === plain);
+          el.value = (match && match.value) || '';
+        }
       }
-    }
+    });
+
+    // 刷新各面板的规则提示卡片
+    updateAllStudioModelRuleTips();
   } catch (e) {
-    console.warn('[aivVideoModels] 填充视频模型下拉失败:', e.message);
+    console.warn('[initStudioModelSelects] 影音模型下拉初始化异常:', e.message);
   }
 }
-// 📏 视频模型生成规则速查表（静态数据，来源：docs/VIDEO_MODELS.md；选中模型时自动提示限制）。
-// 匹配按「模型名关键字」命中，覆盖主流家族；未命中的模型显示通用提示。
+
+// 兼容老调用
+async function fillAivVideoModelSelects() {
+  await initStudioModelSelects();
+}
+
+// 📏 视频模型生成规则速查表（来源：docs/VIDEO_MODELS.md 与 data/video_model_rules.json）
 const AIV_MODEL_RULES = [
   { keys: ['agnes-video-2.5-flash', 'flash'], name: 'Agnes 2.5 Flash',
+    durations: [5],
     tip: '固定 5 秒 / 720p，画幅 9:16 或 16:9；请求体不含时长字段（传了会 400）；队列满自动退避重试。' },
   { keys: ['agnes-video'], name: 'Agnes 视频',
+    durations: [5],
     tip: '异步任务式（/v1/videos 建任务 + 轮询）；参考图走 mode=image；单次约 1–4 分钟。' },
   { keys: ['sora'], name: 'OpenAI Sora',
+    durations: [4, 8, 12],
     tip: '时长取 4/8/12 秒档位（不支持任意秒数）；画幅用 size（横 1280x720 / 竖 720x1280）；带同步音频；生成约 1–5 分钟。' },
   { keys: ['veo'], name: 'Google Veo',
+    durations: [4, 8],
     tip: '时长 4/8 秒；画幅 16:9 或 9:16；分辨率 720p/1080p/4k（Lite 无 4k）；带原生音频；走 LRO 长任务，轮询建议 10 秒间隔。' },
   { keys: ['kling', '可灵'], name: '可灵 Kling',
+    durations: [5, 10],
     tip: '时长仅 5/10 秒两档；画幅 16:9 / 9:16 / 1:1；720p/1080p；提示词≤2500 字；原生音频与首尾帧均限 1080p。' },
   { keys: ['wan', '万相', 'wanx'], name: '阿里万相 Wan',
+    durations: [5],
     tip: '时长 2–15 秒整数；画幅 16:9 / 9:16 / 1:1 / 4:3 / 3:4（给首帧图时随首帧）；720P/1080P；须带 X-DashScope-Async 头；首帧图 ≤100MB。' },
   { keys: ['pixverse'], name: 'PixVerse',
+    durations: [5, 8],
     tip: '5/8 秒；360p–1080p；16:9 / 9:16 / 1:1；可选首尾帧与特效风格。' },
   { keys: ['seedance'], name: '字节 Seedance',
+    durations: [5],
     tip: '2–12 秒；480p–1080p；16:9 / 9:16 / 1:1 等；可多参考图与首尾帧锁定。' },
 ];
+
+const STUDIO_IMAGE_RULES = [
+  { keys: ['agnes-image-2.5-flash', 'agnes-image'], name: 'Agnes 2.5 Flash 生图',
+    aspects: ['9:16', '16:9', '1:1', '4:3', '3:4'],
+    tip: '原生高精多风格绘图，支持四视图一致性与影视关键帧渲染，并发响应极速。' },
+  { keys: ['imagen-3.0', 'imagen'], name: 'Google Imagen 3.0',
+    aspects: ['9:16', '16:9', '1:1', '4:3', '3:4'],
+    tip: '高质量电影质感画面，支持 1024x1024/16:9/9:16，光影与材质细节逼真。' },
+  { keys: ['flux'], name: 'FLUX.1 Schnell/Dev',
+    aspects: ['9:16', '16:9', '1:1', '4:3', '3:4'],
+    tip: '开源顶级开源生图大模型，构图结构严谨，解构 prompt 与文字渲染优秀。' },
+  { keys: ['wanx-v1', 'wanx'], name: '阿里通义万相生图',
+    aspects: ['9:16', '16:9', '1:1'],
+    tip: '东方美学与国风影视级画面，单张生图约 3~8 秒。' },
+];
+
+function studioGetModelRule(type, modelVal) {
+  if (!modelVal) return null;
+  const mid = modelVal.split('/').pop().toLowerCase();
+  const rules = (type === 'video') ? AIV_MODEL_RULES : STUDIO_IMAGE_RULES;
+  for (const r of rules) {
+    if (r.keys.some(k => mid.includes(k.toLowerCase()))) return r;
+  }
+  return null;
+}
+
+function updateStudioRuleTipBox(boxEl, rule, type, modelVal) {
+  if (!boxEl) return;
+  if (!modelVal) {
+    boxEl.style.display = 'none';
+    boxEl.innerHTML = '';
+    return;
+  }
+  boxEl.style.display = 'block';
+  if (rule) {
+    const badgeText = type === 'video' ? '🎬 视频大模型规则已匹配' : '🎨 生图大模型规格已匹配';
+    boxEl.innerHTML = `
+      <div style="font-weight:600;color:#58a6ff;margin-bottom:2px">⚡ ${badgeText} · <b>${escapeHtml(rule.name)}</b></div>
+      <div style="color:#e6edf3">${escapeHtml(rule.tip)}</div>
+    `;
+  } else {
+    boxEl.innerHTML = `
+      <div style="font-weight:600;color:#79c0ff;margin-bottom:2px">📏 模型服务已接通 · <b>${escapeHtml(modelVal.split('/').pop())}</b></div>
+      <div style="color:#cbd5e1">该模型走「模型服务」标准协议动态路由；具体能力规格与超时限制请参考开发文档。</div>
+    `;
+  }
+}
+
+function updateAllStudioModelRuleTips() {
+  const curImg = localStorage.getItem('yimu_studio_image_model') || '';
+  const curVid = localStorage.getItem('yimu_studio_video_model') || '';
+  const imgRule = studioGetModelRule('image', curImg);
+  const vidRule = studioGetModelRule('video', curVid);
+
+  // 1. 全自动 AI 短剧 Step 1
+  const dramaTipBox = $('drama-model-rule-tip');
+  if (dramaTipBox) {
+    if (curImg || curVid) {
+      dramaTipBox.style.display = 'block';
+      let html = '';
+      if (curImg) html += `<div>🎨 <b>生图:</b> ${escapeHtml(imgRule ? imgRule.name + ' - ' + imgRule.tip : curImg.split('/').pop())}</div>`;
+      if (curVid) html += `<div style="${curImg ? 'margin-top:4px' : ''}">🎬 <b>视频:</b> ${escapeHtml(vidRule ? vidRule.name + ' - ' + vidRule.tip : curVid.split('/').pop())}</div>`;
+      dramaTipBox.innerHTML = html;
+    } else {
+      dramaTipBox.style.display = 'none';
+    }
+  }
+
+  // 2. 短剧 Step 4, 6, 7
+  updateStudioRuleTipBox($('drama-step4-model-rule-tip'), imgRule, 'image', curImg);
+  updateStudioRuleTipBox($('drama-step6-model-rule-tip'), imgRule, 'image', curImg);
+  updateStudioRuleTipBox($('drama-step7-model-rule-tip'), vidRule, 'video', curVid);
+
+  // 3. 快速短视频合成
+  updateStudioRuleTipBox($('vd-model-rule-tip'), imgRule, 'image', curImg);
+
+  // 4. 好莱坞分镜中台
+  updateStudioRuleTipBox($('sb-model-rule-tip'), imgRule, 'image', curImg);
+
+  // 5. AI 产品广告
+  updateStudioRuleTipBox($('ad-model-rule-tip'), vidRule, 'video', curVid);
+
+  // 6. AI 短视频生成
+  const aivTip2 = $('aiv-model-tip2');
+  if (aivTip2) {
+    if (curVid && vidRule) aivTip2.textContent = `📏 ${vidRule.name}：${vidRule.tip}`;
+    else if (curVid) aivTip2.textContent = `📏 ${curVid.split('/').pop()}：走模型服务标准协议自动探测。`;
+    else aivTip2.textContent = '留空：跟随系统推荐默认视频模型。';
+  }
+}
+
+// 下拉切换事件响应
+function onStudioModelChange(slot, value) {
+  const isVideo = slot.includes('video');
+  const storageKey = isVideo ? 'yimu_studio_video_model' : 'yimu_studio_image_model';
+  localStorage.setItem(storageKey, value || '');
+
+  // 自动同步联动同类型全部下拉框
+  const targets = isVideo ? STUDIO_VIDEO_SELECT_IDS : STUDIO_IMAGE_SELECT_IDS;
+  targets.forEach(id => {
+    const el = $(id);
+    if (el && el.value !== value) el.value = value;
+  });
+
+  // 如果选择的视频模型有明确的时长档位，自动联动调节相关参数
+  if (isVideo && value) {
+    const rule = studioGetModelRule('video', value);
+    if (rule && rule.durations && rule.durations.length) {
+      const bestDur = rule.durations[0];
+      // 联动 aivCfg-seg
+      const segInput = $('aivCfg-seg');
+      if (segInput) segInput.value = bestDur;
+    }
+  }
+
+  // 刷新所有规则提示卡片
+  updateAllStudioModelRuleTips();
+}
+
 function aivModelTipFor(sel) {
   const v = ((sel && sel.value) || '').trim();
   if (!v) return '留空：跟随「广告视频生成 Agent」默认模型。';
@@ -7472,13 +7723,10 @@ function aivModelTipFor(sel) {
   for (const r of AIV_MODEL_RULES) {
     if (r.keys.some(k => mid.includes(k.toLowerCase()))) return `📏 ${r.name}：${r.tip}`;
   }
-  return '📏 该模型走「OpenAI 兼容 / 异步任务」协议自动探测；具体时长/画幅限制以模型服务商文档为准（详见 docs/VIDEO_MODELS.md）。';
+  return '📏 该模型走「OpenAI 兼容 / 异步任务」协议自动探测；具体限制以服务文档为准。';
 }
 function updateAivModelTip() {
-  const msg = aivModelTipFor($('aivCfg-model') || $('aiv-model-sel'));
-  const t1 = $('aiv-model-tip'), t2 = $('aiv-model-tip2');
-  if (t1) t1.textContent = msg;
-  if (t2) t2.textContent = msg;
+  updateAllStudioModelRuleTips();
 }
 async function aivCfgSave(){
   try{
@@ -9580,7 +9828,9 @@ document.querySelectorAll('.nav-item').forEach(item => {
     const titles = {dashboard:'操盘大屏', lite:'极简模式', inspire:'灵感与选题', drafts:'内容工作台', studio:'影音工坊', console:'控制中心'};
     $('header-icon').textContent = icons[item.dataset.p] || '';
     $('header-title').textContent = titles[item.dataset.p] || '';
-    updateWbAgentVisibility();
+    if (item.dataset.p === 'studio' && typeof initStudioModelSelects === 'function') {
+      try { initStudioModelSelects(); } catch(e) { console.warn('[studio-models] 初始化失败:', e); }
+    }
   };
 });
 
@@ -9588,6 +9838,10 @@ function switchSubTab(parentPanel, subId) {
   const p = $('p-' + parentPanel);
   p.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('on', t.dataset.sp === subId));
   p.querySelectorAll('.sub-view').forEach(v => v.style.display = (v.id === subId ? 'block' : 'none'));
+  /* ⭐ 影音工坊子标签切换时自动初始化/刷新已绑定密钥模型下拉 */
+  if (parentPanel === 'studio' && typeof initStudioModelSelects === 'function') {
+    try { initStudioModelSelects(); } catch(e) { console.warn('[studio-models] 刷新失败:', e); }
+  }
   /* ⭐ Agent 配置与技能库视图按需激活渲染 */
   if (subId === 'sp-agent-config' && typeof renderAgentList === 'function') {
     try { renderAgentList(); } catch(e) { console.warn('[agent-config] 渲染失败:', e); }
@@ -14937,9 +15191,13 @@ async function runDramaBatchAssets(isContinuous) {
   if (!did) return toast('请选择草稿');
   const btn = $('btn-drama-step4-batch');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 正在并发生成四视图与全部资产…'; }
+  const curImgModel = ($('drama-step4-image-model-sel')?.value || $('drama-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
   toast('🚀 正在启动 AI 生图引擎并发绘制角色四视图蓝图、场景与道具…', 5000);
   try {
-    const res = await api(`/api/video/drama/${did}/pipeline/step4_batch_assets`, { method: 'POST' });
+    const res = await api(`/api/video/drama/${did}/pipeline/step4_batch_assets`, {
+      method: 'POST',
+      body: JSON.stringify({ image_model: curImgModel })
+    });
     if (res.ok) {
       await loadDramaDraftScenes();
       toast(`🎉 全部 ${res.count||0} 份资产图与角色四视图蓝图生成完毕！`);
@@ -14991,11 +15249,12 @@ async function runDramaGenShot(shotId) {
   const sc = currentDramaScenes.find(x => x.shot_id === shotId);
   const promptInput = $(`sc-prompt-${shotId}`);
   const promptEn = promptInput ? promptInput.value.trim() : (sc ? sc.image_prompt_en : '');
+  const curImgModel = ($('drama-step6-image-model-sel')?.value || $('drama-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
   toast(`正在生成镜头 #${shotId} 关键帧画面…`, 3500);
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step6_gen_shot`, {
       method: 'POST',
-      body: JSON.stringify({ shot_id: shotId, prompt_en: promptEn, aspect: currentDramaAspect })
+      body: JSON.stringify({ shot_id: shotId, prompt_en: promptEn, aspect: currentDramaAspect, image_model: curImgModel })
     });
     if (res.ok) {
       await loadDramaDraftScenes();
@@ -15015,11 +15274,12 @@ async function runDramaBatchShots(isContinuous) {
   if (!did) return toast('请先选择草稿');
   const btn = $('btn-drama-step6-batch');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 正在批量绘制关键帧画面…'; }
+  const curImgModel = ($('drama-step6-image-model-sel')?.value || $('drama-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
   toast('🚀 正在启动 AI 生图双引擎绘制全部分镜头关键帧…', 5000);
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step6_batch_shots`, {
       method: 'POST',
-      body: JSON.stringify({ aspect: currentDramaAspect })
+      body: JSON.stringify({ aspect: currentDramaAspect, image_model: curImgModel })
     });
     if (res.ok) {
       await loadDramaDraftScenes();
@@ -15060,6 +15320,7 @@ async function runDramaGenVideo(shotId) {
   const subEnabled = subToggle ? (subToggle.value === 'true') : (window._dramaSubtitleEnabled || false);
   const vModeSel = $('drama-video-mode-sel');
   const vMode = vModeSel ? vModeSel.value : (window._dramaVideoMode || 'ai_video');
+  const curVidModel = ($('drama-step7-video-model-sel')?.value || $('drama-video-model-sel')?.value || localStorage.getItem('yimu_studio_video_model') || '').trim();
 
   toast(`正在为镜头 #${shotId} 生成${vMode==='ai_video'?'真实 AI 动态视频':'电影级动态视频'}（${subEnabled?'含字幕':'纯净无字幕'}）…`, 4500);
   try {
@@ -15069,7 +15330,8 @@ async function runDramaGenVideo(shotId) {
         shot_id: shotId,
         aspect: currentDramaAspect,
         subtitle_enabled: subEnabled,
-        video_mode: vMode
+        video_mode: vMode,
+        video_model: curVidModel
       })
     });
     if (res.ok) {
@@ -15089,6 +15351,7 @@ async function runDramaBatchVideos(isContinuous) {
   const subEnabled = subToggle ? (subToggle.value === 'true') : (window._dramaSubtitleEnabled || false);
   const vModeSel = $('drama-video-mode-sel');
   const vMode = vModeSel ? vModeSel.value : (window._dramaVideoMode || 'ai_video');
+  const curVidModel = ($('drama-step7-video-model-sel')?.value || $('drama-video-model-sel')?.value || localStorage.getItem('yimu_studio_video_model') || '').trim();
 
   toast(`🎬 正在批量生成分镜头视频（引擎: ${vMode==='ai_video'?'真实 AI 视频大模型':'电影级动态'} · ${subEnabled?'含字幕':'纯净无字幕'}）…`, 5000);
   try {
@@ -15097,7 +15360,8 @@ async function runDramaBatchVideos(isContinuous) {
       body: JSON.stringify({
         aspect: currentDramaAspect,
         subtitle_enabled: subEnabled,
-        video_mode: vMode
+        video_mode: vMode,
+        video_model: curVidModel
       })
     });
     if (res.ok) {
@@ -15131,6 +15395,7 @@ async function runDramaFinalRender() {
   const subEnabled = subToggle ? (subToggle.value === 'true') : (window._dramaSubtitleEnabled || false);
   const vModeSel = $('drama-video-mode-sel');
   const vMode = vModeSel ? vModeSel.value : (window._dramaVideoMode || 'ai_video');
+  const curVidModel = ($('drama-step7-video-model-sel')?.value || $('drama-video-model-sel')?.value || localStorage.getItem('yimu_studio_video_model') || '').trim();
 
   toast(`🔥 正在进行多镜头智能无缝拼接与成片导出（${subEnabled ? '含字幕' : '纯净无字幕电影版'}）…`, 6000);
   try {
@@ -15139,7 +15404,8 @@ async function runDramaFinalRender() {
       body: JSON.stringify({
         aspect: currentDramaAspect,
         subtitle_enabled: subEnabled,
-        video_mode: vMode
+        video_mode: vMode,
+        video_model: curVidModel
       })
     });
     const job = res.job;
@@ -16133,7 +16399,8 @@ async function runVideoMake() {
         subtitle_position: subPos,
         text_fore_color: subColor,
         material_source: matSource,
-        video_materials: vdCustomMaterials
+        video_materials: vdCustomMaterials,
+        image_model: ($('vd-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim()
       })
     });
     while(true) {
@@ -16203,11 +16470,12 @@ async function runStoryboardBatchGenImages() {
   if (!did) return toast('请先选择草稿');
   const btn = $('btn-sb-batch-gen');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 批量出图中…'; }
+  const curImgModel = ($('sb-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
   toast('🚀 正在启动真实 AI 生图双引擎为电影分镜全量生成 16:9 画卷…', 6000);
   try {
     const res = await api(`/api/drafts/${did}/storyboard/batch_gen_images`, {
       method: 'POST',
-      body: JSON.stringify({ aspect: '16:9' })
+      body: JSON.stringify({ aspect: '16:9', image_model: curImgModel })
     });
     if (res.ok) {
       await loadStoryboard();
@@ -16225,6 +16493,7 @@ async function regenStoryboardShotImage(shotIndex) {
   if (!did) return;
   const s = (currentStoryboardData.shots || []).find(x => x.shot_index === shotIndex);
   if (!s) return;
+  const curImgModel = ($('sb-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
   toast(`正在为电影分镜 #${shotIndex} 生成真实 AI 画面…`, 4000);
   try {
     const res = await api(`/api/drafts/${did}/storyboard/gen_image`, {
@@ -16232,7 +16501,8 @@ async function regenStoryboardShotImage(shotIndex) {
       body: JSON.stringify({
         shot_index: shotIndex,
         prompt_en: s.ai_prompt_en || '',
-        aspect: '16:9'
+        aspect: '16:9',
+        image_model: curImgModel
       })
     });
     if (res.ok) {

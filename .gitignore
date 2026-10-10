@@ -13,8 +13,10 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
-# 数据与本地状态（绝不进仓库）
-data/
+# 数据与本地状态（绝不进仓库；用 data/* 而非 data/ 以便能例外白名单）
+data/*
+# ⭐ 例外：视频模型能力表是代码资产（core/video_rules.py 运行时读取），必须随仓库走
+!data/video_model_rules.json
 *.db
 *.sqlite*
 logs/

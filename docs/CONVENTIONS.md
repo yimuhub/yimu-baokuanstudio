@@ -87,3 +87,10 @@ bash ci.sh                                     # 一键门禁：pytest → 探�
 python -m tests.probes                          # 单独跑真活探针
 python -m pytest tests/test_canary.py -q        # 单独跑数据金丝雀
 ```
+
+## 12. git 开发模式 ⭐（见 docs/GIT_WORKFLOW.md）
+
+- **⭐ 每一次修改必须提交 git；提交前必须先同步（fetch + 落后检测/rebase）；提交前门禁全绿；每步在 `问题修复记录.md` 留痕。**
+- 提交统一走 `scripts/git_safe_commit.sh "<type>: 中文一句话"`（-a 自动暂存，--sync 只查同步）。
+- 提交信息 `<type>: 中文一句话`（type ∈ feat/fix/docs/test/refactor/chore）；正文列改动文件数 + 门禁结果 + 记录条目号。
+- 禁止 `push --force` main；禁止提交 .env/密钥/数据库（`.gitignore` + 密钥扫描双保险）。

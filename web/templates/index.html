@@ -7013,26 +7013,50 @@ async function pollAiVideoJob(jid) {
     try {
       const r = await api('/api/tasks/' + jid);
       const t = (r && r.task) || {};
-      if (ptxt) ptxt.textContent = t.step || t.status || '生成中…';
+      if (ptxt) {
+        let stepText = t.step;
+        if (!stepText || stepText === 'running') stepText = '正在渲染分镜画面中…';
+        else if (stepText === 'pending') stepText = '正在排队准备生成…';
+        else if (stepText === 'done') stepText = '🎉 生成完成！';
+        else if (stepText === 'failed') stepText = '❌ 生成未成功';
+        ptxt.textContent = stepText;
+      }
       if (pbar) pbar.style.width = (t.progress || 0) + '%';
       if (t.status === 'done') {
         const res = t.result || {};
         if (rbox) {
           rbox.style.display = 'block';
-          rbox.innerHTML = `<div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:8px">✅ 生成完成（${escapeHtml(res.segments||'?')} 段）</div>
-            ${res.url ? `<video src="${escapeHtml(res.url)}" controls style="width:100%;max-height:420px;border-radius:8px;background:#000"></video>
-            <div style="margin-top:8px"><a class="btn btn-sm ok" href="${res.url}" download>⬇️ 下载成片</a></div>` : ''}`;
+          rbox.innerHTML = `
+            <div style="background:var(--bg-elevated);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;margin-top:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+                <div style="font-size:14px;font-weight:700;color:#51cf66;display:flex;align-items:center;gap:6px">
+                  <span>🎉</span> AI 短视频生成成功（共 ${escapeHtml(res.segments||'?')} 段，已自动归档至成片资产资料库）
+                </div>
+                <div style="display:flex;gap:8px">
+                  <a class="btn btn-sm ok" href="${res.url}" download style="text-decoration:none">⬇️ 下载成片</a>
+                  <button type="button" class="btn btn-sm" onclick="switchSubTab('studio','sp-video-tasks')">📂 前往成片资产资料库</button>
+                </div>
+              </div>
+              ${res.url ? `
+                <div style="background:#000;border-radius:8px;overflow:hidden;max-width:480px;margin:0 auto;box-shadow:0 6px 20px rgba(0,0,0,0.4)">
+                  <video src="${escapeHtml(res.url)}" controls autoplay playsinline style="width:100%;max-height:480px;display:block"></video>
+                </div>
+              ` : ''}
+            </div>`;
         }
-        toast('🎥 AI 短视频生成完成！');
+        if (typeof loadVideoTasks === 'function') {
+          try { loadVideoTasks(); } catch(e) {}
+        }
+        toast('🎥 AI 短视频生成完成，已收录至成片资产资料库！');
         return;
       }
       if (t.status === 'failed') {
-        if (ptxt) ptxt.textContent = '❌ 失败：' + (t.error || t.step || '');
-        toast('生成失败: ' + (t.error || ''), 4000);
+        if (ptxt) ptxt.textContent = '❌ 生成未成功：' + (t.error || t.step || '未知异常');
+        toast('生成未成功: ' + (t.error || ''), 4000);
         return;
       }
-      setTimeout(tick, 2500);
-    } catch(e) { setTimeout(tick, 4000); }
+      setTimeout(tick, 2000);
+    } catch(e) { setTimeout(tick, 3000); }
   };
   tick();
 }
@@ -9548,6 +9572,10 @@ function switchSubTab(parentPanel, subId) {
   /* ⭐ AI 短视频生成及文案改写模型列表刷新 */
   if (subId === 'sp-aivideo' && typeof populateAivRewriteModels === 'function') {
     try { populateAivRewriteModels(); } catch(e) { console.warn('[aiv-models] 加载失败:', e); }
+  }
+  /* ⭐ 成片资产资料库自动刷新 */
+  if (subId === 'sp-video-tasks' && typeof loadVideoTasks === 'function') {
+    try { loadVideoTasks(); } catch(e) { console.warn('[video-tasks] 刷新失败:', e); }
   }
 }
 

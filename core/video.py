@@ -108,11 +108,14 @@ def make_video(draft_id: str, seconds: int = 15, subject: str = "", emit=None,
 
 
 def recent_tasks(limit: int = 12) -> list[dict]:
-    """列出最近的成片（V7 原生引擎），包含横竖版比例及标题元数据。"""
+    """列出最近的成片（含原生成片与 AI 短视频），包含横竖版比例及标题元数据。"""
     import json as _json
     out = []
+    seen_tids = set()
 
     def _collect(mp4: Path, tid: str, engine: str):
+        if tid in seen_tids:
+            return
         meta_file = mp4.parent / "meta.json"
         meta = {}
         if meta_file.exists():
@@ -120,8 +123,8 @@ def recent_tasks(limit: int = 12) -> list[dict]:
                 meta = _json.loads(meta_file.read_text(encoding="utf-8"))
             except Exception:
                 pass
-        aspect = meta.get("aspect") or ("16:9" if "16x9" in tid else "9:16")
-        title = meta.get("title") or tid
+        aspect = meta.get("aspect") or ("16:9" if "16x9" in tid or "16x9" in mp4.name else "9:16")
+        title = meta.get("title") or (f"AI 短视频 {tid[-6:]}" if tid.startswith("aiv-") else tid)
         out.append({
             "tid": tid,
             "url": f"/api/video/file/{tid}",
@@ -132,13 +135,22 @@ def recent_tasks(limit: int = 12) -> list[dict]:
             "seconds": meta.get("seconds", 0),
             "engine": meta.get("engine", engine),
         })
+        seen_tids.add(tid)
 
-    # V7 原生成片
+    # 1. 原生成片
     native_dir = Path(__file__).resolve().parent.parent / "runs" / "videos"
     if native_dir.exists():
         for mp4 in sorted(native_dir.glob("*/final-*.mp4"),
                           key=lambda p: p.stat().st_mtime, reverse=True)[:limit]:
             _collect(mp4, mp4.parent.name, "native")
+
+    # 2. AI 短视频成片
+    aiv_dir = Path(__file__).resolve().parent.parent / "runs" / "ai_video"
+    if aiv_dir.exists():
+        for mp4 in sorted(aiv_dir.glob("*/final-*.mp4"),
+                          key=lambda p: p.stat().st_mtime, reverse=True)[:limit]:
+            _collect(mp4, mp4.parent.name, "ai_video")
+
     out.sort(key=lambda x: x["mtime"], reverse=True)
     return out[:limit]
 

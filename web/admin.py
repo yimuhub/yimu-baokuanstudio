@@ -2393,9 +2393,14 @@ def video_file(tid: str, request: Request):
     guard(request)
     if "/" in tid or ".." in tid:
         raise HTTPException(400, "bad tid")
-    # V7 原生成片（runs/videos/{tid}/final-*.mp4）
+    # 原生成片（runs/videos/{tid}/final-*.mp4）或 AI 短视频（runs/ai_video/{tid}/final-*.mp4）
+    candidates = []
     native_dir = BASE / "runs" / "videos" / tid
-    candidates = sorted(native_dir.glob("final-*.mp4")) if native_dir.exists() else []
+    if native_dir.exists():
+        candidates.extend(sorted(native_dir.glob("final-*.mp4")))
+    aiv_dir = BASE / "runs" / "ai_video" / tid
+    if not candidates and aiv_dir.exists():
+        candidates.extend(sorted(aiv_dir.glob("final-*.mp4")))
     f = candidates[0] if candidates else None
     if not f or not f.exists():
         raise HTTPException(404, "成片不存在")

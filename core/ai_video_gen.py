@@ -79,10 +79,11 @@ def start_ai_video_job(script: str, total_seconds: int = 30, aspect: str = "9:16
                 "voice_audio": voice_audio},
         total_steps=len(segs),
     )
-    task_queue.update_job(jid, step=f"共 {len(segs)} 段，准备生成…", progress=0)
+    task_queue.update_job(jid, step=f"正在规划镜头分镜，共 {len(segs)} 段…", progress=0)
 
     def _run():
         import time as _t
+        import json as _json
         from core import ad_video as _ad
         try:
             _vinfo = _ad.ad_video_model_info(video_model)
@@ -99,7 +100,7 @@ def start_ai_video_job(script: str, total_seconds: int = 30, aspect: str = "9:16
                 for s in batch:
                     idx, dur = s["idx"], s["dur"]
                     task_queue.update_job(
-                        jid, step=f"生成第 {idx}/{len(segs)} 段（{dur}s）…",
+                        jid, step=f"正在生成第 {idx}/{len(segs)} 段视频画面（{dur}秒）…",
                         progress=int(100 * (idx - 1) / len(segs)))
                     log.info("[ai_video_gen] job=%s 生成段 %d/%d (%ds) avatar=%s",
                              jid, idx, len(segs), dur, bool(avatar_path))
@@ -125,7 +126,7 @@ def start_ai_video_job(script: str, total_seconds: int = 30, aspect: str = "9:16
             if not seg_files:
                 reason = _vinfo.get("last_error") or "上游视频服务队列满载或暂时不可用"
                 log.warning("[ai_video_gen] job=%s 视频模型直连不可用（%s），启动智能高保真动效保底生成…", jid, reason)
-                task_queue.update_job(jid, step="大模型队列繁忙，已无缝切换高保真动效保底合成…", progress=70)
+                task_queue.update_job(jid, step="视频大模型队列繁忙，已自动切换高保真动效生成…", progress=70)
                 try:
                     from core import video_native
                     final = work_dir / f"final-{aspect.replace(':', 'x')}.mp4"
@@ -146,8 +147,19 @@ def start_ai_video_job(script: str, total_seconds: int = 30, aspect: str = "9:16
                             final = Path(res["mp4"])
 
                     if final.exists():
+                        meta_data = {
+                            "tid": jid,
+                            "title": title or f"AI 短视频 {jid[-6:]}",
+                            "aspect": aspect,
+                            "seconds": int(total_seconds or 15),
+                            "engine": "ai_video",
+                            "created_at": time.time(),
+                            "size_kb": final.stat().st_size // 1024,
+                            "script": (script or "")[:300],
+                        }
+                        (work_dir / "meta.json").write_text(_json.dumps(meta_data, ensure_ascii=False, indent=2), encoding="utf-8")
                         task_queue.update_job(
-                            jid, status="done", step="AI 短视频生成完成（智能高保真动效保底）", progress=100,
+                            jid, status="done", step="🎉 AI 短视频生成完成！已存入成片资产资料库", progress=100,
                             result={"mp4": str(final), "url": f"/api/aivideo/file/{jid}",
                                     "segments": len(segs), "total": len(segs),
                                     "aspect": aspect, "title": title,
@@ -157,11 +169,11 @@ def start_ai_video_job(script: str, total_seconds: int = 30, aspect: str = "9:16
                 except Exception as fb_exc:
                     log.exception("[ai_video_gen] job=%s 智能保底合成失败: %s", jid, fb_exc)
 
-                task_queue.update_job(jid, status="failed", step="全部段生成失败",
+                task_queue.update_job(jid, status="failed", step="画面分段生成失败",
                                       error=f"视频大模型调用失败: {reason}")
                 return
             # 拼接视频片段
-            task_queue.update_job(jid, step=f"拼接 {len(seg_files)} 段画面并合成配音字幕…",
+            task_queue.update_job(jid, step=f"正在拼接 {len(seg_files)} 段画面并合成专属配音与字幕…",
                                   progress=90)
             stitched = work_dir / f"stitched-{aspect.replace(':', 'x')}.mp4"
             _concat(seg_files, stitched)
@@ -173,13 +185,13 @@ def start_ai_video_job(script: str, total_seconds: int = 30, aspect: str = "9:16
                 audio_file = work_dir / "voice.mp3"
                 p_audio = None
                 if voice_engine == "voice_clone":
-                    task_queue.update_job(jid, step="调取声音克隆专属配音…", progress=93)
+                    task_queue.update_job(jid, step="正在调取声音克隆专属配音…", progress=93)
                     p_audio = _vn._make_voice_clone_audio(script, audio_file, prompt_audio=voice_audio)
                     if not p_audio:
-                        task_queue.update_job(jid, step="克隆服务不可用，降级智能语音配音…", progress=94)
+                        task_queue.update_job(jid, step="克隆服务繁忙，已自动切换智能语音配音…", progress=94)
                         p_audio = _vn._make_tts_audio(script, audio_file)
                 else:
-                    task_queue.update_job(jid, step="合成智能语音配音…", progress=93)
+                    task_queue.update_job(jid, step="正在合成智能语音配音…", progress=93)
                     p_audio = _vn._make_tts_audio(script, audio_file)
 
                 if p_audio and p_audio.exists():
@@ -197,15 +209,28 @@ def start_ai_video_job(script: str, total_seconds: int = 30, aspect: str = "9:16
                     import shutil as _sh
                     _sh.copyfile(stitched, final)
 
+            if final.exists():
+                meta_data = {
+                    "tid": jid,
+                    "title": title or f"AI 短视频 {jid[-6:]}",
+                    "aspect": aspect,
+                    "seconds": int(total_seconds or 15),
+                    "engine": "ai_video",
+                    "created_at": time.time(),
+                    "size_kb": final.stat().st_size // 1024,
+                    "script": (script or "")[:300],
+                }
+                (work_dir / "meta.json").write_text(_json.dumps(meta_data, ensure_ascii=False, indent=2), encoding="utf-8")
+
             task_queue.update_job(
-                jid, status="done", step="AI 短视频生成完成！", progress=100,
+                jid, status="done", step="🎉 AI 短视频生成完成！已存入成片资产资料库", progress=100,
                 result={"mp4": str(final), "url": f"/api/aivideo/file/{jid}",
                         "segments": len(seg_files), "total": len(segs),
                         "aspect": aspect, "title": title})
             log.info("[ai_video_gen] job=%s 完成: %s", jid, final)
         except Exception as exc:  # noqa: BLE001
             log.exception("[ai_video_gen] job=%s 异常: %s", jid, exc)
-            task_queue.update_job(jid, status="failed", step="生成异常",
+            task_queue.update_job(jid, status="failed", step="生成过程发生异常",
                                   error=str(exc)[:300])
 
     import threading

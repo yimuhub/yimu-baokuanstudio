@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>一幕·YIMU 爆款工作室 V7 · 全媒体超级创作引擎</title>
+<title>一幕·YIMU 爆款工作室 V8 · 全媒体超级创作引擎</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script>
 (function() {
@@ -3171,7 +3171,7 @@ input[type=text]:focus, textarea:focus, select:focus {
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.3px">爆款工作室</span>
-      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V7</span>
+      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.2</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -3320,14 +3320,14 @@ input[type=text]:focus, textarea:focus, select:focus {
         <span class="badge ok" style="margin-left:4px;padding:2px 6px;font-size:10px" id="nav-tier-badge">基础版</span>
       </div>
       <button class="btn btn-sm ghost" onclick="refresh()">↻ 刷新状态</button>
-      <!-- R3/R5 入口：价格与升级总览。7.1 新增能力原本只有二级路径，
+      <!-- R3/R5 入口：价格与升级总览。
            顶栏没有入口会导致「功能做了但用户看不见」，故固定挂此处。 -->
-      <a class="btn btn-sm ghost" href="/pricing" title="查看三档价格与权益，7.1 新增"
+      <a class="btn btn-sm ghost" href="/pricing" title="查看三档价格与权益"
          style="text-decoration:none">💰 价格</a>
       <a class="btn btn-sm" href="/admin/releases" id="nav-release-entry"
-         title="7.5 升级总览：本次改了什么、在哪里、怎么验证"
+         title="版本升级总览：本次改了什么、在哪里、怎么验证"
          style="text-decoration:none;background:var(--primary);color:#fff;border:0;font-weight:700"
-      >🆕 <span id="nav-ver-text">7.5</span></a>
+      >🆕 <span id="nav-ver-text">8.2</span></a>
       <span id="header-extra"></span>
     </div>
   </header>
@@ -3338,7 +3338,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:12px">
         <span class="live-pulse"></span>
         <span style="font-weight:700;font-size:13.5px;color:#fff">一幕·YIMU 爆款雷达实时巡航中</span>
-        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V7</span>
+        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.2</span>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap">
         <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">—</strong></div>
@@ -4910,6 +4910,8 @@ input[type=text]:focus, textarea:focus, select:focus {
             <button class="btn ok" id="btn-step-modal-next" onclick="confirmDramaStepModalNext()">➡️ 确认无误，进入下一步</button>
           </div>
         </div>
+      </div>
+
       <!-- ================= 👤 AI 数字人形象记忆库弹窗 (Avatar Memory Modal) ================= -->
       <div id="modal-avatar-memory" class="modal-mask" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(6px)">
         <div style="background:#161b22;border:1px solid rgba(255,255,255,0.15);border-radius:12px;width:92%;max-width:780px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 16px 40px rgba(0,0,0,0.6);overflow:hidden">
@@ -5814,7 +5816,7 @@ input[type=text]:focus, textarea:focus, select:focus {
           <p class="sub">会员额度与网关调用额度为同一账本：每次模型调用都会从这里扣减，明细见下方账本。</p>
           <div id="blN-tier"><span style="color:var(--text-muted)">加载中…</span></div>
           <div id="blN-upgrade" style="display:none;margin-top:14px;padding:14px;background:rgba(240,136,62,.07);border:1px solid rgba(240,136,62,.25);border-radius:10px">
-            <div style="font-size:13.5px;font-weight:700;margin-bottom:8px">🚀 升级 V7 Pro，解锁完整体验</div>
+            <div style="font-size:13.5px;font-weight:700;margin-bottom:8px">🚀 升级 Pro 会员，解锁完整体验</div>
             <div style="font-size:12.5px;color:var(--text-muted);line-height:1.8;margin-bottom:10px">
               • 短剧流水线不限次、成片时长不限<br>
               • 图片赛马 3 候选 + Judge 优选不限次<br>
@@ -8087,7 +8089,7 @@ async function deleteUserAccount(uid, username) {
   <div class="modal-box" style="width:440px;background:linear-gradient(145deg, #161c28, #0d121c);border:1px solid rgba(240,136,62,0.35);box-shadow:0 12px 40px rgba(0,0,0,0.7)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h3 style="margin-bottom:0;color:#fff;display:flex;align-items:center;gap:8px">
-        <span>🎬</span> 一幕·YIMU V7 创作者通行证
+        <span>🎬</span> 一幕·YIMU 创作者通行证
       </h3>
       <button class="btn btn-sm ghost" onclick="closeModal()" style="padding:2px 8px;border-radius:4px">✕</button>
     </div>
@@ -9226,8 +9228,19 @@ function csrfHeaders() {
     fetch('/api/version', {credentials:'same-origin'})
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        const el = document.getElementById('nav-ver-text');
-        if (el && d && d.version) el.textContent = String(d.version).split('.').slice(0, 2).join('.');
+        if (d && d.version) {
+          const shortVer = String(d.version).split('.').slice(0, 2).join('.');
+          const el = document.getElementById('nav-ver-text');
+          if (el) el.textContent = shortVer;
+          // 全局同步更新所有版本徽章
+          document.querySelectorAll('.version-badge').forEach(b => {
+            b.textContent = 'V' + shortVer;
+          });
+          const title = document.title;
+          if (title && /V\d+(\.\d+)*/.test(title)) {
+            document.title = title.replace(/V\d+(\.\d+)*/g, 'V' + shortVer);
+          }
+        }
       })
       .catch(() => {});
   } catch(e) {}
@@ -20157,9 +20170,13 @@ async function resetHabitSkill() {
   }
 }
 
-/* ==================== V7 会员分级：动态版本徽章 + 升级引导 ==================== */
+/* ==================== 会员分级：动态版本与权益徽章 ==================== */
 let yimuUserTier = 'free';
-const TIER_BADGE_TEXT = {free: 'V7 Free', pro: 'V7 Pro', studio: 'V7 Studio'};
+function getAppVersionShort() {
+  const t = document.getElementById('nav-ver-text')?.textContent;
+  return t ? 'V' + t : 'V8.2';
+}
+const TIER_LABEL_MAP = {free: 'Free', pro: 'Pro', studio: 'Studio'};
 
 async function refreshTierBadge() {
   try {
@@ -20169,8 +20186,12 @@ async function refreshTierBadge() {
     const d = res.data || res;
     if (!d || d.initialized === false) { console.warn('[tier] 会员未初始化，徽章保持默认'); return; }
     yimuUserTier = (d.tier || 'free').toLowerCase();
-    const label = TIER_BADGE_TEXT[yimuUserTier] || 'V7 Free';
+    const ver = getAppVersionShort();
+    const tierName = TIER_LABEL_MAP[yimuUserTier] || 'Free';
+    const label = ver + ' ' + tierName;
     document.querySelectorAll('.version-badge').forEach(el => { el.textContent = label; });
+    const navTier = document.getElementById('nav-tier-badge');
+    if (navTier) navTier.textContent = (tierName === 'Free' ? '基础版' : (tierName + ' 会员'));
     markProLockedMenus();
   } catch(e) { console.warn('[tier] 徽章更新失败:', e); }
 }
@@ -20183,7 +20204,7 @@ function markProLockedMenus() {
     const lock = document.createElement('span');
     lock.className = 'pro-lock';
     lock.textContent = ' 🔒';
-    lock.title = 'V7 Pro 专属功能，点击了解';
+    lock.title = 'Pro 会员专属功能，点击了解';
     lock.style.cssText = 'font-size:11px;cursor:pointer;margin-left:4px';
     lock.onclick = (e) => { e.preventDefault(); e.stopPropagation(); showUpgradeModal(); };
     const txt = el.querySelector('.nav-txt span') || el;
@@ -20197,9 +20218,7 @@ function markProLockedMenus() {
 }
 
 /* ⭐ R3-3：升级弹窗接上真实购买入口。
-   此前这个弹窗只有一句「该功能为 V7 Pro 专属」+ 一个「我知道了」按钮——
-   用户被告知要付费，然后没有任何下一步（死胡同）。
-   现在改为：展示真实价格 + 「查看价格页」/「立即购买」两个真实出口。 */
+   展示真实价格 + 「查看价格页」/「立即购买」两个真实出口。 */
 function showUpgradeModal(msg) {
   let m = $('upgrade-modal');
   if (!m) {
@@ -20208,7 +20227,7 @@ function showUpgradeModal(msg) {
     m.className = 'mask';
     m.innerHTML = '<div class="modal-box" style="width:440px;max-width:92vw;background:linear-gradient(145deg,#161c28,#0d121c);border:1px solid rgba(240,136,62,0.35);border-radius:12px;padding:28px;text-align:center">'
       + '<div style="font-size:44px;margin-bottom:12px">🚀</div>'
-      + '<div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:8px">升级 V7 Pro</div>'
+      + '<div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:8px">升级 Pro 会员</div>'
       + '<div id="upgrade-modal-msg" style="font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:14px"></div>'
       + '<div id="upgrade-modal-price" style="font-size:12.5px;color:#c8cee0;background:#0d1117;border-radius:8px;padding:10px 12px;margin-bottom:16px;line-height:1.8">价格加载中…</div>'
       + '<div style="display:flex;gap:10px;justify-content:center">'
@@ -20218,7 +20237,7 @@ function showUpgradeModal(msg) {
     m.addEventListener('click', e => { if(e.target === m) closeModal(); });
     document.body.appendChild(m);
   }
-  $('upgrade-modal-msg').textContent = msg || '该功能为 V7 Pro 专属，升级解锁完整体验';
+  $('upgrade-modal-msg').textContent = msg || '该功能为 Pro 会员专属，升级解锁完整体验';
   modal('upgrade-modal');
   loadUpgradePrice();
 }
@@ -20374,7 +20393,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px" id="agent-task-subtitle">全能微创改写与生成引擎调度中…</div>
         </div>
       </div>
-      <span class="badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V7</span>
+      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V8.2</span>
     </div>
     
     <!-- 当前动态进行中的工作步骤展示卡 -->

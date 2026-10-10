@@ -171,6 +171,11 @@ curl -s http://127.0.0.1:18790/api/models/providers | python3 -c "import sys,jso
 ### 步骤 5（中转层方案，零代码）
 若供应商原生协议是 P4/P5/P6，可先用 OpenAI 兼容中转（OneAPI / 硅基流动 / 自研网关）把该模型包装成 `/v1` 端点暴露视频任务接口，然后**步骤 1–4 原样执行**，`base_url` 指向中转层即可。这是当前最快的上线方式。
 
+> **自动钳制已就位**：`core/ad_video.py::_call_video_model` 会加载 `data/video_model_rules.json`，
+> 按选中模型自动完成：时长档位钳制（Sora 5s→4s、Kling 8s→10s、万相 30s→15s）、画幅字段映射（Sora 用 size 字符串）、
+> 禁用字段剔除（Agnes 不传 duration/seconds，避免 400）、轮询间隔/超时（各 5/10/15s）、附加请求头（万相 X-DashScope-Async）。
+> 客户在能力表加一条规则（match 关键字 + 档位），无需改代码即生效；未命中模型的走通用兜底（旧行为）。
+
 ---
 
 ## 5. 扩展指南：原生协议加分支（需要改代码时）

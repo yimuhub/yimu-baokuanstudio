@@ -437,8 +437,10 @@ def _call_video_model(prompt: str, out_path: Path, duration_s: int,
             if b64:
                 body["image"] = b64
                 body["image_url"] = b64
-        # 时长字段按能力表决定（Agnes Flash 规则为 drop_field：dur=None 时不传，避免 400）
-        if dur is not None:
+        # 时长字段按能力表决定：仅当匹配到规则且该规则允许传时长时才加入。
+        # Agnes Flash 规则为 drop_field（dur=None）→ 不传；未匹配规则（rule=None）
+        # 也保持旧安全行为不传（Agnes 网关不吃 duration/seconds 字段，传了 400）。
+        if rule is not None and dur is not None:
             body[video_rules.duration_field(rule)] = dur
         try:
             with httpx.Client(timeout=120, trust_env=not is_local) as client:

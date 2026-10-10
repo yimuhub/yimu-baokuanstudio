@@ -88,6 +88,28 @@ def _ensure_sqlite_dir(db_url: str) -> None:
             os.makedirs(parent, exist_ok=True)
 
 
+#: ⭐ V8/P1-F：示例 / 疑似无效 API Key 的识别集合。
+#: 历史上 .env 里官方通道写成 "test_key" 这类示例值，导致主生成链路开箱即 401，
+#: 用户第一分钟就卡在核心流程。启动时扫一遍上游池，命中示例值就醒目告警。
+_PLACEHOLDER_KEYS = frozenset(
+    {"", "test_key", "test", "your-api-key", "your_api_key", "sk-xxx", "xxx", "changeme", "placeholder"}
+)
+
+
+def _warn_placeholder_keys(pool: list) -> None:
+    """启动时扫描上游池：命中示例/空 Key 的上游给出醒目中文告警（不阻断）。"""
+    for entry in pool:
+        cfg = entry.cfg
+        key = (getattr(entry, "api_key", None) or "").strip()
+        if key.lower() in _PLACEHOLDER_KEYS:
+            env = cfg.api_key_env or "(未指定 api_key_env)"
+            print(
+                f"[警告] 上游「{cfg.id}」的 API Key（环境变量 {env}）当前是示例/空值"
+                f"（{key if key else '空'}）。该通道的生成调用会 401，"
+                f"请替换为真实 Key；或使用已配置真实 Key 的上游（如自定义聚合网关）。"
+            )
+
+
 def create_app() -> FastAPI:
     """构建 YIMU Gateway FastAPI 应用。"""
     settings = load_settings()
@@ -102,6 +124,8 @@ def create_app() -> FastAPI:
     # 模型目录：复用 B 的 core/llm.py 预设（失败时内置回退），见 config.load_model_catalog
     app.state.model_catalog = load_model_catalog()
     app.state.upstream_pool = _build_upstream_pool(app)
+    # ⭐ V8/P1-F：示例 Key 醒目告警（不阻断启动，仅提示）
+    _warn_placeholder_keys(app.state.upstream_pool)
 
     @app.middleware("http")
     async def request_id_middleware(request: Request, call_next):

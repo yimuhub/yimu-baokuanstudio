@@ -28,11 +28,11 @@ def get_engine(db_url: str, *, echo: bool = False, pool_size: int = 5) -> Engine
     """
     if db_url.startswith("sqlite"):
         # SQLite：单文件，关闭线程检查以适配 FastAPI 多线程；
-        # WAL 模式提升并发读性能（init_db 中设置）。
+        # 设置 timeout=30.0 防 Windows 锁冲突；WAL 模式提升并发读性能。
         return create_engine(
             db_url,
             echo=echo,
-            connect_args={"check_same_thread": False},
+            connect_args={"check_same_thread": False, "timeout": 30.0},
         )
     return create_engine(db_url, echo=echo, pool_size=pool_size, max_overflow=10)
 
@@ -43,11 +43,13 @@ def init_db(engine: Engine) -> None:
     说明：
     - 仅用于开发/测试与首次部署；生产环境的 schema 演进
       后续由 Alembic 迁移脚本管理（WS-A 契约冻结后接入）。
-    - SQLite 下开启 WAL 模式与外键约束。
+    - SQLite 下开启 WAL 模式、30秒 busy_timeout 与外键约束。
     """
     if engine.url.drivername == "sqlite":
         with engine.begin() as conn:
             conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
+            conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+            conn.exec_driver_sql("PRAGMA busy_timeout=30000;")
             conn.exec_driver_sql("PRAGMA foreign_keys=ON;")
     Base.metadata.create_all(engine)
     _migrate_missing_columns(engine)

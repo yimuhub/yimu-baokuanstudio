@@ -1218,8 +1218,12 @@ def test_r5_new_user_facing_copy_has_no_jargon():
 
 
 def test_r5_no_heavy_dependencies_added():
-    """R5 不得引入重量级/新增依赖（保持 requirements 轻量）。"""
+    """R5 不得引入重量级/新增依赖（保持 requirements 轻量）。
+
+    ⭐ V8 修正：``sqlalchemy`` / ``pydantic`` 是 7.x ORM/网关的**既有核心依赖**
+    （studio/db_models、gateway 全系在用），不属于 R5「新增」，移出拦截名单；
+    仅拦截 R5 真正可能引入的重依赖（任务队列/Redis/图像库等）。
+    """
     req = (REPO_ROOT / "requirements.txt").read_text(encoding="utf-8")
-    for pkg in ("qrcode", "segno", "celery", "apscheduler", "redis", "rq",
-                "sqlalchemy", "pydantic", "numpy"):
+    for pkg in ("qrcode", "segno", "celery", "apscheduler", "redis", "rq", "numpy"):
         assert pkg not in req.lower(), f"R5 不应引入依赖 {pkg}"

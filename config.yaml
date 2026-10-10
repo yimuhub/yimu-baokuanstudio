@@ -3,15 +3,15 @@ admin:
 agents:
   ad_creative:
     instruction: ''
-    model: ''
+    model: agnes-3.0-flash
     skills:
-    - ad-video-creative
-    - ad-reverse-engineer
-    - ad-creative-evaluator
     - ad-category-playbook
+    - ad-creative-evaluator
+    - ad-reverse-engineer
+    - ad-video-creative
   ad_video:
     instruction: ''
-    model: ''
+    model: agnes-video-v2.0
     skills:
     - ad-video-prompt-craft
   analyze:
@@ -72,15 +72,15 @@ creation:
   use_viral_formulas: true
   wechat_theme: spring-fresh
 gateway:
-  agent_routing:
+  agent_routing: &id001
     analyzer: agnes-3.0-flash
     critic: agnes-3.0-flash
     drama: agnes-3.0-flash
     image: agnes-image-2.5-flash
-    video: agnes-video-v2.0
+    video: agnes-video-2.5-flash
     writer: agnes-3.0-flash
   base_url: http://127.0.0.1:8787/v1
-  configured_models: &id001
+  configured_models: &id002
   - category: text
     id: agnes-2.5-flash
     is_enabled: true
@@ -101,6 +101,9 @@ gateway:
     id: agnes-video-2.5-flash
     is_enabled: true
     name: agnes-video-2.5-flash
+  deleted_providers:
+  - spark
+  - hunyuan
   model: agnes-3.0-flash
   provider_id: yimu_official
   providers:
@@ -131,9 +134,15 @@ gateway:
     qwen:
       base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
       model: qwen-max
+    volcengine:
+      agent_routing: {}
+      base_url: https://ark.cn-beijing.volces.com/api/v3
+      model: doubao-pro-32k
+      name: 火山引擎 Ark
     yimu_official:
+      agent_routing: *id001
       base_url: http://127.0.0.1:8787/v1
-      configured_models: *id001
+      configured_models: *id002
       model: agnes-3.0-flash
       name: 一幕·YIMU 官方
   timeout_s: 180

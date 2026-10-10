@@ -75,11 +75,18 @@ def test_make_ad_video_mocked():
                                                      _fake_llm_script()]):
         import core.video_native as vn
         with patch.object(vn, "make_video_native", return_value=dict(fake_res)) as m:
-            res = ad_video.make_ad_video("清爽喷雾", "夏天喷雾", seconds=15)
+            # 模拟「视频大模型不可用」：不触网，走 AI 图片保底路径（测试本意）
+            with patch.object(ad_video, "ad_video_model_info",
+                              return_value={"ok": False, "base": "", "key": "",
+                                            "model": "", "provider_id": "",
+                                            "reason": "视频大模型未配置"}):
+                res = ad_video.make_ad_video("清爽喷雾", "夏天喷雾", seconds=15)
     assert res["mp4"] == "/tmp/fake.mp4"
-    assert res["engine"] == "ad_video_native"
+    assert res["engine"] == "ad_video_dual_agent"
     assert len(res["storyboard"]) >= 3
     assert m.called
     # 确认合成时传入的是广告脚本
     _, kw = m.call_args
     assert "还在为" in kw["script"]
+    # 确认走了 AI 图片保底（视频模型不可用）
+    assert res.get("fallback") is True

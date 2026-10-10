@@ -386,8 +386,12 @@ def get_all_configured_providers() -> dict:
 
     result = {}
 
-    # 1. 载入官方预设供应商
+    deleted_pids = set(gw.get("deleted_providers") or [])
+
+    # 1. 载入官方预设供应商（过滤已被用户删除的预设）
     for pid, pinfo in MODEL_PROVIDERS.items():
+        if pid in deleted_pids:
+            continue
         saved = saved_providers.get(pid, {})
         spec_k = f"MEDIAFLOW_KEY_{pid.upper()}"
         has_key = bool(env.get(spec_k)) or (pid == active_pid and bool(env.get("MEDIAFLOW_APIPOOL_KEY")))
@@ -416,6 +420,8 @@ def get_all_configured_providers() -> dict:
 
     # 2. 载入所有自定义供应商 (支持添加任意多个自定义中转、本地机群或独立供应商)
     for pid, p_saved in saved_providers.items():
+        if pid in deleted_pids:
+            continue
         if pid not in result and isinstance(p_saved, dict):
             spec_k = f"MEDIAFLOW_KEY_{pid.upper()}"
             has_key = bool(env.get(spec_k)) or (pid == active_pid and bool(env.get("MEDIAFLOW_APIPOOL_KEY")))
@@ -496,8 +502,11 @@ def save_provider_config(provider_id: str, base_url: str, api_key: str, model: s
             gw["agent_routing"] = agent_routing
         if configured_models is not None:
             gw["configured_models"] = configured_models
-        if params:
-            gw.update(params)
+    # 若此前曾删除过该供应商，重新配置时将其移出已删除黑名单
+    deleted_pids = set(gw.get("deleted_providers") or [])
+    if pid in deleted_pids:
+        deleted_pids.remove(pid)
+        gw["deleted_providers"] = list(deleted_pids)
 
     # 维护多供应商持久化池
     providers = gw.setdefault("providers", {})
@@ -511,6 +520,9 @@ def save_provider_config(provider_id: str, base_url: str, api_key: str, model: s
 
     p_entry["base_url"] = base_url.strip()
     p_entry["model"] = model.strip()
+    if agent_routing is not None:
+        p_entry["agent_routing"] = agent_routing
+        gw["agent_routing"] = agent_routing
     if configured_models is not None:
         p_entry["configured_models"] = configured_models
 
@@ -563,10 +575,14 @@ def delete_provider(provider_id: str) -> bool:
     if pid in providers:
         del providers[pid]
 
+    deleted_pids = set(gw.get("deleted_providers") or [])
+    deleted_pids.add(pid)
+    gw["deleted_providers"] = list(deleted_pids)
+
     # 若删除的是当前活动主网关，平滑回退
     if gw.get("provider_id") == pid:
-        remaining = list(providers.keys()) or list(MODEL_PROVIDERS.keys())
-        new_active = "deepseek" if "deepseek" in remaining else remaining[0]
+        all_candidates = [k for k in (list(providers.keys()) + list(MODEL_PROVIDERS.keys())) if k not in deleted_pids]
+        new_active = "deepseek" if "deepseek" in all_candidates else (all_candidates[0] if all_candidates else "deepseek")
         gw["provider_id"] = new_active
         p_info = providers.get(new_active) or MODEL_PROVIDERS.get(new_active, {})
         gw["base_url"] = p_info.get("base_url", "")
@@ -605,6 +621,8 @@ def set_active_provider(provider_id: str) -> bool:
     gw["model"] = p_saved.get("model") or p_preset.get("default_model", gw.get("model", ""))
     if p_saved.get("configured_models"):
         gw["configured_models"] = p_saved["configured_models"]
+    if p_saved.get("agent_routing"):
+        gw["agent_routing"] = p_saved["agent_routing"]
 
     with open(cfg_file, "w", encoding="utf-8") as f:
         yaml.safe_dump(cfg, f, allow_unicode=True)

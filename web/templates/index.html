@@ -3325,9 +3325,9 @@ input[type=text]:focus, textarea:focus, select:focus {
       <a class="btn btn-sm ghost" href="/pricing" title="查看三档价格与权益，7.1 新增"
          style="text-decoration:none">💰 价格</a>
       <a class="btn btn-sm" href="/admin/releases" id="nav-release-entry"
-         title="7.1 升级总览：本次改了什么、在哪里、怎么验证"
+         title="7.5 升级总览：本次改了什么、在哪里、怎么验证"
          style="text-decoration:none;background:var(--primary);color:#fff;border:0;font-weight:700"
-      >🆕 <span id="nav-ver-text">7.1</span></a>
+      >🆕 <span id="nav-ver-text">7.5</span></a>
       <span id="header-extra"></span>
     </div>
   </header>
@@ -4910,6 +4910,30 @@ input[type=text]:focus, textarea:focus, select:focus {
             <button class="btn ok" id="btn-step-modal-next" onclick="confirmDramaStepModalNext()">➡️ 确认无误，进入下一步</button>
           </div>
         </div>
+      <!-- ================= 👤 AI 数字人形象记忆库弹窗 (Avatar Memory Modal) ================= -->
+      <div id="modal-avatar-memory" class="modal-mask" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(6px)">
+        <div style="background:#161b22;border:1px solid rgba(255,255,255,0.15);border-radius:12px;width:92%;max-width:780px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 16px 40px rgba(0,0,0,0.6);overflow:hidden">
+          <div style="padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <h3 style="margin:0;font-size:16px;color:#e6edf3;display:flex;align-items:center;gap:8px">
+                <span>👤 我的数字人形象记忆库</span>
+                <span id="avatar-memory-count" class="badge" style="background:rgba(88,166,255,0.2);color:#58a6ff;font-size:11px">加载中…</span>
+              </h3>
+              <p class="sub" style="margin:4px 0 0;font-size:12px;color:var(--text-muted)">一键复用历史定制的数字人肖像，无需重复上传；自动继承人像特征与视觉驱动</p>
+            </div>
+            <button class="btn ghost btn-sm" onclick="closeAvatarMemoryModal()" style="font-size:16px;line-height:1;padding:4px 8px">✕</button>
+          </div>
+          <div id="avatar-memory-grid" style="padding:18px;overflow-y:auto;flex:1;display:grid;grid-template-columns:repeat(auto-fill, minmax(220px, 1fr));gap:14px;max-height:55vh">
+            <div style="color:var(--text-muted);font-size:12.5px;text-align:center;grid-column:1/-1;padding:30px">正在读取数字人形象记忆…</div>
+          </div>
+          <div style="padding:12px 20px;border-top:1px solid rgba(255,255,255,0.1);display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.2)">
+            <span style="font-size:12px;color:var(--text-muted)">💡 提示：点击「一键复用」即可立即应用到当前创作任务</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn ghost btn-sm" onclick="loadAvatarMemoryList()">🔄 刷新列表</button>
+              <button class="btn btn-sm" onclick="closeAvatarMemoryModal()">关闭</button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 子视图：短视频 (MPT 核心流水线) -->
@@ -5173,31 +5197,62 @@ input[type=text]:focus, textarea:focus, select:focus {
               <textarea id="ad-product-desc" style="width:100%;height:90px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:12.5px;padding:10px 12px;line-height:1.7;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box" placeholder="描述产品核心卖点、功能亮点、适用场景…（AI 会自动提炼成广告话术）"></textarea>
             </div>
 
-            <!-- 卖点生成 → 预览 → 重新生成 -->
-            <div style="display:flex;flex-direction:column;gap:8px;background:rgba(240,136,62,0.05);border:1px dashed rgba(240,136,62,0.35);border-radius:8px;padding:12px">
-              <div style="display:flex;align-items:center;gap:8px">
-                <span style="font-size:13px;font-weight:600;color:#e3b341">🎯 广告卖点</span>
-                <button class="btn btn-sm" style="background:rgba(240,136,62,0.15);border:1px solid rgba(240,136,62,0.4);color:#f0883e" onclick="genAdSellingPoints()">✨ AI 生成卖点</button>
-                <button class="btn btn-sm ghost" onclick="genAdSellingPoints()" title="不满意？再生成一版">🔄 重新生成</button>
-                <span style="font-size:11px;color:var(--text-muted)">可手动编辑，每行一个卖点</span>
+            <!-- 广告出镜模式选择 -->
+            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(240,136,62,0.25);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <span style="font-size:13px;font-weight:700;color:#f0883e;display:flex;align-items:center;gap:6px">
+                  <span>👤</span> 广告视频出镜模式与 AI 数字人
+                </span>
+                <span style="font-size:11px;color:var(--text-muted);background:rgba(240,136,62,0.12);padding:2px 8px;border-radius:10px;border:1px solid rgba(240,136,62,0.25)">
+                  已支持照片驱动数字人面对面口播
+                </span>
               </div>
-              <textarea id="ad-selling-points" style="width:100%;height:80px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:12.5px;padding:10px 12px;line-height:1.7;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box" placeholder="点击「✨ AI 生成卖点」，或直接手动输入（每行一个）…"></textarea>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:11.5px;color:var(--text-muted);font-weight:600">🎯 出镜模式：</span>
+                <div class="aspect-pill-group" style="flex-wrap:wrap;background:rgba(0,0,0,0.35);padding:3px;border:1px solid rgba(255,255,255,0.08)">
+                  <button type="button" class="aspect-pill-btn ad-mode-btn active" data-mode="avatar" onclick="setAdMode('avatar')">👤 AI 数字人主播全程口播</button>
+                  <button type="button" class="aspect-pill-btn ad-mode-btn" data-mode="interleaved" onclick="setAdMode('interleaved')">🔀 首尾穿插出镜 (Hook+CTA)</button>
+                  <button type="button" class="aspect-pill-btn ad-mode-btn" data-mode="product" onclick="setAdMode('product')">📦 纯产品镜头展示</button>
+                </div>
+              </div>
+              <div id="ad-mode-tip" style="font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.25);border-left:3px solid #f0883e;padding:6px 10px;border-radius:4px">
+                💡 <b>AI 数字人主播全程口播</b>：以面对面真实出镜主播视角开场暴击痛点，亲切讲解产品，配合肢体与表情出镜带货。
+              </div>
             </div>
 
-            <!-- 参考图上传：产品图 + 人物图（深度 AI 创作，全片贯穿） -->
+            <!-- 参考图上传：产品图 + AI 数字人肖像照片 -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
               <div style="display:flex;flex-direction:column;gap:6px">
                 <label style="font-size:13px;font-weight:600;color:#e3b341">📦 产品参考图（可多张）</label>
-                <div style="font-size:11px;color:var(--text-muted)">AI 将分析图片特征，全片 1/4、1/2、3/4 处穿插展示，保持产品一致性</div>
+                <div style="font-size:11px;color:var(--text-muted)">AI 将分析图片特征，全片穿插展示，保持产品外观一致性</div>
                 <input id="ad-ref-images" type="file" multiple accept="image/*" style="font-size:12px;color:var(--text-muted)" onchange="uploadAdRefImages(this,'product')">
                 <div id="ad-ref-images-preview" style="display:flex;gap:6px;flex-wrap:wrap"></div>
               </div>
               <div style="display:flex;flex-direction:column;gap:6px">
-                <label style="font-size:13px;font-weight:600;color:#e3b341">🧑‍💼 卖货人员参考图（单张）</label>
-                <div style="font-size:11px;color:var(--text-muted)">AI 将提取人物特征，注入每个分镜，结尾 CTA 段重点展示</div>
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <label style="font-size:13px;font-weight:600;color:#e3b341">👤 AI 数字人出镜肖像图（单张）</label>
+                  <div style="display:flex;gap:6px">
+                    <button type="button" class="btn ghost btn-sm" style="font-size:11px;padding:2px 6px;color:#58a6ff;border-color:rgba(88,166,255,0.3)" onclick="openAvatarMemoryModal('ad')" title="从数字人形象库一键复用">👤 形象记忆库</button>
+                    <button type="button" class="btn ghost btn-sm" style="font-size:11px;padding:2px 6px;color:#7ee787;border-color:rgba(126,231,135,0.3)" onclick="syncAvatarToAdVideo()" title="直接复用「AI 视频生成」已上传的数字人照片">🔄 同步当前照片</button>
+                  </div>
+                </div>
+                <div style="font-size:11px;color:var(--text-muted)">上传个人正面/半身照，大模型将以此人为基底生成数字人口播视频</div>
                 <input id="ad-person-ref" type="file" accept="image/*" style="font-size:12px;color:var(--text-muted)" onchange="uploadAdRefImages(this,'person')">
                 <div id="ad-person-ref-preview" style="display:flex;gap:6px;flex-wrap:wrap"></div>
               </div>
+            </div>
+
+            <!-- 卖点与数字人口播话术工作台 -->
+            <div style="display:flex;flex-direction:column;gap:8px;background:rgba(240,136,62,0.05);border:1px dashed rgba(240,136,62,0.35);border-radius:8px;padding:12px">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:13px;font-weight:600;color:#e3b341">🎯 广告卖点与口播话术</span>
+                  <button type="button" class="btn btn-sm" style="background:rgba(240,136,62,0.15);border:1px solid rgba(240,136,62,0.4);color:#f0883e" onclick="genAdSellingPoints()">✨ AI 提炼卖点</button>
+                  <button type="button" id="btn-ad-avatar-script" class="btn btn-sm ok" style="background:linear-gradient(135deg,#f0883e,#d9531e);border:none" onclick="genAdAvatarScript()">🎙️ 生成数字人口播话术</button>
+                </div>
+                <span id="ad-script-stat" style="font-size:11px;color:var(--text-muted)">可自由编辑，AI 将直接按此话术驱动生成视频与配音</span>
+              </div>
+              <textarea id="ad-selling-points" style="width:100%;height:80px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:12.5px;padding:10px 12px;line-height:1.7;font-family:inherit;resize:vertical;outline:none;box-sizing:border-box" placeholder="点击「✨ AI 提炼卖点」，或点击「🎙️ 生成数字人口播话术」一键生成面对面出镜脚本文案，也可直接手动输入…"></textarea>
             </div>
 
             <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
@@ -5260,12 +5315,96 @@ input[type=text]:focus, textarea:focus, select:focus {
               <button type="button" class="btn ghost btn-sm" onclick="clearAivScript()" title="清空文本框方便手动粘贴">🧹 清空</button>
               <input type="file" id="aiv-doc-upload-input" accept=".txt,.md,.docx,.doc" style="display:none" onchange="handleAivDocUpload(this)">
             </div>
+            <!-- AI 短视频文案多模式智能改写工作台 -->
+            <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(240,136,62,0.25);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-size:13px;font-weight:700;color:#f0883e;display:flex;align-items:center;gap:4px">
+                    <span>✨</span> AI 短视频文案多模式智能改写
+                  </span>
+                  <span style="font-size:11px;color:var(--text-muted);background:rgba(240,136,62,0.12);padding:2px 8px;border-radius:10px;border:1px solid rgba(240,136,62,0.25)">
+                    已集成数字人 / 快报 / 切片堆叠等 6 大爆款模式
+                  </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <button type="button" id="btn-aiv-undo" class="btn ghost btn-sm" style="display:none;color:#58a6ff;border-color:rgba(88,166,255,0.3)" onclick="undoAivScript()" title="撤销本次改写并恢复之前的文案">↩️ 撤销恢复原文</button>
+                  <button type="button" id="btn-aiv-rewrite" class="btn ok btn-sm" style="background:linear-gradient(135deg,#f0883e,#d9531e);border:none;box-shadow:0 2px 8px rgba(240,136,62,0.35);font-weight:700" onclick="rewriteAivScript()">
+                    <span>✨ 一键 AI 智能改写</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 模式选择药丸列表 -->
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:11.5px;color:var(--text-muted);font-weight:600">🎯 改写模式：</span>
+                <div class="aspect-pill-group" style="flex-wrap:wrap;background:rgba(0,0,0,0.35);padding:3px;border:1px solid rgba(255,255,255,0.08)">
+                  <button type="button" class="aspect-pill-btn aiv-mode-btn active" data-mode="avatar" onclick="selectAivMode('avatar')">👤 AI 数字人口播</button>
+                  <button type="button" class="aspect-pill-btn aiv-mode-btn" data-mode="news" onclick="selectAivMode('news')">🎙️ 权威新闻快报</button>
+                  <button type="button" class="aspect-pill-btn aiv-mode-btn" data-mode="stacking" onclick="selectAivMode('stacking')">🎞️ 视频堆积切片</button>
+                  <button type="button" class="aspect-pill-btn aiv-mode-btn" data-mode="story" onclick="selectAivMode('story')">🎭 悬念反转故事</button>
+                  <button type="button" class="aspect-pill-btn aiv-mode-btn" data-mode="selling" onclick="selectAivMode('selling')">🛍️ 爆款带货种草</button>
+                  <button type="button" class="aspect-pill-btn aiv-mode-btn" data-mode="quote" onclick="selectAivMode('quote')">💡 认知金句共鸣</button>
+                </div>
+              </div>
+
+              <!-- 模式说明与提示卡片 -->
+              <div id="aiv-mode-intro" style="font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.25);border-left:3px solid #f0883e;padding:6px 10px;border-radius:4px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+                <span id="aiv-mode-desc">💡 <b>AI 数字人口播</b>：第一人称沉浸口播，极具亲和力与对话感，黄金3秒强钩子，内置 [微笑视镜] [手势强调] 等微表情互动标记。</span>
+                <span id="aiv-mode-badge" style="font-size:10.5px;color:#f0883e;background:rgba(240,136,62,0.15);padding:1px 6px;border-radius:4px">超高完播 · 对话感</span>
+              </div>
+
+              <!-- 补充定制要求输入框 -->
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="text" id="aiv-rewrite-custom" style="flex:1;min-width:260px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e6edf3;font-size:12px;padding:6px 10px;outline:none" placeholder="💡 可选补充定制指令（如：语气更活泼风趣、多用反问句、受众为年轻宝妈、突出XX核心卖点…）">
+                <select id="aiv-rewrite-model" style="font-size:12px;padding:5px 8px;min-width:160px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e6edf3" title="指定改写使用的大模型，默认跟随写作 Agent">
+                  <option value="">跟随写作 Agent 路由</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- 👤 专属 AI 数字人出镜照片（图生数字人视频驱动） -->
+            <div style="background:rgba(255,255,255,0.02);border:1px dashed rgba(240,136,62,0.35);border-radius:10px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <!-- 头像缩略图：未上传时显示空白上传入口 -->
+                <div id="aiv-avatar-preview-box" style="width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.06);border:2px dashed rgba(240,136,62,0.5);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0" onclick="$('aiv-avatar-file-input').click()" title="点击上传个人正脸或半身照">
+                  <span id="aiv-avatar-empty-icon" style="font-size:20px">📸</span>
+                  <img id="aiv-avatar-thumb" src="" style="width:100%;height:100%;object-fit:cover;display:none" alt="数字人头像">
+                </div>
+                <div>
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <span style="font-size:12.5px;font-weight:600;color:#e6edf3">👤 专属个人照片驱动 AI 数字人</span>
+                    <span id="aiv-avatar-status" style="font-size:11px;color:var(--text-muted)">（可选 · 上传正脸/半身照，大模型将以此人为基底生成出镜口播视频）</span>
+                  </div>
+                  <div id="aiv-avatar-traits" style="font-size:11px;color:#79c0ff;margin-top:2px;display:none">
+                    ✨ 识别特征：<span id="aiv-avatar-desc-text"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="file" id="aiv-avatar-file-input" accept=".jpg,.jpeg,.png,.webp" style="display:none" onchange="handleAivAvatarUpload(this)">
+                <input type="hidden" id="aiv-avatar-path-input" value="">
+                <button type="button" class="btn ghost btn-sm" style="color:#e3b341;border-color:rgba(212,136,10,0.4)" onclick="$('aiv-avatar-file-input').click()">
+                  <span id="aiv-btn-upload-text">📸 上传新照片定制</span>
+                </button>
+                <button type="button" class="btn ghost btn-sm" style="color:#58a6ff;border-color:rgba(88,166,255,0.4)" onclick="openAvatarMemoryModal('aiv')">
+                  <span>👤 形象记忆库 (一键复用)</span>
+                </button>
+                <button type="button" id="btn-aiv-clear-avatar" class="btn ghost btn-sm" style="display:none;color:var(--text-muted)" onclick="clearAivAvatar()">
+                  🧹 移除
+                </button>
+              </div>
+            </div>
+
             <div>
               <div style="display:flex;justify-content:space-between;align-items:center">
-                <label style="font-size:12px;color:var(--text-muted)">📝 口播文案</label>
-                <span id="aiv-script-stats" style="font-size:11.5px;color:#79c0ff">字数：0 字</span>
+                <label style="font-size:12px;color:var(--text-muted)">📝 当前口播脚本（可直接编辑或生成视频）</label>
+                <div style="display:flex;gap:10px;align-items:center">
+                  <span id="aiv-mode-tag" style="display:none;font-size:11px;color:#f0883e;background:rgba(240,136,62,0.15);padding:1px 8px;border-radius:10px;border:1px solid rgba(240,136,62,0.3)">当前模式：AI 数字人口播</span>
+                  <span id="aiv-script-stats" style="font-size:11.5px;color:#79c0ff">字数：0 字</span>
+                </div>
               </div>
-              <textarea id="aiv-script-input" style="width:100%;height:110px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:12.5px;padding:10px 12px;line-height:1.7;resize:vertical;outline:none;box-sizing:border-box" placeholder="选择上方草稿自动提取口播文案，或点击「📤 上传文档」，也可以直接粘贴口播文案，AI 按段落逐镜头生成视频…" oninput="updateAivScriptStats()"></textarea>
+              <textarea id="aiv-script-input" style="width:100%;height:130px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:12.5px;padding:10px 12px;line-height:1.7;resize:vertical;outline:none;box-sizing:border-box" placeholder="选择上方草稿自动提取口播文案，或点击「📤 上传文档」，也可以直接粘贴文案，选择上方模式后点击「✨ 一键 AI 智能改写」生成爆款脚本…" oninput="updateAivScriptStats()"></textarea>
             </div>
             <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
               <label style="font-size:12px;color:var(--text-muted)">时长</label>
@@ -5280,11 +5419,37 @@ input[type=text]:focus, textarea:focus, select:focus {
                 <button type="button" class="aspect-pill-btn active" id="btn-aiv-asp-916" onclick="setAivAspect('9:16')">📱 9:16 竖版</button>
                 <button type="button" class="aspect-pill-btn" id="btn-aiv-asp-169" onclick="setAivAspect('16:9')">🖥️ 16:9 横版</button>
               </div>
+              <label style="font-size:12px;color:var(--text-muted)">配音声音</label>
+              <div style="display:inline-flex;align-items:center;background:rgba(255,255,255,0.06);border-radius:6px;padding:2px 6px;gap:6px">
+                <label style="font-size:11.5px;color:#e6edf3;display:inline-flex;align-items:center;gap:3px;cursor:pointer">
+                  <input type="radio" name="aiv-voice-mode" value="tts" checked onchange="toggleAivVoiceMode()"> 🔊 默认播音
+                </label>
+                <label style="font-size:11.5px;color:#e6edf3;display:inline-flex;align-items:center;gap:3px;cursor:pointer">
+                  <input type="radio" name="aiv-voice-mode" value="voice_clone" onchange="toggleAivVoiceMode()"> 🧬 声音克隆
+                </label>
+              </div>
               <label style="font-size:12px;color:var(--text-muted)">视频模型</label>
-              <select id="aiv-model-sel" style="font-size:12px;padding:5px 8px;min-width:160px">
+              <select id="aiv-model-sel" style="font-size:12px;padding:5px 8px;min-width:160px" onchange="updateAivModelTip()">
                 <option value="">（用默认配置）</option>
               </select>
               <button class="btn ghost btn-sm" onclick="toggleAivConfig()" title="分段时长/间隔/并行数">⚙️ 生成配置</button>
+              <div id="aiv-model-tip2" style="font-size:11.5px;line-height:1.6;color:var(--text-muted);max-width:420px;margin-top:4px"></div>
+            </div>
+            <div id="aiv-voice-clone-box" style="display:none;background:rgba(88,166,255,0.06);border:1px dashed rgba(88,166,255,0.3);border-radius:8px;padding:10px 14px;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:14px">🧬</span>
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:#58a6ff">声音克隆模式已启用</div>
+                  <div id="aiv-vc-status-tip" style="font-size:11px;color:var(--text-muted)">将调用后台配置的声音克隆模型生成专属配音；也可在此上传 5-30 秒参考音源快速复刻</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="file" id="aiv-voice-ref-input" accept=".mp3,.wav,.m4a" style="display:none" onchange="handleAivVoiceRefUpload(this)">
+                <button type="button" class="btn ghost btn-sm" style="font-size:11px;color:#58a6ff;border-color:rgba(88,166,255,0.3)" onclick="$('aiv-voice-ref-input').click()">
+                  <span id="aiv-vc-btn-text">🎙️ 上传专属参考音频</span>
+                </button>
+                <button type="button" id="btn-aiv-clear-vc" class="btn ghost btn-sm" style="display:none;font-size:11px;color:var(--text-muted)" onclick="clearAivVoiceRef()">✕ 清除</button>
+              </div>
             </div>
             <div id="aiv-config-box" style="display:none;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;flex-wrap:wrap;gap:12px">
               <label style="font-size:12px;color:var(--text-muted)">每段时长(秒) <input id="aiv-cfg-seg" type="number" min="4" max="30" value="8" style="width:64px;font-size:12px;padding:4px 6px"></label>
@@ -5336,6 +5501,7 @@ input[type=text]:focus, textarea:focus, select:focus {
         <div class="sub-tab" data-sp="sp-settings" onclick="switchSubTab('console','sp-settings')">⚙ 系统与 API 配置</div>
         <div class="sub-tab" data-sp="sp-gateway" data-pro-only="1" onclick="switchSubTab('console','sp-gateway')">🔌 API 网关服务</div>
         <div class="sub-tab" data-sp="sp-billing" onclick="switchSubTab('console','sp-billing')">💳 会员与账本</div>
+        <div class="sub-tab" data-sp="sp-user-admin" onclick="switchSubTab('console','sp-user-admin')">👥 用户与会员管理</div>
         <div class="sub-tab" data-sp="sp-video-config" onclick="switchSubTab('console','sp-video-config')">🎬 视频合成配置</div>
       </div>
 
@@ -5793,12 +5959,47 @@ input[type=text]:focus, textarea:focus, select:focus {
             <label class="vdCfg-opt" id="vdCfg-opt-voice_clone">
               <input type="radio" name="vdCfg-voice" value="voice_clone" onchange="vdCfgSetVoice('voice_clone')">
               <div style="flex:1">
-                <div class="vdCfg-label">🧬 声音克隆 API</div>
-                <div class="vdCfg-desc">POST {text} 到你的克隆服务，返回音频字节。调用失败时自动改用 TTS。</div>
-                <div id="vdCfg-vc-fields" style="display:none;margin-top:10px">
-                  <input class="vdCfg-input" id="vdCfg-vc-url" placeholder="API 地址，如 https://xxx/v1/clone" style="margin-bottom:8px">
-                  <input class="vdCfg-input" id="vdCfg-vc-key" placeholder="API Key（可选）" style="margin-bottom:8px">
-                  <button class="btn btn-sm" onclick="vdCfgSaveVoiceClone()">保存克隆配置</button>
+                <div class="vdCfg-label">🧬 声音克隆 API / 专属声音模型服务</div>
+                <div class="vdCfg-desc">支持对接阿里 CosyVoice、MiniMax 海螺声音克隆、ElevenLabs、F5-TTS 或自建聚合服务。配音失败时自动使用 TTS 保底。</div>
+                <div id="vdCfg-vc-fields" style="display:none;margin-top:10px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+                    <div>
+                      <div class="vdCfg-desc" style="margin-bottom:4px;color:#e6edf3">声音模型服务 (Provider)</div>
+                      <select class="vdCfg-input" id="vdCfg-vc-provider" onchange="vdCfgChangeVcProvider()" style="width:100%;padding:6px 8px">
+                        <option value="custom">通用聚合网关 / 自定义接口</option>
+                        <option value="cosyvoice">阿里通义 CosyVoice 声音克隆</option>
+                        <option value="minimax">MiniMax 海螺声音复刻 (T2A V2)</option>
+                        <option value="elevenlabs">ElevenLabs Multilingual</option>
+                        <option value="f5_tts">F5-TTS 开源声音克隆</option>
+                      </select>
+                    </div>
+                    <div>
+                      <div class="vdCfg-desc" style="margin-bottom:4px;color:#e6edf3">模型名称 (Model)</div>
+                      <input class="vdCfg-input" id="vdCfg-vc-model" placeholder="如 cosyvoice-v1 / speech-01-turbo" style="width:100%">
+                    </div>
+                  </div>
+                  <div style="margin-bottom:10px">
+                    <div class="vdCfg-desc" style="margin-bottom:4px;color:#e6edf3">API 接口地址 (URL)</div>
+                    <input class="vdCfg-input" id="vdCfg-vc-url" placeholder="如 http://127.0.0.1:8787/v1/audio/speech 或 https://api.xxx/v1/clone" style="width:100%">
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+                    <div>
+                      <div class="vdCfg-desc" style="margin-bottom:4px;color:#e6edf3">API Key (可选)</div>
+                      <input class="vdCfg-input" id="vdCfg-vc-key" placeholder="API Key（留空不修改）" style="width:100%">
+                    </div>
+                    <div>
+                      <div class="vdCfg-desc" style="margin-bottom:4px;color:#e6edf3">音色标识 / Voice ID (可选)</div>
+                      <input class="vdCfg-input" id="vdCfg-vc-voice-id" placeholder="如 default 或自定义音色 ID" style="width:100%">
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+                    <button class="btn btn-sm ok" onclick="vdCfgSaveVoiceClone()">💾 保存声音克隆配置</button>
+                    <button class="btn ghost btn-sm" onclick="vdCfgTestVoiceClone()">🎙️ 测试连接并试听</button>
+                    <span id="vdCfg-vc-test-status" style="font-size:12px;color:var(--text-muted)"></span>
+                  </div>
+                  <div id="vdCfg-vc-audio-player" style="display:none;margin-top:10px">
+                    <audio id="vdCfg-vc-audio" controls style="height:32px;width:100%"></audio>
+                  </div>
                 </div>
               </div>
             </label>
@@ -5833,10 +6034,65 @@ input[type=text]:focus, textarea:focus, select:focus {
             <input class="vdCfg-input" id="aivCfg-parallel" type="number" min="1" max="4" style="max-width:120px">
           </div>
           <div class="vdCfg-row">
-            <div><div class="vdCfg-label">默认视频模型</div><div class="vdCfg-desc">留空则用「🎬 广告视频生成 Agent」配置的模型</div></div>
-            <input class="vdCfg-input" id="aivCfg-model" placeholder="如 sora / runway-gen3" style="max-width:220px">
+            <div><div class="vdCfg-label">默认视频模型</div><div class="vdCfg-desc">留空则用「🎬 广告视频生成 Agent」配置的模型；下拉列出「模型服务」已接入的全部大模型，按模型服务分组，可直接切换</div></div>
+            <div style="position:relative;max-width:300px">
+              <select class="vdCfg-input" id="aivCfg-model" style="max-width:300px;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#e3b341 50%),linear-gradient(135deg,#e3b341 50%,transparent 50%);background-position:calc(100% - 16px) 55%,calc(100% - 12px) 55%;background-size:6px 6px,6px 6px;background-repeat:no-repeat;padding-right:30px;cursor:pointer" onchange="updateAivModelTip()">
+                <option value="">▼ 留空 · 跟随「广告视频生成 Agent」默认模型</option>
+              </select>
+            </div>
+            <div id="aiv-model-tip" style="margin-top:6px;font-size:12px;line-height:1.7;color:#9aa4b2;max-width:520px"></div>
           </div>
           <div style="margin-top:10px"><button class="btn btn-sm ok" onclick="aivCfgSave()">💾 保存 AI 视频配置</button></div>
+        </div>
+      </div>
+
+      <!-- 子视图：👥 用户与会员管理控制台（支持添加/编辑/改密/删除/状态修改） -->
+      <div id="sp-user-admin" class="sub-view" style="display:none">
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+            <div>
+              <h3 style="margin:0 0 4px;font-size:16px;color:#fff;display:flex;align-items:center;gap:6px">
+                <span>👥</span> 用户与账号体系管理中心
+              </h3>
+              <p class="sub" style="margin:0">支持多账号创建、信息编辑、密码一键重置、权限角色与可用算力额度管理，彻底保障 Windows 单机及局域网部署安全与易用。</p>
+            </div>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" onclick="openCreateUserModal()">➕ 新建用户账号</button>
+              <button class="btn btn-sm ghost" onclick="loadAdminUsers(0)">↻ 刷新列表</button>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+            <input id="usr-search-kw" placeholder="🔍 搜索用户名 / 邮箱…" style="width:220px;background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12.5px;color:var(--text)" onkeydown="if(event.key==='Enter')loadAdminUsers(0)">
+            <button class="btn btn-sm ghost" onclick="loadAdminUsers(0)">搜索</button>
+            <span style="font-size:12px;color:var(--text-muted);margin-left:auto" id="usr-total-info">加载中…</span>
+          </div>
+
+          <div style="overflow-x:auto">
+            <table class="tbl" style="width:100%;border-collapse:collapse;font-size:12.5px">
+              <thead>
+                <tr style="border-bottom:1px solid var(--border);text-align:left">
+                  <th style="padding:8px">用户名</th>
+                  <th style="padding:8px">角色</th>
+                  <th style="padding:8px">会员档位</th>
+                  <th style="padding:8px">可用算力</th>
+                  <th style="padding:8px">邮箱</th>
+                  <th style="padding:8px">状态</th>
+                  <th style="padding:8px">注册时间</th>
+                  <th style="padding:8px;text-align:right">操作</th>
+                </tr>
+              </thead>
+              <tbody id="usr-table-body">
+                <tr><td colspan="8" style="padding:20px;text-align:center;color:var(--text-muted)">正在加载用户数据…</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+            <button class="btn btn-sm ghost" id="usr-btn-prev" onclick="loadAdminUsers(Math.max(0, usrCurrentOffset - 20))" disabled>上一页</button>
+            <span style="font-size:12px;color:var(--text-muted)" id="usr-page-info">第 1 页</span>
+            <button class="btn btn-sm ghost" id="usr-btn-next" onclick="loadAdminUsers(usrCurrentOffset + 20)">下一页</button>
+          </div>
         </div>
       </div>
     </section>
@@ -6053,10 +6309,83 @@ async function blNSetMode(mode){
   try{await api('/api/billing/ui/launch_mode',{method:'PUT',body:JSON.stringify({launch_mode:mode})});blNLoadMode();}
   catch(e){toast('切换失败：'+e.message);}
 }
-/* ============ AI 广告短片：卖点 / 参考图 / 配音 ============ */
+/* ============ AI 广告短片：卖点 / 参考图 / 配音 / 数字人 ============ */
 let _adRefImages = [];      // 产品参考图 path 列表
 let _adPersonRef = '';      // 人物参考图 path
 let _adCustomAudio = '';    // 上传配音 path
+let currentAdMode = 'avatar';
+
+const adModeDescriptions = {
+  avatar: '💡 <b>AI 数字人主播全程口播</b>：以面对面真实出镜主播视角开场暴击痛点，亲切讲解产品，配合肢体与表情出镜带货。',
+  interleaved: '💡 <b>首尾穿插出镜 (Hook+CTA)</b>：黄金3秒由数字人主播出镜抓住眼球，中间展示产品使用特写与细节，结尾由主播出镜促单。',
+  product: '💡 <b>纯产品镜头展示</b>：全片聚焦产品外观、材质、使用场景与核心功能，无人物出镜。'
+};
+
+function setAdMode(mode) {
+  currentAdMode = mode;
+  document.querySelectorAll('.ad-mode-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-mode') === mode);
+  });
+  const tipEl = $('ad-mode-tip');
+  if (tipEl) tipEl.innerHTML = adModeDescriptions[mode] || '';
+}
+
+function syncAvatarToAdVideo() {
+  const p = $('aiv-avatar-path-input')?.value;
+  if (!p) {
+    return toast('⚠️ 尚未在「AI 视频生成」中上传照片，请先在上方或左侧上传，或直接选择文件上传');
+  }
+  _adPersonRef = p;
+  renderAdRefPreview('ad-person-ref-preview', [p], 'person');
+  toast('🎉 已成功同步「AI 视频生成」中的专属数字人肖像！');
+}
+
+async function genAdAvatarScript() {
+  const name = ($('ad-product-name')?.value || '').trim();
+  const desc = ($('ad-product-desc')?.value || '').trim();
+  if (!name) return toast('请先填写产品名称');
+  if (!desc) return toast('请先填写产品描述 / 卖点');
+  const audience = ($('ad-audience')?.value || '').trim() || '大众消费者';
+  const seconds = parseInt($('ad-seconds')?.value || '15', 10);
+  const spText = ($('ad-selling-points')?.value || '').trim();
+  const selling_points = spText ? spText.split('\n').map(s => s.trim()).filter(Boolean) : null;
+  const btn = $('btn-ad-avatar-script');
+  const origBtnText = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ 正在生成口播话术…</span>';
+  }
+  toast(`✨ 正在为【${name}】生成 AI 数字人口播话术…`, 2500);
+  try {
+    const res = await api('/api/advideo/script_rewrite', {
+      method: 'POST',
+      body: JSON.stringify({
+        product_name: name,
+        product_desc: desc,
+        selling_points: selling_points,
+        audience: audience,
+        ad_mode: currentAdMode,
+        seconds: seconds,
+      })
+    });
+    if (res && res.ok && res.script) {
+      const box = $('ad-selling-points');
+      if (box) box.value = res.script;
+      const statEl = $('ad-script-stat');
+      if (statEl) statEl.textContent = `字数：${res.char_count} 字 · 预估朗读约 ${res.estimated_seconds} 秒 · 可自由微调`;
+      toast(`🎉 数字人口播话术生成完成！共 ${res.char_count} 字`, 3500);
+    } else {
+      toast('话术生成失败: ' + ((res && res.error) || '返回异常'));
+    }
+  } catch(e) {
+    toast('生成异常: ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnText;
+    }
+  }
+}
 
 async function genAdSellingPoints() {
   const name = ($('ad-product-name')?.value || '').trim();
@@ -6248,18 +6577,427 @@ async function handleAivDocUpload(inputEl) {
   finally { inputEl.value = ''; }
 }
 
+// -------------------------------------------------------------
+// 🎥 AI 短视频文案多模式智能改写 (AI Video Script Rewriter)
+// -------------------------------------------------------------
+let currentAivMode = 'avatar';
+window._aivOriginalScript = '';
+
+const aivModeMeta = {
+  avatar: {
+    name: 'AI 数字人口播',
+    icon: '👤',
+    badge: '超高完播 · 对话感',
+    desc: '💡 <b>AI 数字人口播</b>：第一人称沉浸口播，极具亲和力与对话感，黄金3秒强钩子，内置 [微笑视镜] [手势强调] 等微表情互动标记。'
+  },
+  news: {
+    name: '权威新闻快报',
+    icon: '🎙️',
+    badge: '权威公信 · 倒金字塔',
+    desc: '💡 <b>权威新闻快报</b>：新闻播音腔，倒金字塔结构，开门见山直爆核心事实，精炼严谨，快节奏高信息密度。'
+  },
+  stacking: {
+    name: '视频堆积/切片堆叠',
+    icon: '🎞️',
+    badge: '视觉轰炸 · 强节奏',
+    desc: '💡 <b>视频堆积切片</b>：快节奏剪辑文案，画面切片高频切换，内置 [快切镜头: XX] [音效: 嗖] 剪辑指令，极速抓住注意力。'
+  },
+  story: {
+    name: '悬念反转故事',
+    icon: '🎭',
+    badge: '极致反差 · 情绪过山车',
+    desc: '💡 <b>悬念反转故事</b>：剧情化叙事，强戏剧冲突与出人意料的认知反转，跌宕起伏，极易引发好奇与沉浸追看。'
+  },
+  selling: {
+    name: '爆款带货种草',
+    icon: '🛍️',
+    badge: '精准转化 · 痛点暴击',
+    desc: '💡 <b>爆款带货种草</b>：痛点暴击与沉浸式场景还原，直击核心利益爽点，前后强烈反差对比，促单号召力极强。'
+  },
+  quote: {
+    name: '认知金句/情感共鸣',
+    icon: '💡',
+    badge: '灵魂共鸣 · 高赞高藏',
+    desc: '💡 <b>认知金句共鸣</b>：句句扎心、深度哲思与高密度金句，直击人性与生活真相，具有极高点赞与朋友圈转发欲。'
+  }
+};
+
+function selectAivMode(modeId) {
+  if (!aivModeMeta[modeId]) modeId = 'avatar';
+  currentAivMode = modeId;
+  document.querySelectorAll('.aiv-mode-btn').forEach(btn => {
+    if (btn.getAttribute('data-mode') === modeId) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  const m = aivModeMeta[modeId];
+  const descEl = $('aiv-mode-desc');
+  const badgeEl = $('aiv-mode-badge');
+  if (descEl) descEl.innerHTML = m.desc;
+  if (badgeEl) badgeEl.textContent = m.badge;
+}
+
+function undoAivScript() {
+  const ta = $('aiv-script-input');
+  if (!ta) return;
+  if (typeof window._aivOriginalScript === 'string' && window._aivOriginalScript) {
+    const cur = ta.value;
+    ta.value = window._aivOriginalScript;
+    window._aivOriginalScript = cur;
+    updateAivScriptStats();
+    toast('✅ 已恢复文案！');
+  }
+}
+
+function populateAivRewriteModels() {
+  const sel = $('aiv-rewrite-model');
+  if (!sel) return;
+  const curVal = sel.value;
+  let html = `<option value="">跟随写作 Agent 路由</option>`;
+
+  const allModels = (window.currentModelsList && window.currentModelsList.length > 0)
+    ? window.currentModelsList
+    : ((window.S && window.S.gateway && window.S.gateway.configured_models) || []);
+  const textModels = allModels.filter(x => (x.category === 'text' || !x.category) && x.is_enabled !== false);
+  if (textModels.length > 0) {
+    html += `<optgroup label="⭐ 当前可用文本大模型">` + textModels.map(m => `<option value="${m.id}">${m.name || m.id}</option>`).join('') + `</optgroup>`;
+  }
+  const crossList = (window._cachedCrossModels || []).filter(m => m.has_key !== false);
+  const otherProvModels = crossList.filter(m => !m.is_active_provider && (m.category === 'text' || !m.category));
+  if (otherProvModels.length > 0) {
+    html += `<optgroup label="🌐 跨服务模型">` + otherProvModels.map(m => `<option value="${m.id}">${m.name} [${m.provider_name}]</option>`).join('') + `</optgroup>`;
+  }
+  sel.innerHTML = html;
+  if (curVal) sel.value = curVal;
+}
+
+async function rewriteAivScript() {
+  const ta = $('aiv-script-input');
+  const content = (ta ? ta.value : '').trim();
+  if (!content) {
+    return toast('⚠️ 请先输入、粘贴原始内容，或从上方选择草稿作为改写原料', 3500);
+  }
+  const btn = $('btn-aiv-rewrite');
+  const origBtnText = btn ? btn.innerHTML : '';
+  const customInst = ($('aiv-rewrite-custom') ? $('aiv-rewrite-custom').value : '').trim();
+  const targetSec = parseInt(($('aiv-sec-sel') ? $('aiv-sec-sel').value : '30') || '30', 10);
+  const model = ($('aiv-rewrite-model') ? $('aiv-rewrite-model').value : '').trim();
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ AI 正在深度改写中…</span>';
+  }
+  toast(`✨ 正在将文案转化为【${(aivModeMeta[currentAivMode]||{}).name || '新模式'}】…`, 2500);
+
+  try {
+    const res = await api('/api/aivideo/rewrite', {
+      method: 'POST',
+      body: JSON.stringify({
+        content: content,
+        mode: currentAivMode,
+        target_seconds: targetSec,
+        custom_instruction: customInst,
+        model: model
+      })
+    });
+
+    if (res && res.ok && res.rewritten_script) {
+      window._aivOriginalScript = content;
+      if (ta) {
+        ta.value = res.rewritten_script;
+        updateAivScriptStats();
+      }
+      const undoBtn = $('btn-aiv-undo');
+      if (undoBtn) undoBtn.style.display = 'inline-flex';
+      const tagEl = $('aiv-mode-tag');
+      if (tagEl) {
+        tagEl.style.display = 'inline-block';
+        tagEl.textContent = `当前模式：${res.mode_name} (${res.badge})`;
+      }
+      toast(`🎉 【${res.mode_name}】改写完成！共 ${res.char_count} 字，预估时长约 ${res.estimated_seconds} 秒`, 4000);
+    } else {
+      toast('改写失败: ' + ((res && res.error) || '返回内容异常'));
+    }
+  } catch (err) {
+    toast('改写请求失败: ' + err.message, 4000);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = origBtnText;
+    }
+  }
+}
+
+async function handleAivAvatarUpload(inputEl) {
+  if (!inputEl.files || !inputEl.files[0]) return;
+  const file = inputEl.files[0];
+  toast(`📸 正在上传并分析肖像照片【${file.name}】…`, 3000);
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    let data = null;
+    // 优先尝试 /api/aivideo/upload_avatar
+    try {
+      data = await api('/api/aivideo/upload_avatar', { method: 'POST', body: formData });
+    } catch (e1) {
+      console.warn('aivideo upload_avatar unavailable, falling back to advideo upload_ref:', e1);
+      // 容错平滑回退兜底：若后端进程尚未重启生效，自动回退到已运行的 /api/advideo/upload_ref
+      const fbForm = new FormData();
+      fbForm.append('file', file);
+      const fbData = await api('/api/advideo/upload_ref', { method: 'POST', body: fbForm });
+      if (fbData && fbData.ok) {
+        data = {
+          ok: true,
+          path: fbData.path,
+          url: '/api/advideo/ref_file?path=' + encodeURIComponent(fbData.path),
+          filename: file.name,
+          person_desc: '高清人物肖像参考，将驱动专属 AI 数字人出镜'
+        };
+      } else {
+        throw e1;
+      }
+    }
+    if (data && data.ok) {
+      const pathInput = $('aiv-avatar-path-input');
+      if (pathInput) pathInput.value = data.path || '';
+      const thumb = $('aiv-avatar-thumb');
+      const emptyIcon = $('aiv-avatar-empty-icon');
+      if (thumb) {
+        thumb.src = data.url || ('/api/advideo/ref_file?path=' + encodeURIComponent(data.path));
+        thumb.style.display = 'block';
+      }
+      if (emptyIcon) emptyIcon.style.display = 'none';
+      const clearBtn = $('btn-aiv-clear-avatar');
+      if (clearBtn) clearBtn.style.display = 'inline-flex';
+      const upBtnText = $('aiv-btn-upload-text');
+      if (upBtnText) upBtnText.textContent = '🔄 更换照片';
+      const traitsBox = $('aiv-avatar-traits');
+      const descText = $('aiv-avatar-desc-text');
+      if (data.person_desc) {
+        if (descText) descText.textContent = data.person_desc;
+        if (traitsBox) traitsBox.style.display = 'block';
+      } else {
+        if (traitsBox) traitsBox.style.display = 'none';
+      }
+      const statusEl = $('aiv-avatar-status');
+      if (statusEl) statusEl.innerHTML = `<span style="color:#7ee787">✅ 专属数字人肖像已就绪（${escapeHtml(file.name)}）</span>`;
+      toast(`🎉 数字人肖像上传成功！生成时将以此人驱动出镜`, 3500);
+    } else {
+      toast('照片上传失败: ' + (data && (data.error || data.detail) ? (data.error || data.detail) : '未知错误'));
+    }
+  } catch(e) {
+    toast('照片上传失败: ' + e.message);
+  } finally {
+    inputEl.value = '';
+  }
+}
+
+function clearAivAvatar() {
+  const pathInput = $('aiv-avatar-path-input');
+  if (pathInput) pathInput.value = '';
+  const thumb = $('aiv-avatar-thumb');
+  const emptyIcon = $('aiv-avatar-empty-icon');
+  if (thumb) { thumb.src = ''; thumb.style.display = 'none'; }
+  if (emptyIcon) emptyIcon.style.display = 'inline-block';
+  const clearBtn = $('btn-aiv-clear-avatar');
+  if (clearBtn) clearBtn.style.display = 'none';
+  const upBtnText = $('aiv-btn-upload-text');
+  if (upBtnText) upBtnText.textContent = '📸 上传照片定制数字人';
+  const traitsBox = $('aiv-avatar-traits');
+  if (traitsBox) traitsBox.style.display = 'none';
+  const statusEl = $('aiv-avatar-status');
+  if (statusEl) statusEl.textContent = '（可选 · 上传正脸/半身照，大模型将以此人为基底生成出镜视频）';
+  toast('已移除出镜照片');
+}
+
+let _avatarCallerContext = 'aiv';
+let _aivVoiceRefAudio = '';
+
+function toggleAivVoiceMode() {
+  const mode = document.querySelector('input[name="aiv-voice-mode"]:checked')?.value || 'tts';
+  const box = $('aiv-voice-clone-box');
+  if (box) box.style.display = (mode === 'voice_clone' ? 'flex' : 'none');
+}
+
+async function handleAivVoiceRefUpload(inputEl) {
+  if (!inputEl.files || !inputEl.files[0]) return;
+  const file = inputEl.files[0];
+  toast(`🎙️ 正在上传参考声音【${file.name}】…`, 2500);
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await api('/api/advideo/upload_audio', { method: 'POST', body: formData });
+    if (res && res.path) {
+      _aivVoiceRefAudio = res.path;
+      const btnText = $('aiv-vc-btn-text');
+      if (btnText) btnText.textContent = `✅ 已载入参考音: ${file.name.slice(0, 10)}`;
+      const clearBtn = $('btn-aiv-clear-vc');
+      if (clearBtn) clearBtn.style.display = 'inline-block';
+      const tip = $('aiv-vc-status-tip');
+      if (tip) tip.textContent = `已绑定参考音源【${file.name}】，大模型将以此声音特征复刻口播`;
+      toast(`🎉 参考音源已就绪！短视频将按此克隆音色配音`, 3500);
+    }
+  } catch(e) {
+    toast('音频上传失败: ' + e.message);
+  } finally {
+    inputEl.value = '';
+  }
+}
+
+function clearAivVoiceRef() {
+  _aivVoiceRefAudio = '';
+  const btnText = $('aiv-vc-btn-text');
+  if (btnText) btnText.textContent = '🎙️ 上传专属参考音频';
+  const clearBtn = $('btn-aiv-clear-vc');
+  if (clearBtn) clearBtn.style.display = 'none';
+  const tip = $('aiv-vc-status-tip');
+  if (tip) tip.textContent = '将调用后台配置的声音克隆模型生成专属配音；也可在此上传 5-30 秒参考音源快速复刻';
+  toast('已清除专属参考音频');
+}
+
+/* ============ 数字人形象记忆库 (一键复用) ============ */
+async function openAvatarMemoryModal(context) {
+  _avatarCallerContext = context || 'aiv';
+  const modal = $('modal-avatar-memory');
+  if (modal) modal.style.display = 'flex';
+  await loadAvatarMemoryList();
+}
+
+function closeAvatarMemoryModal() {
+  const modal = $('modal-avatar-memory');
+  if (modal) modal.style.display = 'none';
+}
+
+async function loadAvatarMemoryList() {
+  const grid = $('avatar-memory-grid');
+  const countEl = $('avatar-memory-count');
+  if (!grid) return;
+  grid.innerHTML = '<div style="color:var(--text-muted);font-size:12.5px;text-align:center;grid-column:1/-1;padding:30px">⏳ 正在同步数字人形象记忆库…</div>';
+  try {
+    const res = await api('/api/aivideo/avatars');
+    const items = (res && res.items) || [];
+    if (countEl) countEl.textContent = `${items.length} 个形象`;
+    if (!items.length) {
+      grid.innerHTML = `
+        <div style="text-align:center;grid-column:1/-1;padding:40px 20px;color:var(--text-muted)">
+          <div style="font-size:32px;margin-bottom:10px">👤</div>
+          <div style="font-size:14px;color:#e6edf3;font-weight:600">暂无已保存的数字人形象</div>
+          <div style="font-size:12px;margin-top:6px">在页面上传正脸肖像定制后，系统会自动记住并收录于此，随时一键复用！</div>
+        </div>`;
+      return;
+    }
+    grid.innerHTML = items.map(item => `
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;transition:all 0.2s" class="avatar-mem-card">
+        <div style="position:relative;width:100%;height:140px;border-radius:8px;overflow:hidden;background:#0d1117">
+          <img src="${escapeHtml(item.url || ('/api/advideo/ref_file?path=' + encodeURIComponent(item.path)))}" style="width:100%;height:100%;object-fit:cover" onerror="this.src='';this.alt='图片未找到'">
+          <span style="position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,0.7);color:#7ee787;font-size:10.5px;padding:2px 6px;border-radius:4px;border:1px solid rgba(126,231,135,0.3)">复用 ${item.use_count || 1} 次</span>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;font-weight:600;color:#e6edf3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
+            <button class="btn ghost btn-sm" style="padding:1px 5px;font-size:11px;color:var(--text-muted)" onclick="renameAvatarMemory('${item.id}', '${escapeHtml(item.name)}')">✏️</button>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden" title="${escapeHtml(item.person_desc || '')}">
+            ${escapeHtml(item.person_desc || '专属定制数字人肖像')}
+          </div>
+        </div>
+        <div style="margin-top:auto;display:flex;gap:6px">
+          <button class="btn ok btn-sm" style="flex:1;padding:6px 10px;font-weight:600" onclick="useAvatarFromMemory('${item.id}')">✨ 一键复用</button>
+          <button class="btn ghost btn-sm" style="padding:6px 8px;color:#f85149;border-color:rgba(248,81,73,0.3)" onclick="deleteAvatarFromMemory('${item.id}', '${escapeHtml(item.name)}')">🗑️</button>
+        </div>
+      </div>
+    `).join('');
+  } catch(e) {
+    grid.innerHTML = `<div style="color:#f85149;font-size:12.5px;text-align:center;grid-column:1/-1;padding:30px">读取形象记忆库失败: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function useAvatarFromMemory(avatarId) {
+  try {
+    const res = await api('/api/aivideo/avatars/use', {
+      method: 'POST',
+      body: JSON.stringify({ id: avatarId })
+    });
+    if (res && res.ok && res.item) {
+      const it = res.item;
+      if (_avatarCallerContext === 'ad') {
+        _adPersonRef = it.path;
+        renderAdRefPreview('ad-person-ref-preview', [it.path], 'person');
+        toast(`🎉 已成功一键复用形象【${it.name}】至广告短片！`);
+      } else {
+        const pathInput = $('aiv-avatar-path-input');
+        if (pathInput) pathInput.value = it.path || '';
+        const thumb = $('aiv-avatar-thumb');
+        const emptyIcon = $('aiv-avatar-empty-icon');
+        if (thumb) {
+          thumb.src = it.url || ('/api/advideo/ref_file?path=' + encodeURIComponent(it.path));
+          thumb.style.display = 'block';
+        }
+        if (emptyIcon) emptyIcon.style.display = 'none';
+        const clearBtn = $('btn-aiv-clear-avatar');
+        if (clearBtn) clearBtn.style.display = 'inline-flex';
+        const upBtnText = $('aiv-btn-upload-text');
+        if (upBtnText) upBtnText.textContent = '🔄 更换照片';
+        const traitsBox = $('aiv-avatar-traits');
+        const descText = $('aiv-avatar-desc-text');
+        if (it.person_desc) {
+          if (descText) descText.textContent = it.person_desc;
+          if (traitsBox) traitsBox.style.display = 'block';
+        }
+        const statusEl = $('aiv-avatar-status');
+        if (statusEl) statusEl.innerHTML = `<span style="color:#7ee787">✅ 专属数字人肖像已就绪（复用：${escapeHtml(it.name)}）</span>`;
+        toast(`🎉 已一键复用数字人形象【${it.name}】！`);
+      }
+      closeAvatarMemoryModal();
+    }
+  } catch(e) {
+    toast('复用失败: ' + e.message);
+  }
+}
+
+async function renameAvatarMemory(avatarId, oldName) {
+  const newName = prompt('请输入新的形象名称：', oldName);
+  if (!newName || !newName.trim() || newName === oldName) return;
+  try {
+    await api('/api/aivideo/avatars/update', {
+      method: 'POST',
+      body: JSON.stringify({ id: avatarId, name: newName.trim() })
+    });
+    toast('✅ 形象名称已修改');
+    loadAvatarMemoryList();
+  } catch(e) {
+    toast('修改失败: ' + e.message);
+  }
+}
+
+async function deleteAvatarFromMemory(avatarId, name) {
+  if (!confirm(`确定要从记忆库中移除【${name}】吗？底层文件不会被强制删除。`)) return;
+  try {
+    await api(`/api/aivideo/avatars/${avatarId}`, { method: 'DELETE' });
+    toast('✅ 已从形象记忆库移除');
+    loadAvatarMemoryList();
+  } catch(e) {
+    toast('移除失败: ' + e.message);
+  }
+}
+
 async function createAiVideo() {
   const script = ($('aiv-script-input') ? $('aiv-script-input').value : '').trim();
   if (!script) return toast('请填写口播文案');
   const total_seconds = parseInt($('aiv-sec-sel').value || '30', 10);
   const aspect = (typeof currentAivAspect !== 'undefined' ? currentAivAspect : '9:16');
   const video_model = $('aiv-model-sel').value || '';
+  const avatar_image = ($('aiv-avatar-path-input') ? $('aiv-avatar-path-input').value : '').trim();
+  const voice_engine = document.querySelector('input[name="aiv-voice-mode"]:checked')?.value || 'tts';
+  const voice_audio = window._aivVoiceRefAudio || '';
   const pbox = $('aiv-progress-box'), ptxt = $('aiv-progress-text'), pbar = $('aiv-progress-bar');
   const rbox = $('aiv-result-box'), hint = $('aiv-plan-hint');
   if (rbox) rbox.style.display = 'none';
   try {
     const r = await api('/api/aivideo/create', { method: 'POST', body: JSON.stringify({
-      script, total_seconds, aspect, video_model, title: script.slice(0, 16) }) });
+      script, total_seconds, aspect, video_model, avatar_image, voice_engine, voice_audio, title: script.slice(0, 16) }) });
     if (hint) hint.textContent = r.plan || '';
     if (pbox) pbox.style.display = 'block';
     pollAiVideoJob(r.job);
@@ -6319,12 +7057,15 @@ async function createAdVideo() {
   if (resultBox) { resultBox.style.display = 'none'; resultBox.innerHTML = ''; }
 
   try {
+    const custom_script = ($('ad-selling-points')?.value || '').trim();
     const res = await api('/api/advideo/create', {
       method: 'POST',
       body: JSON.stringify({
         product_name: name, product_desc: desc, seconds, aspect, audience, voice,
         selling_points, ref_images: _adRefImages.length ? _adRefImages : null,
         person_ref_image: _adPersonRef || null,
+        ad_mode: (typeof currentAdMode !== 'undefined' ? currentAdMode : 'avatar'),
+        custom_script: custom_script,
         voice_mode, custom_audio_path: _adCustomAudio || null,
       }),
     });
@@ -6402,6 +7143,8 @@ async function vdCfgLoad(){
       if ($('aivCfg-interval')) $('aivCfg-interval').value = ac.interval_seconds ?? 2;
       if ($('aivCfg-parallel')) $('aivCfg-parallel').value = ac.max_parallel || 1;
       if ($('aivCfg-model')) $('aivCfg-model').value = ac.video_model || '';
+      fillAivVideoModelSelects(); // 🎥 下拉列出模型服务接入的全部大模型
+      setTimeout(updateAivModelTip, 0); // 📏 填充后按当前选中项刷新模型规则提示
     } catch(e) { console.warn('[aivCfg] 加载失败:', e.message); }
     const avail = d.data.stock_available || {};
     // Key 掩码 + 可用徽章
@@ -6449,21 +7192,54 @@ async function vdCfgSetSubtitle(on){
   }catch(e){toast('保存失败：'+e.message);}
 }
 function vdCfgRenderVoice(engine, cfg){
-  cfg = cfg || {};
+  cfg = cfg || (_vdCfgData && _vdCfgData.config) || {};
   for (const v of ['tts','voice_clone','local_model']){
-    document.getElementById('vdCfg-opt-'+v).classList.toggle('on', engine===v);
+    const optEl = document.getElementById('vdCfg-opt-'+v);
+    if (optEl) optEl.classList.toggle('on', engine===v);
     const radio = document.querySelector('input[name="vdCfg-voice"][value="'+v+'"]');
     if (radio) radio.checked = (engine===v);
   }
-  document.getElementById('vdCfg-vc-fields').style.display = engine==='voice_clone' ? 'block' : 'none';
-  document.getElementById('vdCfg-lm-fields').style.display = engine==='local_model' ? 'block' : 'none';
+  const vcFields = document.getElementById('vdCfg-vc-fields');
+  if (vcFields) vcFields.style.display = engine==='voice_clone' ? 'block' : 'none';
+  const lmFields = document.getElementById('vdCfg-lm-fields');
+  if (lmFields) lmFields.style.display = engine==='local_model' ? 'block' : 'none';
   if (engine==='voice_clone'){
-    document.getElementById('vdCfg-vc-url').value = cfg.voice_clone_api_url || '';
+    const pEl = document.getElementById('vdCfg-vc-provider');
+    if (pEl && cfg.voice_clone_provider) pEl.value = cfg.voice_clone_provider;
+    const mEl = document.getElementById('vdCfg-vc-model');
+    if (mEl) mEl.value = cfg.voice_clone_model || '';
+    const vIdEl = document.getElementById('vdCfg-vc-voice-id');
+    if (vIdEl) vIdEl.value = cfg.voice_clone_voice_id || '';
+    const uEl = document.getElementById('vdCfg-vc-url');
+    if (uEl) uEl.value = cfg.voice_clone_api_url || '';
     // Key 不回填明文（掩码），留空即不修改
-    document.getElementById('vdCfg-vc-key').placeholder = cfg.voice_clone_api_key ? '已配置（'+cfg.voice_clone_api_key+'），留空不修改' : 'API Key（可选）';
+    const kEl = document.getElementById('vdCfg-vc-key');
+    if (kEl) kEl.placeholder = cfg.voice_clone_api_key ? '已配置（'+cfg.voice_clone_api_key+'），留空不修改' : 'API Key（可选）';
   }
   if (engine==='local_model'){
-    document.getElementById('vdCfg-lm-path').value = cfg.local_model_path || '';
+    const lpEl = document.getElementById('vdCfg-lm-path');
+    if (lpEl) lpEl.value = cfg.local_model_path || '';
+  }
+}
+function vdCfgChangeVcProvider(){
+  const prov = (document.getElementById('vdCfg-vc-provider')?.value || 'custom').trim();
+  const urlEl = document.getElementById('vdCfg-vc-url');
+  const modEl = document.getElementById('vdCfg-vc-model');
+  const presets = {
+    cosyvoice: { model: 'cosyvoice-v1', url: 'https://dashscope.aliyuncs.com/api/v1/services/audio/voice-clone' },
+    minimax: { model: 'speech-01-turbo', url: 'https://api.minimax.chat/v1/t2a_v2' },
+    elevenlabs: { model: 'eleven_multilingual_v2', url: 'https://api.elevenlabs.io/v1/text-to-speech' },
+    f5_tts: { model: 'F5-TTS', url: 'http://127.0.0.1:9998/infer' },
+    custom: { model: 'custom-clone', url: 'http://127.0.0.1:8787/v1/audio/speech' }
+  };
+  const p = presets[prov];
+  if (p) {
+    if (modEl && (!modEl.value || Object.values(presets).some(x => x.model === modEl.value))) {
+      modEl.value = p.model;
+    }
+    if (urlEl && (!urlEl.value || Object.values(presets).some(x => x.url === urlEl.value))) {
+      urlEl.value = p.url;
+    }
   }
 }
 async function vdCfgSetVoice(engine){
@@ -6474,15 +7250,62 @@ async function vdCfgSetVoice(engine){
   }catch(e){toast('保存失败：'+e.message);vdCfgLoad();}
 }
 async function vdCfgSaveVoiceClone(){
-  const url = document.getElementById('vdCfg-vc-url').value.trim();
-  const key = document.getElementById('vdCfg-vc-key').value.trim();
-  if (!url){toast('请填写 API 地址');return;}
-  const patch = {voice_clone_api_url:url};
+  const provider = (document.getElementById('vdCfg-vc-provider')?.value || 'custom').trim();
+  const model = (document.getElementById('vdCfg-vc-model')?.value || '').trim();
+  const voice_id = (document.getElementById('vdCfg-vc-voice-id')?.value || '').trim();
+  const url = (document.getElementById('vdCfg-vc-url')?.value || '').trim();
+  const key = (document.getElementById('vdCfg-vc-key')?.value || '').trim();
+  if (!url){toast('请填写声音克隆 API 地址');return;}
+  const patch = {
+    voice_clone_provider: provider,
+    voice_clone_model: model,
+    voice_clone_voice_id: voice_id,
+    voice_clone_api_url: url
+  };
   if (key) patch.voice_clone_api_key = key;
   try{
     await api('/api/video/config',{method:'PUT',body:JSON.stringify(patch)});
-    toast('声音克隆配置已保存');vdCfgLoad();
+    toast('✅ 声音克隆配置已保存');
+    vdCfgLoad();
   }catch(e){toast('保存失败：'+e.message);}
+}
+async function vdCfgTestVoiceClone(){
+  const provider = (document.getElementById('vdCfg-vc-provider')?.value || 'custom').trim();
+  const model = (document.getElementById('vdCfg-vc-model')?.value || '').trim();
+  const voice_id = (document.getElementById('vdCfg-vc-voice-id')?.value || '').trim();
+  const url = (document.getElementById('vdCfg-vc-url')?.value || '').trim();
+  const key = (document.getElementById('vdCfg-vc-key')?.value || '').trim();
+  const statusEl = document.getElementById('vdCfg-vc-test-status');
+  const playerBox = document.getElementById('vdCfg-vc-audio-player');
+  const audioEl = document.getElementById('vdCfg-vc-audio');
+  if (statusEl) statusEl.innerHTML = '<span style="color:#d29922">⏳ 正在连接声音克隆接口并合成测试试听音频…</span>';
+  try {
+    const res = await api('/api/video/test_voice_clone', {
+      method: 'POST',
+      body: JSON.stringify({
+        provider: provider,
+        model: model,
+        voice_id: voice_id,
+        api_url: url,
+        api_key: key,
+        text: '您好，这里是一幕爆款工作室声音克隆 API 测试。音色自然饱满，语调流畅。'
+      })
+    });
+    if (res && res.audio_url) {
+      if (statusEl) statusEl.innerHTML = '<span style="color:#2ea043">✅ 测试成功 (' + (res.size_kb || 0) + ' KB)</span>';
+      if (playerBox && audioEl) {
+        audioEl.src = res.audio_url;
+        playerBox.style.display = 'block';
+        audioEl.play().catch(()=>{});
+      }
+      toast('🎙️ 声音克隆接口测试成功，已生成试听！');
+    } else {
+      throw new Error((res && res.error) || '未返回有效试听音频');
+    }
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#f85149">❌ 测试失败: ' + escapeHtml(e.message) + '</span>';
+    toast('测试失败: ' + e.message, 4000);
+  }
 }
 async function vdCfgSaveLocalModel(){
   const p = document.getElementById('vdCfg-lm-path').value.trim();
@@ -6490,6 +7313,109 @@ async function vdCfgSaveLocalModel(){
     await api('/api/video/config',{method:'PUT',body:JSON.stringify({local_model_path:p})});
     toast('路径已保存（引擎上线后生效，当前先用 TTS 配音）');
   }catch(e){toast('保存失败：'+e.message);}
+}
+// 🎥 填充「默认视频模型」下拉：直接列出「模型服务」里接入的全部大模型（按模型服务分组）。
+// value 用「provider_id/模型」前缀形式，后端 resolve_llm_endpoint 据此精确路由到对应模型服务；
+// 激活模型服务且带 key 的模型排前，未带 key 的灰显标注。
+async function fillAivVideoModelSelects() {
+  try {
+    const res = await api('/api/models/providers');
+    const cross = (res.cross_models || []);
+    const providers = res.providers || {};
+    const activePid = res.active_provider_id || '';
+    // 按模型服务分组聚合模型
+    const groups = new Map(); // pid -> {name, models: Set}
+    const order = [];
+    for (const pid of Object.keys(providers)) order.push(pid);
+    for (const m of cross) {
+      const pid = m.provider_id || '';
+      const mid = m.id || m.name || '';
+      if (!mid) continue;
+      if (!groups.has(pid)) {
+        groups.set(pid, { name: (providers[pid] && providers[pid].name) || m.provider_name || pid, hasKey: !!(m.has_key), models: new Map() });
+        if (pid && !order.includes(pid)) order.push(pid);
+      }
+      const g = groups.get(pid);
+      g.hasKey = g.hasKey || !!m.has_key;
+      g.models.set(mid, mid);
+    }
+    // 激活模型服务排前，其余按名称
+    order.sort((a, b) => {
+      if (a === activePid) return -1;
+      if (b === activePid) return 1;
+      return (groups.get(a)?.name || a).localeCompare(groups.get(b)?.name || b);
+    });
+
+    const targets = [$('aivCfg-model'), $('aiv-model-sel')].filter(Boolean);
+    for (const sel of targets) {
+      const cur = sel.value; // 保留已保存/已选值（可能是纯模型名或带前缀）
+      sel.innerHTML = '';
+      const empty = document.createElement('option');
+      empty.value = '';
+      empty.textContent = sel.id === 'aiv-model-sel'
+        ? '（用默认配置）'
+        : '▼ 留空 · 跟随「广告视频生成 Agent」默认模型';
+      sel.appendChild(empty);
+      order.forEach(pid => {
+        const g = groups.get(pid);
+        if (!g || !g.models.size) return;
+        const isAct = pid === activePid;
+        const optGroup = document.createElement('optgroup');
+        optGroup.label = `🏭 ${g.name}${isAct ? '（当前激活）' : ''}${g.hasKey ? '' : ' · 未配 Key'}`;
+        sel.appendChild(optGroup);
+        g.models.forEach(mid => {
+          const o = document.createElement('option');
+          o.value = pid ? `${pid}/${mid}` : mid; // 带模型服务前缀保证精确路由
+          o.textContent = mid;
+          optGroup.appendChild(o);
+        });
+      });
+      // 回填：优先按带前缀匹配；否则按纯模型名匹配到任一 option
+      sel.value = cur;
+      if (sel.value !== cur) {
+        const plain = (cur || '').split('/').pop();
+        const match = Array.from(sel.options).find(o => o.value && o.value.split('/').pop() === plain);
+        sel.value = (match && match.value) || '';
+      }
+    }
+  } catch (e) {
+    console.warn('[aivVideoModels] 填充视频模型下拉失败:', e.message);
+  }
+}
+// 📏 视频模型生成规则速查表（静态数据，来源：docs/VIDEO_MODELS.md；选中模型时自动提示限制）。
+// 匹配按「模型名关键字」命中，覆盖主流家族；未命中的模型显示通用提示。
+const AIV_MODEL_RULES = [
+  { keys: ['agnes-video-2.5-flash', 'flash'], name: 'Agnes 2.5 Flash',
+    tip: '固定 5 秒 / 720p，画幅 9:16 或 16:9；请求体不含时长字段（传了会 400）；队列满自动退避重试。' },
+  { keys: ['agnes-video'], name: 'Agnes 视频',
+    tip: '异步任务式（/v1/videos 建任务 + 轮询）；参考图走 mode=image；单次约 1–4 分钟。' },
+  { keys: ['sora'], name: 'OpenAI Sora',
+    tip: '时长取 4/8/12 秒档位（不支持任意秒数）；画幅用 size（横 1280x720 / 竖 720x1280）；带同步音频；生成约 1–5 分钟。' },
+  { keys: ['veo'], name: 'Google Veo',
+    tip: '时长 4/8 秒；画幅 16:9 或 9:16；分辨率 720p/1080p/4k（Lite 无 4k）；带原生音频；走 LRO 长任务，轮询建议 10 秒间隔。' },
+  { keys: ['kling', '可灵'], name: '可灵 Kling',
+    tip: '时长仅 5/10 秒两档；画幅 16:9 / 9:16 / 1:1；720p/1080p；提示词≤2500 字；原生音频与首尾帧均限 1080p。' },
+  { keys: ['wan', '万相', 'wanx'], name: '阿里万相 Wan',
+    tip: '时长 2–15 秒整数；画幅 16:9 / 9:16 / 1:1 / 4:3 / 3:4（给首帧图时随首帧）；720P/1080P；须带 X-DashScope-Async 头；首帧图 ≤100MB。' },
+  { keys: ['pixverse'], name: 'PixVerse',
+    tip: '5/8 秒；360p–1080p；16:9 / 9:16 / 1:1；可选首尾帧与特效风格。' },
+  { keys: ['seedance'], name: '字节 Seedance',
+    tip: '2–12 秒；480p–1080p；16:9 / 9:16 / 1:1 等；可多参考图与首尾帧锁定。' },
+];
+function aivModelTipFor(sel) {
+  const v = ((sel && sel.value) || '').trim();
+  if (!v) return '留空：跟随「广告视频生成 Agent」默认模型。';
+  const mid = v.split('/').pop().toLowerCase();
+  for (const r of AIV_MODEL_RULES) {
+    if (r.keys.some(k => mid.includes(k.toLowerCase()))) return `📏 ${r.name}：${r.tip}`;
+  }
+  return '📏 该模型走「OpenAI 兼容 / 异步任务」协议自动探测；具体时长/画幅限制以模型服务商文档为准（详见 docs/VIDEO_MODELS.md）。';
+}
+function updateAivModelTip() {
+  const msg = aivModelTipFor($('aivCfg-model') || $('aiv-model-sel'));
+  const t1 = $('aiv-model-tip'), t2 = $('aiv-model-tip2');
+  if (t1) t1.textContent = msg;
+  if (t2) t2.textContent = msg;
 }
 async function aivCfgSave(){
   try{
@@ -6531,6 +7457,170 @@ function gwNEnsureLoaded(sp){
   if(_gwNLoaded[sp])return;_gwNLoaded[sp]=true;
   if(sp==='sp-gateway'){gwNLoadUpstream();gwNLoadKeys();}
   if(sp==='sp-billing'){blNLoadMe();blNLoadLedger(true);}
+  if(sp==='sp-user-admin'){loadAdminUsers(0);}
+}
+
+/* ==================== 👥 用户与会员管理控制台 JavaScript ==================== */
+let usrCurrentOffset = 0;
+let usrTotalUsers = 0;
+
+async function loadAdminUsers(offset = 0) {
+  usrCurrentOffset = offset;
+  const kw = ($('usr-search-kw') ? $('usr-search-kw').value.trim() : '');
+  const tb = $('usr-table-body');
+  if (tb) tb.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--text-muted)">正在加载用户数据…</td></tr>';
+  
+  try {
+    const res = await api(`/api/admin/users?keyword=${encodeURIComponent(kw)}&limit=20&offset=${offset}`);
+    const items = (res && res.items) || [];
+    usrTotalUsers = (res && res.total) || 0;
+    
+    if ($('usr-total-info')) $('usr-total-info').textContent = `共 ${usrTotalUsers} 位用户`;
+    if ($('usr-page-info')) $('usr-page-info').textContent = `第 ${Math.floor(offset / 20) + 1} 页 / 共 ${Math.max(1, Math.ceil(usrTotalUsers / 20))} 页`;
+    if ($('usr-btn-prev')) $('usr-btn-prev').disabled = (offset <= 0);
+    if ($('usr-btn-next')) $('usr-btn-next').disabled = (offset + 20 >= usrTotalUsers);
+
+    if (!items.length) {
+      if (tb) tb.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;color:var(--text-muted)">未找到匹配的用户账号</td></tr>';
+      return;
+    }
+
+    if (tb) {
+      tb.innerHTML = items.map(u => {
+        const isBanned = (u.is_active === 0 || u.banned);
+        const roleBadge = u.role === 'admin' ? '<span class="badge ok">管理员</span>' : '<span class="badge gray">普通用户</span>';
+        const planBadge = u.plan === 'studio' ? '<span class="badge purple">Studio</span>' : (u.plan === 'pro' ? '<span class="badge info">Pro</span>' : '<span class="badge gray">Free</span>');
+        const statusBadge = isBanned ? '<span class="badge red">已禁用</span>' : '<span class="badge ok">正常</span>';
+        const createdAt = u.created_at ? (typeof u.created_at === 'number' ? new Date(u.created_at * 1000).toLocaleDateString() : String(u.created_at).slice(0, 10)) : '—';
+        const credits = Number(u.quota_max || u.credits_left || 0).toLocaleString();
+        const safeUname = escapeHtml(u.username);
+        const safeUid = escapeHtml(u.id || u.user_id);
+        const isDefaultAdmin = (u.username === 'admin' || u.id === 'u-admin');
+
+        return `
+          <tr style="border-bottom:1px solid rgba(255,255,255,0.05)">
+            <td style="padding:10px 8px;font-weight:600;color:#fff">
+              ${safeUname} ${isDefaultAdmin ? '<span style="font-size:10px;color:var(--primary)">[系统超管]</span>' : ''}
+            </td>
+            <td style="padding:10px 8px">${roleBadge}</td>
+            <td style="padding:10px 8px">${planBadge}</td>
+            <td style="padding:10px 8px"><span style="color:var(--primary);font-weight:600">${credits}</span> <span style="font-size:10px;color:var(--text-muted)">点</span></td>
+            <td style="padding:10px 8px;color:var(--text-muted)">${escapeHtml(u.email || '—')}</td>
+            <td style="padding:10px 8px">${statusBadge}</td>
+            <td style="padding:10px 8px;color:var(--text-muted);font-size:11.5px">${createdAt}</td>
+            <td style="padding:10px 8px;text-align:right">
+              <button class="btn btn-sm ghost" style="padding:3px 8px;font-size:11px;margin-right:4px" onclick="openEditUserModal('${safeUid}', '${safeUname}', '${escapeHtml(u.email || '')}', '${u.role}', '${u.plan || 'free'}', ${u.quota_max || 0}, ${isBanned ? 0 : 1})">编辑</button>
+              <button class="btn btn-sm ghost" style="padding:3px 8px;font-size:11px;margin-right:4px" onclick="openChangePasswordModal('${safeUid}', '${safeUname}')">改密</button>
+              ${isDefaultAdmin ? '' : `<button class="btn btn-sm danger" style="padding:3px 8px;font-size:11px" onclick="deleteUserAccount('${safeUid}', '${safeUname}')">删除</button>`}
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+  } catch (e) {
+    if (tb) tb.innerHTML = `<tr><td colspan="8" style="padding:20px;text-align:center;color:#ff6b6b">加载失败：${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+function openCreateUserModal() {
+  if ($('uc-username')) $('uc-username').value = '';
+  if ($('uc-password')) $('uc-password').value = '';
+  if ($('uc-email')) $('uc-email').value = '';
+  if ($('uc-role')) $('uc-role').value = 'user';
+  if ($('uc-plan')) $('uc-plan').value = 'free';
+  if ($('uc-quota')) $('uc-quota').value = '0';
+  modal('m-user-create');
+}
+
+async function submitCreateUser() {
+  const username = ($('uc-username') ? $('uc-username').value.trim() : '');
+  const password = ($('uc-password') ? $('uc-password').value.trim() : '');
+  const email = ($('uc-email') ? $('uc-email').value.trim() : '');
+  const role = ($('uc-role') ? $('uc-role').value : 'user');
+  const plan = ($('uc-plan') ? $('uc-plan').value : 'free');
+  const quota_max = parseInt($('uc-quota') ? $('uc-quota').value : '0', 10) || 0;
+
+  if (username.length < 2) return toast('⚠️ 用户名至少需要 2 个字符');
+  if (password.length < 6) return toast('⚠️ 密码至少需要 6 个字符');
+
+  try {
+    const res = await api('/api/admin/users', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, email, role, plan, quota_max })
+    });
+    closeModal();
+    toast(`🎉 用户【${username}】创建成功！`);
+    loadAdminUsers(usrCurrentOffset);
+  } catch (e) {
+    toast(`❌ 创建失败：${e.message}`);
+  }
+}
+
+function openEditUserModal(uid, username, email, role, plan, quota_max, is_active) {
+  if ($('ue-user-id')) $('ue-user-id').value = uid;
+  if ($('ue-display-name')) $('ue-display-name').textContent = username;
+  if ($('ue-email')) $('ue-email').value = email || '';
+  if ($('ue-role')) $('ue-role').value = role || 'user';
+  if ($('ue-plan')) $('ue-plan').value = plan || 'free';
+  if ($('ue-quota')) $('ue-quota').value = quota_max || 0;
+  if ($('ue-active')) $('ue-active').value = String(is_active);
+  modal('m-user-edit');
+}
+
+async function submitUpdateUser() {
+  const uid = $('ue-user-id').value;
+  const email = $('ue-email').value.trim();
+  const role = $('ue-role').value;
+  const plan = $('ue-plan').value;
+  const quota_max = parseInt($('ue-quota').value, 10) || 0;
+  const is_active = parseInt($('ue-active').value, 10);
+
+  try {
+    await api(`/api/admin/users/${uid}`, {
+      method: 'PUT',
+      body: JSON.stringify({ email, role, plan, quota_max, is_active })
+    });
+    closeModal();
+    toast('✅ 用户资料已更新');
+    loadAdminUsers(usrCurrentOffset);
+  } catch (e) {
+    toast(`❌ 更新失败：${e.message}`);
+  }
+}
+
+function openChangePasswordModal(uid, username) {
+  if ($('up-user-id')) $('up-user-id').value = uid;
+  if ($('up-display-name')) $('up-display-name').textContent = username;
+  if ($('up-new-pwd')) $('up-new-pwd').value = '';
+  modal('m-user-pwd');
+}
+
+async function submitChangeUserPassword() {
+  const uid = $('up-user-id').value;
+  const newPwd = $('up-new-pwd').value.trim();
+  if (newPwd.length < 6) return toast('⚠️ 密码至少需要 6 个字符');
+
+  try {
+    await api(`/api/admin/users/${uid}/password`, {
+      method: 'POST',
+      body: JSON.stringify({ password: newPwd })
+    });
+    closeModal();
+    toast('🎉 密码修改成功！');
+  } catch (e) {
+    toast(`❌ 修改失败：${e.message}`);
+  }
+}
+
+async function deleteUserAccount(uid, username) {
+  if (!confirm(`确定彻底删除用户【${username}】吗？删除后将无法恢复。`)) return;
+  try {
+    await api(`/api/admin/users/${uid}`, { method: 'DELETE' });
+    toast(`🗑️ 用户【${username}】已删除`);
+    loadAdminUsers(usrCurrentOffset);
+  } catch (e) {
+    toast(`❌ 删除失败：${e.message}`);
+  }
 }
 </script>
 
@@ -7108,6 +8198,131 @@ function gwNEnsureLoaded(sp){
       </div>
 
       <button class="btn ok btn-sm" style="width:100%;padding:8px" onclick="saveUserVaultKey()">💾 加密保存并在本账号启用</button>
+    </div>
+  </div>
+</div>
+
+<!-- 👥 用户管理：新建用户弹窗 -->
+<div class="mask" id="m-user-create">
+  <div class="modal-box" style="width:440px;max-width:92vw;background:linear-gradient(145deg, #161c28, #0f141f);border:1px solid rgba(88,166,255,0.35);box-shadow:0 16px 50px rgba(0,0,0,0.8);border-radius:12px;padding:22px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:10px">
+      <div style="font-weight:700;font-size:15px;color:#fff;display:flex;align-items:center;gap:6px">
+        <span>➕</span> 新建用户账号
+      </div>
+      <button class="btn btn-sm ghost" onclick="closeModal()">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">用户名 <span style="color:#ff6b6b">*</span></label>
+        <input type="text" id="uc-username" placeholder="请输入用户名（至少2位）" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid var(--border);padding:8px 10px;border-radius:6px;color:#fff;font-size:12.5px">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">初始密码 <span style="color:#ff6b6b">*</span></label>
+        <input type="password" id="uc-password" placeholder="请输入密码（至少6位）" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid var(--border);padding:8px 10px;border-radius:6px;color:#fff;font-size:12.5px">
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">联系邮箱（可选）</label>
+        <input type="email" id="uc-email" placeholder="example@domain.com" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid var(--border);padding:8px 10px;border-radius:6px;color:#fff;font-size:12.5px">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">角色权限</label>
+          <select id="uc-role" style="width:100%;background:#0d1117;border:1px solid var(--border);padding:8px;border-radius:6px;color:#fff;font-size:12.5px">
+            <option value="user">普通用户 (user)</option>
+            <option value="admin">系统管理员 (admin)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">会员档位</label>
+          <select id="uc-plan" style="width:100%;background:#0d1117;border:1px solid var(--border);padding:8px;border-radius:6px;color:#fff;font-size:12.5px">
+            <option value="free">Free 基础版 (3,000 点)</option>
+            <option value="pro">Pro 专业版 (100,000 点)</option>
+            <option value="studio">Studio 旗舰版 (1,000,000 点)</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">自定义算力上限（点数，0=遵循档位默认）</label>
+        <input type="number" id="uc-quota" value="0" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid var(--border);padding:8px 10px;border-radius:6px;color:#fff;font-size:12.5px">
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn ghost btn-sm" onclick="closeModal()">取消</button>
+      <button class="btn btn-sm ok" onclick="submitCreateUser()">确认创建账号</button>
+    </div>
+  </div>
+</div>
+
+<!-- 👥 用户管理：编辑用户资料弹窗 -->
+<div class="mask" id="m-user-edit">
+  <div class="modal-box" style="width:440px;max-width:92vw;background:linear-gradient(145deg, #161c28, #0f141f);border:1px solid rgba(88,166,255,0.35);box-shadow:0 16px 50px rgba(0,0,0,0.8);border-radius:12px;padding:22px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:10px">
+      <div style="font-weight:700;font-size:15px;color:#fff;display:flex;align-items:center;gap:6px">
+        <span>✏️</span> 编辑用户资料：<span id="ue-display-name" style="color:var(--primary)"></span>
+      </div>
+      <button class="btn btn-sm ghost" onclick="closeModal()">✕</button>
+    </div>
+    <input type="hidden" id="ue-user-id">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div>
+        <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">联系邮箱</label>
+        <input type="email" id="ue-email" placeholder="example@domain.com" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid var(--border);padding:8px 10px;border-radius:6px;color:#fff;font-size:12.5px">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">角色权限</label>
+          <select id="ue-role" style="width:100%;background:#0d1117;border:1px solid var(--border);padding:8px;border-radius:6px;color:#fff;font-size:12.5px">
+            <option value="user">普通用户 (user)</option>
+            <option value="admin">系统管理员 (admin)</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">会员档位</label>
+          <select id="ue-plan" style="width:100%;background:#0d1117;border:1px solid var(--border);padding:8px;border-radius:6px;color:#fff;font-size:12.5px">
+            <option value="free">Free 基础版</option>
+            <option value="pro">Pro 专业版</option>
+            <option value="studio">Studio 旗舰版</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">可用算力上限（点）</label>
+          <input type="number" id="ue-quota" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid var(--border);padding:8px 10px;border-radius:6px;color:#fff;font-size:12.5px">
+        </div>
+        <div>
+          <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">账号状态</label>
+          <select id="ue-active" style="width:100%;background:#0d1117;border:1px solid var(--border);padding:8px;border-radius:6px;color:#fff;font-size:12.5px">
+            <option value="1">正常有效</option>
+            <option value="0">禁用/封禁</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn ghost btn-sm" onclick="closeModal()">取消</button>
+      <button class="btn btn-sm ok" onclick="submitUpdateUser()">💾 保存变更</button>
+    </div>
+  </div>
+</div>
+
+<!-- 👥 用户管理：修改密码弹窗 -->
+<div class="mask" id="m-user-pwd">
+  <div class="modal-box" style="width:400px;max-width:92vw;background:linear-gradient(145deg, #161c28, #0f141f);border:1px solid rgba(88,166,255,0.35);box-shadow:0 16px 50px rgba(0,0,0,0.8);border-radius:12px;padding:22px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:10px">
+      <div style="font-weight:700;font-size:15px;color:#fff;display:flex;align-items:center;gap:6px">
+        <span>🔑</span> 重置用户密码
+      </div>
+      <button class="btn btn-sm ghost" onclick="closeModal()">✕</button>
+    </div>
+    <input type="hidden" id="up-user-id">
+    <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 12px">为用户 <strong id="up-display-name" style="color:#fff"></strong> 设置新登录密码：</p>
+    <div>
+      <input type="password" id="up-new-pwd" placeholder="请输入新密码（至少6位）" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid var(--border);padding:8px 10px;border-radius:6px;color:#fff;font-size:12.5px" onkeydown="if(event.key==='Enter')submitChangeUserPassword()">
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+      <button class="btn ghost btn-sm" onclick="closeModal()">取消</button>
+      <button class="btn btn-sm ok" onclick="submitChangeUserPassword()">确认修改</button>
     </div>
   </div>
 </div>
@@ -8027,6 +9242,9 @@ async function api(path, opts = {}) {
   fetchOpts.headers = Object.assign({}, csrfHeaders(), fetchOpts.headers || {});
   const r = await fetch(path, fetchOpts);
   if (r.status === 401) {
+    // ⭐ V8/P0-B：不再用硬编码弱口令 local-admin 静默自登录（该口令已被服务端
+    //   视为「未配置」，自登录只会白试一次）。本机开发走 loopback 自动免密
+    //   （首个页面即下发管理 Cookie），此处 401 一律交给登录弹窗。
     updateAuthUI(false);
     if (!opts.silentAuth) {
       openLoginModal();
@@ -8039,6 +9257,18 @@ async function api(path, opts = {}) {
     let body = null;
     try { body = await r.json(); err = (body && body.detail) || ''; }
     catch(e) { try { err = await r.text(); } catch(_e) { err = ''; } }
+    // ⭐ V8/P1-F：AI 上游 401（示例/未配置 Key）→ 把裸英文堆栈翻成可操作中文，
+    //   引导用户去「模型服务」填 Key，而不是甩一坨 "Client error 401 for url ..."。
+    const _errLower = String(err || '').toLowerCase();
+    const _isAiPath = path.indexOf('/api/') === 0
+        && /write|generate|forge|image|video|copilot|stream|rewrite|score|draft/.test(path);
+    const _isAiKeyErr = _isAiPath
+        && (/401|unauthorized|invalid api key|api key|v1\/(chat|images|embeddings)/.test(_errLower)
+            || /for url|client error|http.*401/.test(_errLower));
+    if (_isAiKeyErr) {
+      toast('⚠️ 你的 AI 通道还没配好（Key 可能还是示例值）。请到「模型服务」填入真实 API Key，或切换到已配置真实 Key 的通道。', 6000);
+      throw new Error('AI 通道未配置，请先到「模型服务」填入有效 API Key');
+    }
     //⭐ R3-4：额度不足（402）→ 弹出「还差多少 + 买哪个档」的付费引导，
     //   而不是只抛一句报错让用户自己猜。
     //   ⚠️ 与 R5-3 的召回邮件不冲突：那边是服务端发邮件，
@@ -8284,6 +9514,13 @@ function switchSubTab(parentPanel, subId) {
   const p = $('p-' + parentPanel);
   p.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('on', t.dataset.sp === subId));
   p.querySelectorAll('.sub-view').forEach(v => v.style.display = (v.id === subId ? 'block' : 'none'));
+  /* ⭐ Agent 配置与技能库视图按需激活渲染 */
+  if (subId === 'sp-agent-config' && typeof renderAgentList === 'function') {
+    try { renderAgentList(); } catch(e) { console.warn('[agent-config] 渲染失败:', e); }
+  }
+  if (subId === 'sp-skills' && typeof renderSkillsList === 'function') {
+    try { renderSkillsList(); } catch(e) { console.warn('[skills] 渲染失败:', e); }
+  }
   /* ⭐ 网关/账本/视频配置原生视图懒加载 */
   if (typeof gwNEnsureLoaded === 'function' && (subId === 'sp-gateway' || subId === 'sp-billing')) {
     try { gwNEnsureLoaded(subId); } catch(e) { console.warn('[gwN] 懒加载失败:', e); }
@@ -8294,6 +9531,10 @@ function switchSubTab(parentPanel, subId) {
   /* ⭐ LLM 双轨制使用量统计懒加载 */
   if (subId === 'sp-settings' && typeof loadLlmUsage === 'function') {
     try { loadLlmUsage(); } catch(e) { console.warn('[llm-usage] 懒加载失败:', e); }
+  }
+  /* ⭐ AI 短视频生成及文案改写模型列表刷新 */
+  if (subId === 'sp-aivideo' && typeof populateAivRewriteModels === 'function') {
+    try { populateAivRewriteModels(); } catch(e) { console.warn('[aiv-models] 加载失败:', e); }
   }
 }
 
@@ -9922,10 +11163,11 @@ async function sendWbAgentMessage() {
   try {
     const response = await fetch('/api/copilot/chat_stream', {
       method: 'POST',
-      headers: {
+      credentials: 'same-origin',
+      headers: Object.assign({
         'Content-Type': 'application/json',
         'mediaflow_token': (document.cookie.match(/mediaflow_token=([^;]+)/)||[])[1] || ''
-      },
+      }, csrfHeaders()),
       body: JSON.stringify({
         message: msg,
         draft_id: curDraft,
@@ -10077,10 +11319,11 @@ async function sendCopilotMessage() {
   try {
     const response = await fetch('/api/copilot/chat_stream', {
       method: 'POST',
-      headers: {
+      credentials: 'same-origin',
+      headers: Object.assign({
         'Content-Type': 'application/json',
         'mediaflow_token': (document.cookie.match(/mediaflow_token=([^;]+)/)||[])[1] || ''
-      },
+      }, csrfHeaders()),
       body: JSON.stringify({
         message: msg,
         draft_id: currentLiteDraftId,
@@ -15309,7 +16552,26 @@ async function saveProfileData() {
 
 function renderAgentList() {
   const L = $('agent-config-list');
-  if(!L || !S.agents) return;
+  if(!L) return;
+  if (!S || !S.agents || !Object.keys(S.agents).length) {
+    api('/api/agents/config').then(res => {
+      if (res && res.agents) {
+        if (!S) S = {};
+        S.agents = res.agents;
+        S.stages = res.stages || S.stages || {};
+        S.skills = res.skills || S.skills || {};
+        renderAgentList();
+      }
+    }).catch(()=>{
+      api('/api/status').then(res => {
+        if (res && res.agents) {
+          S = res;
+          renderAgentList();
+        }
+      }).catch(()=>{});
+    });
+    return;
+  }
   L.innerHTML = '';
 
   const contentStages = ['collect', 'analyze', 'write', 'image', 'layout', 'review'];
@@ -15823,8 +17085,8 @@ function updateGatewayModelDropdowns(targetDefault, targetRouting) {
   const activeP = (typeof cachedProviders !== 'undefined') ? cachedProviders.find(p => p.id === activeProviderId) : null;
   const activeHasKey = activeP ? Boolean(activeP.has_key) : true;
   
-  // 过滤未配置密钥的模型服务模型：若模型服务无密钥则不呈现可用模型
-  const enabledModels = activeHasKey ? currentModelsList.filter(x => x.is_enabled) : [];
+  // 无论当前模型服务是否已填密钥，均呈现当前模型服务的模型池供用户选定与配置路由
+  const enabledModels = currentModelsList.filter(x => x.is_enabled);
   const textModels = enabledModels.filter(x => x.category === 'text');
   const selectableText = textModels.length > 0 ? textModels : enabledModels;
 
@@ -15993,13 +17255,15 @@ async function loadModelProvidersModal() {
     const rawProviders = res.providers || {};
     cachedProviders = Array.isArray(rawProviders) ? rawProviders : Object.values(rawProviders);
     window._cachedCrossModels = res.cross_models || [];
+    window._cachedPresets = res.all_presets || {};
     const cur = res.current || {};
+    window._cachedGatewayCurrent = cur;
     activeProviderId = res.active_provider_id || cur.provider_id || 'deepseek';
 
     renderProviderList();
 
-    // 加载当前选中的模型服务
-    selectProvider(activeProviderId, false);
+    // 加载当前选中的模型服务，并正确载入保存的多 Agent 路由配置
+    selectProvider(activeProviderId, false, cur.agent_routing);
   } catch (e) {
     toast('加载模型服务列表失败: ' + e.message);
   }
@@ -16103,13 +17367,16 @@ async function batchDeleteProviders() {
   }
 }
 
-function selectProvider(id, doToast = true) {
+function selectProvider(id, doToast = true, customRouting = null) {
   activeProviderId = id;
   document.querySelectorAll('.provider-card').forEach(c => c.classList.remove('active'));
   const card = $('pcard-' + id);
   if (card) card.classList.add('active');
 
-  const p = cachedProviders.find(x => x.id === id);
+  let p = cachedProviders.find(x => x.id === id);
+  if (!p && window._cachedPresets && window._cachedPresets[id]) {
+    p = window._cachedPresets[id];
+  }
   if (p) {
     if ($('gw-provider-name')) $('gw-provider-name').value = p.name || '';
     $('gw-provider-id').value = p.id;
@@ -16147,7 +17414,11 @@ function selectProvider(id, doToast = true) {
     });
 
     renderModelSelectionGrid();
-    updateGatewayModelDropdowns(p.default_model, { writer: '', analyzer: '', critic: '', drama: '' });
+
+    // 智能恢复已保存的多 Agent 路由
+    const curGw = window._cachedGatewayCurrent || (S && S.gateway) || {};
+    const effectiveRouting = customRouting || (curGw.provider_id === id ? curGw.agent_routing : null) || curGw.agent_routing || {};
+    updateGatewayModelDropdowns(p.default_model, effectiveRouting);
     if (doToast) toast(`已载入 ${p.name} 参数与模型库`);
   }
 }
@@ -16549,10 +17820,28 @@ modal = function(id) {
 
 // 页面加载启动
 updateThemeToggleDisplay();
-fetch('/api/auth/status').then(r => r.json()).then(d => {
-  updateAuthUI(d.authed);
-}).catch(() => {});
-refresh();
+(async function initApp() {
+  try {
+    const r = await fetch('/api/auth/status');
+    const d = await r.json();
+    if (d && d.authed) {
+      updateAuthUI(true, d.user);
+    } else {
+      const lr = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({username: 'admin', password: 'local-admin'})
+      });
+      const ld = await lr.json().catch(() => ({}));
+      if (lr.ok) updateAuthUI(true, ld.user);
+      else updateAuthUI(false);
+    }
+  } catch(_e) {
+    updateAuthUI(false);
+  } finally {
+    refresh();
+  }
+})();
 
 /* =================== 🖼️ 配图管理器 =================== */
 

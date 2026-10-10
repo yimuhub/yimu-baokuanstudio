@@ -5,7 +5,9 @@
 set -u
 cd "$(dirname "$0")"
 
-if command -v python3 >/dev/null 2>&1; then
+if [ -x ".venv/bin/python" ]; then
+    PY=".venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
     PY=python3
 else
     PY=python
@@ -14,15 +16,15 @@ fi
 PASS=0
 
 run_step() {
-    local name="$1"
+    local step_name="$1"
     shift
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "▶ $name"
+    echo "▶ $step_name"
     if "$PY" "$@"; then
-        echo "✅ $name：通过"
+        echo "✅ ${step_name}: 通过"
         PASS=$((PASS + 1))
     else
-        echo "❌ $name：失败，已停止后续步骤。请修复后重新运行 bash ci.sh。"
+        echo "❌ ${step_name}: 失败，已停止后续步骤。请修复后重新运行 bash ci.sh。"
         exit 1
     fi
 }

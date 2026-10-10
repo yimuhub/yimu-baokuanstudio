@@ -34,7 +34,7 @@ COPILOT_SYSTEM_PROMPT = """你是一幕·YIMU 爆款创作工作室的专属【�
 """
 
 
-def extract_xhs_card_selling_points(title: str, body_md: str, model: Optional[str] = None) -> list[tuple[str, list[str]]]:
+def extract_xhs_card_selling_points(title: str, body_md: str, model: Optional[str] = None, user_id: Optional[str] = None) -> list[tuple[str, list[str]]]:
     """Agent 深度通读全文，智能提炼 4 幕小红书爆款卡片核心卖点矩阵（拒绝无脑截取原文长句）。"""
     prompt = (
         f"你是一位拥有百万粉丝的小红书爆款视觉卡片策划专家。\n"

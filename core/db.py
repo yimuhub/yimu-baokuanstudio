@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 """SQLite 存储层：选题 / 草稿 / 发布任务。"""
 import json
+import shutil
 import sqlite3
 import time
 import uuid
@@ -325,9 +326,52 @@ def ensure_users_columns(c: sqlite3.Connection) -> None:
         pass
 
 
+def _recover_corrupt_database(path: Path, err_msg: str) -> None:
+    """自动清理并修复损坏的 SQLite 数据库文件及 WAL 临时日志。"""
+    ts = int(time.time())
+    bak_path = path.with_name(f"{path.stem}.corrupt.{ts}.db")
+    try:
+        if path.exists():
+            shutil.move(str(path), str(bak_path))
+            print(f"⚠️ [SQLite自愈] 检测到数据库损坏 ({err_msg})，已将坏库备份至 {bak_path.name}")
+    except Exception as move_err:
+        print(f"⚠️ [SQLite自愈] 备份坏库文件失败: {move_err}")
+    # 彻底移除残留的 WAL 和共享内存锁文件
+    for ext in ("-wal", "-shm", "-journal"):
+        side_file = Path(str(path) + ext)
+        if side_file.exists():
+            try:
+                side_file.unlink(missing_ok=True)
+            except Exception:
+                pass
+
+
+def _connect_sqlite(path: Path) -> sqlite3.Connection:
+    """创建健壮的 SQLite 连接（超时 30 秒、WAL 模式、忙时等待重试、支持 malformed 自愈）。"""
+    try:
+        c = sqlite3.connect(path, timeout=30.0, check_same_thread=False)
+        c.execute("PRAGMA journal_mode=WAL;")
+        c.execute("PRAGMA synchronous=NORMAL;")
+        c.execute("PRAGMA busy_timeout=30000;")
+        # 完整性校验抽检
+        c.execute("SELECT 1 FROM sqlite_master LIMIT 1;").fetchone()
+        return c
+    except sqlite3.DatabaseError as e:
+        err_str = str(e).lower()
+        if any(keyword in err_str for keyword in ("malformed", "disk image", "not a database", "corrupt")):
+            _recover_corrupt_database(path, str(e))
+            # 重新建立全新的健康连接
+            c = sqlite3.connect(path, timeout=30.0, check_same_thread=False)
+            c.execute("PRAGMA journal_mode=WAL;")
+            c.execute("PRAGMA synchronous=NORMAL;")
+            c.execute("PRAGMA busy_timeout=30000;")
+            return c
+        raise
+
+
 def conn() -> sqlite3.Connection:
     DATA.mkdir(parents=True, exist_ok=True)
-    c = sqlite3.connect(DB_PATH)
+    c = _connect_sqlite(DB_PATH)
     c.row_factory = sqlite3.Row
     c.executescript(SCHEMA)
     # 旧库迁移：补列

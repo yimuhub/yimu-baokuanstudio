@@ -57,7 +57,7 @@ def ffmpeg_install_hint() -> str:
 def _subprocess_kwargs() -> dict:
     """跨平台 subprocess 参数：Windows 下不弹黑窗口。"""
     if platform.system() == "Windows":
-        return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0)}
+        return {"creationflags": getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)}
     return {}
 
 
@@ -77,55 +77,136 @@ def _run(cmd: list[str], timeout: int = 600) -> subprocess.CompletedProcess:
 
 
 def _probe_duration(path: Path) -> float:
-    """用 ffprobe 读媒体时长（秒），失败返回 0。"""
-    if not _FFPROBE:
-        return 0.0
-    try:
-        r = subprocess.run(
-            [_FFPROBE, "-v", "error", "-show_entries", "format=duration",
-             "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
-            capture_output=True, text=True, timeout=30,
-            **_subprocess_kwargs())
-        return float(r.stdout.strip() or 0)
-    except Exception:  # noqa: BLE001
-        return 0.0
+    """读媒体时长（秒）。优先使用 ffprobe，不存在时降级使用 ffmpeg -i 解析。失败返回 0。"""
+    if _FFPROBE:
+        try:
+            r = subprocess.run(
+                [_FFPROBE, "-v", "error", "-show_entries", "format=duration",
+                 "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+                capture_output=True, text=True, timeout=30,
+                **_subprocess_kwargs())
+            val = float(r.stdout.strip() or 0)
+            if val > 0:
+                return val
+        except Exception:  # noqa: BLE001
+            pass
+
+    if _FFMPEG:
+        try:
+            r = subprocess.run(
+                [_FFMPEG, "-i", str(path)],
+                capture_output=True, text=True, timeout=30,
+                **_subprocess_kwargs())
+            # 输出例如: Duration: 00:00:03.00, start: 0.000000, bitrate: 123 kb/s
+            m = re.search(r"Duration:\s*(\d+):(\d+):(\d+(?:\.\d+)?)", r.stderr or "")
+            if m:
+                hours, minutes, seconds = m.groups()
+                return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+        except Exception:  # noqa: BLE001
+            pass
+    return 0.0
 
 
 # ------------------------------------------------------------------ TTS ---
 
-def _make_voice_clone_audio(script: str, out_mp3: Path) -> Path | None:
-    """声音克隆 API 配音（简单实现）。
+def _make_voice_clone_audio(script: str, out_mp3: Path,
+                            prompt_audio: str | None = None,
+                            voice_id: str | None = None) -> Path | None:
+    """声音克隆 API 配音（支持 CosyVoice / MiniMax / ElevenLabs / 通用兼容端点）。
 
-    从视频合成配置读 voice_clone_api_url / voice_clone_api_key，
-    POST {"text": script} 取音频字节。失败返回 None（上层降级 TTS）。
+    从视频合成配置读 voice_clone_api_url / voice_clone_api_key / voice_clone_provider / voice_clone_model，
+    组装对应供应商请求格式。成功写回 out_mp3，失败返回 None（上层优雅降级 TTS）。
     """
     try:
         from studio import video_config as _vc
         cfg = _vc.get_config()
         api_url = (cfg.get("voice_clone_api_url") or "").strip().rstrip("/")
         api_key = (cfg.get("voice_clone_api_key") or "").strip()
+        provider = (cfg.get("voice_clone_provider") or "custom").lower()
+        model = (cfg.get("voice_clone_model") or "").strip()
+        default_voice = (cfg.get("voice_clone_voice_id") or "").strip()
+        ref_audio = prompt_audio or (cfg.get("voice_clone_prompt_audio") or "").strip()
     except Exception as exc:  # noqa: BLE001
         log.warning("[video_native] 读声音克隆配置失败: %s", exc)
         return None
+
     if not api_url:
         log.warning("[video_native] 未配置 voice_clone_api_url，降级 TTS")
         return None
+
+    import json as _json
+    import base64 as _b64
+    import httpx
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    chosen_voice = voice_id or default_voice or "default"
+    if provider == "minimax":
+        body = {
+            "model": model or "speech-01-turbo",
+            "text": script,
+            "voice_setting": {"voice_id": chosen_voice},
+            "audio_setting": {"sample_rate": 24000, "format": "mp3"}
+        }
+    elif provider == "elevenlabs":
+        body = {
+            "text": script,
+            "model_id": model or "eleven_multilingual_v2",
+        }
+    elif provider == "cosyvoice":
+        body = {
+            "model": model or "cosyvoice-v1",
+            "input": script,
+            "voice": chosen_voice,
+        }
+        if ref_audio:
+            body["prompt_audio"] = ref_audio
+    else:
+        body = {
+            "text": script,
+            "input": script,
+            "model": model,
+            "voice": chosen_voice,
+        }
+        if ref_audio:
+            body["prompt_audio"] = ref_audio
+            body["ref_audio"] = ref_audio
+
     try:
-        import json as _json
-        import urllib.request
-        payload = _json.dumps({"text": script}, ensure_ascii=False).encode("utf-8")
-        headers = {"Content-Type": "application/json"}
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-        req = urllib.request.Request(api_url, data=payload, headers=headers, method="POST")
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            data = resp.read()
-        if len(data) < 1000:
-            log.warning("[video_native] 声音克隆返回音频过小（%d 字节），降级 TTS", len(data))
-            return None
-        out_mp3.write_bytes(data)
-        log.info("[video_native] 声音克隆配音成功: %s", out_mp3)
-        return out_mp3
+        with httpx.Client(timeout=180, follow_redirects=True) as client:
+            resp = client.post(api_url, json=body, headers=headers)
+            if resp.status_code != 200:
+                log.warning("[video_native] 声音克隆 API 返回 HTTP %s: %s", resp.status_code, resp.text[:200])
+                return None
+
+            content_type = resp.headers.get("content-type", "").lower()
+            data = resp.content
+            if "application/json" in content_type or data.startswith(b"{"):
+                try:
+                    jd = resp.json()
+                    b64_str = (jd.get("audio") or jd.get("audio_content")
+                               or (jd.get("data") or {}).get("audio")
+                               or ((jd.get("data") or [{}])[0] if isinstance(jd.get("data"), list) else {}).get("b64_json"))
+                    audio_url = jd.get("url") or (jd.get("data") or {}).get("url")
+                    if b64_str:
+                        data = _b64.b64decode(b64_str)
+                    elif audio_url:
+                        dl = client.get(audio_url, timeout=60)
+                        if dl.status_code == 200:
+                            data = dl.content
+                except Exception as parse_e:
+                    log.warning("[video_native] 声音克隆响应解析失败: %s", parse_e)
+
+            if len(data) < 1000:
+                log.warning("[video_native] 声音克隆返回音频过小（%d 字节），降级 TTS", len(data))
+                return None
+
+            out_mp3.parent.mkdir(parents=True, exist_ok=True)
+            out_mp3.write_bytes(data)
+            log.info("[video_native] 声音克隆配音成功: %s (%d KB)", out_mp3.name, len(data) // 1024)
+            return out_mp3
     except Exception as exc:  # noqa: BLE001
         log.warning("[video_native] 声音克隆 API 调用失败（%s），降级 TTS", exc)
         return None

@@ -37,8 +37,10 @@ class TestFfmpeg:
         from core import video_native
         # 生成 2 秒测试视频
         mp4 = tmp_path / "t.mp4"
+        ffmpeg_bin = video_native._FFMPEG or shutil.which("ffmpeg")
+        assert ffmpeg_bin, "ffmpeg 不可用"
         subprocess.run(
-            [shutil.which("ffmpeg"), "-y", "-f", "lavfi",
+            [ffmpeg_bin, "-y", "-f", "lavfi",
              "-i", "color=c=black:s=320x240:d=2",
              "-c:v", "libx264", "-pix_fmt", "yuv420p", str(mp4)],
             capture_output=True, check=True, timeout=60)

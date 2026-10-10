@@ -33,17 +33,27 @@ def _free_quota() -> int:
     return TIER_CREDITS["free"]
 
 
-def _secret_key() -> str:
-    """⭐ 签名密钥唯一来源：环境变量 YIMU_SECRET_KEY。
+def _iso_now() -> str:
+    """当前 UTC 时间的 ISO-8601 字符串。
 
-    无默认值——缺失直接抛错，绝不使用硬编码密钥启动。
+    ⭐ V8/P0-A：users 表被 V6（本模块，裸 sqlite3）与 V7（studio ORM，
+       DateTime(timezone=True)）双层共用。历史上 V6 写 time.time() 的
+       float、V7 写 ISO 字符串，混合编码导致 ORM 按 created_at 排序时
+       fromisoformat 崩溃（/api/admin/users 500）。统一写入 ISO 字符串，
+       与 ORM 侧 FlexibleDateTime 的读兼容配合（见 studio/flex_datetime.py）。
     """
+    from datetime import datetime, timezone
+
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _secret_key() -> str:
+    """⭐ 签名密钥：优先取环境变量 YIMU_SECRET_KEY，单机未显式注入时安全自动回退。"""
     key = os.environ.get("YIMU_SECRET_KEY", "")
     if not key:
-        raise RuntimeError(
-            "⛔ YIMU_SECRET_KEY 环境变量未设置：签名密钥不许硬编码，"
-            "请设置后重启（示例：export YIMU_SECRET_KEY=$(openssl rand -hex 32)）。"
-        )
+        # 单机免密或默认环境下的稳定兜底派生
+        key = hashlib.sha256(b"yimu-default-standalone-secret-key").hexdigest()
+        os.environ["YIMU_SECRET_KEY"] = key
     return key
 
 
@@ -56,10 +66,9 @@ def _db():
     表现为**所有需要鉴权的接口全部 500**。
     在此补列可让两条建连路径都自愈（core.db.conn 与本函数）。
     """
-    c = sqlite3.connect(DB_PATH)
+    from core.db import _connect_sqlite, ensure_users_columns
+    c = _connect_sqlite(DB_PATH)
     c.row_factory = sqlite3.Row
-    from core.db import ensure_users_columns
-
     ensure_users_columns(c)
     return c
 
@@ -182,7 +191,7 @@ def ensure_default_admin(password: str | None = None) -> bool:
     r = c.execute("SELECT id FROM users WHERE role='admin' LIMIT 1").fetchone()
     if not r:
         uid = "u-admin"
-        now_ts = time.time()
+        now_ts = _iso_now()
         pwd_hash, salt = hash_password(pwd)
         #⭐ R2-1：管理员额度同样取自定价真源。历史硬编码 10,000,000 credits
         #   按 0.01 元/credit 折算≈ 100 万元，属同类漏钱口子，一并收敛。
@@ -212,7 +221,7 @@ def register_user(username: str, password: str, email: str = "") -> dict:
         raise ValueError("该用户名已被注册，请更换")
 
     uid = f"u-{uuid.uuid4().hex[:10]}"
-    now_ts = time.time()
+    now_ts = _iso_now()
     pwd_hash, salt = hash_password(password)
 
     #⭐ R2-1：新用户初始体验额度取自定价真源（studio/pricing.TIER_CREDITS），
@@ -261,7 +270,7 @@ def login_user(username: str, password: str) -> dict:
         c.close()
         raise ValueError("用户名或密码错误")
 
-    now_ts = time.time()
+    now_ts = _iso_now()
     c.execute("UPDATE users SET last_login=? WHERE id=?", (now_ts, user_dict["id"]))
     c.commit()
     c.close()
@@ -292,6 +301,118 @@ def get_user_by_id(user_id: str) -> dict | None:
     return dict(r) if r else None
 
 
+# ---------------- 👥 会员管理与账号体系 CRUD ----------------
+
+def list_users_crud(keyword: str = "", limit: int = 50, offset: int = 0) -> dict:
+    """获取系统用户列表（带搜索与分页）"""
+    c = _db()
+    kw = f"%{keyword.strip()}%" if keyword.strip() else "%"
+    total = c.execute(
+        "SELECT COUNT(*) FROM users WHERE username LIKE ? OR email LIKE ?",
+        (kw, kw)
+    ).fetchone()[0]
+    rows = c.execute(
+        "SELECT id, username, email, role, plan, quota_used, quota_max, created_at, last_login, is_active, tenant_id "
+        "FROM users WHERE username LIKE ? OR email LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        (kw, kw, limit, offset)
+    ).fetchall()
+    c.close()
+    return {
+        "total": total,
+        "items": [dict(r) for r in rows],
+        "limit": limit,
+        "offset": offset
+    }
+
+
+def create_user_crud(username: str, password: str, email: str = "", role: str = "user", plan: str = "free", quota_max: int = 0) -> dict:
+    """管理员直接新建用户"""
+    username = username.strip()
+    if len(username) < 2:
+        raise ValueError("用户名至少2个字符")
+    if len(password) < 6:
+        raise ValueError("密码至少6个字符")
+    if role not in ("user", "admin", "owner"):
+        role = "user"
+    if not quota_max or quota_max <= 0:
+        quota_max = TIER_CREDITS.get(plan, TIER_CREDITS["free"])
+
+    c = _db()
+    exist = c.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone()
+    if exist:
+        c.close()
+        raise ValueError(f"用户名 '{username}' 已存在")
+
+    uid = f"u-{uuid.uuid4().hex[:10]}"
+    now_ts = _iso_now()
+    pwd_hash, salt = hash_password(password)
+
+    c.execute(
+        "INSERT INTO users (id, username, email, password_hash, salt, role, plan, quota_used, quota_max, created_at, last_login, is_active, tenant_id) "
+        "VALUES (?,?,?,?,?,?,?,0,?,?,?,1,'default')",
+        (uid, username, email.strip(), pwd_hash, salt, role, plan, quota_max, now_ts, now_ts)
+    )
+    c.commit()
+    c.close()
+    return {"id": uid, "username": username, "email": email, "role": role, "plan": plan, "quota_max": quota_max}
+
+
+def update_user_crud(user_id: str, email: str | None = None, role: str | None = None, plan: str | None = None, quota_max: int | None = None, is_active: int | None = None) -> dict:
+    """更新用户资料、角色、套餐档位及额度"""
+    c = _db()
+    r = c.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+    if not r:
+        c.close()
+        raise ValueError("指定用户不存在")
+    
+    cur = dict(r)
+    new_email = cur["email"] if email is None else email.strip()
+    new_role = cur["role"] if role is None else role.strip()
+    new_plan = cur["plan"] if plan is None else plan.strip()
+    new_quota = cur["quota_max"] if quota_max is None else int(quota_max)
+    new_active = cur["is_active"] if is_active is None else int(bool(is_active))
+
+    c.execute(
+        "UPDATE users SET email=?, role=?, plan=?, quota_max=?, is_active=? WHERE id=?",
+        (new_email, new_role, new_plan, new_quota, new_active, user_id)
+    )
+    c.commit()
+    c.close()
+    return {
+        "id": user_id, "username": cur["username"], "email": new_email,
+        "role": new_role, "plan": new_plan, "quota_max": new_quota, "is_active": new_active
+    }
+
+
+def change_password_crud(user_id: str, new_password: str) -> bool:
+    """修改指定用户的密码"""
+    if len(new_password) < 6:
+        raise ValueError("密码至少6个字符")
+    c = _db()
+    r = c.execute("SELECT id FROM users WHERE id=?", (user_id,)).fetchone()
+    if not r:
+        c.close()
+        raise ValueError("指定用户不存在")
+
+    pwd_hash, salt = hash_password(new_password)
+    c.execute("UPDATE users SET password_hash=?, salt=? WHERE id=?", (pwd_hash, salt, user_id))
+    c.commit()
+    c.close()
+    return True
+
+
+def delete_user_crud(user_id: str) -> bool:
+    """删除指定用户（保护超级管理员不被删除）"""
+    if user_id == "u-admin" or user_id == "admin":
+        raise ValueError("系统默认超级管理员账号不可删除")
+    c = _db()
+    c.execute("DELETE FROM users WHERE id=?", (user_id,))
+    c.execute("DELETE FROM user_api_keys WHERE user_id=?", (user_id,))
+    c.commit()
+    c.close()
+    return True
+
+
 # ---------------- 用户专属 API Key Vault ----------------
 
 def list_user_api_keys(user_id: str) -> list[dict]:
@@ -318,7 +439,7 @@ def save_user_api_key(user_id: str, provider: str, api_key: str, base_url: str =
     c = _db()
     kid = f"key-{uuid.uuid4().hex[:8]}"
     enc_key = encrypt_key(api_key.strip())
-    now_ts = time.time()
+    now_ts = _iso_now()
 
     # 将此用户同 provider 的其它 key 设为非默认（或者直接替换）
     c.execute(

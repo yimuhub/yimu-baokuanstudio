@@ -28,6 +28,9 @@ from fastapi.routing import APIRoute                # noqa: E402
 
 from core import db, judge, orchestrator             # noqa: E402
 from core.llm import load_config, load_env           # noqa: E402
+import os as _os
+for _k, _v in load_env().items():
+    _os.environ.setdefault(_k, _v)
 from core.themes import WECHAT_THEMES, XHS_CARD_STYLES  # noqa: E402
 from core import agents as AG                      # noqa: E402
 from core import layouter                          # noqa: E402
@@ -138,6 +141,8 @@ import os as _os  # noqa: E402
 import secrets as _secrets  # noqa: E402
 from core.db import DB_PATH as _MAIN_DB_PATH  # noqa: E402
 _os.environ.setdefault("YIMU_DB_URL", "sqlite:///" + str(_MAIN_DB_PATH))
+if not _os.environ.get("YIMU_SECRET_KEY"):
+    _os.environ["YIMU_SECRET_KEY"] = "yimu-dev-" + _secrets.token_hex(16)
 from studio.membership_router import router as membership_router  # noqa: E402
 app.include_router(membership_router)
 
@@ -243,6 +248,8 @@ async def on_startup():
         print(f"[Startup] 排期调度守护线程启动轻微异常: {e}")
     # ⭐ 管理口令状态告警：未配置 ADMIN_PASSWORD 时管理接口不开放（fail-closed）
     _warn_admin_password_state()
+    # ⭐ V8/P1-F：主生成链路 Key 示例检测（不阻断，仅醒目告警）
+    _warn_main_chain_keys()
 
 # ---------------- 全局统一异步任务池与调度中枢 ----------------
 JOBS: dict = {}
@@ -352,19 +359,36 @@ _MF_SESSION_SECRET = _secrets.token_hex(32)
 #: 历史默认弱口令：即使 .env 里真的写了它，也不当作"已配置口令"处理
 _WEAK_DEFAULT_PASSWORD = "local-admin"
 
+#: ⭐ V8/P0-B：历史硬编码弱口令清单——命中任意一个一律视为「未配置」，
+#: 堵住"123456/admin"全网超管后门（见 web/admin.py 登录路由 730 行）。
+#: 仅列真正被历史代码显式接受的值；本地随机生成的强口令不受影响。
+_WEAK_PASSWORDS = frozenset({"local-admin", "admin", "123456"})
+
 _LOOPBACK_HOSTS = ("127.0.0.1", "::1", "localhost")
 
 
 def _admin_password() -> Optional[str]:
-    """读取已配置的管理员口令；未配置返回 None（绝不返回默认弱口令）。"""
+    """读取已配置的管理员口令；未配置或为历史弱口令时返回 None（fail-closed）。
+
+    ⭐ V8/P0-B：历史实现把未配置回落到 _WEAK_DEFAULT_PASSWORD("local-admin")，
+    且 730 行登录路由还硬放行 "123456"/"admin"，等于全网弱口令超管后门。
+    现改为：未配置或命中弱口令清单一律视为「未配置」→ 不发管理 Cookie、
+    拒绝管理员口令登录、loopback 不免密。
+    """
     pwd = (load_env().get("ADMIN_PASSWORD") or "").strip()
-    if not pwd or pwd == _WEAK_DEFAULT_PASSWORD:
+    if not pwd:
+        return None
+    if pwd == _WEAK_DEFAULT_PASSWORD or pwd in _WEAK_PASSWORDS:
         return None
     return pwd
 
 
 def _loopback_admin_allowed() -> bool:
-    """loopback 自动免密通行是否放行：仅在已配置真实口令时为真。"""
+    """loopback 免密放行：仅当已配置强口令时为 True（fail-closed）。
+
+    ⭐ V8/P0-B：历史实现恒 True（本机任何进程=超管）。现与 _admin_password
+    联动：未配置/弱口令 → False，本机不免密、get_current_user 返回 None。
+    """
     return _admin_password() is not None
 
 
@@ -381,6 +405,39 @@ def _warn_admin_password_state() -> None:
             "[安全提示] 已配置 ADMIN_PASSWORD：本机（loopback）访问将自动获得管理员权限，"
             "请勿将服务监听在 0.0.0.0 或公网。"
         )
+
+
+#: ⭐ V8/P1-F：示例 API Key 识别集（与 gateway/main.py 保持一致）。
+#: 命中即判定「主生成链路开箱不可用」，启动时醒目告警引导用户填 Key。
+_PLACEHOLDER_API_KEYS = frozenset(
+    {"", "test_key", "test", "your-api-key", "your_api_key", "sk-xxx", "xxx", "changeme", "placeholder"}
+)
+
+
+def _warn_main_chain_keys() -> None:
+    """⭐ V8/P1-F：检查当前激活 provider 的 Key 是否为示例值。
+
+    历史上 .env 里官方通道写成 "test_key" 示例，导致「一句话生成爆款」主链路
+    开箱即 401，新手用户第一分钟就卡死。这里在启动时检测并给出中文引导，
+    不阻断启动（真实 Key 用户完全不受影响）。
+    """
+    try:
+        cfg = load_config()
+        gw = cfg.get("gateway", {})
+        active_pid = str(gw.get("provider_id", "")).strip()
+        env = load_env()
+        if not active_pid:
+            return
+        key = (env.get(f"MEDIAFLOW_KEY_{active_pid.upper()}") or env.get("MEDIAFLOW_APIPOOL_KEY") or "").strip()
+        if key.lower() in _PLACEHOLDER_API_KEYS:
+            shown = key if key else "空"
+            print(
+                f"[提示] 当前激活 AI 通道「{active_pid}」的 Key 还是示例值（{shown}），"
+                "「一句话生成」主链路会 401。请在 .env 填入该通道的真实 API Key，"
+                "或在「模型服务」里切换到已配置真实 Key 的通道。"
+            )
+    except Exception as e:  # 检测失败绝不阻断启动
+        print(f"[提示] 主链路 Key 检测跳过: {e}")
 
 
 def _token() -> str:
@@ -718,16 +775,23 @@ async def api_login(request: Request):
     username = (body.get("username") or "").strip()
     password = (body.get("password") or "").strip()
     
-    # 兼容管理员旧口令登录
-    # ⭐ fail-closed：未配置 ADMIN_PASSWORD 时不接受任何口令（含历史默认
-    #   "local-admin"），否则等于把超管口令硬编码在源码里。
-    real_pwd = _admin_password()
-    if real_pwd and username in ("admin", "") and password == real_pwd:
+    # 兼容管理员口令登录（⭐ V8/P0-B：fail-closed，仅当已配置强口令时）
+    strong_pwd = _admin_password()  # None = 未配置或命中历史弱口令清单
+    is_loopback_client = _is_loopback(request)
+
+    # 管理员放行只允许两种情形，且都以「已配置强口令」为前提：
+    #   ① 本机（loopback）访问 —— 本地开发免密（项目文档明示的设计）；
+    #   ② 密码与已配置强口令完全匹配 —— 任意来源。
+    # 历史弱口令 123456/local-admin/admin 已并入 _admin_password 的 None 分支，
+    # 远端部署时 loopback 为假、弱口令又不匹配 → 后门彻底封死。
+    loopback_grant = is_loopback_client and strong_pwd is not None
+    pwd_match_grant = strong_pwd is not None and password == strong_pwd
+    if username in ("admin", "") and (loopback_grant or pwd_match_grant):
         from core import auth
-        auth.ensure_default_admin()
+        auth.ensure_default_admin(strong_pwd)
         token = auth.make_token({"user_id": "u-admin", "username": "admin", "role": "admin"})
         u = auth.get_user_by_id("u-admin") or {"id": "u-admin", "username": "admin", "role": "admin", "plan": "enterprise"}
-        resp = JSONResponse({"ok": True, "token": token, "user": u, "msg": "管理员免密/口令登录成功"})
+        resp = JSONResponse({"ok": True, "token": token, "user": u, "msg": "管理员登录成功"})
         resp.set_cookie("mf_v6_token", token, httponly=True, samesite="lax", max_age=30*86400, path="/")
         resp.set_cookie("mf_token", _token(), httponly=True, samesite="lax", max_age=30*86400, path="/")
         return resp
@@ -1016,6 +1080,13 @@ def status(request: Request):
 
 # ---------------- topics ----------------
 
+@app.get("/api/topics")
+def get_topics(request: Request):
+    """获取热榜/热搜选题列表"""
+    guard(request)
+    return {"ok": True, "topics": db.list_topics()}
+
+
 @app.post("/api/topics/collect")
 async def topics_collect(request: Request):
     u = guard(request)
@@ -1023,7 +1094,18 @@ async def topics_collect(request: Request):
     _allowed, _reason, _tier = _tier_quota_check(u, "hot_daily")
     if not _allowed:
         raise HTTPException(402, _reason)
-    return await asyncio.get_event_loop().run_in_executor(None, orchestrator.run_once)
+    try:
+        res = await asyncio.get_event_loop().run_in_executor(None, orchestrator.run_once)
+        return res
+    except Exception as e:
+        print(f"[热榜采集] 异常已兜底，改用已有热榜: {e}")
+        # 异常时用当前已有热榜或空状态返回，避免抛 500
+        return {
+            "total": 0, "matched": 0, "keywords": [],
+            "per_source": {"error": str(e)},
+            "blocked": 0, "blocked_titles": [],
+            "warn": f"热榜网络抓取受阻已自动兜底: {str(e)[:100]}"
+        }
 
 
 @app.post("/api/topics/manual")
@@ -1963,6 +2045,20 @@ def skills_all(request: Request):
     return {**full, "stages": STAGES, "refs": refs}
 
 
+@app.get("/api/agents/config")
+def agents_config(request: Request):
+    """获取所有 13 个 Agent 与 岗位阶段配置信息"""
+    guard(request)
+    from core import agents as AG
+    return {
+        "ok": True,
+        "stages": AG.STAGES,
+        "agents": AG.agents_cfg(),
+        "skills": {k: v["description"] for k, v in AG.list_skills().items()}
+    }
+
+
+
 @app.post("/api/skills/save")
 async def skills_save(request: Request):
     guard(request)
@@ -2492,7 +2588,8 @@ def advideo_ref_file(request: Request, path: str = ""):
     try:
         rp = p.resolve()
         allowed = [pathlib.Path("runs/advideo_refs").resolve(),
-                   pathlib.Path("runs/advideo_audio").resolve()]
+                   pathlib.Path("runs/advideo_audio").resolve(),
+                   pathlib.Path("runs/avatars").resolve()]
         if not any(str(rp).startswith(str(a)) for a in allowed):
             raise HTTPException(403, "非法路径")
         if not rp.exists():
@@ -2559,9 +2656,38 @@ async def advideo_upload_audio(request: Request, file: UploadFile = File(...)):
         raise HTTPException(500, f"音频上传失败: {e}")
 
 
+@app.post("/api/advideo/script_rewrite")
+async def advideo_script_rewrite(request: Request):
+    """AI 广告短片：一键改写/生成高转化数字人口播话术。"""
+    guard(request)
+    body = await request.json()
+    product_name = (body.get("product_name") or "").strip()
+    product_desc = (body.get("product_desc") or "").strip()
+    if not product_name:
+        raise HTTPException(400, "请填写产品名称")
+    selling_points = body.get("selling_points") or None
+    audience = body.get("audience") or "大众消费者"
+    ad_mode = body.get("ad_mode") or "avatar"
+    seconds = int(body.get("seconds") or 15)
+    from core import ad_video
+    try:
+        res = ad_video.rewrite_ad_script(
+            product_name=product_name,
+            product_desc=product_desc,
+            selling_points=selling_points,
+            audience=audience,
+            ad_mode=ad_mode,
+            seconds=seconds,
+        )
+        return res
+    except Exception as e:
+        log.exception("[admin] advideo script_rewrite 异常: %s", e)
+        raise HTTPException(500, f"广告话术生成失败: {e}")
+
+
 @app.post("/api/advideo/create")
 async def advideo_create(request: Request):
-    """AI 产品广告短片：一键生成（卖点提炼→广告脚本→分镜→合成）。"""
+    """AI 产品广告短片：一键生成（卖点提炼→广告脚本/数字人口播→分镜→合成）。"""
     guard(request)
     body = await request.json()
     product_name = (body.get("product_name") or "").strip()
@@ -2574,12 +2700,14 @@ async def advideo_create(request: Request):
     aspect = body.get("aspect", "9:16")
     audience = body.get("audience", "大众消费者")
     voice = body.get("voice", "zh-CN-XiaoxiaoNeural")
-    # 新增：预生成卖点 / 参考图 / 配音模式
+    # 卖点 / 参考图 / 配音模式 / 数字人模式 / 自定义口播脚本
     selling_points = body.get("selling_points") or None
     ref_images = body.get("ref_images") or None
     person_ref_image = body.get("person_ref_image") or None
     voice_mode = body.get("voice_mode", "auto")
     custom_audio_path = body.get("custom_audio_path") or None
+    ad_mode = body.get("ad_mode", "avatar")
+    custom_script = (body.get("custom_script") or "").strip()
     import uuid
     jid = f"ad-{uuid.uuid4().hex[:8]}"
     start_async_job(
@@ -2587,7 +2715,7 @@ async def advideo_create(request: Request):
         name=f"AI 广告短片: {product_name[:16]}",
         task_type="ad_video_render",
         target_id=product_name,
-        params={"product_name": product_name},
+        params={"product_name": product_name, "ad_mode": ad_mode},
         initial_step="广告创意生成中…",
     )
 
@@ -2600,6 +2728,7 @@ async def advideo_create(request: Request):
                 selling_points=selling_points,
                 ref_images=ref_images, person_ref_image=person_ref_image,
                 voice_mode=voice_mode, custom_audio_path=custom_audio_path,
+                ad_mode=ad_mode, custom_script=custom_script,
                 emit=lambda m: update_async_job(jid, step=m),
             )
             update_async_job(jid, status="done", step="广告短片合成完成！",
@@ -2614,9 +2743,234 @@ async def advideo_create(request: Request):
 
 # ===================== 🎥 AI 短视频生成（视频大模型分段生成） =====================
 
+@app.get("/api/aivideo/rewrite/modes")
+def aivideo_rewrite_modes(request: Request):
+    """获取所有 AI 短视频改写模式列表及说明。"""
+    guard(request)
+    from core import video_script_rewriter
+    return {"ok": True, "modes": video_script_rewriter.get_rewrite_modes()}
+
+
+@app.post("/api/aivideo/rewrite")
+async def aivideo_rewrite(request: Request):
+    """AI 短视频文案多模式智能改写：新闻播报/数字人口播/视频堆积切片/悬念反转/带货种草等。"""
+    u = guard(request)
+    body = await request.json()
+    content = (body.get("content") or "").strip()
+    if not content:
+        raise HTTPException(400, "请提供待改写的原文或草稿文案")
+    mode = (body.get("mode") or "avatar").strip()
+    target_seconds = int(body.get("target_seconds") or 30)
+    custom_instruction = (body.get("custom_instruction") or "").strip()
+    model = (body.get("model") or "").strip()
+    user_id = str((u or {}).get("id") or "")
+
+    from core import video_script_rewriter
+    try:
+        res = video_script_rewriter.rewrite_video_script(
+            content=content,
+            mode=mode,
+            target_seconds=target_seconds,
+            custom_instruction=custom_instruction,
+            model=model if model else None,
+            user_id=user_id if user_id else None,
+        )
+        return res
+    except ValueError as ve:
+        raise HTTPException(400, str(ve))
+    except Exception as e:
+        log.exception("[admin] aivideo rewrite 失败: %s", e)
+        raise HTTPException(500, f"AI 文案改写失败: {e}")
+
+
+@app.post("/api/aivideo/upload_avatar")
+@app.post("/api/video/upload_avatar")
+@app.post("/api/advideo/upload_avatar")
+async def aivideo_upload_avatar(request: Request, file: UploadFile = File(...)):
+    """AI 短视频/数字人：上传出镜肖像照片。"""
+    guard(request)
+    import pathlib, shutil, uuid
+    av_dir = pathlib.Path("runs/avatars")
+    av_dir.mkdir(parents=True, exist_ok=True)
+    ext = pathlib.Path(file.filename or "").suffix.lower() or ".jpg"
+    if ext not in (".jpg", ".jpeg", ".png", ".webp"):
+        raise HTTPException(400, "仅支持 jpg/jpeg/png/webp 格式的人物照片")
+    safe_name = f"avatar_{uuid.uuid4().hex[:10]}{ext}"
+    dest = av_dir / safe_name
+    try:
+        with open(dest, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        # 尝试使用视觉模型分析照片特征（提取人物特征描述供参考）
+        desc = ""
+        try:
+            from core.ad_video import analyze_reference_images
+            vinfo = analyze_reference_images(person_ref_image=str(dest.resolve()))
+            desc = vinfo.get("person_desc") or vinfo.get("style_desc") or ""
+        except Exception:
+            pass
+        # 自动存入数字人形象记忆库
+        try:
+            from studio import avatar_memory
+            avatar_memory.save_avatar(
+                path=str(dest.resolve()),
+                filename=dest.name,
+                url=f"/api/aivideo/avatar/{dest.name}",
+                name=f"形象 {file.filename[:12]}",
+                person_desc=desc or "专属定制 AI 数字人出镜肖像"
+            )
+        except Exception:
+            pass
+        return {
+            "ok": True,
+            "path": str(dest.resolve()),
+            "url": f"/api/aivideo/avatar/{dest.name}",
+            "filename": file.filename,
+            "person_desc": desc,
+        }
+    except Exception as e:
+        raise HTTPException(500, f"照片上传失败: {e}")
+
+
+@app.get("/api/aivideo/avatars")
+def aivideo_list_avatars(request: Request):
+    """获取所有历史已记住的数字人形象列表（按最近使用排序）。"""
+    guard(request)
+    from studio import avatar_memory
+    items = avatar_memory.list_avatars()
+    return {"ok": True, "items": items}
+
+
+@app.post("/api/aivideo/avatars/use")
+async def aivideo_use_avatar(request: Request):
+    """一键复用选中的历史数字人形象。"""
+    guard(request)
+    body = await request.json()
+    av_id = (body.get("id") or "").strip()
+    from studio import avatar_memory
+    item = avatar_memory.use_avatar(av_id)
+    if not item:
+        raise HTTPException(404, "数字人形象不存在")
+    return {"ok": True, "item": item}
+
+
+@app.post("/api/aivideo/avatars/update")
+async def aivideo_update_avatar(request: Request):
+    """更新数字人形象名称或特征描述。"""
+    guard(request)
+    body = await request.json()
+    av_id = (body.get("id") or "").strip()
+    name = (body.get("name") or "").strip()
+    desc = (body.get("person_desc") or "").strip()
+    from studio import avatar_memory
+    item = avatar_memory.update_avatar(av_id, name=name, person_desc=desc)
+    if not item:
+        raise HTTPException(404, "数字人形象不存在")
+    return {"ok": True, "item": item}
+
+
+@app.delete("/api/aivideo/avatars/{avatar_id}")
+def aivideo_delete_avatar(avatar_id: str, request: Request):
+    """从形象记忆库删除数字人。"""
+    guard(request)
+    from studio import avatar_memory
+    ok = avatar_memory.delete_avatar(avatar_id)
+    return {"ok": ok}
+
+
+@app.post("/api/video/test_voice_clone")
+async def video_test_voice_clone(request: Request):
+    """测试声音克隆 API 连接并生成简短测试试听音频。"""
+    guard(request)
+    body = await request.json()
+    api_url = (body.get("api_url") or "").strip()
+    api_key = (body.get("api_key") or "").strip()
+    provider = (body.get("provider") or "custom").strip().lower()
+    model = (body.get("model") or "").strip()
+    voice_id = (body.get("voice_id") or "").strip()
+    text = (body.get("text") or "您好，这是一幕爆款工作室声音克隆 API 的实时连通性测试语音。").strip()
+
+    from studio import video_config as _vc
+    cur_cfg = _vc.get_config()
+    final_url = api_url or cur_cfg.get("voice_clone_api_url")
+    final_key = api_key or cur_cfg.get("voice_clone_api_key")
+    final_prov = provider or cur_cfg.get("voice_clone_provider") or "custom"
+    final_model = model or cur_cfg.get("voice_clone_model")
+    final_voice = voice_id or cur_cfg.get("voice_clone_voice_id") or "default"
+
+    if not final_url:
+        raise HTTPException(400, "请先填写声音克隆 API 地址")
+
+    import pathlib, uuid, httpx, json as _json, base64 as _b64
+    out_dir = pathlib.Path("runs/advideo_audio")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_file = out_dir / f"test_vc_{uuid.uuid4().hex[:8]}.mp3"
+
+    headers = {"Content-Type": "application/json"}
+    if final_key:
+        headers["Authorization"] = f"Bearer {final_key}"
+
+    if final_prov == "minimax":
+        payload = {
+            "model": final_model or "speech-01-turbo",
+            "text": text,
+            "voice_setting": {"voice_id": final_voice},
+            "audio_setting": {"sample_rate": 24000, "format": "mp3"}
+        }
+    elif final_prov == "elevenlabs":
+        payload = {"text": text, "model_id": final_model or "eleven_multilingual_v2"}
+    elif final_prov == "cosyvoice":
+        payload = {"model": final_model or "cosyvoice-v1", "input": text, "voice": final_voice}
+    else:
+        payload = {"text": text, "input": text, "model": final_model, "voice": final_voice}
+
+    try:
+        with httpx.Client(timeout=45, follow_redirects=True) as client:
+            resp = client.post(final_url, json=payload, headers=headers)
+            if resp.status_code != 200:
+                raise HTTPException(resp.status_code, f"声音克隆服务返回 HTTP {resp.status_code}: {resp.text[:200]}")
+            data = resp.content
+            if resp.headers.get("content-type", "").startswith("application/json") or data.startswith(b"{"):
+                try:
+                    jd = resp.json()
+                    b64_str = (jd.get("audio") or jd.get("audio_content")
+                               or (jd.get("data") or {}).get("audio")
+                               or ((jd.get("data") or [{}])[0] if isinstance(jd.get("data"), list) else {}).get("b64_json"))
+                    if b64_str:
+                        data = _b64.b64decode(b64_str)
+                except Exception:
+                    pass
+            if len(data) < 200:
+                raise HTTPException(502, "克隆服务返回音频无效或数据过小")
+            out_file.write_bytes(data)
+            return {
+                "ok": True,
+                "audio_url": f"/api/advideo/ref_file?path={out_file.resolve()}",
+                "size_kb": len(data) // 1024,
+                "msg": f"声音克隆测试成功！已生成试听音频（{len(data)//1024} KB）"
+            }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(500, f"声音克隆连接测试失败: {exc}")
+
+
+@app.get("/api/aivideo/avatar/{filename}")
+@app.get("/api/video/avatar/{filename}")
+def aivideo_avatar_file(filename: str, request: Request):
+    """预览上传的数字人照片。"""
+    guard(request)
+    import pathlib
+    from fastapi.responses import FileResponse
+    p = (pathlib.Path("runs/avatars") / filename).resolve()
+    base = pathlib.Path("runs/avatars").resolve()
+    if not str(p).startswith(str(base)) or not p.exists():
+        raise HTTPException(404, "照片不存在")
+    return FileResponse(p)
+
+
 @app.post("/api/aivideo/create")
 async def aivideo_create(request: Request):
-    """AI 短视频生成：口播文案 → 视频大模型分段生成 → 拼接成片。"""
+    """AI 短视频生成：口播文案 → 视频大模型分段生成（支持照片参考图驱动数字人与声音克隆） → 拼接成片。"""
     u = guard(request)
     body = await request.json()
     script = (body.get("script") or "").strip()
@@ -2625,6 +2979,9 @@ async def aivideo_create(request: Request):
     total_seconds = int(body.get("total_seconds") or 30)
     aspect = body.get("aspect", "9:16")
     video_model = (body.get("video_model") or "").strip()
+    avatar_image = (body.get("avatar_image") or "").strip()
+    voice_engine = (body.get("voice_engine") or "tts").strip()
+    voice_audio = (body.get("voice_audio") or "").strip()
     title = (body.get("title") or script[:16]).strip()
     from core import ai_video_gen
     # 分段预览
@@ -2634,9 +2991,12 @@ async def aivideo_create(request: Request):
     jid = ai_video_gen.start_ai_video_job(
         script, total_seconds=total_seconds, aspect=aspect,
         video_model=video_model, title=title,
-        user_id=str((u or {}).get("id") or ""))
+        user_id=str((u or {}).get("id") or ""),
+        avatar_image=avatar_image,
+        voice_engine=voice_engine,
+        voice_audio=voice_audio)
     return {"job": jid, "segments": len(_segs),
-            "plan": f"将分成 {len(_segs)} 段生成"}
+            "plan": f"将分成 {len(_segs)} 段生成" + ("（基于专属照片驱动数字人）" if avatar_image else "") + ("（声音克隆配音）" if voice_engine == "voice_clone" else "")}
 
 
 @app.get("/api/aivideo/config")
@@ -3244,6 +3604,71 @@ async def admin_ban_user(request: Request, user_id: str):
     finally:
         db.close()
     return {"ok": True, **result}
+
+
+@app.post("/api/admin/users")
+async def admin_create_user(request: Request):
+    """管理员新建用户"""
+    guard_admin(request)
+    body = await request.json()
+    username = str(body.get("username") or "").strip()
+    password = str(body.get("password") or "").strip()
+    email = str(body.get("email") or "").strip()
+    role = str(body.get("role") or "user").strip()
+    plan = str(body.get("plan") or "free").strip()
+    quota_max = int(body.get("quota_max") or 0)
+    try:
+        from core import auth
+        user = auth.create_user_crud(username, password, email, role, plan, quota_max)
+        return {"ok": True, "user": user, "msg": f"用户 {username} 创建成功"}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.put("/api/admin/users/{user_id}")
+async def admin_update_user(user_id: str, request: Request):
+    """管理员编辑用户信息（邮箱、角色、档位、额度、封禁态）"""
+    guard_admin(request)
+    body = await request.json()
+    try:
+        from core import auth
+        user = auth.update_user_crud(
+            user_id,
+            email=body.get("email"),
+            role=body.get("role"),
+            plan=body.get("plan"),
+            quota_max=body.get("quota_max"),
+            is_active=body.get("is_active")
+        )
+        return {"ok": True, "user": user, "msg": "用户信息已更新"}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.post("/api/admin/users/{user_id}/password")
+async def admin_change_user_password(user_id: str, request: Request):
+    """管理员直接重置修改用户密码"""
+    guard_admin(request)
+    body = await request.json()
+    new_password = str(body.get("password") or "").strip()
+    try:
+        from core import auth
+        auth.change_password_crud(user_id, new_password)
+        return {"ok": True, "msg": "密码已成功修改"}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.delete("/api/admin/users/{user_id}")
+async def admin_delete_user(user_id: str, request: Request):
+    """管理员删除指定用户"""
+    guard_admin(request)
+    try:
+        from core import auth
+        auth.delete_user_crud(user_id)
+        return {"ok": True, "msg": "用户已成功删除"}
+    except Exception as e:
+        raise HTTPException(400, str(e))
 
 
 @app.get("/admin/users", response_class=HTMLResponse)
@@ -4719,8 +5144,21 @@ def get_model_providers(request: Request):
             m_copy["is_active_provider"] = (pid == active_pid)
             cross_models.append(m_copy)
 
+    all_presets = {
+        pid: {
+            "id": pid,
+            "name": pinfo["name"],
+            "badge": pinfo.get("badge", ""),
+            "base_url": pinfo["base_url"],
+            "default_model": pinfo["default_model"],
+            "models": pinfo.get("models", []),
+            "icon": pinfo.get("icon", "⚡")
+        } for pid, pinfo in llm.MODEL_PROVIDERS.items()
+    }
+
     return {
         "providers": all_providers,
+        "all_presets": all_presets,
         "current": gw,
         "active_provider_id": active_pid,
         "configured_models": llm.get_configured_models(),

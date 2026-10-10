@@ -153,22 +153,47 @@ def _pick_formulas(product_desc: str, seconds: int):
 
 def generate_ad_script(product_name: str, selling_points: list,
                        audience: str = "大众消费者", seconds: int = 15,
-                       aspect: str = "9:16") -> dict:
-    """广告脚本：Hook + 正文 + CTA + 素材检索词。"""
+                       aspect: str = "9:16", ad_mode: str = "avatar",
+                       custom_script: str = "") -> dict:
+    """广告脚本：Hook + 正文 + CTA + 素材检索词。支持数字人口播模式与自定义输入。"""
     seconds = 15 if seconds <= 20 else (30 if seconds <= 45 else 60)
     lo, hi = SECONDS_WORDS[seconds]
-    hook_t, body_t, cta_t = _pick_formulas(" ".join(selling_points), seconds)
+
+    if custom_script and custom_script.strip():
+        lines = [ln.strip() for ln in custom_script.strip().split("\n") if ln.strip()]
+        hook = lines[0] if lines else custom_script[:30]
+        cta = lines[-1] if len(lines) > 2 else "赶紧点击抢先体验！"
+        body = "。".join(lines[1:-1]) if len(lines) > 2 else ("。".join(lines[1:]) if len(lines) > 1 else custom_script)
+        return {
+            "hook": hook, "body": body, "cta": cta,
+            "script": custom_script.strip(), "terms": ["product", "avatar", "lifestyle"],
+            "formulas": {"hook": "自定义/改写", "body": "数字人口播", "cta": "促单"},
+        }
+
+    hook_t, body_t, cta_t = _pick_formulas(" ".join(selling_points or []), seconds)
+    
+    avatar_hint = ""
+    if ad_mode == "avatar":
+        avatar_hint = (
+            "【AI 数字人口播主播人设模式要求】：\n"
+            "- 以第一人称'我'面对面与观众对话，语气极其亲切、自然、接地气，消灭一切书面腔。\n"
+            "- 黄金3秒第一句话直击痛点，引爆好奇或共鸣。\n"
+            "- 关键转折处自然嵌入肢体与微表情标记，例如 [微笑视镜] [拿起展示] [手势强调] [恍然大悟]。\n"
+            "- 结尾给出笃定的行动呼吁，引导立即购买或了解详情。\n"
+        )
+
     prompt = (
-        "你是短视频广告编导。用下面的方法论写一条 "
+        "你是顶尖的短视频爆款广告编导与带货口播操盘手。用下面的方法论写一条 "
         + str(seconds) + " 秒产品广告口播脚本：\n\n"
         + "【产品】" + product_name + "\n"
-        + "【卖点】" + "; ".join(selling_points) + "\n"
+        + "【卖点】" + "; ".join(selling_points or []) + "\n"
         + "【人群】" + audience + "\n"
+        + avatar_hint
         + "【Hook 公式】" + hook_t + "\n【正文结构】" + body_t
         + "\n【CTA】" + cta_t + "\n\n"
         + "输出格式（严格遵守）：\n"
-        + "HOOK: <前3秒文案，一句话>\n"
-        + "BODY: <正文口播，口语化，一句一断句>\n"
+        + "HOOK: <前3秒文案，一句话，有穿透力>\n"
+        + "BODY: <正文口播，口语化，一句一断句，结合亲测体验或爽点>\n"
         + "CTA: <结尾行动号召，一句话>\n"
         + "TERMS: <3-4 个英文素材检索词，逗号分隔>\n\n"
         + "约束：总字数约 " + str(lo) + "~" + str(hi)
@@ -196,8 +221,9 @@ def generate_ad_script(product_name: str, selling_points: list,
 
 
 def build_storyboard(script_info: dict, seconds: int = 15,
-                     visual_context: dict | None = None) -> list:
-    """分镜：按 Hook/正文/CTA 拆成 3-5 秒一个镜头。
+                     visual_context: dict | None = None,
+                     ad_mode: str = "avatar") -> list:
+    """分镜：按 Hook/正文/CTA 拆成 3-5 秒一个镜头，支持标记数字人出镜镜头。
 
     visual_context: analyze_reference_images() 的结果，用于在每个分镜
     的 visual 描述里注入产品/人物特征词，保证全片视觉一致性。
@@ -218,24 +244,35 @@ def build_storyboard(script_info: dict, seconds: int = 15,
     ) if s).strip()
 
     def _visual(base: str) -> str:
-        # 视觉一致性注入：每个分镜都带上产品/人物特征词
         return (base + " " + _ctx_suffix).strip() if _ctx_suffix else base
 
-    def _add(dur: int, visual: str, voice: str):
+    def _add(dur: int, visual: str, voice: str, is_avatar: bool = False):
         nonlocal t
         shots.append({"shot": len(shots) + 1, "start": t, "dur": dur,
-                      "visual": visual, "voice": voice, "subtitle": voice})
+                      "visual": visual, "voice": voice, "subtitle": voice,
+                      "is_avatar": is_avatar})
         t += dur
 
-    _add(3, _visual("Hook 画面：强视觉冲击开场（产品特写/痛点场景）"), hook)
+    # 首镜 Hook
+    is_hook_av = (ad_mode in ("avatar", "interleaved"))
+    hook_v = _visual("Hook 画面：AI 数字人主播出镜面对面口播，强视觉冲击开场" if is_hook_av else "Hook 画面：强视觉冲击开场（产品特写/痛点场景）")
+    _add(3, hook_v, hook, is_avatar=is_hook_av)
+
     body_budget = seconds - 3 - 3
     per = max(3, body_budget // max(1, len(body_sents)))
-    for s in body_sents:
+    for idx, s in enumerate(body_sents):
         if t + per > seconds - 3:
             break
-        _add(per, _visual("产品画面：" + s[:20] + "（近景/使用场景）"), s)
+        # 正文段：若为全程数字人模式，且为偶数镜，安排数字人手持讲解；奇数镜安排产品特写
+        is_body_av = (ad_mode == "avatar" and idx % 2 == 1)
+        b_desc = "AI 数字人主播手持产品出镜讲解：" if is_body_av else "产品细节特写："
+        _add(per, _visual(b_desc + s[:20] + "（近景/使用场景）"), s, is_avatar=is_body_av)
+
+    # 尾镜 CTA
     if t < seconds:
-        _add(seconds - t, _visual("CTA 画面：产品全貌 + 行动号召大字"), cta)
+        is_cta_av = (ad_mode in ("avatar", "interleaved"))
+        cta_v = _visual("CTA 画面：AI 数字人主播手持产品号召行动，强促单指令" if is_cta_av else "CTA 画面：产品全貌 + 行动号召大字")
+        _add(seconds - t, cta_v, cta, is_avatar=is_cta_av)
     return shots
 
 
@@ -264,14 +301,14 @@ STYLE_SUFFIX_EN = (
 def craft_shot_video_prompt(shot: dict, product_std_desc: str,
                             aspect: str = "9:16",
                             person_desc: str = "",
-                            style_desc: str = "") -> str:
+                            style_desc: str = "",
+                            is_avatar: bool = False) -> str:
     """为单个分镜构造 7-slot 视频生成提示词（英文，视频模型更懂）。
-
-    shot: build_storyboard() 的分镜 dict（含 shot/dur/visual/voice）
-    product_std_desc: 产品标准描述（全片逐字一致）
+    支持数字人口播镜头（强调人物口播、眼神、表情、手势出镜）。
     """
     visual_cn = shot.get("visual", "")
     dur = int(shot.get("dur", 3) or 3)
+    is_av = is_avatar or shot.get("is_avatar", False)
     # 按分镜位置选运镜：Hook 用急推/推镜，正文用推镜/横移/环绕，CTA 用固定
     idx = int(shot.get("shot", 1) or 1)
     if idx == 1:
@@ -289,6 +326,28 @@ def craft_shot_video_prompt(shot: dict, product_std_desc: str,
     action = re.sub(r"[，。！？、；：\s]", "", shot.get("voice", ""))[:12] or "产品展示"
     # 场景：优先用视觉分析的风格，否则通用
     scene = style_desc.strip() if style_desc else "clean minimal studio background"
+
+    if is_av:
+        person_core = (person_desc.strip() or "professional charming presenter")
+        prompt_en = (
+            f"[1] Photorealistic AI digital human talking avatar of this person ({person_core}), presenting and recommending {product_std_desc.strip()}. "
+            f"[2] Action: looking at camera and speaking naturally to audience, lifelike facial expressions, subtle hand gestures. "
+            f"[3] Camera: {camera_en}. "
+            f"[4] Portrait close-up shot, soft commercial studio lighting, natural depth of field. "
+            f"[5] Scene: {scene}. "
+            f"[6] {STYLE_SUFFIX_EN}. "
+            f"[7] Duration: {dur} seconds, {aspect} vertical video."
+            if aspect == "9:16" else
+            f"[1] Photorealistic AI digital human talking avatar of this person ({person_core}), presenting and recommending {product_std_desc.strip()}. "
+            f"[2] Action: looking at camera and speaking naturally to audience, lifelike facial expressions, subtle hand gestures. "
+            f"[3] Camera: {camera_en}. "
+            f"[4] Medium portrait shot, soft commercial studio lighting, natural depth of field. "
+            f"[5] Scene: {scene}. "
+            f"[6] {STYLE_SUFFIX_EN}. "
+            f"[7] Duration: {dur} seconds, {aspect} widescreen video."
+        )
+        return prompt_en
+
     person_bit = f", featuring {person_desc.strip()}" if person_desc.strip() else ""
 
     prompt_en = (
@@ -311,8 +370,12 @@ def craft_shot_video_prompt(shot: dict, product_std_desc: str,
     return prompt_en
 
 
-def ad_video_model_info() -> dict:
+def ad_video_model_info(model_override: str = "") -> dict:
     """解析 ad_video stage 配置的视频大模型。
+
+    model_override：显式指定要用的模型（可带「供应商/模型」前缀，如
+    "volcengine/ark-video-x" 或 "yimu_official/agnes-video-v2.0"），
+    会按该模型重新解析 base/key/供应商，不再沿用 ad_video stage 默认端点。
 
     Returns: {"ok": bool, "base": str, "key": str, "model": str,
               "provider_id": str, "reason": str}
@@ -320,7 +383,7 @@ def ad_video_model_info() -> dict:
     """
     from core import agents
     from core.llm import resolve_llm_endpoint, classify_model
-    model = (agents.model_for("ad_video", "") or "").strip()
+    model = (model_override or (agents.model_for("ad_video", "") or "")).strip()
     if not model:
         return {"ok": False, "reason": "ad_video stage 未配置视频大模型（去「🤖 Agent 配置 → 🎬 广告视频生成 Agent」选择模型）"}
     try:
@@ -340,11 +403,127 @@ def _call_video_model(prompt: str, out_path: Path, duration_s: int,
                       aspect: str, info: dict, ref_image: str | None = None) -> bool:
     """调视频大模型生成单个镜头片段。
 
-    端点兼容：{base}/videos/generations 与 {base}/v1/videos/generations。
+    支持两类协议（自动探测，按顺序尝试）：
+    1. Agnes 异步任务式：POST {base}/videos 建任务 → GET {base}/videos/{task_id} 轮询
+       → 从 completed 响应的 metadata.url 下载 mp4。
+    2. 通用同步式：POST {base}/videos/generations（Kling/Veo/Sora 等 OpenAI 风格端点），
+       响应直接带 b64_json / url。
     返回 True/False（失败不抛异常，上层决定降级）。
     """
     import httpx
+    import base64 as _b64
+    import time as _t
+    from core import video_rules
     base, key, model = info["base"], info["key"], info["model"]
+    is_local = "127.0.0.1" in base or "localhost" in "127.0.0.1" or "localhost" in base
+    # 📏 能力表钳制：按模型匹配 data/video_model_rules.json 规则（时长档位/画幅字段/禁用字段/轮询参数/附加头）
+    rule = video_rules.match_rule(model)
+    dur = video_rules.clamp_duration(duration_s, rule)
+    headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    headers.update(video_rules.extra_headers(rule))
+
+    # ── 1. Agnes 异步任务协议（网关 8787 /v1/videos）────────────────────
+    if base.endswith("/v1") or "/v1/" in base:
+        create_url = f"{base}/videos"
+        body = {
+            "model": model,
+            "mode": "image" if ref_image else "text",
+            "prompt": prompt,
+            "aspect_ratio": aspect,
+        }
+        # 参考图驱动（reference-to-video）：有产品图时作为首帧/参考传入（尽力而为）
+        if ref_image:
+            b64 = _encode_image_base64(ref_image)
+            if b64:
+                body["image"] = b64
+                body["image_url"] = b64
+        # 时长字段按能力表决定（Agnes Flash 规则为 drop_field：dur=None 时不传，避免 400）
+        if dur is not None:
+            body[video_rules.duration_field(rule)] = dur
+        try:
+            with httpx.Client(timeout=120, trust_env=not is_local) as client:
+                # 503 队列满退避重试：上游 Agnes 视频有并发上限，多段并发生成时易撞 503。
+                # 等队列释放再试（最多 5 次、每次 20s 退避），避免整段直接失败。
+                r = None
+                for attempt in range(3):
+                    r = client.post(create_url, json=body, headers=headers)
+                    if r.status_code == 503:
+                        log.warning("[ad_video] 视频队列已满（503），第 %d/3 次退避重试…", attempt + 1)
+                        _t.sleep(4 * (attempt + 1))
+                        continue
+                    break
+                if r.status_code == 200:
+                    d = r.json()
+                    task_id = (d.get("task_id") or d.get("id") or d.get("video_id")
+                               or (d.get("metadata") or {}).get("video_id"))
+                    if not task_id:
+                        log.warning("[ad_video] 异步建任务 200 但响应无 task_id: %s", r.text[:200])
+                        return False
+                    log.info("[ad_video] 视频任务已创建 task_id=%s，开始轮询…", task_id)
+                    poll_url = f"{base}/videos/{task_id}"
+                    # 轮询参数按能力表规则（Agnes 默认 5s × 120 次 = 10 分钟，Flash 单次约 1-4 分钟）
+                    _iv, _polls = video_rules.poll_params(rule)
+                    for _ in range(_polls):
+                        _t.sleep(_iv)
+                        pr = client.get(poll_url, headers=headers, timeout=60)
+                        if pr.status_code != 200:
+                            log.warning("[ad_video] 轮询 %s 返回 %s: %s",
+                                        poll_url, pr.status_code, pr.text[:200])
+                            continue
+                        pd = pr.json()
+                        status = str(pd.get("status", "")).lower()
+                        if status in ("completed", "success", "succeeded", "finished"):
+                            meta = pd.get("metadata") or {}
+                            vurl = (meta.get("url") or pd.get("url")
+                                    or pd.get("video_url") or meta.get("video_url"))
+                            b64v = meta.get("b64_json") or pd.get("b64_json")
+                            out_path.parent.mkdir(parents=True, exist_ok=True)
+                            if b64v:
+                                out_path.write_bytes(_b64.b64decode(b64v))
+                                log.info("[ad_video] 视频片段下载完成（b64）: %s", out_path.name)
+                                return True
+                            if vurl:
+                                dl = client.get(vurl, timeout=300, follow_redirects=True)
+                                if dl.status_code == 200 and len(dl.content) > 1024:
+                                    out_path.write_bytes(dl.content)
+                                    log.info("[ad_video] 视频片段下载完成: %s (%.1f MB)",
+                                             out_path.name, len(dl.content) / 1048576)
+                                    return True
+                            log.warning("[ad_video] 任务完成但响应无下载地址: %s", pr.text[:300])
+                            return False
+                        if status in ("failed", "error", "cancelled"):
+                            err_msg = str(pd.get("error") or pd.get("message") or pd)
+                            log.warning("[ad_video] 视频任务失败: %s", pd)
+                            info["last_error"] = f"上游任务执行失败: {err_msg[:200]}"
+                            return False
+                    log.warning("[ad_video] 视频任务 %s 轮询超时（10 分钟）", task_id)
+                    info["last_error"] = f"视频生成任务轮询超时（10分钟）"
+                    return False
+                # 建任务非 200：404/405 说明该端点不是异步协议，落到通用同步端点尝试
+                if r.status_code not in (404, 405):
+                    err_msg = ""
+                    try:
+                        ed = r.json()
+                        err_msg = (ed.get("message") or ed.get("error", {}).get("message")
+                                   or ed.get("detail") or str(ed))
+                    except Exception:
+                        err_msg = r.text[:200]
+                    log.warning("[ad_video] 异步建任务 %s 返回 %s: %s",
+                                create_url, r.status_code, r.text[:300])
+                    if r.status_code == 503:
+                        info["last_error"] = f"视频服务队列满载繁忙 (503: {err_msg})"
+                    elif r.status_code == 401:
+                        info["last_error"] = f"视频大模型鉴权失败，请检查 API Key (401: {err_msg})"
+                    else:
+                        info["last_error"] = f"视频接口返回异常 ({r.status_code}: {err_msg})"
+                    # 400（字段/模型不支持）或 503（队列满/无渠道）等：同步端点也救不了，直接判败
+                    return False
+        except Exception as exc:  # noqa: BLE001
+            log.warning("[ad_video] 异步视频任务调用异常: %s", exc)
+            info["last_error"] = f"视频接口调用异常: {exc}"
+            return False
+
+    # ── 2. 通用同步端点（OpenAI 风格 /videos/generations，如 Kling/Veo/Sora 直连）──
     candidates = []
     if base.endswith("/videos/generations"):
         candidates.append(base)
@@ -354,38 +533,38 @@ def _call_video_model(prompt: str, out_path: Path, duration_s: int,
         candidates.append(f"{base}/v1/videos/generations")
         candidates.append(f"{base}/videos/generations")
 
-    body = {
-        "model": model,
-        "prompt": prompt,
-        "duration": duration_s,
-        "aspect_ratio": aspect,
-        "size": "1080x1920" if aspect == "9:16" else "1920x1080",
-    }
-    # 参考图驱动（reference-to-video）：有产品图时作为首帧/参考传入
+    body = {"model": model, "prompt": prompt}
+    # 📏 时长/画幅按能力表规则：字段名（duration/seconds/durationSeconds）、钳制档位、
+    # Sora 类用 size 字符串；无规则时沿用通用格式（duration + aspect_ratio + size）
+    body[video_rules.duration_field(rule)] = dur if dur is not None else duration_s
+    body.update(video_rules.aspect_payload(rule, aspect))
     if ref_image:
         b64 = _encode_image_base64(ref_image)
         if b64:
             body["image"] = b64
             body["image_url"] = b64
 
-    is_local = "127.0.0.1" in base or "localhost" in base
     for url in candidates:
         try:
             with httpx.Client(timeout=600, trust_env=not is_local) as client:
-                r = client.post(
-                    url,
-                    json=body,
-                    headers={"Authorization": f"Bearer {key}",
-                             "Content-Type": "application/json"},
-                )
+                r = client.post(url, json=body, headers=headers)
+                if r.status_code in (404, 405):
+                    continue  # 端点不存在，试下一个
                 if r.status_code != 200:
+                    err_msg = ""
+                    try:
+                        ed = r.json()
+                        err_msg = (ed.get("message") or ed.get("error", {}).get("message")
+                                   or ed.get("detail") or str(ed))
+                    except Exception:
+                        err_msg = r.text[:200]
                     log.warning("[ad_video] 视频模型 %s 返回 %s: %s",
-                                url, r.status_code, r.text[:200])
-                    continue
+                                url, r.status_code, r.text[:300])
+                    info["last_error"] = f"通用端点返回异常 ({r.status_code}: {err_msg})"
+                    return False
                 data = r.json()
                 arr = data.get("data") if isinstance(data.get("data"), list) else []
                 item = arr[0] if arr else data
-                import base64 as _b64
                 b64v = item.get("b64_json") or item.get("video") or data.get("b64_json")
                 vurl = (item.get("url") or item.get("video_url")
                         or data.get("url") or data.get("video_url"))
@@ -394,11 +573,10 @@ def _call_video_model(prompt: str, out_path: Path, duration_s: int,
                     out_path.write_bytes(_b64.b64decode(b64v))
                     return True
                 if vurl:
-                    with httpx.Client(timeout=300, follow_redirects=True) as dl:
-                        dr = dl.get(vurl)
-                        if dr.status_code == 200 and len(dr.content) > 1024:
-                            out_path.write_bytes(dr.content)
-                            return True
+                    dl = client.get(vurl, timeout=300, follow_redirects=True)
+                    if dl.status_code == 200 and len(dl.content) > 1024:
+                        out_path.write_bytes(dl.content)
+                        return True
         except Exception as exc:  # noqa: BLE001
             log.warning("[ad_video] 视频模型调用失败 %s: %s", url, exc)
     return False
@@ -408,13 +586,10 @@ def generate_video_shots(storyboard: list, product_std_desc: str,
                          work_dir: Path, aspect: str = "9:16",
                          person_desc: str = "", style_desc: str = "",
                          ref_images: list | None = None,
+                         person_ref_image: str | None = None,
+                         ad_mode: str = "avatar",
                          emit=None) -> dict:
-    """ad_video Agent：按分镜逐镜头调用视频大模型。
-
-    Returns: {"clips": [Path...], "prompts": [str...], "video_model": str,
-              "fallback": bool, "reason": str}
-    fallback=True 表示视频模型不可用，上层走 AI 图片保底。
-    """
+    """ad_video Agent：按分镜逐镜头调用视频大模型。支持数字人出镜与产品参考图双轨驱动。"""
     emit = emit or (lambda *_: None)
     info = ad_video_model_info()
     if not info["ok"]:
@@ -426,14 +601,25 @@ def generate_video_shots(storyboard: list, product_std_desc: str,
     ref_list = [p for p in (ref_images or []) if p]
     total = len(storyboard)
     for i, shot in enumerate(storyboard):
+        is_avatar_shot = shot.get("is_avatar", False)
         prompt = craft_shot_video_prompt(
             shot, product_std_desc, aspect=aspect,
-            person_desc=person_desc, style_desc=style_desc)
+            person_desc=person_desc, style_desc=style_desc,
+            is_avatar=is_avatar_shot)
         prompts.append(prompt)
         out = work_dir / f"shot-{i+1:02d}.mp4"
-        emit(f"🎬 AI 生成第 {i+1}/{total} 镜…")
-        # 首镜优先用产品参考图做 reference-to-video
-        ref = ref_list[0] if (i == 0 and ref_list) else None
+        emit(f"🎬 AI 生成第 {i+1}/{total} 镜（{'数字人口播' if is_avatar_shot else '产品镜头'}）…")
+        
+        # 确定参考图：数字人镜头用人物照片驱动，产品镜头用产品图
+        if is_avatar_shot and person_ref_image:
+            ref = person_ref_image
+        elif ref_list:
+            ref = ref_list[0]
+        elif person_ref_image:
+            ref = person_ref_image
+        else:
+            ref = None
+
         ok = _call_video_model(prompt, out, int(shot.get("dur", 3) or 3),
                                aspect, info, ref_image=ref)
         if ok and out.exists() and out.stat().st_size > 1024:
@@ -493,6 +679,32 @@ def _fallback_image_video(product_name: str, script: str, terms: list,
     return res
 
 
+def rewrite_ad_script(product_name: str, product_desc: str,
+                      selling_points: list | None = None,
+                      audience: str = "大众消费者",
+                      ad_mode: str = "avatar",
+                      seconds: int = 15) -> dict:
+    """为 AI 广告短片生成/改写专业口播脚本（支持数字人口播模式）。"""
+    sp = selling_points
+    if not sp:
+        sp_res = extract_selling_points(product_name, product_desc, audience)
+        sp = sp_res.get("points") or []
+    sc = generate_ad_script(product_name, sp, audience, seconds=seconds, ad_mode=ad_mode)
+    clean_txt = re.sub(r"\[.*?\]", "", sc["script"])
+    char_count = len(re.sub(r"\s+", "", clean_txt))
+    return {
+        "ok": True,
+        "script": sc["script"],
+        "hook": sc["hook"],
+        "body": sc["body"],
+        "cta": sc["cta"],
+        "selling_points": sp,
+        "ad_mode": ad_mode,
+        "char_count": char_count,
+        "estimated_seconds": seconds,
+    }
+
+
 def make_ad_video(product_name: str, product_desc: str, seconds: int = 15,
                   aspect: str = "9:16", audience: str = "大众消费者",
                   voice: str = "zh-CN-XiaoxiaoNeural",
@@ -500,23 +712,16 @@ def make_ad_video(product_name: str, product_desc: str, seconds: int = 15,
                   selling_points: list | None = None,
                   ref_images: list | None = None,
                   person_ref_image: str | None = None,
-                  # --- deprecated（旧三配音模式已下线，前端不再传，仅保兼容） ---
                   voice_mode: str = "auto",
-                  custom_audio_path: str | None = None) -> dict:
-    """AI 产品广告短片一键生成（全AI 视频大模型生成模式）。
+                  custom_audio_path: str | None = None,
+                  ad_mode: str = "avatar",
+                  custom_script: str = "") -> dict:
+    """AI 产品广告短片一键生成（全AI 视频大模型生成模式，支持 AI 数字人口播）。
 
     流程：
       1. ad_creative Agent：卖点提炼 → 广告脚本(Hook+正文+CTA) → 分镜(7-slot)
-      2. ad_video Agent：按分镜逐镜头调用视频大模型生成视频片段
+      2. ad_video Agent：按分镜逐镜头调用视频大模型生成视频片段（支持数字人出镜参考图）
       3. ffmpeg 无损拼接 + 单轨 TTS 配音 + 字幕
-
-    Args:
-        selling_points: 预生成的卖点列表；传了则跳过自动提炼
-        ref_images: 产品参考图路径列表（首镜做 reference-to-video）
-        person_ref_image: 卖货人员参考图路径（注入分镜人物描述）
-
-    Returns: {"mp4", "duration_s", "script", "storyboard", "selling_points",
-              "video_prompts", "video_model", "fallback", ...}
     """
     emit = emit or (lambda *_: None)
     seconds = 15 if seconds <= 20 else (30 if seconds <= 45 else 60)
@@ -543,12 +748,13 @@ def make_ad_video(product_name: str, product_desc: str, seconds: int = 15,
         emit("AI 分析参考图（产品/人物特征提取）…")
         visual_context = analyze_reference_images(ref_list, person_ref_image)
 
-    emit("生成广告脚本（Hook+正文+CTA）…")
-    sc = generate_ad_script(product_name, sp["points"], audience, seconds, aspect)
+    emit("生成广告口播脚本（Hook+正文+CTA）…")
+    sc = generate_ad_script(product_name, sp["points"], audience, seconds, aspect,
+                            ad_mode=ad_mode, custom_script=custom_script)
     log.info("[ad_video] 脚本 %d 字, terms=%s", len(sc["script"]), sc["terms"])
 
     emit("拆分镜（7-slot 产品镜头公式）…")
-    shots = build_storyboard(sc, seconds, visual_context=visual_context)
+    shots = build_storyboard(sc, seconds, visual_context=visual_context, ad_mode=ad_mode)
 
     # 产品标准描述：全片逐字一致（视觉分析优先，否则用产品名+描述）
     vc = visual_context or {}
@@ -561,7 +767,8 @@ def make_ad_video(product_name: str, product_desc: str, seconds: int = 15,
     gen = generate_video_shots(
         shots, product_std_desc, work_dir, aspect=aspect,
         person_desc=person_desc, style_desc=style_desc,
-        ref_images=ref_list, emit=emit)
+        ref_images=ref_list, person_ref_image=person_ref_image,
+        ad_mode=ad_mode, emit=emit)
 
     # ---- 3. 拼接成片 ----
     if gen["clips"]:
@@ -584,6 +791,7 @@ def make_ad_video(product_name: str, product_desc: str, seconds: int = 15,
         "fallback": gen["fallback"],
         "fallback_reason": gen.get("reason", ""),
         "engine": "ad_video_dual_agent",
+        "ad_mode": ad_mode,
         "ref_image_count": len(ref_list),
         "visual_context": visual_context,
         "product_std_desc": product_std_desc,

@@ -86,10 +86,31 @@ def grade(total: float) -> str:
 
 
 def _extract_json(text: str) -> dict:
+    if not text:
+        return {}
     m = re.search(r"\{.*\}", text, re.S)
     if not m:
         raise ValueError(f"评审输出无 JSON: {text[:200]}")
-    return json.loads(m.group(0))
+    s = m.group(0).strip()
+    try:
+        return json.loads(s)
+    except Exception:
+        pass
+    # 尝试清洗控制字符与非法转义
+    try:
+        clean = re.sub(r"[\x00-\x1f]", lambda c: " " if c.group(0) not in "\r\n\t" else c.group(0), s)
+        return json.loads(clean)
+    except Exception:
+        pass
+    # 尝试正则提取 scores 字典兜底
+    scores = {}
+    for key in ("title", "value", "structure", "style", "visual", "layout", "cta"):
+        val_m = re.search(rf'"{key}"\s*:\s*([0-9]+(?:\.[0-9]+)?)', s)
+        if val_m:
+            scores[key] = float(val_m.group(1))
+    if scores:
+        return {"scores": scores, "total": sum(scores.values()), "reasons": {}}
+    raise ValueError(f"评审输出 JSON 解析失败: {text[:200]}")
 
 
 def judge_draft(draft_id: str, platform: str | None = None,

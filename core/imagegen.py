@@ -514,6 +514,20 @@ def gen_image_pollinations(prompt: str, out_path: Path, width: int = 1024, heigh
     return False
 
 
+# 模块级生图通道诊断：记录每张图实际走了哪条通道 + 商业通道失败原因。
+# 供上层（生图结果 / 前端）暴露「高性能商业模型」还是「开源保底」，避免静默降级。
+_GEN_DIAG: dict = {"channel": "none", "model": "", "provider": "", "commercial_error": ""}
+
+
+def last_gen_diagnosis() -> dict:
+    """返回最近一次 gen_image 的通道诊断（供 UI 展示"用的是高性能生图模型"而非保底）。"""
+    return dict(_GEN_DIAG)
+
+
+def _reset_gen_diagnosis(model: str = "", provider: str = "") -> None:
+    _GEN_DIAG.update({"channel": "none", "model": model, "provider": provider, "commercial_error": ""})
+
+
 def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_title: str = "", context_sub: str = "", angle_idx: int = 0, is_cover: bool = False) -> bool:
     """生成一张配图并存入 out_path。
     智能多通道真实生图机制：
@@ -529,6 +543,7 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
 
     from core.llm import resolve_llm_endpoint, classify_model
     base, key, resolved_model, pid = resolve_llm_endpoint(req_model)
+    _reset_gen_diagnosis(resolved_model, pid)
 
     # 1. 尝试商业通道：仅在指定模型是图像模型且配置了有效 API Key 时调用 /images/generations
     if key and base and classify_model(resolved_model) == "image":
@@ -542,6 +557,7 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
             candidate_urls.append(f"{base}/images/generations")
 
         is_local = "127.0.0.1" in base or "localhost" in base
+        commercial_ok = False
         for req_url in candidate_urls:
             try:
                 with httpx.Client(timeout=60, trust_env=not is_local) as client:
@@ -560,24 +576,45 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
                         if b64:
                             out_path.parent.mkdir(parents=True, exist_ok=True)
                             out_path.write_bytes(base64.b64decode(b64))
-                            return True
+                            commercial_ok = True
+                            break
                         elif img_url:
                             with httpx.Client(timeout=40, follow_redirects=True) as dl_client:
                                 dl_r = dl_client.get(img_url)
                                 if dl_r.status_code == 200 and len(dl_r.content) > 1024:
                                     out_path.parent.mkdir(parents=True, exist_ok=True)
                                     out_path.write_bytes(dl_r.content)
-                                    return True
+                                    commercial_ok = True
+                                    break
+                            _GEN_DIAG["commercial_error"] = f"生图端点返回的图片地址拉取失败（HTTP {dl_r.status_code}）"
+                        else:
+                            _GEN_DIAG["commercial_error"] = f"生图端点返回 200 但无图片数据体（model={resolved_model}）"
+                    else:
+                        _GEN_DIAG["commercial_error"] = f"HTTP {r.status_code}: {r.text[:120]}"
+                        print(f"[ImageGen] 商业生图通道 [{pid}] {req_url} 返回 {r.status_code}，将转开源保底通道")
             except Exception as e:
-                print(f"[ImageGen API Warning] {req_url}: {e}")
+                _GEN_DIAG["commercial_error"] = f"{type(e).__name__}: {str(e)[:120]}"
+                print(f"[ImageGen] 商业生图通道 [{pid}] {req_url} 调用异常: {e}，将转开源保底通道")
+        if commercial_ok:
+            _GEN_DIAG["channel"] = "commercial"
+            return True
+    else:
+        # 未进入商业通道（key 缺失 / 模型非 image 类）也要给出可观测原因
+        if not key:
+            _GEN_DIAG["commercial_error"] = f"供应商 [{pid}] 未配置有效 API Key（占位/空 Key）"
+        elif classify_model(resolved_model) != "image":
+            _GEN_DIAG["commercial_error"] = f"目标模型 [{resolved_model}] 不是生图模型"
 
     # 2. 尝试开源保底通道：Pollinations Flux 真实文生图引擎（免 Key、免配置、100% 真实可用）
     w, h = parse_dimensions(size)
     if gen_image_pollinations(enhanced_prompt, out_path, width=w, height=h):
+        _GEN_DIAG["channel"] = "pollinations"
         return True
 
     # 3. 极端断网降级：美学卡片
-    return _render_fallback_card(context_title or prompt[:30], context_sub or prompt, out_path, angle_idx, is_cover)
+    card_ok = _render_fallback_card(context_title or prompt[:30], context_sub or prompt, out_path, angle_idx, is_cover)
+    _GEN_DIAG["channel"] = "card" if card_ok else "none"
+    return card_ok
 
 
 def img_dir(draft_dir: Path) -> Path:
@@ -812,7 +849,8 @@ def regenerate_draft_image(draft_id: str, name: str, prompt: str = "", title: st
         "name": name,
         "url": f"/img/{draft_id}/{out_file.name}?t={int(os.path.getmtime(out_file)) if out_file.exists() else 0}",
         "prompt": clean_prompt,
-        "title": title
+        "title": title,
+        "image_channel": last_gen_diagnosis()
     }
 
 
@@ -973,7 +1011,8 @@ def generate_and_inject_images(draft_id: str, count: int = 3) -> dict:
         "count": len(img_list),
         "images": img_list,
         "body_md": updated_body_md,
-        "html_wechat": wx_html
+        "html_wechat": wx_html,
+        "image_channel": last_gen_diagnosis()
     }
 
 

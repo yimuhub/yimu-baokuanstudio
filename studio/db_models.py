@@ -4,7 +4,7 @@
 设计要点（详见 docs/SCHEMA.md）：
 - SQLAlchemy 2.0 ``Mapped`` 注解风格，SQLite / PostgreSQL 双兼容。
 - 主键统一 32 位十六进制字符串（uuid4），避免 PG 专有类型。
-- 时间统一带时区的 ``DateTime(timezone=True)``，应用层写入 UTC。
+- 时间统一带时区的 ``FlexibleDateTime()``，应用层写入 UTC。
 - JSON 字段统一使用 ``sqlalchemy.JSON``（SQLite 落 TEXT，PG 落 JSONB）。
 - 金额统一整数分（cost_cents），额度统一整数点数（credits），杜绝浮点。
 - 敏感字段（password_hash / salt / key_hash）标记为「永不返回给前端」。
@@ -22,7 +22,6 @@ from sqlalchemy import (
     JSON,
     Boolean,
     CheckConstraint,
-    DateTime,
     Float,
     ForeignKey,
     Index,
@@ -32,6 +31,8 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+from .flex_datetime import FlexibleDateTime
 
 
 def new_id() -> str:
@@ -86,7 +87,7 @@ class Tenant(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
 
     __table_args__ = (
@@ -122,11 +123,11 @@ class User(Base, HasTenant):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
     # 最近登录时间
     last_login_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        FlexibleDateTime(), nullable=True
     )
 
     __table_args__ = (
@@ -163,21 +164,21 @@ class Membership(Base, HasTenant):
     credits_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # 周期开始时间
     period_start: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
     # 周期结束时间（NULL 表示长期有效）
     period_end: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        FlexibleDateTime(), nullable=True
     )
     # 状态：active（有效）/ expired（过期）/ cancelled（取消）
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
     # 更新时间
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     __table_args__ = (
@@ -224,15 +225,15 @@ class GatewayKey(Base, HasTenant):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
     # 过期时间（NULL 表示永不过期）
     expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        FlexibleDateTime(), nullable=True
     )
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
     # 更新时间
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     __table_args__ = (
@@ -277,7 +278,7 @@ class Ledger(Base, HasTenant):
     cached: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, index=True
+        FlexibleDateTime(), nullable=False, default=utcnow, index=True
     )
 
     __table_args__ = (
@@ -304,7 +305,7 @@ class Invite(Base, HasTenant):
     credits_grant: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # 过期时间（NULL 表示永不过期）
     expires_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        FlexibleDateTime(), nullable=True
     )
     # 状态：active（有效）/ exhausted（用完）/ revoked（作废）/ expired（过期）
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="active")
@@ -316,7 +317,7 @@ class Invite(Base, HasTenant):
     )
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
 
     __table_args__ = (
@@ -347,7 +348,7 @@ class InviteReferral(Base, HasTenant):
     # 本次核销给邀请人的奖励点数
     reward_credits: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
 
     __table_args__ = (
@@ -391,7 +392,7 @@ class Asset(Base, HasTenant):
     )
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, index=True
+        FlexibleDateTime(), nullable=False, default=utcnow, index=True
     )
 
     __table_args__ = (
@@ -431,11 +432,11 @@ class Draft(Base, HasTenant):
     guard_reason: Mapped[str] = mapped_column(Text, nullable=False, default="")
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
     # 更新时间
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     __table_args__ = (
@@ -466,7 +467,7 @@ class DraftHistory(Base, HasTenant):
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
 
     __table_args__ = (
@@ -502,11 +503,11 @@ class DramaJob(Base, HasTenant):
     )
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
     # 更新时间
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     __table_args__ = (
@@ -541,11 +542,11 @@ class DramaShot(Base, HasTenant):
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
     # 更新时间
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     __table_args__ = (
@@ -572,11 +573,11 @@ class IPCharacter(Base, HasTenant):
     feature_anchors: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
     # 更新时间
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     __table_args__ = (
@@ -618,19 +619,19 @@ class AsyncTask(Base, HasTenant):
     )
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow
     )
     # 开始时间
     started_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        FlexibleDateTime(), nullable=True
     )
     # 更新时间
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow
     )
     # 结束时间
     finished_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        FlexibleDateTime(), nullable=True
     )
 
     __table_args__ = (
@@ -662,7 +663,7 @@ class AuditLog(Base, HasTenant):
     detail: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, index=True
+        FlexibleDateTime(), nullable=False, default=utcnow, index=True
     )
 
     __table_args__ = (
@@ -716,15 +717,15 @@ class Order(Base, HasTenant):
     note: Mapped[str] = mapped_column(String(512), nullable=False, default="")
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, index=True
+        FlexibleDateTime(), nullable=False, default=utcnow, index=True
     )
     # 核销（确认收款）时间
     paid_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        FlexibleDateTime(), nullable=True
     )
     # 退款时间
     refunded_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True), nullable=True
+        FlexibleDateTime(), nullable=True
     )
 
     __table_args__ = (
@@ -761,7 +762,7 @@ class QuotaCounter(Base, HasTenant):
     count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     # 更新时间
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False, default=utcnow, onupdate=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow
     )
 
     __table_args__ = (

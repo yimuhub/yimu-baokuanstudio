@@ -32,8 +32,12 @@ dist/
 Thumbs.db
 
 # 密钥与凭证（BSL 项目红线：任何 key/secret 禁止提交）
-*secret*
+*secret*.json
+*secret*.yaml
+*secret*.yml
+*secret*.env
 *credential*
+!tests/test_no_secrets.py
 *.pem
 *.key
 secrets/
@@ -43,3 +47,10 @@ secrets/
 .idea/
 *.swp
 .v7-test.env
+
+# 历史备份与构建产物
+*.backup*
+*.bak
+yimu-*-patch-windows/
+yimu-*-patch-windows.zip
+

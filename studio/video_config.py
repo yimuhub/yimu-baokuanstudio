@@ -37,8 +37,12 @@ _DEFAULTS = {
     "pixabay_api_key": "",
     "subtitle_enabled": True,
     "voice_engine": "tts",
+    "voice_clone_provider": "custom",
     "voice_clone_api_url": "",
     "voice_clone_api_key": "",
+    "voice_clone_model": "",
+    "voice_clone_voice_id": "",
+    "voice_clone_prompt_audio": "",
     "local_model_path": "",
     "material_mode": "mixed",
 }

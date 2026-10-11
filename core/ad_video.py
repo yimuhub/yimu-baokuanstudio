@@ -427,16 +427,17 @@ def _call_video_model(prompt: str, out_path: Path, duration_s: int,
         create_url = f"{base}/videos"
         body = {
             "model": model,
-            "mode": "image" if ref_image else "text",
+            # 实测(2026-10):上游 mode 只认 text|keyframe|reference;传 "image" 会 400「mode 无效」
+            "mode": "keyframe" if ref_image else "text",
             "prompt": prompt,
             "aspect_ratio": aspect,
         }
-        # 参考图驱动（reference-to-video）：有产品图时作为首帧/参考传入（尽力而为）
+        # 参考图作为首帧:keyframe 模式只认 first_frame/last_frame;
+        # image / image_url 都会被上游字段校验 400 拒绝("xxx 不是允许的请求字段")。
         if ref_image:
             b64 = _encode_image_base64(ref_image)
             if b64:
-                body["image"] = b64
-                body["image_url"] = b64
+                body["first_frame"] = b64
         # 时长字段按能力表决定：仅当匹配到规则且该规则允许传时长时才加入。
         # Agnes Flash 规则为 drop_field（dur=None）→ 不传；未匹配规则（rule=None）
         # 也保持旧安全行为不传（Agnes 网关不吃 duration/seconds 字段，传了 400）。

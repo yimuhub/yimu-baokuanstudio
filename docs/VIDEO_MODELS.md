@@ -28,8 +28,8 @@
 
 | 模型 | 供应商/入口 | 时长（可选档位） | 画幅 | 分辨率 | 输入 | 音频 | 特性备注 |
 |------|------------|-----------------|------|--------|------|------|---------|
-| **agnes-video-2.5-flash** | Agnes（网关 8787 当前在用） | **固定 5s**（不可传 duration/seconds 字段） | `aspect_ratio`：9:16 / 16:9 | 720p | `mode: text` 或 `image`（参考图） | — | 异步任务，单次约 1–4 分钟；队列满返回 503 |
-| **agnes-video-v2.0** | Agnes | 5s 档 | 9:16 / 16:9 | 720p/1080p | text / image | — | 当前上游无可用渠道（503），保留配置 |
+| **agnes-video-2.5-flash** | Agnes（网关 8787 当前在用） | **固定 5s**（有 duration 字段会 400） | `aspect_ratio`：9:16 / 16:9 | 720p | `mode: text` 或 `keyframe`（参考图放 `first_frame`；`mode:"image"` 与 `image`/`image_url` 字段均会被 400 拒绝） | — | 异步任务，单次约 1–4 分钟；队列满返回 503，需退避重试 |
+| **agnes-video-v2.0** | Agnes | 5s 档 | 9:16 / 16:9 | 720p/1080p | text / image | — | **已下架**：上游无可用渠道（503 model_not_found），config.yaml 已置 is_enabled=false，勿再选用 |
 | **sora-2** | OpenAI | 4 / 8 / 12 s | `size`：1280x720、720x1280（横/竖） | 720p 档为主 | prompt + 可选首帧 | ✅ 原生音画同步 | 异步任务；生成 1–5 分钟；短时长（4–8s）稳定性最好 |
 | **sora-2-pro** | OpenAI | 更长档位（含 15/20s） | 支持 1080p 级 `size` | 1080p 档 | prompt + 可选首帧 | ✅ | 价格/时延更高；档位以 OpenAI 官方 docs 实时为准 |
 | **veo-3.1-generate-preview** | Google Gemini API | 4 / 8 s（`durationSeconds`） | `aspectRatio`：16:9（默认）/ 9:16 | 720p / 1080p / 4k（Lite 无 4k） | 文本、首帧图、首尾帧、参考图（R2V 限 16:9+8s）、视频续写（限 720p） | ✅ 原生音频 | LRO 长任务；轮询建议 10s；4k 更贵更慢 |
@@ -40,7 +40,7 @@
 
 | 目标模型 | 应传时长 | 应传画幅 | 注意事项 |
 |---------|---------|---------|---------|
-| agnes-video-2.5-flash | **不传**（固定 5s） | `aspect_ratio: "9:16"` | 传 duration/seconds 会 400 |
+| agnes-video-2.5-flash | **不传**（固定 5s；实测传 seconds="5" 可接受，传 duration 必 400） | `aspect_ratio: "9:16"` | mode 只用 text/keyframe；参考图放 first_frame |
 | sora-2 | 4 或 8（取最近的允许档） | `size: "720x1280"` | 不支持 5s，需就近取档 |
 | veo-3.1 | 4 或 8 | `aspectRatio: "9:16"` | durationSeconds 仅 4/8 |
 | kling-2.x | 5 | `aspect_ratio: "9:16"` | 5s 直接命中，无需换算 |
@@ -53,7 +53,7 @@
 ### 3.1 Agnes（当前生产）
 - 端点：`{base_url}/videos` 建任务，`{base_url}/videos/{task_id}` 轮询（base 以 `/v1` 结尾时系统自动走 P1 分支）。
 - 鉴权：`Authorization: Bearer {MEDIAFLOW_KEY_YIMU_OFFICIAL}`。
-- 建任务体：`{"model", "mode": "text"|"image", "prompt", "aspect_ratio", "image"?(b64)}`。**禁止字段**：`duration`、`seconds`（上游 400）。
+- 建任务体：`{"model", "mode": "text"|"keyframe", "prompt", "aspect_ratio", "first_frame"?(b64, 参考图), "seconds"?(可选, 4~12 字符串)}`。**禁止字段**：`duration`（必 400）、`image`/`image_url`/`width`/`height`/`num_frames`/`frame_rate`（上游 400「不是允许的请求字段」）；`mode:"image"` 亦为非法值（400「mode 无效」）。
 - 轮询：5s 间隔，上限 10 分钟；成功态 `completed/success/succeeded/finished` → 取 `metadata.url`（或 `b64_json`）下载。
 - 退避：建任务 503（队列满/无渠道）→ 等 20s 重试，最多 5 次。
 
@@ -215,7 +215,7 @@ if "dashscope.aliyuncs.com" in base or "maas.aliyuncs.com" in base:
 
 | 现象 | 原因 | 处理 |
 |------|------|------|
-| 建任务 400「字段不识别」 | 给 Agnes 传了 duration/seconds | 去掉时长字段（Flash 固定 5s） |
+| 建任务 400「字段不识别」/「mode 无效」 | 给 Agnes 传了 duration/image/image_url/num_frames 等，或 mode 写成 "image" | 用 mode=text|keyframe；时长不传（固定 5s）；参考图放 first_frame |
 | 建任务 405/404 | base_url 未以 `/v1` 结尾且非 P2 路径 | 检查 §4 步骤 1 的 base_url |
 | 一直 503 | 上游队列满/无渠道 | 系统自动 20s×5 退避；仍失败换渠道或模型档 |
 | 401 | Key 缺失或错 | 查 `.env` 的 `MEDIAFLOW_KEY_{PID}`；用 §4 步骤 4 的探针看 `has_key` |

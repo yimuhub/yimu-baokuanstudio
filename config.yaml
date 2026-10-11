@@ -95,7 +95,7 @@ gateway:
     name: agnes-image-2.5-flash
   - category: video
     id: agnes-video-v2.0
-    is_enabled: true
+    is_enabled: false        # 2026-10 上游已无渠道(503 model_not_found),停用;保留记录便于日后恢复
     name: agnes-video-v2.0
   - category: video
     id: agnes-video-2.5-flash
@@ -124,7 +124,7 @@ gateway:
         name: agnes-image-2.5-flash
       - category: video
         id: agnes-video-v2.0
-        is_enabled: true
+        is_enabled: false    # 2026-10 上游已无渠道,停用
         name: agnes-video-v2.0
       model: agnes-3.0-flash
       name: 自定义聚合网关 (硅基流动 / OneAPI)

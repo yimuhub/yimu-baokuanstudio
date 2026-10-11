@@ -1162,7 +1162,9 @@ def generate_ai_video_clip(
     duration_s: int = 5,
     preferred_model: str = "agnes-video-2.5-flash"
 ) -> bool:
-    """调用原生 AI 视频大模型（agnes-video-2.5-flash / agnes-video-v2.0），以首帧参考图驱动生成真实连续动态视频切片。"""
+    """调用原生 AI 视频大模型（agnes-video-2.5-flash），以首帧参考图驱动生成真实连续动态视频切片。
+    新 schema(2026-10):mode=keyframe + first_frame;时长字段 seconds(字符串);分辨率 size=720P。
+    agnes-video-v2.0 上游已无渠道(503 model_not_found),不再作为兜底。"""
     if not img_path.exists() or img_path.stat().st_size < 1000:
         return False
 
@@ -1188,8 +1190,6 @@ def generate_ai_video_clip(
     models_to_try = [active_preferred]
     if active_preferred != "agnes-video-2.5-flash":
         models_to_try.append("agnes-video-2.5-flash")
-    if active_preferred != "agnes-video-v2.0":
-        models_to_try.append("agnes-video-v2.0")
 
     for model_id in models_to_try:
         try:
@@ -1198,29 +1198,18 @@ def generate_ai_video_clip(
                 headers["Authorization"] = f"Bearer {api_key}"
 
             dur = max(4, min(int(duration_s), 8))
-            if "2.5" in model_id:
-                req_body = {
-                    "model": model_id,
-                    "prompt": motion_prompt[:450],
-                    "mode": "keyframe",
-                    "first_frame": data_uri,
-                    "seconds": str(dur),
-                    "size": "720P",
-                    "aspect_ratio": aspect if aspect in ("9:16", "16:9") else "9:16",
-                    "n": 1
-                }
-            else:
-                w, h = (720, 1280) if aspect == "9:16" else (1280, 720)
-                fps = 24
-                req_body = {
-                    "model": model_id,
-                    "prompt": motion_prompt[:450],
-                    "height": h,
-                    "width": w,
-                    "num_frames": max(25, min(int(dur * fps), 121)),
-                    "frame_rate": fps,
-                    "image": b64_str
-                }
+            # 统一走 Agnes 新 schema(text|keyframe|reference + seconds + size);
+            # 旧 v2.0 那套 height/width/num_frames/frame_rate/image 字段上游已全部拒绝。
+            req_body = {
+                "model": model_id,
+                "prompt": motion_prompt[:450],
+                "mode": "keyframe",
+                "first_frame": data_uri,
+                "seconds": str(dur),
+                "size": "720P",
+                "aspect_ratio": aspect if aspect in ("9:16", "16:9") else "9:16",
+                "n": 1
+            }
 
             with httpx.Client(timeout=10.0) as client:
                 res = client.post(f"{gw_base}/videos", headers=headers, json=req_body)

@@ -36,9 +36,11 @@ agents:
     skills:
     - director-beat-sheet
   image:
-    instruction: ''
+    instruction: '电影级分镜头视觉总监：深度通读全文稿，解构分镜头节拍，95%+ 图文匹配度，现代高端审美'
     model: agnes-image-2.5-flash
-    skills: []
+    skills:
+    - storyboard-visual-grammar
+    - cinematic-optics-lighting
   layout:
     instruction: ''
     model: agnes-3.0-flash

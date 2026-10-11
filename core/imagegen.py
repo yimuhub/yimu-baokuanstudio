@@ -198,6 +198,42 @@ VISUAL_STYLE_PRESETS = {
             "③高端品牌审美与精致背景；④产品细节的超高分辨率呈现。只输出英文 Prompt，不要解释。"
         ),
     },
+    # 9. 新海诚系·治愈电影（治愈/动漫/风景/情感/青春）
+    "anime_cinematic": {
+        "name": "治愈动漫·新海诚光影",
+        "tag": "Makoto Shinkai Cinematic Anime & Kyoto Animation Aesthetic",
+        "keywords": ["动漫", "二次元", "治愈", "新海诚", "唯美", "青春", "黄昏", "天空", "夏天", "晚霞", "樱花", "风景", "电影感动漫"],
+        "style_directive": "Makoto Shinkai cinematic animation aesthetic, Kyoto Animation delicate artistry, vibrant saturated azure sky with towering luminous cumulus clouds, dramatic golden hour crepuscular rays piercing atmosphere, cinematic emotional lighting, crystalline water reflections, highly detailed nostalgic background art, Studio Ghibli warmth",
+        "suffix": (
+            ", Makoto Shinkai cinematic animation style, Kyoto Animation masterpiece, "
+            "radiant volumetric twilight rays, crystalline translucent clouds, emotive atmosphere, "
+            "hyper-detailed background anime art, 8k wallpaper illustration, rich color gradation, "
+            "nostalgic cinematic lighting, sparkling highlights, no 3D render plastic, no lowres, no text, no watermark"
+        ),
+        "system_prompt": (
+            "你是新海诚与京都动画的主美兼电影分镜导演。将用户主题转化为极具治愈感与光影张力的动漫电影剧照 Prompt。"
+            "要求：①标志性新海诚云层/丁达尔光线/天空渐变；②精致唯美的生活细节或风景；"
+            "③充满青春情感与治愈色彩（蔚蓝、粉紫、金橙）；④极致细节动漫背景美学。只输出英文 Prompt，不要解释。"
+        ),
+    },
+    # 10. 极简三维·轻拟物艺术（3D图标/轻拟物/前沿概念/科技设计）
+    "minimalist_3d": {
+        "name": "极简三维·轻拟物艺术",
+        "tag": "Modern Claymorphism 3D & Isometric Pastel Art",
+        "keywords": ["3D", "三维", "拟物", "立体", "轻拟物", "粘土", "盲盒", "C4D", "Blender", "图标", "概念", "极简3D", "设计"],
+        "style_directive": "modern minimalist claymorphism 3D art, soft diffused ambient occlusion, isometric clean studio lighting, elegant pastel color palette with matte clay and frosted glass textures, Apple keynote infographic aesthetic, high-end 3D visual concept, smooth rounded geometric forms, octane render 8k",
+        "suffix": (
+            ", modern minimalist claymorphism 3D style, soft diffused ambient occlusion, "
+            "isometric perspective, studio softbox lighting, matte ceramic and frosted glass material, "
+            "clean pastel color scheme, Apple Keynote 3D illustration aesthetic, Octane Render 8k, "
+            "smooth rounded geometry, elegant composition, no photorealistic humans, no noise, no text, no watermark"
+        ),
+        "system_prompt": (
+            "你是苹果设计团队与顶级 3D 视觉工作室的创意总监。将用户主题转化为现代极简 3D 轻拟物艺术 Prompt。"
+            "要求：①粘土拟物/磨砂玻璃/柔和陶瓷材质；②柔和全局光照与等轴测透视；"
+            "③高级马卡龙或莫兰迪色系；④优雅圆润的现代三维设计构图。只输出英文 Prompt，不要解释。"
+        ),
+    },
 }
 
 # 默认风格
@@ -261,39 +297,51 @@ def photojournalism_prompt_engine(raw_text: str, context: str = "",
     return build_style_enhanced_prompt(raw_text, context=context, force_style=force_style)
 
 
-# 全文通读 ➔ 视觉要点提取 ➔ 多风格提示词生成（v5.302 升级版）
-ARTICLE_VISUAL_DIGEST_PROMPT = """你是一名顶级视觉总监，兼具普利策纪实摄影师、《Vogue》图片总监、
-苹果广告摄影导演和新中式美学大师四重身份。
+# 全文通读 ➔ 影视级分镜头剧本解构 ➔ 95%+ 图文超强匹配提示词生成（v8.3.2 影视分镜核心铁律版）
+ARTICLE_VISUAL_DIGEST_PROMPT = """你是一名好莱坞电影摄影总监兼短剧分镜导演，兼具国家地理摄影大师与全球顶尖视觉艺术总监身份。
 
-你的任务：深度通读整篇文章，根据文章核心主题自动匹配最合适的视觉风格，
-并为【封面大图】和【各段落小节】生成极具专业感的纯英文生图 Prompt。
+【系统核心铁律（必须严格贯彻执行）】：
+1. 【先通读全文后生图】：你必须先完整、细致地通读文章全文，深刻理解文章的中心思想、叙事情感曲线、论述逻辑以及每个段落的具体核心要点。
+2. 【影视短剧分镜视听语言】：
+   - 【封面大图】：必须设计为电影级“全景建立镜头 (Wide Establishing Hero Shot)”，确立全篇宏大世界观、时空氛围与核心视觉冲突，极具视觉冲击力与现代高级感；
+   - 【各段落配图】：必须设计为“叙事分镜头 (Story Beat Shots)”，包括中景人物动作交互 (Medium Narrative Shot)、情绪微表情特写 (Close-Up Emotion) 或 关键道具微距 (Macro Prop Shot)。严禁空泛抽象假大空概念！
+3. 【图文匹配度 >= 95% 铁律】：
+   - 画面中的角色身份、动作姿态、道具器物、环境场景必须与该段落文案内容严格 1:1 锚定匹配，严丝合缝；
+   - 插入正文的图片必须与上下文文字高度协调共鸣，读者一眼看图就能秒懂该段落的核心精髓。
+4. 【高端现代化审美标准】：
+   - 提示词必须达到院线电影/高端杂志大片标准；
+   - 必须包含专业摄影器材（如 ARRI Alexa 65, Hasselblad H6D, Sony A7R V, Canon EOS R5 85mm f/1.2L 等）；
+   - 必须包含戏剧性布光（Volumetric Tyndall rays, Rembrandt lighting, Softbox diffusion, Cinematic anamorphic horizontal flares）；
+   - 必须严防廉价 AI 塑料感：强制附带反 AI 感负向词（no text, no watermark, no CGI, no cartoon, no plastic skin, no extra fingers, no stock photo look）。
 
-【视觉风格自动匹配规则（必须严格执行）】：
-- 生活/情感/人物/美食/旅行 → 纪实摄影风格（Hasselblad + Kodak Portra 胶片感，真实烟火气）
-- 商业/职场/效率/管理/财富 → 瑞士极简风格（Phase One，大留白，几何构图，商务质感）
-- 时尚/美妆/穿搭/家居/艺术 → 杂志编辑风格（Canon R5，戏剧光，高饱和调色，Vogue感）
-- 科技/AI/数字/互联网/算法 → 科技赛博风格（Sony A1，蓝青光效，数字界面，近未来感）
-- 传统/文化/国潮/茶道/历史 → 新中式水墨风格（Leica M11，薄雾，负空间，东方美学）
-- 产品/品牌/营销/电商/种草 → 高端商业广告风格（Phase One 150MP，焦叠，品牌级光源）
+【十大多美学风格体系】：
+- documentary: 纪实摄影·真实烟火（哈苏+柯达胶片颗粒，生活与人文真实温度）
+- swiss_minimal: 瑞士极简·现代商务（Phase One 150MP，几何构图，大量留白，高级冷感职场）
+- magazine_editorial: 杂志编辑·高端美学（Canon R5 85mm，戏剧光，高饱和调色，Vogue/Harper's Bazaar）
+- tech_cyber: 科技赛博·数字未来（Sony A1 24mm，蓝青赛博光效，全息 HUD 与电路光轨，近未来科幻）
+- ancient_chinese: 古风雅韵·东方意境（Leica SL2，汉服丝绸质感，晨雾薄暮，水墨负空间与东方亭台）
+- city_urban: 城市风·现代都市摩天（Sony A7R V，摩天大楼玻璃倒影，CBD 黄金时段，繁华街景）
+- cinematic_movie: 影视大片·电影光影（Panavision 宽银幕变形镜头，明暗戏剧对照，电影胶片质感）
+- commercial_premium: 高端商业·品牌广告（Phase One 150MP，精准焦叠，高端布光，奢华品牌画风）
+- anime_cinematic: 治愈动漫·新海诚光影（新海诚与京阿尼画风，高饱和蔚蓝天空与积雨云，唯美黄昏丁达尔光）
+- minimalist_3d: 极简三维·轻拟物艺术（现代粘土拟物与磨砂玻璃，等轴测构图，马卡龙柔和光照，苹果发布会级 3D）
 
-【核心输出规范】：
-1. 通读全文，精准判断主题类型，从上述6种风格中选择最匹配的1种；
-2. 每张图片的英文 Prompt 必须包含：具体主体动作/场景细节 + 专业相机参数 + 风格专属光效 + 反AI感负向词（no text, no watermark, no CGI, no plastic, no stock photo）；
-3. 中文 zh 字段用于人类审查，英文 en 字段用于实际生图；
-4. 严格输出纯 JSON，无 markdown 包裹：
-
+【输出格式（严格纯 JSON，禁止任何 markdown 标记或解释说明）】：
 {
-  "theme_vibe": "文章整体视觉调性（如：职场效率·瑞士极简商业质感）",
-  "visual_style": "swiss_minimal",
+  "theme_vibe": "文章整体视觉世界观与调性总结（如：东方家国情怀·晨雾水墨与金石质感）",
+  "visual_style": "上述10种风格key之一",
+  "storyboard_summary": "全文视听分镜节奏规划简述",
   "cover_prompt": {
-    "zh": "封面具象场景描述：人物动作、环境细节、光线方向",
-    "en": "Clean minimalist composition of a focused professional reviewing analytics dashboard on dual monitors, controlled studio lighting, Phase One IQ4, precise geometric framing, muted grey-white palette with electric blue accent, premium commercial photography, no text, no watermark, no CGI, 8k"
+    "shot_type": "Wide Establishing Shot",
+    "zh": "封面具象场景分镜描述：建立宏大世界观、主体动作、空间道具、光线",
+    "en": "Cinematic wide establishing shot of [specific scene details from text], shot on ARRI Alexa 65 with 35mm anamorphic lens, [lighting & atmosphere], 8k resolution, photorealistic, no text, no watermark, no CGI"
   },
   "sections_prompts": [
     {
       "section_title": "小节标题",
-      "zh": "该小节具象场景：主体、动作、环境道具、光线",
-      "en": "Authentic candid moment of... shot on [camera], [lighting style], [style-specific params], no text, no watermark"
+      "shot_type": "Medium Narrative Shot / Close-up Detail Shot",
+      "zh": "该小节影视分镜场景：与本节文本要点严格1:1锚定的具体主体、动作、环境道具与光影",
+      "en": "Cinematic shot of [specific narrative beat strictly aligned with the section text], shot on [camera], [lighting], [style-specific params], 8k, no text, no watermark"
     }
   ]
 }

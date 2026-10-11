@@ -884,7 +884,7 @@ def logout():
 try:
     from version import __version__ as APP_VERSION
 except Exception:
-    APP_VERSION = "7.1.0"
+    APP_VERSION = "8.3.2"
 
 
 @app.get("/health")
@@ -1598,6 +1598,8 @@ def get_image_styles(request: Request):
         "documentary": "📷",
         "cinematic_movie": "🎬",
         "commercial_premium": "💎",
+        "anime_cinematic": "🌅",
+        "minimalist_3d": "🎨",
     }
     for k, v in VISUAL_STYLE_PRESETS.items():
         if k == "chinese_ink":

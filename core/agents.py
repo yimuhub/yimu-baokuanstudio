@@ -36,6 +36,7 @@ AD_STAGES = {
 STAGES = {**CONTENT_STAGES, **DRAMA_STAGES, **AD_STAGES}
 
 STAGE_DEFAULT_SKILLS = {
+    "image": ["storyboard-visual-grammar", "cinematic-optics-lighting"],
     "director": ["director-beat-sheet"],
     "character_designer": ["character-turnaround-sheet"],
     "storyboard_artist": ["storyboard-visual-grammar"],

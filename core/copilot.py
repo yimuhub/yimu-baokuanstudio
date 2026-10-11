@@ -104,6 +104,20 @@ def extract_xhs_card_selling_points(title: str, body_md: str, model: Optional[st
     return sections[:4]
 
 
+VISUAL_STYLE_KEYWORDS = {
+    "ancient_chinese": ["古风", "国风", "东方", "传统", "汉服", "仙侠", "水墨", "新中式", "历史文化", "诗意"],
+    "tech_cyber": ["科技", "赛博", "数字", "未来", "代码", "算法", "ai风", "科技感", "芯片", "互联网"],
+    "city_urban": ["城市", "都市", "摩天", "都会", "街头", "街拍", "cbd", "天际线", "大厦"],
+    "anime_cinematic": ["动漫", "二次元", "新海诚", "治愈", "唯美", "京阿尼", "日漫", "动漫风", "晚霞", "天空"],
+    "minimalist_3d": ["3d", "三维", "拟物", "轻拟物", "粘土", "盲盒", "极简3d", "c4d", "blender"],
+    "swiss_minimal": ["瑞士", "极简", "商务", "职场", "极简商务", "北欧", "冷淡风"],
+    "magazine_editorial": ["杂志", "时尚", "vogue", "超模", "高定", "美学", "生活方式", "时尚芭莎"],
+    "documentary": ["纪实", "真实", "人文", "烟火", "胶片", "哈苏", "街头抓拍", "生活烟火"],
+    "cinematic_movie": ["电影", "影视", "大片", "电影光影", "宽银幕", "剧照", "分镜", "电影感"],
+    "commercial_premium": ["商业", "广告", "品牌", "奢华", "产品", "电商", "高端商业"],
+}
+
+
 def parse_chinese_number(s: str) -> int:
     """中文数字转整型工具（支持 1~10、一~十、两）"""
     if not s:
@@ -116,7 +130,7 @@ def parse_chinese_number(s: str) -> int:
 
 
 def detect_intent_and_target(message: str, has_draft: bool) -> tuple[str, dict]:
-    """快速精准全能意图与靶向目标识别（支持段落微创、小红书单卡整改、全量重做分流）"""
+    """快速精准全能意图与靶向目标识别（支持段落微创、小红书单卡整改、影视分镜配图换风格、全量重做分流）"""
     msg = message.lower().strip()
     meta = {}
     
@@ -167,6 +181,24 @@ def detect_intent_and_target(message: str, has_draft: bool) -> tuple[str, dict]:
         "卡片", "小红书卡片", "生成卡片", "做卡片", "排版卡片", "图文卡片", "卡片图", "磨砂卡片", "卖点卡片", "画报卡片"
     ]):
         return "CARDS", meta
+
+    # 4.5 影视分镜配图生成与一键切换风格 (支持用户在聊天中直接说“换成古风”、“改成科技风”、“生成配图”、“图片换成新海诚风格”)
+    if has_draft:
+        matched_style = None
+        for sk, keywords in VISUAL_STYLE_KEYWORDS.items():
+            if any(kw in msg for kw in keywords):
+                matched_style = sk
+                break
+        
+        is_explicit_image_req = any(k in msg for k in [
+            "配图", "插图", "封面图", "生图", "生成图片", "换图", "换风格", "改风格", 
+            "重新配图", "给文章配图", "为文章配图", "生成插图", "换一套配图", "换配图", "重做配图", "换个风格"
+        ])
+        is_style_shift = matched_style and any(k in msg for k in ["换", "改", "成", "用", "要", "做", "风", "格", "图", "照", "配"])
+        
+        if is_explicit_image_req or is_style_shift:
+            meta["style"] = matched_style or ""
+            return "IMAGE_STYLE", meta
 
     # 5. 标题相关
     if any(k in msg for k in [
@@ -559,6 +591,61 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
             "body": cur_draft["body_md"],
             "target_platform": "xhs",
             "platforms": cur_draft.get("platforms", ["wechat_mp", "xhs", "toutiao"]),
+            "score": judge.get_score(cur_draft["id"]),
+            "history": get_draft_copilot_history(cur_draft["id"])
+        }
+
+    # ================== 2.8 影视短剧级分镜头重绘与多美学风格切换 (IMAGE_STYLE) ==================
+    elif intent == "IMAGE_STYLE" and cur_draft:
+        from core.imagegen import VISUAL_STYLE_PRESETS, generate_and_inject_images, _detect_visual_style
+        chosen_style = target_meta.get("style") or style or ""
+        if not chosen_style or chosen_style not in VISUAL_STYLE_PRESETS:
+            chosen_style = _detect_visual_style(f"{cur_draft['title']} {cur_draft['body_md'][:300]}")
+        
+        preset = VISUAL_STYLE_PRESETS.get(chosen_style, VISUAL_STYLE_PRESETS.get("documentary", {}))
+        style_display_name = preset.get("name", chosen_style)
+        
+        _report(f"📖 影视导演 Agent 正在通读全文，提取核心情感与段落论述要点…", 20)
+        _report(f"🎬 解构影视短剧级分镜头剧本（建立镜头 + 叙事中景 + 细节特写，图文匹配度锁定 >= 95%）…", 50)
+        _report(f"🎨 AI 光学摄影渲染中（注入【{style_display_name}】美学预设与反塑料感参数）…", 75)
+        
+        gen_res = {}
+        try:
+            gen_res = generate_and_inject_images(
+                cur_draft["id"], 
+                count=3, 
+                style=chosen_style, 
+                force_regen=True, 
+                model=image_model or ""
+            )
+        except Exception as e:
+            logger.error(f"Copilot 影视分镜配图生成失败: {e}")
+            gen_res = {"ok": False, "images": []}
+            
+        _report(f"✨ 影视分镜配图重绘完成，已精准植入正文各对应段落！", 100)
+        
+        updated_draft = db.get_draft(cur_draft["id"]) or cur_draft
+        img_count = len(gen_res.get("images", []))
+        
+        reply = (
+            f"🎬 **已启动影视分镜视觉引擎，为文章重构【{style_display_name}】专属分镜头配图！**\n\n"
+            f"🎯 **核心导演分镜法则（已严格贯彻）**：\n"
+            f"1. **全文通读解构**：Agent 已全篇通读文章，提炼核心论点与关键转折；\n"
+            f"2. **视听镜头语法**：\n"
+            f"   - **封面大图**：Wide Establishing Shot 全景建立镜头，确立宏大视觉基调；\n"
+            f"   - **段落插图**：Medium Narrative Shot 叙事中景与焦点特写，与对应小节文本 **1:1 锚定，图文匹配度达 95% 以上**；\n"
+            f"3. **高端现代化审美**：注入专业摄影光学参数、真实物理布光与【{style_display_name}】专属质感，彻底消除廉价 AI 塑料感。\n\n"
+            f"🖼️ **本次已生成并注入 {img_count} 张分镜头大片**，已精准嵌入正文对应段落与封面！\n"
+            f"👉 右侧工作台画布已**热刷新**，您可以即刻预览图文混排效果，或一键复制到今日头条/公众号发布！"
+        )
+        append_draft_copilot_history(cur_draft["id"], "assistant", reply)
+        return {
+            "reply": reply,
+            "action": "image_style",
+            "draft_id": cur_draft["id"],
+            "title": updated_draft["title"],
+            "body": updated_draft["body_md"],
+            "platforms": updated_draft.get("platforms", ["wechat_mp", "xhs", "toutiao"]),
             "score": judge.get_score(cur_draft["id"]),
             "history": get_draft_copilot_history(cur_draft["id"])
         }

@@ -97,9 +97,25 @@ VISUAL_STYLE_PRESETS = {
             "③体积光与景深特效；④近未来感真实场景。只输出英文 Prompt，不要解释。"
         ),
     },
-    # 5. 新中式水墨（传统文化/国潮/历史/人文类内容）
+    # 5. 古风雅韵（传统古风/汉服/仙侠/国风/历史文化）
+    "ancient_chinese": {
+        "name": "古风雅韵·东方意境",
+        "keywords": ["古风", "国风", "东方", "传统", "文化", "历史", "国学", "茶道", "书法", "汉服", "古建", "仙侠", "非遗", "民俗", "亭台楼阁", "诗意"],
+        "suffix": (
+            ", ancient Chinese aesthetic, traditional Hanfu elegance, poetic atmospheric lighting, "
+            "misty Jiangnan pavilions or grand classical courtyards, shot on Leica SL2 with 50mm f/1.4, "
+            "soft ethereal morning mist diffusion, delicate silk and embroidery textures, cinematic color grading, "
+            "refined Oriental composition, elegant wabi-sabi restraint, 8k photorealistic, no modern objects, no text, no watermark"
+        ),
+        "system_prompt": (
+            "你是顶级古风美学摄影师兼东方影视视觉总监。将用户主题转化为极富诗意意境的中国古风摄影英文 Prompt。"
+            "要求：①古风场景道具（汉服、飞檐、亭台、古卷、水墨意象）；②柔和漫射光与晨雾丁达尔光；"
+            "③深沉典雅的东方传统色彩（朱红、黛青、茶白、水绿）；④电影级胶片质感。只输出英文 Prompt，不要解释。"
+        ),
+    },
+    # 兼容历史别名
     "chinese_ink": {
-        "name": "新中式·水墨人文",
+        "name": "古风雅韵·东方意境",
         "keywords": ["传统", "文化", "历史", "国学", "茶道", "书法", "汉服", "古建", "非遗", "民俗", "中医", "国潮", "东方"],
         "suffix": (
             ", contemporary Chinese ink wash aesthetic meets modern photography, "
@@ -115,7 +131,39 @@ VISUAL_STYLE_PRESETS = {
             "③山水薄雾或宣纸暖调；④徕卡胶片质感。只输出英文 Prompt，不要解释。"
         ),
     },
-    # 6. 高端商业广告（产品/品牌/营销类内容）
+    # 6. 城市风/都市风（都会天际线/现代街道/车水马龙/摩天大楼/城市街拍）
+    "city_urban": {
+        "name": "城市风·现代都市摩天",
+        "keywords": ["城市", "都市", "都会", "街头", "街拍", "天际线", "摩天大楼", "建筑", "街道", "车水马龙", "夜景", "步行街", "CBD", "地铁"],
+        "suffix": (
+            ", modern urban metropolis atmosphere, dramatic city skyline with architectural glass reflections, "
+            "shot on Sony A7R V with 35mm f/1.4 GM lens, golden hour sunlight bouncing off modern skyscrapers, "
+            "bustling metropolitan streets, realistic asphalt and neon city textures, wide-angle cinematic perspective, "
+            "crisp urban details, no CGI cartoon, no plastic, no text, no watermark, 8k ultra-sharp"
+        ),
+        "system_prompt": (
+            "你是国家地理都市摄影师兼全球建筑摄影总监。将用户主题转化为繁华现代城市/都市风摄影英文 Prompt。"
+            "要求：①现代化都市地标/摩天大楼/商业街景/天际线构图；②城市黄金时段或蓝调时刻真实光影；"
+            "③高解析度现代城市质感与层次；④大片级景深。只输出英文 Prompt，不要解释。"
+        ),
+    },
+    # 7. 电影光影（戏剧大片/宽银幕质感）
+    "cinematic_movie": {
+        "name": "影视大片·电影光影",
+        "keywords": ["电影", "影视", "大片", "戏剧", "故事", "光影", "镜头", "叙事", "情绪", "氛围"],
+        "suffix": (
+            ", cinematic movie still, 35mm anamorphic lens with subtle horizontal flares, "
+            "dramatic chiaroscuro lighting, rich Kodachrome color grading, emotive storytelling atmosphere, "
+            "shallow depth of field, natural film grain, 8k resolution, Panavision widescreen aesthetic, "
+            "no text, no watermark, award-winning cinematography"
+        ),
+        "system_prompt": (
+            "你是奥斯卡最佳摄影奖电影摄影师。将用户主题转化为电影大片剧照级英文 Prompt。"
+            "要求：①强烈的明暗对比与叙事光影；②变形宽银幕电影构图；"
+            "③电影胶片色调与颗粒感；④极具故事张力的瞬间。只输出英文 Prompt，不要解释。"
+        ),
+    },
+    # 8. 高端商业广告（产品/品牌/营销类内容）
     "commercial_premium": {
         "name": "高端商业·品牌广告",
         "keywords": ["产品", "品牌", "营销", "广告", "推广", "电商", "销售", "促销", "新品", "发布", "种草"],
@@ -262,23 +310,28 @@ ANGLES = [
 
 
 
-def analyze_article_visual_prompts(title: str, body_md: str, sections: list) -> dict:
+def analyze_article_visual_prompts(title: str, body_md: str, sections: list, force_style: str | None = None) -> dict:
     """第一阶段：AI 通读整篇文章，提炼全文核心视觉基调与各小节视觉要点，并生成结构化提示词表。
-    v5.302: 升级为多风格自动匹配系统，依据文章主题自动选择最合适的6种视觉风格之一。
+    支持自动匹配或指定专属配图风格（古风、科技风、都市风、商务风等）。
     """
     from core import agents, llm
 
     clean_body = body_md[:3500] if body_md else title
     sec_names = [sec[0] if isinstance(sec, (list, tuple)) else str(sec) for sec in sections]
+    
+    # 确定目标风格
+    chosen_style = force_style if (force_style and force_style in VISUAL_STYLE_PRESETS) else _detect_visual_style(f"{title} {clean_body[:400]}")
+    auto_style_key = chosen_style
+    auto_preset = VISUAL_STYLE_PRESETS[chosen_style]
+    
+    style_req = f"\n\n【用户指定视觉风格】：必须严格采用【{auto_preset['name']}】风格（代码 key: {chosen_style}），所有 Prompt 必须完美体现该风格意境与光效参数！" if force_style else ""
+
     user_content = (
         f"【文章标题】：{title}\n\n"
         f"【需要配图的小节列表】：{json.dumps(sec_names, ensure_ascii=False)}\n\n"
         f"【文章全文内容】：\n{clean_body}"
+        f"{style_req}"
     )
-
-    # 预先自动检测风格，用于降级时保持一致
-    auto_style_key = _detect_visual_style(f"{title} {clean_body[:400]}")
-    auto_preset = VISUAL_STYLE_PRESETS[auto_style_key]
 
     prompts_data = None
     try:
@@ -623,15 +676,28 @@ def img_dir(draft_dir: Path) -> Path:
     return d
 
 
-def decorate_draft(draft_dir: Path, title: str, sections: list, body_md: str = "", count: int | None = None) -> dict:
-    """按文章小节与结构批量生成全套配图（先全文通读提取视觉要点，再生成结构化提示词并出图）。"""
+def decorate_draft(draft_dir: Path, title: str, sections: list, body_md: str = "", count: int | None = None, style: str | None = None, force_regen: bool = False, model: str = "") -> dict:
+    """按文章小节与结构批量生成全套配图（先全文通读提取视觉要点，再生成结构化提示词并出图）。
+    支持指定配图风格（古风、科技风、城市风、商务极简等）与一键换图重绘。"""
     cfg = image_cfg()
     total = cfg["count"] if count is None else max(1, min(int(count), 5))
     made = {"cover": None, "sections": {}}
     d = img_dir(draft_dir)
 
-    # 1. 深度通读全文并提取视觉提示词
     prompts_file = d / "prompts.json"
+    if force_regen or style:
+        # 一键更换风格：清理历史图片与提示词缓存
+        if prompts_file.exists():
+            try: prompts_file.unlink()
+            except Exception: pass
+        if (d / "cover.png").exists():
+            try: (d / "cover.png").unlink()
+            except Exception: pass
+        for f in d.glob("sec-*.png"):
+            try: f.unlink()
+            except Exception: pass
+
+    # 1. 深度通读全文并提取视觉提示词（按指定风格）
     prompts_data = None
     if prompts_file.exists():
         try:
@@ -639,7 +705,7 @@ def decorate_draft(draft_dir: Path, title: str, sections: list, body_md: str = "
         except Exception:
             prompts_data = None
     if not prompts_data:
-        prompts_data = analyze_article_visual_prompts(title, body_md, sections)
+        prompts_data = analyze_article_visual_prompts(title, body_md, sections, force_style=style)
         try:
             prompts_file.write_text(json.dumps(prompts_data, ensure_ascii=False, indent=2), encoding="utf-8")
         except Exception:
@@ -653,8 +719,8 @@ def decorate_draft(draft_dir: Path, title: str, sections: list, body_md: str = "
         first_ctx = sections[0][1] if sections else title
         cover_en = prompts_data.get("cover_prompt", {}).get("en", "")
         cover_zh = prompts_data.get("cover_prompt", {}).get("zh", f"{title}。{first_ctx}")
-        prompt_cover = cover_en or photojournalism_prompt_engine(f"{title}。{first_ctx}", context="封面大图")
-        if gen_image(prompt_cover, f_cover, "1024x1024", context_title=title, context_sub=cover_zh[:40], angle_idx=0, is_cover=True):
+        prompt_cover = cover_en or photojournalism_prompt_engine(f"{title}。{first_ctx}", context="封面大图", force_style=style)
+        if gen_image(prompt_cover, f_cover, "1024x1024", context_title=title, context_sub=cover_zh[:40], angle_idx=0, is_cover=True, model=model):
             made["cover"] = "img/cover.png"
 
     # 3. 各小节配图生成
@@ -672,9 +738,9 @@ def decorate_draft(draft_dir: Path, title: str, sections: list, body_md: str = "
         sec_p = sec_prompts_list[i] if i < len(sec_prompts_list) else {}
         p_en = sec_p.get("en", "")
         p_zh = sec_p.get("zh", ctx or t)
-        prompt_sec = p_en or photojournalism_prompt_engine(f"{t}。{ctx}", context=t)
+        prompt_sec = p_en or photojournalism_prompt_engine(f"{t}。{ctx}", context=t, force_style=style)
         
-        if gen_image(prompt_sec, f_sec, "1024x1024", context_title=t, context_sub=p_zh[:40], angle_idx=angle_i, is_cover=False):
+        if gen_image(prompt_sec, f_sec, "1024x1024", context_title=t, context_sub=p_zh[:40], angle_idx=angle_i, is_cover=False, model=model):
             made["sections"][t] = f"img/sec-{i}.png"
 
     return made
@@ -912,11 +978,11 @@ def inject_images_to_markdown(body_md: str, draft_id: str) -> str:
     return "\n".join(out).strip()
 
 
-def generate_and_inject_images(draft_id: str, count: int = 3) -> dict:
+def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", force_regen: bool = False, model: str = "") -> dict:
     """
     核心业务流程：
     1. 针对指定 draft_id，通读全文并提取视觉结构与小节；
-    2. 生成封面图 + 各小节配图（包含持久化 prompts.json）；
+    2. 按指定配图风格生成封面图 + 各小节配图（包含持久化 prompts.json）；
     3. 智能在 Markdown 中对应小节插入图片标记（若未插入过）；
     4. 重新编译各平台专属排版预览（微信、头条、知乎、微博等）；
     5. 返回图片列表与更新后内容。
@@ -949,7 +1015,7 @@ def generate_and_inject_images(draft_id: str, count: int = 3) -> dict:
     if not sec_arg:
         sec_arg = [("核心解析", title)]
 
-    imgs = decorate_draft(ddir, title, sec_arg, body_md=body_md, count=count)
+    imgs = decorate_draft(ddir, title, sec_arg, body_md=body_md, count=count, style=style, force_regen=bool(style or force_regen), model=model)
 
     new_lines = []
     cover_injected = (f"/img/{draft_id}/cover.png" in body_md)

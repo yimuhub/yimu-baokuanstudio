@@ -70,12 +70,21 @@ def auto_discover_existing() -> list[dict]:
     return items
 
 
-def list_avatars() -> list[dict]:
-    """返回所有历史数字人肖像，按最近使用排序。"""
+def list_avatars(workspace_id: str = "") -> list[dict]:
+    """返回历史数字人肖像（按工作空间隔离），按最近使用排序。"""
     items = auto_discover_existing()
-    # 验证底层文件是否存在，若丢失则打标
+    from core import db
+    ws_filter = workspace_id or db.get_active_workspace().get("id", "ws-default")
     valid_items = []
     for it in items:
+        it_ws = it.get("workspace_id", "")
+        if ws_filter:
+            if ws_filter == "ws-default":
+                if it_ws and it_ws != "ws-default":
+                    continue
+            else:
+                if it_ws != ws_filter:
+                    continue
         p = Path(it.get("path") or "")
         if p.exists():
             valid_items.append(it)
@@ -89,9 +98,11 @@ def list_avatars() -> list[dict]:
     return valid_items
 
 
-def save_avatar(path: str, filename: str, url: str, name: str = "", person_desc: str = "") -> dict:
-    """保存或更新数字人形象记忆。"""
+def save_avatar(path: str, filename: str, url: str, name: str = "", person_desc: str = "", workspace_id: str = "") -> dict:
+    """保存或更新数字人形象记忆（按工作空间绑定）。"""
     items = _read_db()
+    from core import db
+    ws_id = workspace_id or db.get_active_workspace().get("id", "ws-default")
     resolved_path = str(Path(path).resolve())
     
     # 查重：若同路径已存在，则更新
@@ -103,6 +114,8 @@ def save_avatar(path: str, filename: str, url: str, name: str = "", person_desc:
                 it["name"] = name
             if person_desc and (not it.get("person_desc") or it.get("person_desc") == "专属定制 AI 数字人出镜肖像"):
                 it["person_desc"] = person_desc
+            if not it.get("workspace_id"):
+                it["workspace_id"] = ws_id
             _write_db(items)
             return it
 
@@ -119,6 +132,7 @@ def save_avatar(path: str, filename: str, url: str, name: str = "", person_desc:
         "created_at": now_str,
         "last_used_at": now_str,
         "use_count": 1,
+        "workspace_id": ws_id,
     }
     items.insert(0, new_item)
     _write_db(items)

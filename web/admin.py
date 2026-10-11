@@ -1039,13 +1039,14 @@ def status(request: Request):
             db.delete_old_drafts(exp_days)
         except Exception:
             pass
+    cur_ws_id = db.get_active_workspace().get("id", "ws-default")
     return {
-        "topics": db.list_topics(),
+        "topics": db.list_topics(workspace_id=cur_ws_id),
         #⭐ R3-9：草稿列表按归属过滤——普通用户只看得到自己的稿件，
-        #   管理员仍看全部（排障/合规复核需要）。此前此处返回全库草稿，
-        #   等于「登录即可看到所有人的稿件标题与正文」。
+        #   并根据当前激活的工作空间 workspace_id 彻底隔离草稿箱。
         "drafts": [_draft_view(d) for d in db.list_drafts(
-            _current_user_id(user), is_admin=_is_admin_user(user))],
+            _current_user_id(user), is_admin=_is_admin_user(user), workspace_id=cur_ws_id)],
+        "workspace_id": cur_ws_id,
         "jobs": db.list_jobs(),
         "gateway": {"base_url": cfg.get("gateway", {}).get("base_url", ""),
                     "model": cfg.get("gateway", {}).get("model", ""),
@@ -1082,9 +1083,10 @@ def status(request: Request):
 
 @app.get("/api/topics")
 def get_topics(request: Request):
-    """获取热榜/热搜选题列表"""
+    """获取热榜/热搜选题列表（按当前工作空间隔离）"""
     guard(request)
-    return {"ok": True, "topics": db.list_topics()}
+    cur_ws_id = db.get_active_workspace().get("id", "ws-default")
+    return {"ok": True, "topics": db.list_topics(workspace_id=cur_ws_id)}
 
 
 @app.post("/api/topics/collect")
@@ -1115,7 +1117,8 @@ async def topics_manual(request: Request):
     title = (body.get("title") or "").strip()
     if not title:
         raise HTTPException(400, "标题不能为空")
-    return db.add_topic("manual", title, body.get("reason", ""), True)
+    cur_ws_id = db.get_active_workspace().get("id", "ws-default")
+    return db.add_topic("manual", title, body.get("reason", ""), True, workspace_id=cur_ws_id)
 
 
 @app.post("/api/topics/clean")
@@ -1580,9 +1583,37 @@ async def use_asset_in_draft(request: Request):
     return {"ok": True, "dst_url": f"/img/{dst_did}/{dst_slot}.png"}
 
 
+@app.get("/api/drafts/image_styles")
+def get_image_styles(request: Request):
+    """获取系统支持的配图视觉风格清单（古风、科技风、都市风等）"""
+    guard(request)
+    from core.imagegen import VISUAL_STYLE_PRESETS
+    styles = []
+    icon_map = {
+        "ancient_chinese": "🏛️",
+        "tech_cyber": "🤖",
+        "city_urban": "🏙️",
+        "swiss_minimal": "💼",
+        "magazine_editorial": "✨",
+        "documentary": "📷",
+        "cinematic_movie": "🎬",
+        "commercial_premium": "💎",
+    }
+    for k, v in VISUAL_STYLE_PRESETS.items():
+        if k == "chinese_ink":
+            continue  # 隐藏兼容别名
+        styles.append({
+            "key": k,
+            "name": v.get("name", k),
+            "icon": icon_map.get(k, "🎨"),
+            "keywords": v.get("keywords", [])[:5]
+        })
+    return {"ok": True, "styles": styles}
+
+
 @app.post("/api/drafts/{did}/generate_images")
 async def draft_generate_images(did: str, request: Request):
-    """一键为全文智能批量生成成套插图与封面，并自动插入正文与重新渲染"""
+    """一键为全文智能批量生成成套插图与封面，并自动插入正文与重新渲染（支持选择配图风格与一键换图）"""
     guard(request)
     body = {}
     try:
@@ -1590,25 +1621,29 @@ async def draft_generate_images(did: str, request: Request):
     except Exception:
         pass
     count = int(body.get("count", 3))
-    from core.imagegen import generate_and_inject_images
+    style = str(body.get("style") or "").strip()
+    force_regen = bool(body.get("force_regen", False))
+    model = str(body.get("model") or "").strip()
+    from core.imagegen import generate_and_inject_images, VISUAL_STYLE_PRESETS
     d = db.get_draft(did) or {}
     d_title = d.get("title", did[:8])
+    style_name = VISUAL_STYLE_PRESETS.get(style, {}).get("name", style) if style else "自动匹配"
     import uuid
     jid = f"img-{did[:8]}-{uuid.uuid4().hex[:4]}"
     start_async_job(
         jid,
-        name=f"全文智能生图配图 ({count}张): {d_title[:16]}",
+        name=f"全文智能配图 ({count}张·{style_name}): {d_title[:16]}",
         task_type="image_gen",
         target_id=did,
-        params={"draft_id": did, "count": count},
-        initial_step=f"正在分析段落视觉意境并生成 {count} 张专属高清配图…"
+        params={"draft_id": did, "count": count, "style": style, "model": model},
+        initial_step=f"正在分析段落视觉意境（风格：{style_name}）并生成 {count} 张专属高清配图…"
     )
     try:
-        update_async_job(jid, step="AI 光学摄影渲染与图文回填中…", progress=45)
+        update_async_job(jid, step=f"AI 光学摄影渲染中（风格: {style_name}）…", progress=45)
         res = await asyncio.get_event_loop().run_in_executor(
-            None, lambda: generate_and_inject_images(did, count=count)
+            None, lambda: generate_and_inject_images(did, count=count, style=style, force_regen=force_regen or bool(style), model=model)
         )
-        update_async_job(jid, status="done", step=f"成功生成 {count} 张配图并已排版入文", progress=100, result=res)
+        update_async_job(jid, status="done", step=f"成功生成 {count} 张【{style_name}】配图并已排版入文", progress=100, result=res)
         return res
     except Exception as e:
         update_async_job(jid, status="failed", error=str(e)[:300], step="生图配图失败")
@@ -4689,6 +4724,28 @@ async def api_update_workspace_profile(request: Request):
     target_wid = wid or (active_ws.get("id") if active_ws else "ws-default")
     res = workspace.update_workspace_profile(target_wid, profile_data)
     return {"ok": True, "profile": res, "msg": "6 维数字人格档案已更新，后续创作将自动注入该声纹指纹！"}
+
+
+@app.get("/api/workspace/voiceprint")
+def api_get_workspace_voiceprint(request: Request, wid: Optional[str] = None):
+    """获取指定或当前活动工作区的声纹记忆档案（音色/声线特征/参考音频）"""
+    guard(request)
+    from core import workspace
+    return {"ok": True, "voiceprint": workspace.get_workspace_voiceprint(wid)}
+
+
+@app.post("/api/workspace/voiceprint")
+async def api_update_workspace_voiceprint(request: Request):
+    """更新工作区专属声纹记忆档案"""
+    guard(request)
+    body = await request.json()
+    wid = body.get("workspace_id")
+    vp_data = body.get("voiceprint") or {}
+    from core import workspace
+    active_ws = workspace.get_active_workspace()
+    target_wid = wid or (active_ws.get("id") if active_ws else "ws-default")
+    res = workspace.update_workspace_voiceprint(target_wid, vp_data)
+    return {"ok": True, "voiceprint": res, "msg": "空间声纹记忆档案已更新！"}
 
 
 @app.post("/api/content/postmortem")

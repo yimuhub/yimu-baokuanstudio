@@ -11,20 +11,39 @@ def _format_inline_markdown(text: str) -> str:
     return text
 
 
+def _strip_frontmatter(text: str) -> str:
+    """剥离 YAML frontmatter（--- ... --- 开头块）与代码围栏块（``` ... ```）。"""
+    # 剥离 YAML frontmatter
+    text = re.sub(r"^\s*---[\s\S]*?---\s*\n?", "", text, count=1)
+    return text
+
+
 def _format_toutiao_paragraphs(body_md: str, section_images: list[str] | dict[str, str] | None = None) -> str:
     """将正文解构为符合头条快速滑屏阅读习惯的短律节奏（支持配图卡片与黄金短律）。"""
+    body_md = _strip_frontmatter(body_md)
     lines = body_md.strip().splitlines()
     out_lines = []
     sec_idx = 0
     sec_img_list = []
+    in_code_fence = False  # 跳过代码围栏块
     if isinstance(section_images, list):
         sec_img_list = list(section_images)
     elif isinstance(section_images, dict):
         sec_img_list = list(section_images.values())
-    
+
     for ln in lines:
-        ln = ln.strip()
+        ln_stripped = ln.strip()
+        # 代码围栏开关
+        if ln_stripped.startswith("```"):
+            in_code_fence = not in_code_fence
+            continue
+        if in_code_fence:
+            continue
+        ln = ln_stripped
         if not ln:
+            continue
+        # 跳过 Obsidian/GitHub callout 元标记行（[!NOTE] 等）
+        if re.match(r"^\[![\w\s]+\]", ln):
             continue
 
         # 1. 处理 Markdown 图片: ![alt](url)

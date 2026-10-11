@@ -393,6 +393,8 @@ def conn() -> sqlite3.Connection:
         c.execute("ALTER TABLE topics ADD COLUMN user_id TEXT DEFAULT ''")
     if "blocked_reason" not in tcols:
         c.execute("ALTER TABLE topics ADD COLUMN blocked_reason TEXT DEFAULT ''")
+    if "workspace_id" not in tcols:
+        c.execute("ALTER TABLE topics ADD COLUMN workspace_id TEXT DEFAULT ''")
 
     # R4 合规：草稿待人工复核标记（不删草稿，只标记）
     _dcols = {r["name"] for r in c.execute("PRAGMA table_info(drafts)")}
@@ -456,27 +458,42 @@ def uid(prefix: str) -> str:
 # ---------- topics ----------
 
 def add_topic(source: str, title: str, reason: str = "", matched: bool = False,
-              content: str = "", content_fetched: int = 0, freshness_score: float = 0.0) -> dict:
+              content: str = "", content_fetched: int = 0, freshness_score: float = 0.0,
+              workspace_id: str = "") -> dict:
     c = conn()
+    ws_id = workspace_id or get_active_workspace().get("id", "ws-default")
     t = {"id": uid("tp"), "created_at": now(), "source": source, "title": title,
          "reason": reason, "matched": int(matched), "status": "pending",
-         "content": content, "content_fetched": int(content_fetched), "freshness_score": float(freshness_score)}
-    c.execute("INSERT INTO topics (id, created_at, source, title, reason, matched, status, content, content_fetched, freshness_score) "
-              "VALUES (?,?,?,?,?,?,?,?,?,?)",
+         "content": content, "content_fetched": int(content_fetched), "freshness_score": float(freshness_score),
+         "workspace_id": ws_id}
+    c.execute("INSERT INTO topics (id, created_at, source, title, reason, matched, status, content, content_fetched, freshness_score, workspace_id) "
+              "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
               (t["id"], t["created_at"], t["source"], t["title"], t["reason"],
-               t["matched"], t["status"], t["content"], t["content_fetched"], t["freshness_score"]))
+               t["matched"], t["status"], t["content"], t["content_fetched"], t["freshness_score"], t["workspace_id"]))
     c.commit()
     c.close()
     return t
 
 
-def list_topics(status: str | None = None) -> list[dict]:
+def list_topics(status: str | None = None, workspace_id: str = "") -> list[dict]:
     c = conn()
+    wheres = []
+    params = []
     if status:
-        rows = c.execute("SELECT * FROM topics WHERE status=? ORDER BY created_at DESC",
-                         (status,)).fetchall()
-    else:
-        rows = c.execute("SELECT * FROM topics ORDER BY created_at DESC LIMIT 200").fetchall()
+        wheres.append("status = ?")
+        params.append(status)
+    if workspace_id:
+        if workspace_id == "ws-default":
+            wheres.append("(workspace_id = ? OR workspace_id = '' OR workspace_id IS NULL)")
+            params.append(workspace_id)
+        else:
+            wheres.append("workspace_id = ?")
+            params.append(workspace_id)
+    sql = "SELECT * FROM topics"
+    if wheres:
+        sql += " WHERE " + " AND ".join(wheres)
+    sql += " ORDER BY created_at DESC LIMIT 200"
+    rows = c.execute(sql, tuple(params)).fetchall()
     c.close()
     return [dict(r) for r in rows]
 
@@ -639,12 +656,13 @@ def add_draft(topic_id: str, title: str, body_md: str, platforms: list[str], *,
     c = conn()
     cand_json = json.dumps(candidate_titles or [], ensure_ascii=False)
     stats_json = json.dumps(source_stats or {}, ensure_ascii=False)
+    ws_id = workspace_id or get_active_workspace().get("id", "ws-default")
     d = {"id": uid("dr"), "topic_id": topic_id, "created_at": now(), "title": title,
          "body_md": body_md, "platforms": json.dumps(platforms), "status": "preview",
          "source_platform": source_platform, "source_url": source_url,
          "source_title": source_title, "analysis": analysis,
          "candidate_titles": cand_json, "source_stats": stats_json,
-         "workspace_id": workspace_id, "user_id": str(user_id or "")}
+         "workspace_id": ws_id, "user_id": str(user_id or "")}
     c.execute("INSERT INTO drafts (id,topic_id,created_at,title,body_md,platforms,status,"
               "source_platform,source_url,source_title,analysis,candidate_titles,source_stats,"
               "workspace_id,user_id) "
@@ -781,26 +799,32 @@ def backfill_drafts_owner(default_owner: str = "u-admin") -> int:
         return 0
 
 
-def list_drafts(user_id: str = "", *, is_admin: bool = False) -> list[dict]:
+def list_drafts(user_id: str = "", *, is_admin: bool = False, workspace_id: str = "") -> list[dict]:
     """草稿列表。
-
-    ⭐ R3-9：新增归属过滤。传 ``user_id`` 只返回该用户的草稿；
-       ``is_admin=True`` 返回全部（运营排障/合规复核）。
-       **不传 user_id 且非管理员时返回空列表**（fail-closed）——
-       绝不能退化成「列出所有人的稿件」。
+    支持按工作空间 workspace_id 完全隔离。
     """
     c = conn()
     sql = ("SELECT id,topic_id,created_at,title,body_md,platforms,status,"
            "source_platform,source_url,source_title,analysis,"
            "score,score_detail,score_round,candidate_titles,source_stats,"
-           "needs_review,guard_reason,user_id "
+           "needs_review,guard_reason,user_id,workspace_id "
            "FROM drafts")
-    params: tuple = ()
+    wheres = []
+    params = []
     if not is_admin:
-        sql += " WHERE user_id = ?"
-        params = (str(user_id or ""),)
+        wheres.append("user_id = ?")
+        params.append(str(user_id or ""))
+    if workspace_id:
+        if workspace_id == "ws-default":
+            wheres.append("(workspace_id = ? OR workspace_id = '' OR workspace_id IS NULL)")
+            params.append(workspace_id)
+        else:
+            wheres.append("workspace_id = ?")
+            params.append(workspace_id)
+    if wheres:
+        sql += " WHERE " + " AND ".join(wheres)
     sql += " ORDER BY created_at DESC LIMIT 200"
-    rows = c.execute(sql, params).fetchall()
+    rows = c.execute(sql, tuple(params)).fetchall()
     c.close()
     out = []
     for r in rows:

@@ -191,6 +191,7 @@
 - `GET /api/drafts/{did}/zip/xhs` → draft_zip：小红书图文打包下载【V7.0】[B]
 - `GET /api/drafts/{did}/copilot_history` → copilot_history：Copilot 对话历史【V7.0】[B]
 - `POST /api/drafts/{did}/voiceover_script` → voiceover_script：生成口播稿【V7.0】[B]
+- `GET /api/drafts/image_styles` → get_image_styles：获取配图视觉风格清单【V8.3】[B]
 
 ### 5.6 配图 / 素材【V7.0；生图实现切 image_forge】
 - `GET /api/drafts/{did}/images` → draft_images：草稿配图列表【V7.0】[B]
@@ -373,6 +374,8 @@
 - `POST /api/workspaces/delete` → ws_delete：删除工作区【V7.0】[B]
 - `GET /api/workspace/profile` → ws_profile_get：6 维数字人格档案【V7.0】[B]
 - `POST /api/workspace/profile` → ws_profile_update：更新数字人格档案【V7.0】[B]
+- `GET /api/workspace/voiceprint` → ws_voiceprint_get：工作区声纹记忆档案【V8.3】[B]
+- `POST /api/workspace/voiceprint` → ws_voiceprint_update：更新工作区声纹记忆【V8.3】[B]
 - `POST /api/content/postmortem` → postmortem：爆款效果归因复盘【V7.0】[B]
 - `GET /api/schedule/posts` → schedule_list：排期发布列表【V7.0】[B]
 - `POST /api/schedule/post` → schedule_create：新增定时发布【V7.0】[B]

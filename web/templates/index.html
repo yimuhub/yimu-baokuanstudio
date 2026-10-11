@@ -3910,6 +3910,19 @@ input[type=text]:focus, textarea:focus, select:focus {
           <div class="derive-chip" data-plat="twitter" onclick="toggleInspireDeriveChip(this)">𝕏 Twitter/X</div>
           <span style="font-size:11px;color:var(--primary);cursor:pointer;margin-left:4px;user-select:none" onclick="toggleAllInspirePlatforms()">全选/反选</span>
         </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+          <span style="font-size:12px;color:var(--text-muted);white-space:nowrap">🎨 初始配图风格：</span>
+          <select id="inspire-image-style-sel" class="studio-model-select" style="font-size:11.5px;padding:3px 6px;background:#161b22;color:#fff;border:1px solid rgba(255,255,255,0.18);border-radius:4px;outline:none" title="生成文章内容时自动匹配或指定的配图风格">
+            <option value="auto">✨ 智能根据内容匹配</option>
+            <option value="ancient_chinese">🏛️ 古风·东方意境</option>
+            <option value="tech_cyber">🤖 科技风·赛博未来</option>
+            <option value="city_urban">🏙️ 城市风·现代都市</option>
+            <option value="swiss_minimal">💼 职场风·极简商务</option>
+            <option value="magazine_editorial">✨ 杂志风·高端美学</option>
+            <option value="documentary">📷 纪实风·真实人文</option>
+            <option value="cinematic_movie">🎬 影视风·电影光影</option>
+          </select>
+        </div>
       </div>
 
       <div class="sub-tabs">
@@ -4220,6 +4233,20 @@ input[type=text]:focus, textarea:focus, select:focus {
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <button class="btn" style="background:linear-gradient(135deg,#1f6feb,#8957e5);border:none;color:#fff;font-weight:700" onclick="triggerOmniFission()">🚀 一键全域五端裂变</button>
               <button class="btn ok btn-sm" id="btn-ai-images" style="background:#2ea043;border-color:#2ea043;color:#fff;font-weight:700" onclick="triggerAutoImages()">🎨 AI 智能配图</button>
+              <!-- 🎨 一键修改配图风格核心功能区 -->
+              <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:6px;border:1px solid rgba(168,85,247,0.35)" title="选择配图视觉风格并一键重塑全篇配图">
+                <span style="font-size:12px">🎨</span>
+                <select id="stage-image-style-sel" class="studio-model-select" style="max-width:136px;font-size:11.5px;padding:3px 4px;background:#161b22;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:4px;outline:none">
+                  <option value="ancient_chinese">🏛️ 古风·东方意境</option>
+                  <option value="tech_cyber">🤖 科技风·赛博未来</option>
+                  <option value="city_urban">🏙️ 城市风·现代都市</option>
+                  <option value="swiss_minimal">💼 职场风·极简商务</option>
+                  <option value="magazine_editorial">✨ 杂志风·高端美学</option>
+                  <option value="documentary">📷 纪实风·真实人文</option>
+                  <option value="cinematic_movie">🎬 影视风·电影光影</option>
+                </select>
+                <button class="btn btn-sm" id="btn-change-image-style" style="background:linear-gradient(135deg,#8b5cf6,#d946ef);border:none;color:#fff;font-weight:700;padding:3px 9px;font-size:11.5px;border-radius:4px" onclick="triggerChangeImageStyle()" title="根据所选风格一键重新提炼与生成全套专属配图">⚡ 一键换风格配图</button>
+              </div>
               <button class="btn btn-sm" style="background:linear-gradient(135deg,#6e40c9,#a855f7);border:none;color:#fff;font-weight:700" onclick="openImageManagerDrawer()">🖼️ 配图管理</button>
               <button class="btn btn-sm" style="background:linear-gradient(135deg,#d946ef,#8b5cf6);border:none;color:#fff;font-weight:700" onclick="openYimuRichEditor()" title="打开全功能一幕原创富文本编辑器(零依赖可视化图文混排与排版)">✍️ 一幕·富文本</button>
               <button class="btn btn-sm" style="background:linear-gradient(135deg,#2ea043,#1a7431);border:none;color:#fff;font-weight:700" onclick="genVoiceoverScript()">🎙️ 口播稿</button>
@@ -8978,6 +9005,14 @@ async function deleteUserAccount(uid, username) {
       <div>
         <label style="font-size:12px;color:#fff;font-weight:600">对应矩阵号主 / 创作者IP名 (可选)</label>
         <input type="text" id="new-ws-media-name" placeholder="例如：科技老王、商业洞察局" style="width:100%;margin-top:4px;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#fff;font-weight:600">🎙️ 空间专属声纹记忆设定 (可选)</label>
+        <input type="text" id="new-ws-voiceprint" placeholder="例如：自然亲和、节奏明快、中低音沉稳、富有穿透力" style="width:100%;margin-top:4px;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:12px;color:#fff;font-weight:600">👤 账号 6 维数字画像定位 (可选)</label>
+        <input type="text" id="new-ws-positioning" placeholder="例如：专注于硬核技术实操、直击痛点的垂直领域专家" style="width:100%;margin-top:4px;box-sizing:border-box">
       </div>
       <div>
         <label style="font-size:12px;color:#fff;font-weight:600;display:flex;justify-content:space-between">
@@ -13782,6 +13817,31 @@ function cleanTwitterContentJs(text) {
   return text;
 }
 
+function cleanRichHtmlForPlatformClipboard(html, platform) {
+  if (!html) return '';
+  let cleaned = html;
+  // 1. 彻底剔除大模型可能泄漏的代码块围栏标记
+  cleaned = cleaned.replace(/```(?:markdown|md|html)?/gi, '').replace(/```/g, '');
+  // 2. 剥离 YAML frontmatter
+  cleaned = cleaned.replace(/^\s*---[\s\S]*?---\s*/, '');
+  // 3. 提取 <body> 内部或最外层有效容器，彻底剥离 <!doctype>, <html>, <head>...</head>, <meta>
+  if (cleaned.includes('<body')) {
+    const bodyMatch = cleaned.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+    if (bodyMatch && bodyMatch[1]) {
+      cleaned = bodyMatch[1].trim();
+    }
+  }
+  // 4. 清理残留的页面级包装标签
+  cleaned = cleaned.replace(/<!doctype[^>]*>/gi, '')
+                   .replace(/<html[^>]*>/gi, '').replace(/<\/html>/gi, '')
+                   .replace(/<head[^>]*>[\s\S]*?<\/head>/gi, '')
+                   .replace(/<meta[^>]*>/gi, '')
+                   .replace(/<title[^>]*>[\s\S]*?<\/title>/gi, '');
+  // 5. 剥离开头结尾可能多余的空白或孤立标签
+  cleaned = cleaned.trim();
+  return cleaned;
+}
+
 async function copyCurrentRich(platform) {
   if(!curDraft) return toast('未选择草稿');
   const labelMap = {
@@ -13805,6 +13865,7 @@ async function copyCurrentRich(platform) {
       if (platform === 'twitter') {
         copyText = cleanTwitterContentJs(copyText);
       }
+      copyText = copyText.replace(/```(?:markdown|md|html)?/gi, '').replace(/```/g, '').trim();
       await navigator.clipboard.writeText(copyText);
       return toast(`✅ ${label} 纯净直发内容已复制到剪贴板！直接前往发布即可！`, 4000);
     }
@@ -13847,9 +13908,13 @@ async function copyCurrentRich(platform) {
       }
     }
 
+    // 4. 深度纯净处理：去除外层 doctype/head/meta 及 markdown 代码块残余，防止今日头条/微信编辑器首部出现代码或乱码
+    const cleanedHtml = cleanRichHtmlForPlatformClipboard(html, platform);
+    const purePlainText = cleanedHtml.replace(/<[^>]+>/g, '').replace(/```+/g, '').replace(/\n{3,}/g, '\n\n').trim();
+
     // 写入富文本剪贴板
-    const htmlBlob = new Blob([html], {type: 'text/html'});
-    const textBlob = new Blob([html.replace(/<[^>]+>/g, '')], {type: 'text/plain'});
+    const htmlBlob = new Blob([cleanedHtml], {type: 'text/html'});
+    const textBlob = new Blob([purePlainText], {type: 'text/plain'});
     if (navigator.clipboard && window.ClipboardItem) {
       await navigator.clipboard.write([
         new ClipboardItem({'text/html': htmlBlob, 'text/plain': textBlob})
@@ -14135,6 +14200,45 @@ async function triggerAutoImages() {
     toast('配图异常: ' + e.message);
   } finally {
     if(btn) { btn.disabled = false; btn.textContent = '🎨 AI 智能配图'; }
+  }
+}
+
+async function triggerChangeImageStyle() {
+  if(!curDraft) return toast('请先在左侧选择一篇草稿');
+  const d = (S.drafts||[]).find(x => x.id === curDraft);
+  const sel = $('stage-image-style-sel');
+  const style = sel ? sel.value : 'ancient_chinese';
+  const styleText = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '指定风格';
+  
+  const btn = $('btn-change-image-style');
+  if(btn) { btn.disabled = true; btn.textContent = '⏳ 重绘配图中…'; }
+  toast(`🎨 正在将全文配图一键重塑为【${styleText}】…（按文章小节智能重构画面与渲染）`, 5000);
+
+  try {
+    const res = await api(`/api/drafts/${curDraft}/generate_images`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ style: style, count: 4, force_regen: true })
+    });
+
+    if(res.ok) {
+      toast(`🎉 全文配图已成功切换为【${styleText}】！已生成 ${res.count} 张全新风格配图并自动排版入文！`, 4500);
+      if($('wb-editor-input') && res.body_md) {
+        $('wb-editor-input').value = res.body_md;
+        updateWordCount(res.body_md);
+      }
+      if(d) {
+        d.body_md = res.body_md;
+      }
+      await refresh();
+      selectDraft(curDraft);
+    } else {
+      toast('配图风格切换失败: ' + (res.error || '未知'));
+    }
+  } catch(e) {
+    toast('配图风格切换异常: ' + e.message);
+  } finally {
+    if(btn) { btn.disabled = false; btn.textContent = '⚡ 一键换风格配图'; }
   }
 }
 
@@ -19654,6 +19758,20 @@ async function onHeaderWorkspaceChange(wid) {
     if (res && res.ok) {
       toast(`🏢 已切换至工作室：【${res.active.name}】`);
       await initWorkspacesUI();
+      // 完全隔离重置：清空当前草稿并根据新工作空间重载全部数据
+      curDraft = null;
+      if ($('wb-editor-input')) $('wb-editor-input').value = '';
+      if ($('wb-preview-canvas')) $('wb-preview-canvas').innerHTML = '';
+      const emptyState = $('phone-empty-state');
+      if (emptyState) emptyState.style.display = 'block';
+      const splitWb = $('split-workbench');
+      if (splitWb) splitWb.style.display = 'none';
+      await refresh();
+      if (typeof loadWorkspaceProfile === 'function') loadWorkspaceProfile();
+      if (typeof loadHotDbStats === 'function') loadHotDbStats();
+      if (typeof loadVideoTasks === 'function') loadVideoTasks();
+      if (typeof loadAvatars === 'function') loadAvatars();
+      if (typeof initStudioModelSelects === 'function') initStudioModelSelects();
     }
   } catch (e) {
     toast('切换工作室失败: ' + e);
@@ -19665,6 +19783,8 @@ function openNewWorkspaceModal() {
     if ($('new-ws-name')) $('new-ws-name').value = '';
     if ($('new-ws-desc')) $('new-ws-desc').value = '';
     if ($('new-ws-media-name')) $('new-ws-media-name').value = '';
+    if ($('new-ws-voiceprint')) $('new-ws-voiceprint').value = '';
+    if ($('new-ws-positioning')) $('new-ws-positioning').value = '';
     if (typeof updatePersonaSelects === 'function') updatePersonaSelects();
     renderWorkspaceSkillsCheckboxes('new-ws-skills-box', ['title-forge', 'de-ai', 'viral-copy']);
     modal('m-workspace');
@@ -19679,6 +19799,8 @@ async function submitNewWorkspace() {
   const desc = $('new-ws-desc').value.trim();
   const persona = $('new-ws-persona') ? $('new-ws-persona').value : '';
   const media_name = $('new-ws-media-name') ? $('new-ws-media-name').value.trim() : '';
+  const voiceprint = $('new-ws-voiceprint') ? $('new-ws-voiceprint').value.trim() : '';
+  const positioning = $('new-ws-positioning') ? $('new-ws-positioning').value.trim() : '';
   const skills = Array.from(document.querySelectorAll('#new-ws-skills-box input:checked')).map(cb => cb.value);
   if (!name) return toast('请输入工作室名称');
   try {
@@ -19686,12 +19808,27 @@ async function submitNewWorkspace() {
     if (persona) config.persona = persona;
     if (media_name) config.media_name = media_name;
     if (skills && skills.length) config.skills = skills;
+    if (voiceprint) config.voiceprint = { tone: voiceprint, voice_name: `${name}专属声线` };
+    if (positioning) config.profile = { positioning: positioning };
     const res = await api('/api/workspaces/create', { method: 'POST', body: JSON.stringify({ name, desc, config }) });
     if (res && res.ok) {
-      toast(`✅ 工作室【${name}】创建成功！`);
+      toast(`✅ 工作室【${name}】创建成功！已进入专属创作空间！`);
       closeModal();
       await api('/api/workspaces/switch', { method: 'POST', body: JSON.stringify({ workspace_id: res.workspace.id }) });
       await initWorkspacesUI();
+      curDraft = null;
+      if ($('wb-editor-input')) $('wb-editor-input').value = '';
+      if ($('wb-preview-canvas')) $('wb-preview-canvas').innerHTML = '';
+      const emptyState = $('phone-empty-state');
+      if (emptyState) emptyState.style.display = 'block';
+      const splitWb = $('split-workbench');
+      if (splitWb) splitWb.style.display = 'none';
+      await refresh();
+      if (typeof loadWorkspaceProfile === 'function') loadWorkspaceProfile();
+      if (typeof loadHotDbStats === 'function') loadHotDbStats();
+      if (typeof loadVideoTasks === 'function') loadVideoTasks();
+      if (typeof loadAvatars === 'function') loadAvatars();
+      if (typeof initStudioModelSelects === 'function') initStudioModelSelects();
     }
   } catch (e) {
     toast('创建工作室失败: ' + e);
@@ -20904,7 +21041,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <button type="button" class="btn btn-sm" onclick="sendWbAgentMessage()" style="background:#8b5cf6;color:#fff;border:none;font-weight:700;padding:4px 12px;font-size:12px">发送</button>
 </div>
 
-<!-- ==================== 📱 V7 移动端沉浸式 5 Tab 底部导航栏 ==================== -->
+<!-- ==================== 📱 V8 移动端沉浸式 6 Tab 底部导航栏 ==================== -->
 <nav id="mobile-bottom-nav">
   <div class="m-nav-item on" onclick="switchMobileNav('dashboard')">
     <span class="m-icon">🌐</span>
@@ -20921,6 +21058,10 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="m-nav-item" onclick="switchMobileNav('studio')">
     <span class="m-icon">🎬</span>
     <span>影音</span>
+  </div>
+  <div class="m-nav-item" onclick="openWorkspaceManageModal()">
+    <span class="m-icon">🏢</span>
+    <span>空间</span>
   </div>
   <div class="m-nav-item" onclick="openUserVaultModal()">
     <span class="m-icon">🔑</span>

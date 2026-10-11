@@ -113,7 +113,20 @@ REVISION_PROMPT = (
 )
 
 
+def clean_generated_markdown(text: str) -> str:
+    """全面消毒 LLM 生成的正文：剔除 think 标签、剔除代码块围栏标记（如 ```markdown）、剔除 YAML frontmatter。"""
+    if not text:
+        return ""
+    text = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.I)
+    text = re.sub(r"^\s*---[\s\S]*?---\s*\n?", "", text)
+    # 剥离前缀 ```markdown 或 ```
+    text = re.sub(r"^\s*```(?:markdown|md|html)?\s*\n?", "", text, flags=re.I)
+    text = re.sub(r"\n?\s*```\s*$", "", text)
+    return text.strip()
+
+
 def _split_llm_output(text: str) -> tuple[str, str]:
+    text = clean_generated_markdown(text)
     title, body = "未命名选题", ""
     if "TITLE:" in text:
         head, _, rest = text.partition("BODY:")
@@ -123,6 +136,8 @@ def _split_llm_output(text: str) -> tuple[str, str]:
         lines = [l for l in text.strip().splitlines() if l.strip()]
         title = lines[0][:40] if lines else title
         body = "\n".join(lines[1:]).strip()
+    title = re.sub(r"^[#*`\s]+", "", title).strip()
+    body = clean_generated_markdown(body)
     return title, body
 
 
@@ -166,10 +181,12 @@ def _strip_meta_sections(text: str) -> str:
         out.append(ln)
     cleaned = "\n".join(out)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
-    return cleaned.strip() or text.strip()
+    cleaned = clean_generated_markdown(cleaned)
+    return cleaned.strip() or clean_generated_markdown(text)
 
 
 def _parse_rewrite(raw: str) -> dict:
+    raw = clean_generated_markdown(raw)
     out, cur = {}, None
     for line in raw.splitlines():
         m = re.match(r"^(ANALYSIS|TITLE_WX|BODY_WX|TITLE_XHS|BODY_XHS|TITLE_TT|BODY_TT)\s*[:：]\s*(.*)$", line)
@@ -178,7 +195,7 @@ def _parse_rewrite(raw: str) -> dict:
             out[cur] = (m.group(2) + "\n") if m.group(2) else ""
         elif cur:
             out[cur] += line + "\n"
-    out = {k: v.strip() for k, v in out.items()}
+    out = {k: clean_generated_markdown(v.strip()) for k, v in out.items()}
     for key in ("BODY_WX", "BODY_XHS", "BODY_TT"):
         if out.get(key):
             out[key] = _strip_meta_sections(out[key])

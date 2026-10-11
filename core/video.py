@@ -107,9 +107,11 @@ def make_video(draft_id: str, seconds: int = 15, subject: str = "", emit=None,
             "size_kb": meta["size_kb"]}
 
 
-def recent_tasks(limit: int = 12) -> list[dict]:
-    """列出最近的成片（含原生成片与 AI 短视频），包含横竖版比例及标题元数据。"""
+def recent_tasks(limit: int = 12, workspace_id: str = "") -> list[dict]:
+    """列出最近的成片（含原生成片与 AI 短视频），按工作空间独立隔离。"""
     import json as _json
+    from core import db
+    ws_filter = workspace_id or db.get_active_workspace().get("id", "ws-default")
     out = []
     seen_tids = set()
 
@@ -123,6 +125,17 @@ def recent_tasks(limit: int = 12) -> list[dict]:
                 meta = _json.loads(meta_file.read_text(encoding="utf-8"))
             except Exception:
                 pass
+        
+        # 视频空间工作区隔离
+        meta_ws = meta.get("workspace_id", "")
+        if ws_filter:
+            if ws_filter == "ws-default":
+                if meta_ws and meta_ws != "ws-default":
+                    return
+            else:
+                if meta_ws != ws_filter:
+                    return
+
         aspect = meta.get("aspect") or ("16:9" if "16x9" in tid or "16x9" in mp4.name else "9:16")
         title = meta.get("title") or (f"AI 短视频 {tid[-6:]}" if tid.startswith("aiv-") else tid)
         out.append({
@@ -134,6 +147,7 @@ def recent_tasks(limit: int = 12) -> list[dict]:
             "mtime": int(mp4.stat().st_mtime),
             "seconds": meta.get("seconds", 0),
             "engine": meta.get("engine", engine),
+            "workspace_id": meta_ws or "ws-default"
         })
         seen_tids.add(tid)
 

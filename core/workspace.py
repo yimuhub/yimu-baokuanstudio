@@ -109,14 +109,55 @@ def update_workspace_profile(workspace_id: str, profile_data: dict) -> dict:
 def build_profile_system_prompt(workspace_id: Optional[str] = None) -> str:
     """构建注入到大模型创作上下文中的 6 维人格指纹指令。"""
     prof = get_workspace_profile(workspace_id)
+    vp = get_workspace_voiceprint(workspace_id)
     return (
-        "\n\n【核心创作指令：创作者 6 维数字人格档案与专属声纹约束 (Account Profile)】\n"
+        "\n\n【核心创作指令：创作者 6 维数字人格档案与专属声纹记忆约束 (Profile & Voiceprint)】\n"
         f"1. 账号定位 (Positioning): {prof.get('positioning')}\n"
         f"2. 语言声纹 (Voice Tone): {prof.get('voice_tone')}\n"
         f"3. 目标受众 (Target Audience): {prof.get('audience')}\n"
         f"4. 主攻平台 (Platform Affinity): {prof.get('platform')}\n"
         f"5. 表达禁忌 (Expression Boundaries): {prof.get('boundaries')}\n"
         f"6. 爆款长期记忆 (Viral Long-Term Memory): {prof.get('memory')}\n"
+        f"7. 声纹特征 (Voiceprint Persona): {vp.get('tone')}（音色：{vp.get('voice_name')}）\n"
         "请在通篇写作中严格贯彻上述人设口吻与表达边界，保持第一人称的真实感与鲜活性，绝不出现泛化公文味！\n"
     )
+
+
+# ---------------- 账号专属声纹记忆档案 (Voiceprint & Acoustic Memory) ----------------
+
+DEFAULT_VOICEPRINT = {
+    "voice_name": "空间专属自然声线",
+    "speed": 1.0,
+    "pitch": 0,
+    "tone": "自然亲和、节奏明快、富有感染力与穿透力",
+    "ref_audio": "",
+    "voice_model": "cosyvoice-v2",
+    "memory_notes": "吐字清晰有力，长句在逻辑重音处自然停顿"
+}
+
+
+def get_workspace_voiceprint(workspace_id: Optional[str] = None) -> dict:
+    """获取指定或当前工作区的声纹记忆档案。"""
+    if workspace_id:
+        ws = db.get_workspace(workspace_id)
+    else:
+        ws = db.get_active_workspace()
+    cfg = (ws.get("config") if ws else {}) or {}
+    vp = dict(DEFAULT_VOICEPRINT)
+    vp.update(cfg.get("voiceprint") or {})
+    return vp
+
+
+def update_workspace_voiceprint(workspace_id: str, voiceprint_data: dict) -> dict:
+    """更新指定工作区的声纹记忆档案。"""
+    ws = db.get_workspace(workspace_id)
+    if not ws:
+        raise ValueError(f"工作区不存在: {workspace_id}")
+    cfg = ws.get("config") or {}
+    cur_vp = dict(DEFAULT_VOICEPRINT)
+    cur_vp.update(cfg.get("voiceprint") or {})
+    cur_vp.update(voiceprint_data)
+    cfg["voiceprint"] = cur_vp
+    db.update_workspace(workspace_id, name="", config=cfg)
+    return cur_vp
 

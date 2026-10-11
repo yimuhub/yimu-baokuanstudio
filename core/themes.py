@@ -86,14 +86,38 @@ def _inline_md(text: str, st: dict) -> str:
     return text
 
 
+def clean_markdown_body(text: str) -> str:
+    """全面清洗大模型生成的 Markdown 正文，彻底剥离思考标签、代码块围栏与 YAML frontmatter。"""
+    if not text:
+        return ""
+    # 剥离思考标签 <think>...</think>
+    text = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.I)
+    # 剥离开头的 YAML frontmatter
+    text = re.sub(r"^\s*---[\s\S]*?---\s*\n?", "", text)
+    # 剥离外层包裹的 ```markdown / ```html / ```
+    text = re.sub(r"^\s*```(?:markdown|md|html)?\s*\n", "", text, flags=re.I)
+    text = re.sub(r"\n\s*```\s*$", "", text)
+    return text.strip()
+
+
 def md_to_wechat_html(body_md: str, title: str, theme: str = DEFAULT_THEME,
                       meta: str = "一幕·YIMU 爆款工作室", images: dict | None = None) -> str:
     """markdown → 微信兼容行内样式 HTML。images: {小节标题: 图片url}"""
+    body_md = clean_markdown_body(body_md)
     st = WECHAT_THEMES.get(theme, WECHAT_THEMES[DEFAULT_THEME])
     out, in_list, cur_section = [], False, None
+    in_code_fence = False
     for ln in body_md.strip().splitlines():
         s = ln.strip()
         if not s:
+            continue
+        if s.startswith("```"):
+            in_code_fence = not in_code_fence
+            continue
+        if in_code_fence:
+            continue
+        # 跳过 Obsidian/GitHub callout 元标记行（[!NOTE] 等）
+        if re.match(r"^\[![\w\s]+\]", s):
             continue
         if s.startswith("### "):
             if in_list:

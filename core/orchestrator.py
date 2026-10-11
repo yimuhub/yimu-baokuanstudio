@@ -204,7 +204,7 @@ def _parse_rewrite(raw: str) -> dict:
 
 def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallback_body: str,
                        media_name: str = "一幕·YIMU 爆款工作室", platforms: list[str] | None = None,
-                       generate_images: bool = True):
+                       generate_images: bool = True, image_style: str = ""):
     """按选中的目标平台极速重渲染产物（支持按需少生成，后续在工作台按需补充）。"""
     selected_platforms = platforms if platforms is not None else ["wechat_mp", "xhs", "toutiao"]
     theme, card_style = _cfg_theme()
@@ -239,7 +239,7 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
             sec_arg.append((fallback_names[j % len(fallback_names)], para[:140]))
 
     if generate_images:
-        imgs = decorate_draft(ddir, title, sec_arg, body_md=body, count=5)
+        imgs = decorate_draft(ddir, title, sec_arg, body_md=body, count=5, style=image_style)
     else:
         imgs = {"cover": None, "sections": {}}
         if (ddir / "img" / "cover.png").exists():
@@ -1675,7 +1675,8 @@ def deep_distill_anything(content: str, distill_type: str = "all", author_name: 
 def generate_one_sentence_viral(sentence: str, mounted_persona: str = "", theme: str = "",
                                 media_name: str = "一幕·YIMU 爆款工作室", emit=None,
                                 platforms: list[str] | None = None,
-                                user_id: str = "") -> dict:
+                                user_id: str = "",
+                                image_style: str = "") -> dict:
     """一句话爆款引擎：
     1. 意图拆解与多组高精准搜索 Query 提炼；
     2. 全网多源真实并发检索 3~5 篇权威长文；
@@ -1779,7 +1780,7 @@ def generate_one_sentence_viral(sentence: str, mounted_persona: str = "", theme:
         source_stats={"search_queries": search_queries, "reference_count": len(all_refs)},
         user_id=user_id,
     )
-    _refresh_artifacts(draft["id"], parsed, title, body, media_name=media_name, platforms=selected_platforms)
+    _refresh_artifacts(draft["id"], parsed, title, body, media_name=media_name, platforms=selected_platforms, image_style=image_style)
 
     # Step 4: 7 维智能评审打分
     score = None

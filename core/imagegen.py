@@ -25,12 +25,14 @@ HYPER_REAL_PHOTO_SUFFIX = (
 )
 STYLE_SUFFIX = HYPER_REAL_PHOTO_SUFFIX  # 兼容旧引用
 
-# ---------- 六大视觉风格体系（借鉴 Easel card-design 极简主义+品质分层思想）----------
+# ---------- 八大视觉风格体系（深度融合多美学 Prompt 指令与反 AI 塑料感参数）----------
 VISUAL_STYLE_PRESETS = {
     # 1. 纪实摄影（人物/生活/情感类内容）
     "documentary": {
         "name": "纪实摄影·生活烟火",
+        "tag": "Authentic Documentary Photography",
         "keywords": ["生活", "情感", "人物", "日常", "故事", "美食", "旅行", "亲子", "健康", "运动"],
+        "style_directive": "authentic candid moment, natural golden-hour window light, realistic skin texture with subtle pores, unposed real-life scene, warm Kodak Portra 400 film grain, bokeh background",
         "suffix": (
             ", shot on Hasselblad X2D 100C 50mm f/1.8, authentic candid moment, "
             "natural golden-hour window light, realistic skin texture with subtle pores, "
@@ -40,14 +42,15 @@ VISUAL_STYLE_PRESETS = {
         "system_prompt": (
             "你是普利策奖纪实摄影师兼国家地理图片总监。将用户主题转化为极度具象的真实生活抓拍英文 Prompt。"
             "要求：①明确人物动作与真实微表情；②具体环境道具与生活杂物细节；"
-            "③光线方向（自然侧光/逆光/窗边漫射光）；④相机参数。"
-            "只输出英文 Prompt，不要解释。"
+            "③光线方向（自然侧光/逆光/窗边漫射光）；④相机参数。只输出英文 Prompt，不要解释。"
         ),
     },
-    # 2. 瑞士极简（商业/知识/效率类内容）—— 借鉴 Easel 的 Swiss Minimalism 理念
+    # 2. 瑞士极简（商业/知识/效率类内容）
     "swiss_minimal": {
         "name": "瑞士极简·商业质感",
+        "tag": "Swiss Minimalism Commercial",
         "keywords": ["商业", "职场", "效率", "管理", "职业", "简历", "成功", "财富", "理财", "投资", "创业", "办公"],
+        "style_directive": "Swiss International Typographic Style, clean negative space, precise geometric composition, muted neutral palette with single accent color, controlled studio lighting with soft boxes, Phase One IQ4 150MP 85mm f/2",
         "suffix": (
             ", Swiss International Typographic Style, clean negative space, "
             "precise geometric composition, muted neutral palette with single accent color, "
@@ -65,7 +68,9 @@ VISUAL_STYLE_PRESETS = {
     # 3. 杂志编辑（时尚/美妆/生活方式类内容）
     "magazine_editorial": {
         "name": "杂志编辑·高端生活方式",
+        "tag": "High Fashion Magazine Editorial",
         "keywords": ["时尚", "美妆", "美容", "护肤", "穿搭", "风格", "潮流", "设计", "艺术", "创意", "家居", "装修"],
+        "style_directive": "Vogue Harper's Bazaar high fashion editorial aesthetic, dramatic directional lighting, Canon EOS R5 85mm f/1.2L, rich saturated tones, sophisticated fashion color grading, impeccable haute couture styling",
         "suffix": (
             ", Vogue/Harper's Bazaar editorial style, dramatic directional lighting, "
             "shot on Canon EOS R5 with 85mm f/1.2L lens, rich saturated tones, "
@@ -82,7 +87,9 @@ VISUAL_STYLE_PRESETS = {
     # 4. 科技赛博（AI/数字/未来/技术类内容）
     "tech_cyber": {
         "name": "科技赛博·数字未来感",
+        "tag": "Cyberpunk Futuristic Tech Realism",
         "keywords": ["科技", "AI", "人工智能", "数字", "互联网", "编程", "代码", "数据", "算法", "区块链", "元宇宙", "芯片", "半导体", "机器人"],
+        "style_directive": "futuristic sci-fi realism, cool blue-cyan-purple glowing lighting, volumetric digital rays, transparent holographic interface HUD, glowing circuitry and data streams, Sony A1 24mm f/1.4 GM",
         "suffix": (
             ", cyberpunk-inspired but grounded in near-future realism, "
             "cool blue-cyan-purple tonal range, volumetric light rays through digital interfaces, "
@@ -100,7 +107,9 @@ VISUAL_STYLE_PRESETS = {
     # 5. 古风雅韵（传统古风/汉服/仙侠/国风/历史文化）
     "ancient_chinese": {
         "name": "古风雅韵·东方意境",
+        "tag": "Traditional Chinese Hanfu & Oriental Aesthetics",
         "keywords": ["古风", "国风", "东方", "传统", "文化", "历史", "国学", "茶道", "书法", "汉服", "古建", "仙侠", "非遗", "民俗", "亭台楼阁", "诗意"],
+        "style_directive": "ancient Chinese aesthetic, traditional Hanfu elegance, poetic atmospheric lighting, misty Jiangnan pavilions or classical courtyards, soft ethereal morning mist diffusion, delicate silk and embroidery textures, Leica SL2 50mm f/1.4",
         "suffix": (
             ", ancient Chinese aesthetic, traditional Hanfu elegance, poetic atmospheric lighting, "
             "misty Jiangnan pavilions or grand classical courtyards, shot on Leica SL2 with 50mm f/1.4, "
@@ -116,7 +125,9 @@ VISUAL_STYLE_PRESETS = {
     # 兼容历史别名
     "chinese_ink": {
         "name": "古风雅韵·东方意境",
+        "tag": "Traditional Chinese Ink & Oriental Aesthetics",
         "keywords": ["传统", "文化", "历史", "国学", "茶道", "书法", "汉服", "古建", "非遗", "民俗", "中医", "国潮", "东方"],
+        "style_directive": "contemporary Chinese ink wash aesthetic meets classical photography, misty pavilions, delicate silk Hanfu, soft ethereal natural mist diffusion, Leica M11 Monochrom",
         "suffix": (
             ", contemporary Chinese ink wash aesthetic meets modern photography, "
             "misty mountains and ancient architecture, wabi-sabi imperfection, "
@@ -134,7 +145,9 @@ VISUAL_STYLE_PRESETS = {
     # 6. 城市风/都市风（都会天际线/现代街道/车水马龙/摩天大楼/城市街拍）
     "city_urban": {
         "name": "城市风·现代都市摩天",
+        "tag": "Modern Urban Metropolis & City Skyline",
         "keywords": ["城市", "都市", "都会", "街头", "街拍", "天际线", "摩天大楼", "建筑", "街道", "车水马龙", "夜景", "步行街", "CBD", "地铁"],
+        "style_directive": "modern urban metropolis atmosphere, dramatic city skyline with architectural glass reflections, soaring modern skyscrapers, golden hour sunlight bouncing off buildings, bustling streets, Sony A7R V 35mm f/1.4 GM",
         "suffix": (
             ", modern urban metropolis atmosphere, dramatic city skyline with architectural glass reflections, "
             "shot on Sony A7R V with 35mm f/1.4 GM lens, golden hour sunlight bouncing off modern skyscrapers, "
@@ -150,7 +163,9 @@ VISUAL_STYLE_PRESETS = {
     # 7. 电影光影（戏剧大片/宽银幕质感）
     "cinematic_movie": {
         "name": "影视大片·电影光影",
+        "tag": "Cinematic Movie Blockbuster Still",
         "keywords": ["电影", "影视", "大片", "戏剧", "故事", "光影", "镜头", "叙事", "情绪", "氛围"],
+        "style_directive": "cinematic movie still, 35mm anamorphic widescreen lens with subtle horizontal flares, dramatic chiaroscuro lighting, rich Kodachrome color grading, emotive storytelling atmosphere, Panavision aesthetic",
         "suffix": (
             ", cinematic movie still, 35mm anamorphic lens with subtle horizontal flares, "
             "dramatic chiaroscuro lighting, rich Kodachrome color grading, emotive storytelling atmosphere, "
@@ -166,7 +181,9 @@ VISUAL_STYLE_PRESETS = {
     # 8. 高端商业广告（产品/品牌/营销类内容）
     "commercial_premium": {
         "name": "高端商业·品牌广告",
+        "tag": "Luxury Commercial Brand Advertising",
         "keywords": ["产品", "品牌", "营销", "广告", "推广", "电商", "销售", "促销", "新品", "发布", "种草"],
+        "style_directive": "luxury commercial brand photography, ultra-precise focus stacking, Phase One XF IQ4 150MP, studio strobe lighting with honeycomb grid modifiers, hyper-detailed product textures, premium luxury aesthetic",
         "suffix": (
             ", luxury product photography, ultra-precise focus stacking, "
             "studio strobe lighting with honeycomb grid modifiers, "
@@ -200,65 +217,48 @@ def _detect_visual_style(text: str) -> str:
     return best_style
 
 
-def photojournalism_prompt_engine(raw_text: str, context: str = "",
-                                  force_style: str | None = None) -> str:
-    """v5.302 升级版提示词引擎：自动识别内容类型，从六大风格体系中选择最佳风格，
-    生成远超单一纪实摄影风格的高品质 Prompt。借鉴 Easel card-design 的风格分层与密度质检原则。"""
+def build_style_enhanced_prompt(raw_text: str, context: str = "", force_style: str | None = None) -> str:
+    """极速且高阶的风格强化提示词引擎：
+    将文章主题与段落具象化，并把用户选定的风格体系（古风、科技风、都市风等）的核心视觉指令、
+    光影镜头、美学特征显式注入到发给 AI 生图模型的提示词中，杜绝风格丢失与虚假生成。
+    """
     raw_s = (raw_text or "").strip()
     combined = f"{raw_s} {context or ''}".strip()
+    style_key = force_style if (force_style and force_style in VISUAL_STYLE_PRESETS) else _detect_visual_style(combined)
+    preset = VISUAL_STYLE_PRESETS.get(style_key, VISUAL_STYLE_PRESETS["documentary"])
 
-    if not raw_s:
-        return (
-            "Authentic candid street photography, warm golden hour light, "
-            "human connection moment, realistic details, 8k"
-            + HYPER_REAL_PHOTO_SUFFIX
-        )
+    style_header = f"[{preset['name']} / Visual Style: {preset.get('tag', preset['name'])}]"
+    directive = preset.get("style_directive", "")
+    suffix = preset.get("suffix", HYPER_REAL_PHOTO_SUFFIX)
 
-    # 若已是高质量英文长提示词，直接附加必要的反 AI 感参数
-    if (not bool(re.search(r"[\u4e00-\u9fa5]", raw_s))
-            and len(raw_s.split()) >= 12
-            and any(k in raw_s for k in ["shot on", "lens", "mm f/", "lighting", "photorealistic"])):
-        if "no text" not in raw_s and "no watermark" not in raw_s:
-            return raw_s + ", no text, no watermark, no CGI, no plastic skin"
-        return raw_s
+    # 如果 raw_s 已经包含了完整的 style_header，直接补充必要尾缀返回
+    if style_header in raw_s:
+        return raw_s if "no text" in raw_s else (raw_s + suffix)
 
-    # 自动检测或强制指定风格
-    style_key = force_style if force_style in VISUAL_STYLE_PRESETS else _detect_visual_style(combined)
-    preset = VISUAL_STYLE_PRESETS[style_key]
+    # 提取/拼装场景英文
+    scene_core = ""
+    if not bool(re.search(r"[\u4e00-\u9fa5]", raw_s)) and len(raw_s.split()) >= 8:
+        scene_core = raw_s
+    else:
+        # 使用规则引擎快速合成具象摄影场景（0毫秒延时，绝不因外部大模型超时阻塞）
+        try:
+            from core.short_drama import _synthesize_scene_prompt
+            scene_core = _synthesize_scene_prompt(
+                raw_s, context or raw_s,
+                "Cinematic Shot", "Atmospheric Lighting", "Steady Framing"
+            )
+        except Exception:
+            scene_core = f"Authentic scene of {raw_s[:80]}, detailed cinematic composition"
 
-    # 调用 LLM 按对应风格的 system_prompt 生成专属提示词
-    try:
-        from core import llm
-        user_msg = (
-            f"【画面核心主题】：{raw_s}\n"
-            f"【上下文细节】：{context[:200] if context else '内容配图'}\n"
-            f"【视觉风格要求】：{preset['name']}"
-        )
-        msgs = [
-            {"role": "system", "content": preset["system_prompt"]},
-            {"role": "user", "content": user_msg}
-        ]
-        en_prompt = llm.chat(msgs, temperature=0.65, timeout_s=18)
-        clean_en = en_prompt.strip().strip('"').replace("\n", " ")
-        # 若生成成功且为英文，追加风格专属尾缀
-        if len(clean_en) >= 20 and not re.search(r"[\u4e00-\u9fa5]", clean_en):
-            # 避免尾缀重复
-            if preset["suffix"].strip(", ")[:30] not in clean_en:
-                return clean_en + preset["suffix"]
-            return clean_en
-    except Exception as e:
-        print(f"[VisualPromptEngine Fallback] style={style_key}: {e}")
+    # 融合风格指令到 AI 提示词（确保风格核心词排在提示词最前列，强力指导生图大模型）
+    final_prompt = f"{style_header}, {scene_core}, {directive}{suffix}"
+    return final_prompt
 
-    # 降级：用规则引擎拼装 + 风格尾缀
-    try:
-        from core.short_drama import _synthesize_scene_prompt
-        synthesized = _synthesize_scene_prompt(
-            raw_s, context or raw_s,
-            "Medium Establishing Shot", "Natural Daylight", "Steady Cam"
-        )
-        return synthesized + preset["suffix"]
-    except Exception:
-        return f"Authentic scene of {raw_s[:80]}, photorealistic, 8k" + preset["suffix"]
+
+def photojournalism_prompt_engine(raw_text: str, context: str = "",
+                                  force_style: str | None = None) -> str:
+    """提示词引擎：将内容与用户指定的多美学风格深度绑定，把风格特征显式添加到 AI 提示词中。"""
+    return build_style_enhanced_prompt(raw_text, context=context, force_style=force_style)
 
 
 # 全文通读 ➔ 视觉要点提取 ➔ 多风格提示词生成（v5.302 升级版）
@@ -581,7 +581,7 @@ def _reset_gen_diagnosis(model: str = "", provider: str = "") -> None:
     _GEN_DIAG.update({"channel": "none", "model": model, "provider": provider, "commercial_error": ""})
 
 
-def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_title: str = "", context_sub: str = "", angle_idx: int = 0, is_cover: bool = False, model: str = "") -> bool:
+def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_title: str = "", context_sub: str = "", angle_idx: int = 0, is_cover: bool = False, model: str = "", style: str = "") -> bool:
     """生成一张配图并存入 out_path。
     智能多通道真实生图机制：
     1. 商业通道：若配置了支持生图的商业供应商（如 agnes-image、OpenAI dall-e-3、阿里 wanx-v1、智谱 cogview 或自建网关），调用 /images/generations；
@@ -591,8 +591,8 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
     cfg = image_cfg()
     req_model = (model or "").strip() or cfg.get("model", "").strip() or "flux-schnell"
 
-    # 全局通过纪实摄影引擎升华 Prompt（彻底去除 AI 塑料感与假人感）
-    enhanced_prompt = photojournalism_prompt_engine(prompt, context=context_sub or context_title)
+    # 全局通过视觉美学引擎注入多风格指令与光影参数（彻底去除 AI 塑料感与假人感）
+    enhanced_prompt = photojournalism_prompt_engine(prompt, context=context_sub or context_title, force_style=style)
 
     from core.llm import resolve_llm_endpoint, classify_model
     base, key, resolved_model, pid = resolve_llm_endpoint(req_model)
@@ -720,7 +720,7 @@ def decorate_draft(draft_dir: Path, title: str, sections: list, body_md: str = "
         cover_en = prompts_data.get("cover_prompt", {}).get("en", "")
         cover_zh = prompts_data.get("cover_prompt", {}).get("zh", f"{title}。{first_ctx}")
         prompt_cover = cover_en or photojournalism_prompt_engine(f"{title}。{first_ctx}", context="封面大图", force_style=style)
-        if gen_image(prompt_cover, f_cover, "1024x1024", context_title=title, context_sub=cover_zh[:40], angle_idx=0, is_cover=True, model=model):
+        if gen_image(prompt_cover, f_cover, "1024x1024", context_title=title, context_sub=cover_zh[:40], angle_idx=0, is_cover=True, model=model, style=style or ""):
             made["cover"] = "img/cover.png"
 
     # 3. 各小节配图生成
@@ -740,7 +740,7 @@ def decorate_draft(draft_dir: Path, title: str, sections: list, body_md: str = "
         p_zh = sec_p.get("zh", ctx or t)
         prompt_sec = p_en or photojournalism_prompt_engine(f"{t}。{ctx}", context=t, force_style=style)
         
-        if gen_image(prompt_sec, f_sec, "1024x1024", context_title=t, context_sub=p_zh[:40], angle_idx=angle_i, is_cover=False, model=model):
+        if gen_image(prompt_sec, f_sec, "1024x1024", context_title=t, context_sub=p_zh[:40], angle_idx=angle_i, is_cover=False, model=model, style=style or ""):
             made["sections"][t] = f"img/sec-{i}.png"
 
     return made
@@ -1017,42 +1017,67 @@ def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", f
 
     imgs = decorate_draft(ddir, title, sec_arg, body_md=body_md, count=count, style=style, force_regen=bool(style or force_regen), model=model)
 
-    new_lines = []
-    cover_injected = (f"/img/{draft_id}/cover.png" in body_md)
+    import time
+    ts = int(time.time())
+    v_param = f"?v={ts}"
 
-    sec_img_map = {}
-    for idx, (t, _) in enumerate(sec_arg):
-        sec_img_map[t] = f"/img/{draft_id}/sec-{idx}.png"
+    has_cover = (ddir / "img" / "cover.png").exists()
+    sec_files = sorted((ddir / "img").glob("sec-*.png"))
 
-    for line in body_md.splitlines():
-        if not cover_injected and (line.startswith("### ") or line.startswith("## ")):
-            new_lines.append(f"![封面](/img/{draft_id}/cover.png)\n")
-            cover_injected = True
+    # 1. 替换 body_md 中已存在的图片链接，附带时间戳破坏浏览器缓存
+    updated_body_md = body_md
+    if f"/img/{draft_id}/" in updated_body_md:
+        updated_body_md = re.sub(
+            rf"!\[(.*?)\]\(/img/{re.escape(draft_id)}/cover\.png(?:\?[^)]*)?\)",
+            rf"![\1](/img/{draft_id}/cover.png{v_param})",
+            updated_body_md
+        )
+        for i in range(10):
+            updated_body_md = re.sub(
+                rf"!\[(.*?)\]\(/img/{re.escape(draft_id)}/sec-{i}\.png(?:\?[^)]*)?\)",
+                rf"![\1](/img/{draft_id}/sec-{i}.png{v_param})",
+                updated_body_md
+            )
 
-        new_lines.append(line)
+    # 2. 若正文中此前未注入过封面与插图，按小节智能回填
+    if f"/img/{draft_id}/" not in updated_body_md:
+        new_lines = []
+        cover_injected = False
+        sec_img_map = {}
+        for idx, (t, _) in enumerate(sec_arg):
+            sec_img_map[t] = f"/img/{draft_id}/sec-{idx}.png{v_param}"
 
-        if line.startswith("### "):
-            sec_title = line[4:].strip()
-            img_url = sec_img_map.get(sec_title)
-            if img_url and img_url not in body_md:
-                new_lines.append(f"\n![{sec_title}]({img_url})\n")
+        for line in updated_body_md.splitlines():
+            if not cover_injected and has_cover and (line.startswith("### ") or line.startswith("## ")):
+                new_lines.append(f"![封面](/img/{draft_id}/cover.png{v_param})\n")
+                cover_injected = True
 
-    updated_body_md = "\n".join(new_lines).strip()
+            new_lines.append(line)
+
+            if line.startswith("### "):
+                sec_title = line[4:].strip()
+                img_url = sec_img_map.get(sec_title)
+                if img_url:
+                    new_lines.append(f"\n![{sec_title}]({img_url})\n")
+
+        if not cover_injected and has_cover:
+            new_lines.insert(0, f"![封面](/img/{draft_id}/cover.png{v_param})\n")
+        updated_body_md = "\n".join(new_lines).strip()
 
     c = db.conn()
     c.execute("UPDATE drafts SET body_md=? WHERE id=?", (updated_body_md, draft_id))
     c.commit()
     c.close()
 
-    images_dict = {f.name: f"/img/{draft_id}/{f.name}" for f in sorted((ddir / "img").glob("sec-*.png"))}
-    cover_url = f"/img/{draft_id}/cover.png" if (ddir / "img" / "cover.png").exists() else None
+    images_dict = {f.name: f"/img/{draft_id}/{f.name}{v_param}" for f in sec_files}
+    cover_url = f"/img/{draft_id}/cover.png{v_param}" if has_cover else None
     
     theme = load_config().get("creation", {}).get("wechat_theme", "caozhou")
     wx_html = themes.md_to_wechat_html(updated_body_md, title, theme=theme, images=images_dict)
     wx_html = _inject_cover(wx_html, cover_url)
     (ddir / "preview-wechat_mp.html").write_text(wx_html, encoding="utf-8")
 
-    tt_html = _tt.render_preview(updated_body_md, title)
+    tt_html = _tt.render_preview(updated_body_md, title, images=[f"/img/{draft_id}/{f.name}{v_param}" for f in sec_files], cover=cover_url, draft_id=draft_id)
     (ddir / "preview-toutiao.html").write_text(tt_html, encoding="utf-8")
     (ddir / "toutiao.md").write_text(updated_body_md, encoding="utf-8")
 
@@ -1065,12 +1090,12 @@ def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", f
     (ddir / "weibo.md").write_text(updated_body_md, encoding="utf-8")
 
     img_list = []
-    if (ddir / "img" / "cover.png").exists():
-        img_list.append({"name": "封面图", "url": f"/img/{draft_id}/cover.png"})
-    for f in sorted((ddir / "img").glob("sec-*.png")):
-        img_list.append({"name": f.stem, "url": f"/img/{draft_id}/{f.name}"})
+    if has_cover:
+        img_list.append({"name": "封面图", "url": f"/img/{draft_id}/cover.png{v_param}"})
+    for f in sec_files:
+        img_list.append({"name": f.stem, "url": f"/img/{draft_id}/{f.name}{v_param}"})
     for f in sorted((ddir / "img").glob("custom-*.png")):
-        img_list.append({"name": f.stem, "url": f"/img/{draft_id}/{f.name}"})
+        img_list.append({"name": f.stem, "url": f"/img/{draft_id}/{f.name}{v_param}"})
 
     return {
         "ok": True,

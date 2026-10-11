@@ -6053,7 +6053,11 @@ def draft_img(did: str, name: str):
     f = db.draft_dir(did) / "img" / name
     if not f.exists():
         raise HTTPException(404, "图片未生成")
-    return FileResponse(f, media_type="image/png")
+    resp = FileResponse(f, media_type="image/png")
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    return resp
 
 
 # ---------------- settings ----------------
@@ -6186,11 +6190,13 @@ def _run_one_sentence_viral_job(jid: str, payload: dict):
         theme = payload.get("theme", "")
         media_name = payload.get("media_name", "")
         platforms = payload.get("platforms")
+        image_style = str(payload.get("image_style") or "").strip()
         update_async_job(jid, step="正在解构核心痛点与生成多端爆款…", progress=30)
         res = O.generate_one_sentence_viral(sentence, mounted_persona=mounted_persona,
                                             theme=theme, media_name=media_name, emit=emit,
                                             platforms=platforms,
-                                            user_id=str(payload.get("_owner_user_id") or ""))
+                                            user_id=str(payload.get("_owner_user_id") or ""),
+                                            image_style=image_style)
         update_async_job(jid, status="done", progress=100, step="一句话灵感创作完成！", result=res)
     except Exception as e:
         update_async_job(jid, status="failed", error=str(e)[:400], step="创作失败")

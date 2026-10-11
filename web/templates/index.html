@@ -3948,12 +3948,28 @@ input[type=text]:focus, textarea:focus, select:focus {
                 输入一句简短的灵感或研究需求，AI 自动提炼检索词、实时联网抓取 3~5 篇权威长文与真实论据，融合名家文风与爆款技能，一键生成微信长文、小红书图文与头条资讯成稿。
               </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <span style="font-size:12px;color:var(--text-muted)">🎭 挂载名家文风：</span>
-              <select id="oneshot-persona-sel" style="background:#161b22;border:1px solid rgba(163,113,247,0.4);color:#fff;border-radius:6px;padding:5px 10px;font-size:12px" onchange="onOneShotPersonaChange()">
-                <option value="">（不挂载 · 系统中立）</option>
-              </select>
-              <button type="button" class="btn ghost btn-sm" style="color:#a371f7;border-color:rgba(163,113,247,0.3)" onclick="skillDistillModal()" title="粘贴任意名家文本，AI 深度提取其行文指纹并实时入库挂载">⚡ 蒸馏新名家</button>
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <div style="display:flex;gap:6px;align-items:center">
+                <span style="font-size:12px;color:var(--text-muted)">🎭 挂载名家文风：</span>
+                <select id="oneshot-persona-sel" style="background:#161b22;border:1px solid rgba(163,113,247,0.4);color:#fff;border-radius:6px;padding:5px 10px;font-size:12px" onchange="onOneShotPersonaChange()">
+                  <option value="">（不挂载 · 系统中立）</option>
+                </select>
+                <button type="button" class="btn ghost btn-sm" style="color:#a371f7;border-color:rgba(163,113,247,0.3)" onclick="skillDistillModal()" title="粘贴任意名家文本，AI 深度提取其行文指纹并实时入库挂载">⚡ 蒸馏新名家</button>
+              </div>
+              <div style="display:flex;gap:6px;align-items:center">
+                <span style="font-size:12px;color:var(--text-muted)">🎨 配图视觉风格：</span>
+                <select id="oneshot-image-style-sel" style="background:#161b22;border:1px solid rgba(163,113,247,0.4);color:#fff;border-radius:6px;padding:5px 8px;font-size:12px" title="生成文章时联动 AI 生图模型直接输出该美学风格配图">
+                  <option value="">🎯 智能自动匹配</option>
+                  <option value="ancient_chinese">🏛️ 古风雅韵·东方意境</option>
+                  <option value="tech_cyber">🤖 科技赛博·数字未来</option>
+                  <option value="city_urban">🏙️ 城市风·现代都市</option>
+                  <option value="swiss_minimal">💼 职场风·极简商务</option>
+                  <option value="magazine_editorial">✨ 杂志风·高端美学</option>
+                  <option value="documentary">📸 纪实风·真实烟火</option>
+                  <option value="cinematic_movie">🎬 影视大片·电影光影</option>
+                  <option value="commercial_premium">💎 高端商业·品牌广告</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -12569,7 +12585,8 @@ async function runOneSentenceViral() {
         sentence: sentence,
         mounted_persona: mounted_persona,
         media_name: getUserMediaName(),
-        platforms: getInspireSelectedPlatforms()
+        platforms: getInspireSelectedPlatforms(),
+        image_style: $('oneshot-image-style-sel') ? $('oneshot-image-style-sel').value : ''
       })
     });
     const jid = res.job;
@@ -14171,28 +14188,36 @@ function wbInsertLine(prefix) {
 async function triggerAutoImages() {
   if(!curDraft) return toast('请先在左侧选择一篇草稿');
   const d = (S.drafts||[]).find(x => x.id === curDraft);
+  const sel = $('stage-image-style-sel');
+  const style = sel ? sel.value : '';
+  const styleText = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '智能匹配';
   const btn = $('btn-ai-images');
   if(btn) { btn.disabled = true; btn.textContent = '⏳ AI配图中…'; }
-  toast('🎨 AI 正在解析全文小节并生成专属高清配图与封面…（约需 3-5 秒）', 4000);
+  toast(`🎨 正在联动 AI 生图模型解析全文并生成【${styleText}】高清配图与封面…（约需 3-8 秒）`, 4500);
 
   try {
     const res = await api(`/api/drafts/${curDraft}/generate_images`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ count: 4 })
+      body: JSON.stringify({ count: 4, style: style, force_regen: true })
     });
 
     if(res.ok) {
-      toast(`🎉 全文配图生成成功！已生成 ${res.count} 张高清图并自动排版入文！`, 4000);
+      toast(`🎉 全文配图生成成功！已生成 ${res.count} 张【${styleText}】高清配图并自动排版入文！`, 4000);
+      if(d && res.body_md) {
+        d.body_md = res.body_md;
+      }
       if($('wb-editor-input') && res.body_md) {
         $('wb-editor-input').value = res.body_md;
         updateWordCount(res.body_md);
       }
-      if(d) {
-        d.body_md = res.body_md;
-      }
       await refresh();
-      selectDraft(curDraft);
+      if (typeof loadAndRenderPlatformData === 'function') {
+        await loadAndRenderPlatformData(d || {id: curDraft, body_md: res.body_md}, currentPlatformTab);
+      }
+      if (typeof loadImageManagerData === 'function' && $('img-mgr-modal') && $('img-mgr-modal').style.display !== 'none') {
+        await loadImageManagerData();
+      }
     } else {
       toast('配图生成失败: ' + (res.error || '未知'));
     }
@@ -14212,7 +14237,7 @@ async function triggerChangeImageStyle() {
   
   const btn = $('btn-change-image-style');
   if(btn) { btn.disabled = true; btn.textContent = '⏳ 重绘配图中…'; }
-  toast(`🎨 正在将全文配图一键重塑为【${styleText}】…（按文章小节智能重构画面与渲染）`, 5000);
+  toast(`🎨 正在将全文配图一键重塑为【${styleText}】…（联动 AI 生图模型深度注入美学提示词重绘）`, 5000);
 
   try {
     const res = await api(`/api/drafts/${curDraft}/generate_images`, {
@@ -14222,16 +14247,21 @@ async function triggerChangeImageStyle() {
     });
 
     if(res.ok) {
-      toast(`🎉 全文配图已成功切换为【${styleText}】！已生成 ${res.count} 张全新风格配图并自动排版入文！`, 4500);
+      toast(`🎉 全文配图已成功切换为【${styleText}】！已生成 ${res.count} 张全新风格配图并排版入文！`, 4500);
+      if(d && res.body_md) {
+        d.body_md = res.body_md;
+      }
       if($('wb-editor-input') && res.body_md) {
         $('wb-editor-input').value = res.body_md;
         updateWordCount(res.body_md);
       }
-      if(d) {
-        d.body_md = res.body_md;
-      }
       await refresh();
-      selectDraft(curDraft);
+      if (typeof loadAndRenderPlatformData === 'function') {
+        await loadAndRenderPlatformData(d || {id: curDraft, body_md: res.body_md}, currentPlatformTab);
+      }
+      if (typeof loadImageManagerData === 'function' && $('img-mgr-modal') && $('img-mgr-modal').style.display !== 'none') {
+        await loadImageManagerData();
+      }
     } else {
       toast('配图风格切换失败: ' + (res.error || '未知'));
     }

@@ -1015,8 +1015,8 @@ def inject_images_to_markdown(body_md: str, draft_id: str) -> str:
 
         out.append(ln)
 
-        if ln.startswith("### ") and sec_idx < num_secs:
-            sec_title = ln[4:].strip()
+        if (ln.startswith("## ") or ln.startswith("### ")) and sec_idx < num_secs:
+            sec_title = ln.lstrip("#").strip()
             out.append(f"\n![{sec_title}]({imgs['sections'][sec_idx]})\n")
             sec_idx += 1
 
@@ -1049,8 +1049,8 @@ def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", f
 
     sec_meta, cur = [], None
     for line in body_md.splitlines():
-        if line.startswith("### "):
-            cur = [line[4:].strip(), []]
+        if (line.startswith("## ") or line.startswith("### ")):
+            cur = [line.lstrip("#").strip(), []]
             sec_meta.append(cur)
         elif cur is not None and line.strip():
             cur[1].append(line.strip().lstrip("- "))
@@ -1072,45 +1072,51 @@ def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", f
     has_cover = (ddir / "img" / "cover.png").exists()
     sec_files = sorted((ddir / "img").glob("sec-*.png"))
 
-    # 1. 替换 body_md 中已存在的图片链接，附带时间戳破坏浏览器缓存
+    # 1. 替换 body_md 中已存在的封面链接或注入新封面
     updated_body_md = body_md
-    if f"/img/{draft_id}/" in updated_body_md:
+    if f"/img/{draft_id}/cover.png" in updated_body_md:
         updated_body_md = re.sub(
             rf"!\[(.*?)\]\(/img/{re.escape(draft_id)}/cover\.png(?:\?[^)]*)?\)",
             rf"![\1](/img/{draft_id}/cover.png{v_param})",
             updated_body_md
         )
-        for i in range(10):
-            updated_body_md = re.sub(
-                rf"!\[(.*?)\]\(/img/{re.escape(draft_id)}/sec-{i}\.png(?:\?[^)]*)?\)",
-                rf"![\1](/img/{draft_id}/sec-{i}.png{v_param})",
-                updated_body_md
-            )
-
-    # 2. 若正文中此前未注入过封面与插图，按小节智能回填
-    if f"/img/{draft_id}/" not in updated_body_md:
+    elif has_cover:
+        lines = updated_body_md.splitlines()
+        cov_inserted = False
         new_lines = []
-        cover_injected = False
-        sec_img_map = {}
-        for idx, (t, _) in enumerate(sec_arg):
-            sec_img_map[t] = f"/img/{draft_id}/sec-{idx}.png{v_param}"
-
-        for line in updated_body_md.splitlines():
-            if not cover_injected and has_cover and (line.startswith("### ") or line.startswith("## ")):
+        for ln in lines:
+            if not cov_inserted and (ln.startswith("## ") or ln.startswith("### ")):
                 new_lines.append(f"![封面](/img/{draft_id}/cover.png{v_param})\n")
-                cover_injected = True
-
-            new_lines.append(line)
-
-            if line.startswith("### "):
-                sec_title = line[4:].strip()
-                img_url = sec_img_map.get(sec_title)
-                if img_url:
-                    new_lines.append(f"\n![{sec_title}]({img_url})\n")
-
-        if not cover_injected and has_cover:
+                cov_inserted = True
+            new_lines.append(ln)
+        if not cov_inserted:
             new_lines.insert(0, f"![封面](/img/{draft_id}/cover.png{v_param})\n")
         updated_body_md = "\n".join(new_lines).strip()
+
+    # 2. 刷新已有小节配图时间戳，或精准回填缺失小节配图到正文
+    for i, sfile in enumerate(sec_files):
+        sec_url = f"/img/{draft_id}/{sfile.name}{v_param}"
+        sec_title = sec_arg[i][0] if i < len(sec_arg) else f"小节{i+1}"
+        if f"/img/{draft_id}/{sfile.name}" in updated_body_md:
+            updated_body_md = re.sub(
+                rf"!\[(.*?)\]\(/img/{re.escape(draft_id)}/{re.escape(sfile.name)}(?:\?[^)]*)?\)",
+                rf"![\1]({sec_url})",
+                updated_body_md
+            )
+        else:
+            lines = updated_body_md.splitlines()
+            injected = False
+            new_lines = []
+            for ln in lines:
+                new_lines.append(ln)
+                if not injected and (ln.startswith("## ") or ln.startswith("### ")):
+                    hdr = ln.lstrip("#").strip()
+                    if hdr == sec_title or (len(sec_meta) == 0 and i == 0):
+                        new_lines.append(f"\n![{sec_title}]({sec_url})\n")
+                        injected = True
+            if not injected:
+                new_lines.append(f"\n![{sec_title}]({sec_url})\n")
+            updated_body_md = "\n".join(new_lines).strip()
 
     c = db.conn()
     c.execute("UPDATE drafts SET body_md=? WHERE id=?", (updated_body_md, draft_id))

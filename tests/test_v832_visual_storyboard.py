@@ -104,3 +104,26 @@ def test_image_agent_skills_equipped():
     assert "storyboard-visual-grammar" in skills
     assert "cinematic-optics-lighting" in skills
     assert "storyboard-visual-grammar" in STAGE_DEFAULT_SKILLS["image"]
+
+
+def test_heading_support_and_section_image_injection():
+    """验证文章正文中的 H2 与 H3 标题均能精准匹配并成功注入分镜插图"""
+    from core.imagegen import inject_images_to_markdown
+
+    # 测试包含 H2 的 Markdown
+    md_with_h2 = "# 文章总标题\n\n导语部分。\n\n## 关键段落一\n\n段落一正文。\n\n## 关键段落二\n\n段落二正文。"
+    # 模拟草稿图片数据
+    from unittest.mock import patch
+    mock_imgs = {
+        "cover": "/img/test/cover.png",
+        "sections": ["/img/test/sec-0.png", "/img/test/sec-1.png"],
+        "all": ["/img/test/cover.png", "/img/test/sec-0.png", "/img/test/sec-1.png"]
+    }
+    with patch("core.imagegen.get_draft_images", return_value=mock_imgs):
+        injected = inject_images_to_markdown(md_with_h2, "dr-test")
+        assert "/img/test/cover.png" in injected
+        assert "/img/test/sec-0.png" in injected
+        assert "/img/test/sec-1.png" in injected
+        assert "![关键段落一]" in injected
+        assert "![关键段落二]" in injected
+

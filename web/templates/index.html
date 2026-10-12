@@ -11645,9 +11645,18 @@ async function sendWbAgentMessage() {
         selectDraft(finalResult.draft_id);
       }
       updateWbAgentConnectedDraft();
+      if (finalResult.action === 'image_style') {
+        if (typeof loadAndRenderPlatformData === 'function') {
+          await loadAndRenderPlatformData(target || {id: curDraft, body_md: finalResult.body}, currentPlatformTab);
+        }
+        if (typeof loadImageManagerData === 'function' && $('img-mgr-modal') && $('img-mgr-modal').style.display !== 'none') {
+          await loadImageManagerData();
+        }
+      }
       const actionNotice = finalResult.action === 'modify_paragraph' ? '🎯 公众号指定段落微创完成，其余无损保留！' :
                            finalResult.action === 'modify_card' ? '📕 小红书指定单张卡片微创更新完成！' :
                            finalResult.action === 'title' ? '🎯 标题赛马优化完成，工作台赛马池已热更新！' :
+                           finalResult.action === 'image_style' ? '🎬 影视短剧级分镜头配图已重构并热注入画布！' :
                            '✨ Agent 已完成处理，工作台全模块已热刷新！';
       toast(actionNotice, 3500);
     }
@@ -11807,7 +11816,9 @@ async function sendCopilotMessage() {
 
       const toastText = finalResult.action === 'create' ? '🎉 新稿件已生成，排版成品已呈现在画布！' : 
                         finalResult.action === 'title' ? '🎯 已为您更新最佳赛马标题与排版！' : 
-                        finalResult.action === 'cards' ? '📕 小红书 5 幕全景磨砂卡片已压制完成！' : '✨ 画布成品排版已完成微创精修！';
+                        finalResult.action === 'cards' ? '📕 小红书 5 幕全景磨砂卡片已压制完成！' : 
+                        finalResult.action === 'image_style' ? '🎬 影视短剧级分镜头配图已重构并热注入画布！' : 
+                        '✨ 画布成品排版已完成微创精修！';
       toast(toastText, 3500);
 
       if (typeof refresh === 'function') refresh();

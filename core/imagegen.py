@@ -297,7 +297,7 @@ def photojournalism_prompt_engine(raw_text: str, context: str = "",
     return build_style_enhanced_prompt(raw_text, context=context, force_style=force_style)
 
 
-# 全文通读 ➔ 影视级分镜头剧本解构 ➔ 95%+ 图文超强匹配提示词生成（v8.3.2 影视分镜核心铁律版）
+# 全文通读 ➔ 影视级分镜头剧本解构 ➔ 95%+ 图文超强匹配提示词生成（v8.3.3 影视分镜核心铁律版）
 ARTICLE_VISUAL_DIGEST_PROMPT = """你是一名好莱坞电影摄影总监兼短剧分镜导演，兼具国家地理摄影大师与全球顶尖视觉艺术总监身份。
 
 【系统核心铁律（必须严格贯彻执行）】：
@@ -680,6 +680,7 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
                             commercial_ok = True
                             break
                         elif img_url:
+                            dl_r = None
                             with httpx.Client(timeout=40, follow_redirects=True) as dl_client:
                                 dl_r = dl_client.get(img_url)
                                 if dl_r.status_code == 200 and len(dl_r.content) > 1024:
@@ -687,7 +688,8 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
                                     out_path.write_bytes(dl_r.content)
                                     commercial_ok = True
                                     break
-                            _GEN_DIAG["commercial_error"] = f"生图端点返回的图片地址拉取失败（HTTP {dl_r.status_code}）"
+                            status_code_str = getattr(dl_r, 'status_code', 'error')
+                            _GEN_DIAG["commercial_error"] = f"生图端点返回的图片地址拉取失败（HTTP {status_code_str}）"
                         else:
                             _GEN_DIAG["commercial_error"] = f"生图端点返回 200 但无图片数据体（model={resolved_model}）"
                     else:

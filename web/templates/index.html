@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>一幕·YIMU 爆款工作室 V8.3.2 · 全媒体超级创作引擎</title>
+<title>一幕·YIMU 爆款工作室 V8.3.3 · 全媒体超级创作引擎</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script>
 (function() {
@@ -3199,7 +3199,7 @@ input[type=text]:focus, textarea:focus, select:focus {
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.3px">爆款工作室</span>
-      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.2</span>
+      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.3</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -3355,7 +3355,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <a class="btn btn-sm" href="/admin/releases" id="nav-release-entry"
          title="版本升级总览：本次改了什么、在哪里、怎么验证"
          style="text-decoration:none;background:var(--primary);color:#fff;border:0;font-weight:700"
-      >🆕 <span id="nav-ver-text">8.3.2</span></a>
+      >🆕 <span id="nav-ver-text">8.3.3</span></a>
       <span id="header-extra"></span>
     </div>
   </header>
@@ -3366,7 +3366,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:12px">
         <span class="live-pulse"></span>
         <span style="font-weight:700;font-size:13.5px;color:#fff">一幕·YIMU 爆款雷达实时巡航中</span>
-        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.2</span>
+        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.3</span>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap">
         <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">—</strong></div>
@@ -20700,7 +20700,7 @@ async function resetHabitSkill() {
 let yimuUserTier = 'free';
 function getAppVersionShort() {
   const t = document.getElementById('nav-ver-text')?.textContent;
-  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V8.3.2';
+  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V8.3.3';
 }
 const TIER_LABEL_MAP = {free: 'Free', pro: 'Pro', studio: 'Studio'};
 
@@ -20919,7 +20919,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px" id="agent-task-subtitle">全能微创改写与生成引擎调度中…</div>
         </div>
       </div>
-      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V8.3.2</span>
+      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V8.3.3</span>
     </div>
     
     <!-- 当前动态进行中的工作步骤展示卡 -->

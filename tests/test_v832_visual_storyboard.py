@@ -21,17 +21,19 @@ from core.copilot import detect_intent_and_target, VISUAL_STYLE_KEYWORDS
 from core.agents import load_config, STAGE_DEFAULT_SKILLS
 
 
-def test_v832_version_consistency():
-    """验证版本单一真源为 8.3.2"""
-    assert version.__version__ == "8.3.2"
+def test_v833_version_consistency():
+    """验证版本单一真源升级为 8.3.3，杜绝任何旧版本写死徽章"""
+    assert version.__version__ == "8.3.3"
     index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
     mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
-    assert "V8.3.2" in index_html
-    assert "8.3.2" in index_html
-    assert "V8.3.2" in mobile_html
-    # 杜绝任何旧的 8.2 写死徽章
+    assert "V8.3.3" in index_html
+    assert "8.3.3" in index_html
+    assert "V8.3.3" in mobile_html
+    # 杜绝任何旧的 8.2 或 8.3.2 写死徽章
     assert "V8.2" not in index_html
     assert "V8.2" not in mobile_html
+    assert "V8.3.2" not in index_html
+    assert "V8.3.2" not in mobile_html
 
 
 def test_visual_style_presets_complete():

@@ -269,7 +269,11 @@ def _gather_videos(terms: list[str], n: int, aspect: str) -> list[Path]:
         return []
     orientation = "portrait" if aspect == "9:16" else "landscape"
     paths: list[Path] = []
-    for kw in (terms or ["cinematic"]):
+    kw_candidates = list(terms or [])
+    for fallback in ["cinematic", "lifestyle", "city", "nature", "business"]:
+        if fallback not in kw_candidates:
+            kw_candidates.append(fallback)
+    for kw in kw_candidates:
         if len(paths) >= n:
             break
         try:

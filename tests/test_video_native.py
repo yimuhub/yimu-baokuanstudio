@@ -13,10 +13,12 @@ class TestStockGracefulDegradation:
     def test_no_keys_returns_empty(self, monkeypatch):
         monkeypatch.delenv("PEXELS_API_KEY", raising=False)
         monkeypatch.delenv("PIXABAY_API_KEY", raising=False)
-        # 确保环境变量确实为空
+        # 确保环境变量确实为空，且 mock key 获取返回空
         os.environ.pop("PEXELS_API_KEY", None)
         os.environ.pop("PIXABAY_API_KEY", None)
         from studio import stock
+        monkeypatch.setattr(stock, "_pexels_key", lambda: "")
+        monkeypatch.setattr(stock, "_pixabay_key", lambda: "")
         # 不应抛异常
         assert stock.search_videos("test", n=1) == []
         assert stock.search_images("test", n=1) == []

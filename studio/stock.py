@@ -49,10 +49,19 @@ def _pixabay_key() -> str:
         return os.environ.get("PIXABAY_API_KEY", "").strip()
 
 
+_DEFAULT_UA = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+)
+
+
 def _http_get_json(url: str, headers: dict | None = None) -> dict | None:
     """GET JSON，超时/异常返回 None（不抛）。"""
     try:
-        req = urllib.request.Request(url, headers=headers or {})
+        req_headers = {"User-Agent": _DEFAULT_UA}
+        if headers:
+            req_headers.update(headers)
+        req = urllib.request.Request(url, headers=req_headers)
         with urllib.request.urlopen(req, timeout=_TIMEOUT_S) as resp:
             import json as _json
             return _json.loads(resp.read().decode("utf-8"))
@@ -68,7 +77,7 @@ def _download(url: str, suffix: str) -> Path | None:
         dest = _cache_dir() / name
         if dest.exists() and dest.stat().st_size > 1024:
             return dest  # 缓存命中
-        req = urllib.request.Request(url, headers={"User-Agent": "YIMU-Studio/7.0"})
+        req = urllib.request.Request(url, headers={"User-Agent": _DEFAULT_UA})
         with urllib.request.urlopen(req, timeout=30) as resp, open(dest, "wb") as f:
             while True:
                 chunk = resp.read(65536)

@@ -6570,8 +6570,10 @@ function removeAdRef(kind, idx) {
 
 function toggleAdVoiceMode() {
   const mode = document.querySelector('input[name="ad-voice-mode"]:checked')?.value || 'auto';
-  $('ad-voice-clone-tip').style.display = mode === 'clone' ? 'block' : 'none';
-  $('ad-voice-upload-box').style.display = mode === 'upload' ? 'flex' : 'none';
+  const cloneTip = $('ad-voice-clone-tip');
+  if (cloneTip) cloneTip.style.display = mode === 'clone' ? 'block' : 'none';
+  const uploadBox = $('ad-voice-upload-box');
+  if (uploadBox) uploadBox.style.display = mode === 'upload' ? 'flex' : 'none';
 }
 
 async function uploadAdAudio(input) {
@@ -6582,7 +6584,8 @@ async function uploadAdAudio(input) {
   try {
     const r = await api('/api/advideo/upload_audio', { method: 'POST', body: fd });
     _adCustomAudio = r.path || '';
-    $('ad-custom-audio-name').textContent = '✅ ' + (f.name || '已上传');
+    const audioName = $('ad-custom-audio-name');
+    if (audioName) audioName.textContent = '✅ ' + (f.name || '已上传');
     toast('✅ 配音音频已上传');
   } catch (e) { toast('上传失败: ' + e.message); }
   input.value = '';

@@ -1039,8 +1039,8 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
         _report("🎨 正在调用 AI 视觉引擎为公众号与头条绘制成套插图…", 78)
         sec_meta, cur_sec = [], None
         for line in gen_body.splitlines():
-            if line.startswith("### "):
-                cur_sec = [line[4:].strip(), []]
+            if line.startswith("## ") or line.startswith("### "):
+                cur_sec = [line.lstrip("#").strip(), []]
                 sec_meta.append(cur_sec)
             elif cur_sec is not None and line.strip():
                 cur_sec[1].append(line.strip().lstrip("- "))
@@ -1056,6 +1056,13 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
         try:
             from core import imagegen
             imagegen.decorate_draft(ddir, gen_title, sec_arg, body_md=gen_body, count=4)
+            injected_body = imagegen.inject_images_to_markdown(gen_body, new_draft["id"])
+            if injected_body and injected_body != gen_body:
+                gen_body = injected_body
+                c_up = db.conn()
+                c_up.execute("UPDATE drafts SET body_md=? WHERE id=?", (gen_body, new_draft["id"]))
+                c_up.commit()
+                c_up.close()
         except Exception as img_err:
             logger.warning(f"全套配图生成异常: {img_err}")
 

@@ -2105,7 +2105,13 @@ async function sendLitePrompt() {
       </div>
     `;
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-    toast('🎉 稿件已生成！可在「稿件」栏目中查看排版');
+    if (res.draft_id) {
+      activeDraftId = res.draft_id;
+    }
+    const toastNotice = res.action === 'image_style' ? '🎬 影视短剧级分镜头配图已重构！' :
+                        res.action === 'title' ? '🎯 最佳赛马标题已更新！' :
+                        '🎉 稿件已生成！可在「稿件」栏目中查看排版';
+    toast(toastNotice);
     if (typeof loadDraftsList === 'function') {
       loadDraftsList();
     }
@@ -3488,11 +3494,15 @@ async function loadUserProfile() {
   try {
     const me = await api('/api/auth/me');
     if (me.user) {
-      document.getElementById('user-display-name').textContent = me.user.username;
-      document.getElementById('prof-username').textContent = me.user.username;
-      document.getElementById('prof-plan').textContent = '套餐等级: ' + (me.user.plan || 'free');
+      const udn = document.getElementById('user-display-name');
+      if (udn) udn.textContent = me.user.username;
+      const pun = document.getElementById('prof-username');
+      if (pun) pun.textContent = me.user.username;
+      const ppl = document.getElementById('prof-plan');
+      if (ppl) ppl.textContent = '套餐等级: ' + (me.user.plan || 'free');
       // R2-1：兜底额度改为免费档 3000 credits（不再硬编码 500000）
-      document.getElementById('prof-quota').textContent = (me.user.quota_max || 3000).toLocaleString() + ' Token';
+      const pqu = document.getElementById('prof-quota');
+      if (pqu) pqu.textContent = (me.user.quota_max || 3000).toLocaleString() + ' Token';
     }
     loadVaultKeys();
   } catch(e) {}

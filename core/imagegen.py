@@ -596,10 +596,43 @@ SIZE_PRESETS_2K = {
 }
 
 
+def normalize_image_size(size: str | None) -> str:
+    """针对上游生图模型（特别是 Agnes 商业模型）规范化尺寸参数。
+    规则要求：
+    1. 上游只接受 1K / 2K / 3K / 4K 或 WIDTHxHEIGHT（例如 2048x1152）；
+    2. 禁止传画幅字符串（例如 16:9, 9:16 等会导致 400 报错）；
+    3. 若传入画幅串，自动映射为对应 2K 标准分辨率（如 16:9 -> 2048x1152，9:16 -> 1152x2048）；
+    4. 其它非标准值统一兜底为 DEFAULT_IMAGE_SIZE (2048x1152)。
+    """
+    if not size:
+        return DEFAULT_IMAGE_SIZE
+    s = str(size).strip()
+    if s in SIZE_PRESETS_2K:
+        return SIZE_PRESETS_2K[s]
+    if s.upper() in ("1K", "2K", "3K", "4K"):
+        return s.upper()
+    import re
+    if re.match(r"^\d{3,4}x\d{3,4}$", s, re.I):
+        return s.lower()
+    if ":" in s:
+        # 画幅比映射，默认宽屏 2K
+        return SIZE_PRESETS_2K.get(s, DEFAULT_IMAGE_SIZE)
+    return DEFAULT_IMAGE_SIZE
+
+
 def parse_dimensions(size: str) -> tuple[int, int]:
-    """从尺寸字符串（如 2048x1152）解析宽度和高度，默认保底 2K（2048x1152）。"""
+    """从尺寸字符串（如 2048x1152 或 2K）解析宽度和高度，默认保底 2K（2048x1152）。"""
     try:
-        parts = size.lower().split("x")
+        norm = normalize_image_size(size)
+        if norm == "1K":
+            return 1024, 1024
+        elif norm == "2K":
+            return 2048, 2048
+        elif norm == "3K":
+            return 3072, 3072
+        elif norm == "4K":
+            return 4096, 4096
+        parts = norm.lower().split("x")
         if len(parts) == 2:
             w, h = int(parts[0]), int(parts[1])
             if w > 0 and h > 0:
@@ -683,7 +716,8 @@ def gen_image(prompt: str, out_path: Path, size: str = DEFAULT_IMAGE_SIZE, conte
     """
     cfg = image_cfg()
     req_model = (model or "").strip() or cfg.get("model", "").strip() or "flux-schnell"
-    req_size = size or cfg.get("size", DEFAULT_IMAGE_SIZE) or DEFAULT_IMAGE_SIZE
+    raw_size = size or cfg.get("size", DEFAULT_IMAGE_SIZE) or DEFAULT_IMAGE_SIZE
+    req_size = normalize_image_size(raw_size)
 
     # 全局通过视觉美学引擎注入多风格指令与光影参数（彻底去除 AI 塑料感与假人感）
     enhanced_prompt = photojournalism_prompt_engine(prompt, context=context_sub or context_title, force_style=style)
@@ -706,16 +740,43 @@ def gen_image(prompt: str, out_path: Path, size: str = DEFAULT_IMAGE_SIZE, conte
             candidate_urls.append(f"{base}/images/generations")
 
         is_local = "127.0.0.1" in base or "localhost" in base
+        is_agnes = "agnes" in resolved_model.lower() or pid == "yimu_official"
         commercial_ok = False
         for req_url in candidate_urls:
             try:
                 with httpx.Client(timeout=65, trust_env=not is_local) as client:
-                    payload = {"model": resolved_model, "prompt": enhanced_prompt, "n": 1, "size": req_size, "quality": "hd"}
+                    # 针对 Agnes 与通用商业模型的规范请求：
+                    # 1. n 严格为 1；
+                    # 2. size 严格为合法的 WIDTHxHEIGHT 或 1K/2K/3K/4K（normalize_image_size 杜绝画幅串）；
+                    # 3. 严格禁止向 Agnes 传 quality（否则直接 400）；
+                    # 4. 只有明确为 OpenAI 原生 dall-e-3 时才携带 quality="hd"。
+                    payload = {
+                        "model": resolved_model,
+                        "prompt": enhanced_prompt,
+                        "n": 1,
+                        "size": req_size,
+                    }
+                    if "dall-e-3" in resolved_model.lower():
+                        payload["quality"] = "hd"
+
                     r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
-                    # 容错：若上游对 2048x1152 严格校验失败，尝试自动以 1792x1024 宽屏容错重试，随后由 ensure_2k_resolution 升至 2K
-                    if r.status_code == 400 and ("size" in r.text.lower() or "resolution" in r.text.lower()):
-                        payload["size"] = "1792x1024" if ("1152" in req_size or "1792" in req_size) else "1024x1024"
-                        r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
+
+                    # 智能容错救生机制：若遭遇 400，自适应修复并重试
+                    if r.status_code == 400:
+                        # 救生步骤 1：若 payload 存在 quality，立即剥除 quality 重试
+                        if "quality" in payload:
+                            payload.pop("quality", None)
+                            r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
+
+                        # 救生步骤 2：若仍为 400，自适应降级 size（对于 Agnes 模型尝试 "2K" 或标准方图 "1024x1024"）
+                        if r.status_code == 400:
+                            fallback_sizes = ["2K", "1024x1024", "1792x1024"] if is_agnes else ["1024x1024", "1792x1024"]
+                            for f_size in fallback_sizes:
+                                if payload.get("size") != f_size:
+                                    payload["size"] = f_size
+                                    r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
+                                    if r.status_code == 200:
+                                        break
 
                     if r.status_code == 200:
                         res_json = r.json()

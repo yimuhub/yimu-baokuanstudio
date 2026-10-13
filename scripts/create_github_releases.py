@@ -65,10 +65,17 @@ def create_or_update_release(token, tag, name, body, is_latest=False):
         },
         method=method
     )
-    with urllib.request.urlopen(req) as resp:
-        res = json.loads(resp.read().decode())
-        print(f"[{method}] Release {tag}: {res.get('html_url')}")
-        return res
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                res = json.loads(resp.read().decode())
+                print(f"[{method}] Release {tag}: {res.get('html_url')}")
+                return res
+        except Exception as e:
+            if attempt == 3:
+                raise
+            import time
+            time.sleep(2)
 
 RELEASES_DATA = [
     {

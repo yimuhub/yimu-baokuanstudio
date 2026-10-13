@@ -56,3 +56,15 @@ secrets/
 yimu-*-patch-windows/
 yimu-*-patch-windows.zip
 
+# 内部过程与开发草稿文档（纯净开源保护）
+PORTING_NOTES.md
+问题修复记录.md
+docs/*审查*.md
+docs/*立项*.md
+docs/*改进*.md
+docs/*需求*.md
+docs/DEDUP*.md
+docs/REVIEW*.md
+docs/AUDIT*.md
+
+

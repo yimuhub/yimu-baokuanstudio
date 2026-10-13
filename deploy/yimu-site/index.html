@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>一幕 YIMU · AI Storytelling Studio</title>
+<meta name="description" content="一幕 YIMU —— 面向下一代创作者的 AI Storytelling Studio。一念起，一幕开，万象生。全生命周期爆款内容生产引擎与大模型商业网关。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a0a0a'/%3E%3Crect x='18' y='44' width='64' height='12' rx='6' fill='%23C73A32'/%3E%3C/svg%3E">
+<style>
+/* ============================================================
+   一幕 YIMU — Brand VI V1.0
+   墨幕黑 #111111 × 宣纸白 #F5F2EA × 朱砂 #C73A32 × 暗金 #A88A52
+   比例：黑 55% / 白 35% / 朱砂 8% / 暗金 2%
+   ============================================================ */
+:root{
+  --ink:#111111;          /* 墨幕黑 */
+  --ink2:#1a1a1a;
+  --paper:#F5F2EA;        /* 宣纸白 */
+  --vermilion:#C73A32;    /* 朱砂 */
+  --gold:#A88A52;         /* 暗金 */
+  --line:rgba(245,242,234,.14);
+  --line2:rgba(245,242,234,.32);
+  --gray:rgba(245,242,234,.55);
+  --gray2:rgba(245,242,234,.38);
+  --font-sans:-apple-system,BlinkMacSystemFont,"SF Pro Display","PingFang SC","HarmonyOS Sans SC","Noto Sans CJK SC",sans-serif;
+  --font-mono:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  background:var(--ink);
+  color:var(--paper);
+  font-family:var(--font-sans);
+  font-size:16px;line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:var(--vermilion);color:var(--paper)}
+
+/* ---------- grain overlay ---------- */
+.grain{position:fixed;inset:0;z-index:999;pointer-events:none;opacity:.045;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");}
+
+/* ---------- nav ---------- */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 clamp(20px,4vw,56px);height:72px;
+  background:rgba(17,17,17,.72);backdrop-filter:blur(18px) saturate(1.3);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--paper)}
+.brand .mark{
+  width:38px;height:38px;border:1px solid var(--line2);border-radius:9px;
+  display:grid;place-items:center;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#1d1d1d,#141414);
+}
+.brand .mark::before{content:"";position:absolute;left:7px;right:7px;top:50%;height:4px;margin-top:-2px;
+  background:var(--vermilion);border-radius:2px;box-shadow:0 0 14px rgba(199,58,50,.8)}
+.brand .mark::after{content:"";position:absolute;top:9px;left:12px;width:2px;height:12px;background:rgba(245,242,234,.55);
+  border-radius:1px}
+.brand .zh{font-size:17px;font-weight:700;letter-spacing:.14em}
+.brand .en{font-size:9.5px;letter-spacing:.32em;color:var(--gray);font-weight:500;text-transform:uppercase;font-family:var(--font-mono)}
+.nav-links{display:flex;gap:clamp(14px,2.5vw,36px);font-size:13px;letter-spacing:.12em}
+.nav-links a{color:var(--gray);text-decoration:none;transition:color .25s;position:relative}
+.nav-links a:hover{color:var(--paper)}
+.nav-links a::after{content:"";position:absolute;left:0;bottom:-5px;width:0;height:1px;background:var(--vermilion);transition:width .3s}
+.nav-links a:hover::after{width:100%}
+.nav-cta{font-size:12px;letter-spacing:.18em;padding:9px 18px;border:1px solid var(--vermilion);
+  color:var(--vermilion);text-decoration:none;border-radius:2px;transition:.3s;font-weight:600}
+.nav-cta:hover{background:var(--vermilion);color:var(--paper);box-shadow:0 0 24px rgba(199,58,50,.45)}
+
+/* ---------- hero ---------- */
+header{
+  min-height:100vh;position:relative;display:flex;flex-direction:column;
+  justify-content:center;padding:140px clamp(20px,6vw,90px) 90px;overflow:hidden;
+}
+/* curtain opening lines */
+.curtain{position:absolute;inset:0;pointer-events:none}
+.curtain::before,.curtain::after{content:"";position:absolute;top:0;bottom:0;width:44vw;
+  background:linear-gradient(90deg,transparent,rgba(17,17,17,.9) 70%);
+  animation:curL 2.6s cubic-bezier(.7,0,.3,1) forwards}
+.curtain::before{left:0;transform:translateX(0)}
+.curtain::after{right:0;background:linear-gradient(270deg,transparent,rgba(17,17,17,.9) 70%);
+  animation:curR 2.6s cubic-bezier(.7,0,.3,1) forwards}
+@keyframes curL{to{transform:translateX(-101%)}}
+@keyframes curR{to{transform:translateX(101%)}}
+/* horizon "one" line glow */
+.one-line{position:absolute;left:0;right:0;top:44%;height:1px;
+  background:linear-gradient(90deg,transparent 4%,rgba(199,58,50,.0) 30%,rgba(199,58,50,.55) 50%,rgba(199,58,50,0) 70%,transparent 96%);
+  transform:scaleX(0);animation:lineIn 1.6s 1.4s cubic-bezier(.2,.8,.2,1) forwards;pointer-events:none}
+@keyframes lineIn{to{transform:scaleX(1)}}
+.grid-bg{position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+  background-size:80px 80px;
+  mask-image:radial-gradient(ellipse 70% 60% at 50% 42%,transparent 30%,#000 100%);
+  -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 42%,transparent 30%,#000 100%);}
+.hero-inner{position:relative;z-index:2;max-width:1240px;margin:0 auto;width:100%}
+.hero-eyebrow{
+  display:flex;align-items:center;gap:14px;font-size:12px;letter-spacing:.34em;color:var(--gray2);
+  font-family:var(--font-mono);text-transform:uppercase;margin-bottom:34px}
+.hero-eyebrow::before{content:"";width:44px;height:1px;background:var(--vermilion)}
+h1{font-size:clamp(44px,7.2vw,104px);font-weight:800;letter-spacing:.02em;line-height:1.12}
+h1 .zh{display:block}
+h1 .sub{display:block;font-size:clamp(13px,1.4vw,18px);font-weight:400;letter-spacing:.42em;
+  color:var(--gold);margin-top:26px;font-family:var(--font-mono)}
+.hero-credo{margin-top:44px;font-size:clamp(17px,2vw,24px);color:var(--paper);font-weight:300;letter-spacing:.06em}
+.hero-credo b{font-weight:600;color:var(--vermilion);font-style:normal}
+.hero-tag{margin-top:16px;font-size:14px;color:var(--gray2);letter-spacing:.1em}
+.hero-actions{margin-top:52px;display:flex;gap:18px;flex-wrap:wrap}
+.btn{
+  display:inline-flex;align-items:center;gap:10px;padding:15px 34px;font-size:14px;font-weight:600;
+  letter-spacing:.2em;text-decoration:none;border-radius:2px;transition:.35s;position:relative;overflow:hidden}
+.btn-primary{background:var(--vermilion);color:var(--paper);border:1px solid var(--vermilion)}
+.btn-primary:hover{box-shadow:0 6px 30px rgba(199,58,50,.5);transform:translateY(-2px)}
+.btn-ghost{color:var(--paper);border:1px solid var(--line2)}
+.btn-ghost:hover{border-color:var(--paper);background:rgba(245,242,234,.06);transform:translateY(-2px)}
+.hero-meta{margin-top:70px;display:flex;gap:clamp(28px,5vw,72px);flex-wrap:wrap}
+.hero-meta .m{border-left:1px solid var(--line2);padding-left:18px}
+.hero-meta .m .n{font-size:clamp(26px,3vw,40px);font-weight:700;font-family:var(--font-mono);letter-spacing:-.02em}
+.hero-meta .m .n em{color:var(--vermilion);font-style:normal}
+.hero-meta .m .l{font-size:11px;letter-spacing:.24em;color:var(--gray2);text-transform:uppercase;margin-top:4px}
+
+/* section shells */
+section{padding:120px clamp(20px,6vw,90px);position:relative}
+.wrap{max-width:1240px;margin:0 auto}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;margin-bottom:64px;flex-wrap:wrap}
+.sec-no{font-family:var(--font-mono);font-size:12px;letter-spacing:.3em;color:var(--vermilion);
+  display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.sec-no::after{content:"";width:56px;height:1px;background:var(--line2)}
+h2{font-size:clamp(30px,4.4vw,52px);font-weight:800;letter-spacing:.02em;line-height:1.2}
+.sec-note{font-size:13px;color:var(--gray2);letter-spacing:.08em;max-width:340px;text-align:right}
+
+/* reveal on scroll */
+.rv{opacity:0;transform:translateY(34px);transition:opacity .9s cubic-bezier(.2,.8,.2,1),transform .9s cubic-bezier(.2,.8,.2,1)}
+.rv.on{opacity:1;transform:none}
+
+/* ---------- product lineup ---------- */
+#products{background:var(--ink)}
+.products-grid{display:grid;grid-template-columns:1.25fr .95fr;gap:24px}
+.pcard{
+  border:1px solid var(--line);border-radius:6px;padding:clamp(26px,3vw,44px);position:relative;
+  background:linear-gradient(160deg,#181818,#111);overflow:hidden;transition:.4s;
+  display:flex;flex-direction:column}
+.pcard:hover{border-color:var(--line2);transform:translateY(-4px);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.pcard.feat{background:linear-gradient(150deg,#1c1412,#121212 55%)}
+.pcard .tag{position:absolute;top:22px;right:22px;font-family:var(--font-mono);font-size:10px;
+  letter-spacing:.22em;color:var(--gold);border:1px solid rgba(168,138,82,.4);padding:5px 12px;border-radius:2px}
+.pcard h3{font-size:clamp(22px,2.4vw,32px);font-weight:700;letter-spacing:.04em;margin-top:8px}
+.pcard .h3-sub{font-size:12px;color:var(--gray2);letter-spacing:.2em;font-family:var(--font-mono);margin-top:6px;text-transform:uppercase}
+.pcard p{color:var(--gray);font-size:14.5px;margin-top:20px;max-width:52ch}
+.pcard .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
+.chip{font-size:11.5px;letter-spacing:.06em;color:var(--paper);border:1px solid var(--line);
+  padding:6px 13px;border-radius:99px;background:rgba(245,242,234,.04)}
+.chip.hot{border-color:rgba(199,58,50,.55);color:#e8655c;background:rgba(199,58,50,.1)}
+.pcard .stat{display:flex;gap:34px;margin-top:30px;padding-top:24px;border-top:1px solid var(--line)}
+.pcard .stat div .n{font-family:var(--font-mono);font-size:22px;font-weight:700}
+.pcard .stat div .n em{color:var(--vermilion);font-style:normal}
+.pcard .stat div .l{font-size:10.5px;letter-spacing:.18em;color:var(--gray2);margin-top:2px}
+.side-stack{display:grid;grid-template-rows:1fr 1fr;gap:24px}
+
+/* ---------- features ---------- */
+#features{background:var(--paper);color:var(--ink)}
+#features .sec-no{color:var(--vermilion)}
+#features .sec-no::after{background:rgba(17,17,17,.25)}
+#features .sec-note{color:rgba(17,17,17,.45)}
+#features h2{color:var(--ink)}
+.feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.fcard{
+  border:1px solid rgba(17,17,17,.12);border-radius:6px;padding:30px 26px;
+  background:rgba(255,255,255,.5);transition:.35s;position:relative;overflow:hidden}
+.fcard:hover{border-color:var(--vermilion);transform:translateY(-4px);box-shadow:0 18px 44px rgba(17,17,17,.1)}
+.fcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--vermilion);
+  transform:scaleY(0);transform-origin:top;transition:transform .4s}
+.fcard:hover::before{transform:scaleY(1)}
+.fcard .ic{font-size:26px;line-height:1;margin-bottom:18px}
+.fcard h3{font-size:16.5px;font-weight:700;letter-spacing:.04em;margin-bottom:10px}
+.fcard p{font-size:13px;color:rgba(17,17,17,.62);line-height:1.8}
+.fcard .num{position:absolute;top:22px;right:24px;font-family:var(--font-mono);font-size:11px;color:rgba(17,17,17,.35);letter-spacing:.1em}
+
+/* ---------- pipeline ---------- */
+#pipeline{background:var(--ink)}
+.pipe-flow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative;margin-top:10px}
+.pipe-flow::before{content:"";position:absolute;left:10%;right:10%;top:34px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--line2) 15%,var(--line2) 85%,transparent)}
+.step{text-align:center;position:relative;padding:0 12px}
+.step .dot{width:14px;height:14px;border-radius:50%;background:var(--ink);border:2px solid var(--line2);
+  margin:26px auto 0;position:relative;z-index:2;transition:.4s}
+.step .dot::after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--vermilion);
+  transform:scale(0);transition:transform .4s}
+.step:hover .dot{border-color:var(--vermilion);box-shadow:0 0 18px rgba(199,58,50,.5)}
+.step:hover .dot::after{transform:scale(1)}
+.step .s-cn{margin-top:22px;font-size:22px;font-weight:700;letter-spacing:.18em}
+.step .s-en{font-family:var(--font-mono);font-size:10px;letter-spacing:.26em;color:var(--gray2);
+  text-transform:uppercase;margin-top:4px}
+.step .s-desc{font-size:12.5px;color:var(--gray);margin-top:14px;line-height:1.75}
+
+/* ---------- tech / matrix ---------- */
+#matrix{background:var(--ink2)}
+.matrix-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.mcard{border:1px solid var(--line);border-radius:6px;padding:34px;background:linear-gradient(160deg,#1a1a1a,#141414)}
+.mcard h3{font-size:18px;font-weight:700;letter-spacing:.06em;display:flex;align-items:center;gap:12px}
+.mcard h3 span{font-family:var(--font-mono);font-size:10px;color:var(--gold);letter-spacing:.2em}
+.mcard p{font-size:13.5px;color:var(--gray);margin-top:16px;line-height:1.85}
+.agent-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:24px}
+.agent{border:1px solid var(--line);border-radius:4px;padding:12px 8px;text-align:center;
+  font-size:11.5px;letter-spacing:.05em;color:var(--gray);transition:.3s;background:rgba(245,242,234,.02)}
+.agent:hover{border-color:var(--vermilion);color:var(--paper);background:rgba(199,58,50,.08);transform:translateY(-3px)}
+.agent b{display:block;font-weight:600;color:var(--paper);font-size:12.5px}
+
+/* ---------- versions ---------- */
+#versions{background:var(--ink)}
+.vtable{width:100%;border-collapse:collapse}
+.vtable th,.vtable td{padding:18px 22px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+.vtable th{font-size:11px;letter-spacing:.24em;color:var(--gray2);text-transform:uppercase;font-weight:500}
+.vtable td{font-size:14px;color:var(--gray)}
+.vtable td.ver{font-family:var(--font-mono);font-weight:700;font-size:16px;color:var(--paper);white-space:nowrap}
+.vtable td .cn{display:block;font-size:12px;color:var(--gold);letter-spacing:.14em;margin-top:4px}
+.vtable tr.cur td{background:linear-gradient(90deg,rgba(199,58,50,.1),transparent 60%)}
+.vtable tr.cur td.ver{color:var(--vermilion)}
+.badge{display:inline-block;font-size:10px;letter-spacing:.14em;padding:3px 10px;border-radius:2px;
+  font-family:var(--font-mono);margin-top:8px}
+.badge.live{border:1px solid rgba(199,58,50,.6);color:var(--vermilion)}
+.badge.old{border:1px solid var(--line);color:var(--gray2)}
+
+/* ---------- philosophy ---------- */
+#philo{background:var(--paper);color:var(--ink);text-align:center}
+#philo .quote{font-size:clamp(30px,4.6vw,58px);font-weight:800;letter-spacing:.14em;line-height:1.5}
+#philo .quote em{font-style:normal;color:var(--vermilion)}
+#philo .en{margin-top:30px;font-family:var(--font-mono);font-size:clamp(13px,1.6vw,17px);
+  letter-spacing:.3em;color:rgba(17,17,17,.5);text-transform:uppercase}
+#philo .slogan{margin-top:52px;font-size:clamp(15px,1.8vw,19px);color:rgba(17,17,17,.65);letter-spacing:.1em}
+#philo .slogan b{color:var(--ink);font-weight:700}
+.values{display:flex;justify-content:center;gap:clamp(24px,5vw,64px);margin-top:64px;flex-wrap:wrap}
+.vitem{font-size:13px;letter-spacing:.2em;color:rgba(17,17,17,.55)}
+.vitem::before{content:"——  "}
+#philo .rule{width:64px;height:2px;background:var(--vermilion);margin:46px auto 0}
+
+/* ---------- install section ---------- */
+#install{background:var(--ink)}
+.code-block{
+  border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:6px;
+  background:#0d0d0d}
+.code-head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;
+  border-bottom:1px solid var(--line);background:#151515}
+.code-head .t{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;color:var(--gray2);text-transform:uppercase}
+.copy-btn{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.14em;color:var(--vermilion);
+  background:none;border:1px solid rgba(199,58,50,.5);border-radius:2px;padding:5px 14px;cursor:pointer;transition:.25s}
+.copy-btn:hover{background:rgba(199,58,50,.15)}
+.copy-btn.ok{color:#7d9a6a;border-color:rgba(125,154,106,.5)}
+pre{padding:22px 24px;overflow-x:auto;font-family:var(--font-mono);font-size:13px;
+  line-height:2;color:var(--gray);white-space:pre}
+pre .c{color:var(--gold)}
+pre .k{color:var(--vermilion)}
+pre .u{color:#8fb4d8}
+.install-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:24px;align-items:start}
+.inst-notes{display:grid;gap:14px}
+.inote{border:1px solid var(--line);border-radius:6px;padding:20px 24px;background:linear-gradient(160deg,#171717,#121212);transition:.3s}
+.inote:hover{border-color:var(--line2)}
+.inote h3{font-size:13.5px;font-weight:700;letter-spacing:.1em;color:var(--paper);margin-bottom:8px}
+.inote p{font-size:12.5px;color:var(--gray);line-height:1.8}
+.inote p b{color:var(--paper);font-weight:600}
+/* github live panel */
+.gh-panel{border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:24px;background:linear-gradient(160deg,#161616,#101010)}
+.gh-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;flex-wrap:wrap;gap:12px}
+.gh-head .l{font-size:13px;font-weight:700;letter-spacing:.14em}
+.gh-head a{font-family:var(--font-mono);font-size:11.5px;color:var(--gray2);text-decoration:none;letter-spacing:.06em}
+.gh-head a:hover{color:var(--vermilion)}
+.gh-status{font-family:var(--font-mono);font-size:10.5px;letter-spacing:.16em;color:var(--gray2);display:flex;align-items:center;gap:8px}
+.gh-status .led{width:7px;height:7px;border-radius:50%;background:var(--gray2)}
+.gh-status.live .led{background:var(--vermilion);box-shadow:0 0 10px rgba(199,58,50,.8);animation:pulse 1.6s infinite}
+.gh-status.ok .led{background:#7d9a6a;box-shadow:0 0 10px rgba(125,154,106,.7)}
+@keyframes pulse{50%{opacity:.35}}
+.gh-releases{padding:8px 22px 22px}
+.gh-rel{border:1px solid var(--line);border-radius:4px;padding:16px 18px;margin-top:12px;background:rgba(245,242,234,.02);transition:.3s}
+.gh-rel:hover{border-color:var(--line2);background:rgba(245,242,234,.04)}
+.gh-rel .r-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.gh-rel .r-ver{font-family:var(--font-mono);font-weight:700;font-size:15px}
+.gh-rel .r-date{font-family:var(--font-mono);font-size:10.5px;color:var(--gray2);letter-spacing:.1em}
+.gh-rel .r-body{font-size:12.5px;color:var(--gray);line-height:1.8;margin-top:10px;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.gh-skel{border:1px solid var(--line);border-radius:4px;padding:18px;margin-top:12px;
+  background:linear-gradient(90deg,rgba(245,242,234,.02),rgba(245,242,234,.06),rgba(245,242,234,.02));
+  background-size:200% 100%;animation:shim 1.4s infinite;font-size:12px;color:var(--gray2);
+  font-family:var(--font-mono);letter-spacing:.1em}
+@keyframes shim{to{background-position:-200% 0}}
+.vtable-linkwrap{padding:20px 2px 0}
+.vtable-linkwrap a{font-family:var(--font-mono);font-size:12px;color:var(--vermilion);letter-spacing:.1em;text-decoration:none}
+.vtable-linkwrap a:hover{text-decoration:underline}
+
+/* ---------- license ---------- */
+#license{background:var(--ink)}
+.lic-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.lic-card{border:1px solid var(--line);border-radius:6px;padding:34px;background:linear-gradient(160deg,#191919,#121212);position:relative}
+.lic-card h3{font-size:16px;font-weight:700;letter-spacing:.08em;display:flex;gap:10px;align-items:center}
+.lic-card p{font-size:13.5px;color:var(--gray);margin-top:14px;line-height:1.9}
+.lic-card .k{font-family:var(--font-mono);font-size:11px;color:var(--gold);letter-spacing:.14em;margin-top:18px}
+
+/* ---------- footer ---------- */
+footer{background:#0a0a0a;border-top:1px solid var(--line);padding:80px clamp(20px,6vw,90px) 44px}
+.foot-grid{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px}
+.foot-brand .zh{font-size:26px;font-weight:800;letter-spacing:.16em}
+.foot-brand p{color:var(--gray2);font-size:13px;margin-top:14px;letter-spacing:.06em;max-width:34ch}
+.foot-col h4{font-size:11px;letter-spacing:.28em;color:var(--gray2);text-transform:uppercase;margin-bottom:18px;font-weight:500}
+.foot-col a{display:block;color:var(--gray);text-decoration:none;font-size:13.5px;margin-bottom:12px;transition:.25s;width:fit-content}
+.foot-col a:hover{color:var(--vermilion);transform:translateX(4px)}
+.foot-bottom{max-width:1240px;margin:56px auto 0;padding-top:26px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  font-size:11px;letter-spacing:.14em;color:var(--gray2);font-family:var(--font-mono)}
+
+/* ---------- responsive ---------- */
+@media(max-width:960px){
+  .products-grid,.matrix-grid,.lic-grid,.install-grid{grid-template-columns:1fr}
+  .side-stack{grid-template-rows:auto}
+  .feat-grid{grid-template-columns:repeat(2,1fr)}
+  .agent-grid{grid-template-columns:repeat(3,1fr)}
+  .pipe-flow{grid-template-columns:1fr 1fr 1fr;margin-top:40px}
+  .pipe-flow::before{display:none}
+  .foot-grid{grid-template-columns:1fr}
+  .nav-links{display:none}
+  .sec-note{text-align:left}
+}
+@media(max-width:560px){
+  .feat-grid{grid-template-columns:1fr}
+  .agent-grid{grid-template-columns:repeat(2,1fr)}
+  .pipe-flow{grid-template-columns:1fr}
+  .step{padding:18px 0}
+  .hero-meta{flex-direction:column;gap:22px}
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<nav>
+  <a class="brand" href="#top">
+    <span class="mark"></span>
+    <span><span class="zh">一幕</span><span class="en" style="display:block">YIMU Studio</span></span>
+  </a>
+  <div class="nav-links">
+    <a href="#products">产品</a>
+    <a href="#features">能力</a>
+    <a href="#pipeline">创作流</a>
+    <a href="#install">安装</a>
+    <a href="#matrix">Agent 矩阵</a>
+    <a href="#versions">版本</a>
+    <a href="#license">许可</a>
+  </div>
+  <a class="nav-cta" href="mailto:yimu@yimu.hyipf.com">联系我们</a>
+</nav>
+
+<!-- ══════════ HERO ══════════ -->
+<header id="top">
+  <div class="curtain"></div>
+  <div class="grid-bg"></div>
+  <div class="one-line"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">AI Storytelling Studio · V9.1</div>
+    <h1>
+      <span class="zh">一幕 · YIMU</span>
+      <span class="sub">One Thought. One Scene. Infinite Worlds.</span>
+    </h1>
+    <p class="hero-credo"><b>一念起，一幕开，万象生。</b></p>
+    <p class="hero-tag">面向自媒体创作者、短剧团队与 MCN 机构的全生命周期爆款生产引擎 + 大模型商业网关</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#products">开始了解 →</a>
+      <a class="btn btn-ghost" href="#versions">版本演进</a>
+    </div>
+    <div class="hero-meta">
+      <div class="m"><div class="n"><em>11</em> 专职 Agent</div><div class="l">双矩阵调度中枢</div></div>
+      <div class="m"><div class="n"><em>8</em> 步全 AI 短剧管线</div><div class="l">工业级流水线</div></div>
+      <div class="m"><div class="n"><em>24</em> 平台情报采集</div><div class="l">全网爆款雷达</div></div>
+      <div class="m"><div class="n"><em>2K</em> 超清通透画质</div><div class="l">零烟雾视觉引擎</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════ PRODUCTS ══════════ -->
+<section id="products">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <div class="sec-no">01 / PRODUCTS</div>
+        <h2>产品阵列</h2>
+      </div>
+      <div class="sec-note">三大产品线，从爆款图文到全 AI 短剧，覆盖内容创作全链路。</div>
+    </div>
+    <div class="products-grid">
+      <div class="pcard feat rv">
+        <span class="tag">旗舰 · V9.1.1</span>
+        <h3>YIMU Studio<br>爆款工作室</h3>
+        <div class="h3-sub">Full-Lifecycle Viral Content Engine</div>
+        <p>桌面专业工作台 + 移动随身端双端互联。影视级分镜先通读再出图，十大美学风格一键热切换，一份母本秒级编译为微信公众号、今日头条、小红书 5 幕磨砂卡片全渠道排版。内置 OpenAI 兼容网关与算力统一账本。</p>
+        <div class="chips">
+          <span class="chip hot">2K 分镜视觉引擎</span>
+          <span class="chip hot">零烟雾通透管线</span>
+          <span class="chip">多端同步</span>
+          <span class="chip">中英双语 i18n</span>
+          <span class="chip">统一算力账本</span>
+          <span class="chip">OpenAI 网关</span>
+          <span class="chip">多工作室隔离</span>
+          <span class="chip">429+ 自动化测试</span>
+        </div>
+        <div class="stat">
+          <div><div class="n"><em>95</em>%+</div><div class="l">图文语义匹配度</div></div>
+          <div><div class="n"><em>10</em> 大风格</div><div class="l">美学预设系统</div></div>
+          <div><div class="n"><em>4</em>/4</div><div class="l">CI 防线全绿</div></div>
+        </div>
+      </div>
+      <div class="side-stack">
+        <div class="pcard rv">
+          <span class="tag">管线 · V2.0</span>
+          <h3>YIMU 短剧工坊</h3>
+          <div class="h3-sub">8-Step AI Short-Drama Pipeline</div>
+          <p>需求分析 → 4 幕大纲 → 资产提取 → 角色四视图 → 影视级逐镜头分镜 → 关键帧渲染 → 2.5D 运镜配音 → 全剧母带封装。支持仙侠修真、赛博朋克、都市爽剧等 7 大题材，调性 / 原画 / 镜头 / 声音 / 妆造 5 维硬约束直通底层。</p>
+          <div class="chips">
+            <span class="chip hot">7 大题材风格</span>
+            <span class="chip">5 维风格穿透</span>
+            <span class="chip">数字人驱动</span>
+            <span class="chip">Edge-TTS 配音</span>
+          </div>
+        </div>
+        <div class="pcard rv">
+          <span class="tag">情报 · 零依赖</span>
+          <h3>YIMU 爆款工作台</h3>
+          <div class="h3-sub">Multi-Platform Viral Radar</div>
+          <p>24 个平台热榜 / 社区 / 媒体 / 海外源全打通，一轮采集约 11 秒、790+ 条入库。采集 → 话题聚类 → 差异化选题（红海/蓝海机会分）→ 正文抓取与结构拆解 → 6 平台创作任务书，全程纯 Python 标准库、零第三方依赖。</p>
+          <div class="chips">
+            <span class="chip hot">24 平台采集</span>
+            <span class="chip">跨平台热度归一化</span>
+            <span class="chip">差异化选题引擎</span>
+            <span class="chip">6 平台任务书</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FEATURES ══════════ -->
+<section id="features">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <div class="sec-no">02 / CAPABILITIES</div>
+        <h2>核心能力</h2>
+      </div>
+      <div class="sec-note">不是界面空架子，能力真实穿透、工程化落地。</div>
+    </div>
+    <div class="feat-grid">
+      <div class="fcard rv"><span class="num">F-01</span>
+        <div class="ic">🎬</div><h3>影视级分镜配图</h3>
+        <p>出图前先通读全文，把封面定义为宏大建立镜头、小节定义为叙事中景与情绪特写；ARRI / 哈苏光学参数注入提示词底层，告别盲盒出图。</p>
+      </div>
+      <div class="fcard rv"><span class="num">F-02</span>
+        <div class="ic">💎</div><h3>2K 通透画质引擎</h3>
+        <p>2048 级原生超清画幅，强制注入 crystal-clear 正向词、坚决剔除 foggy / hazy / smoke 负向词，色彩艳丽、锐度极致，零烟雾朦胧。</p>
+      </div>
+      <div class="fcard rv"><span class="num">F-03</span>
+        <div class="ic">📱</div><h3>全渠道排版编译</h3>
+        <p>一份爆款母本，秒级编译为微信公众号富文本、今日头条高密度资讯流、小红书 5 幕磨砂毛玻璃卡片，一键无损复制至各平台后台。</p>
+      </div>
+      <div class="fcard rv"><span class="num">F-04</span>
+        <div class="ic">💬</div><h3>创作者 Copilot</h3>
+        <p>段落级「微创手术」精修——只改你点名的段落与卡片，其余毫厘不损；标题赛马锻造池批量生成高点击率标题变体并预测 CTR。</p>
+      </div>
+      <div class="fcard rv"><span class="num">F-05</span>
+        <div class="ic">🎥</div><h3>短剧与数字人视频</h3>
+        <p>小说一键拆解标准影视分镜脚本；单张照片驱动数字人生成高一致性视频；Edge-TTS 超拟人配音与 12 位名家音色库即刻可用。</p>
+      </div>
+      <div class="fcard rv"><span class="num">F-06</span>
+        <div class="ic">⚡</div><h3>OpenAI 兼容网关</h3>
+        <p>标准 /v1/chat/completions 协议，统一算力余额、会员套餐、卡密核销一步到位，实时 token 计量与账本管理。</p>
+      </div>
+      <div class="fcard rv"><span class="num">F-07</span>
+        <div class="ic">🏛️</div><h3>多工作室物理隔离</h3>
+        <p>科技矩阵 / 生活笔记 / 职场干货多空间并行，草稿、配图库、技能与人设配置完全物理隔离，互不污染。</p>
+      </div>
+      <div class="fcard rv"><span class="num">F-08</span>
+        <div class="ic">🧬</div><h3>名家逆向自蒸馏</h3>
+        <p>粘贴任意文稿，一键逆向蒸馏名家行文逻辑与修辞结构，生成技能卡即刻热挂载，让 AI 学会「鲁迅体」「王家卫镜头感」。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PIPELINE ══════════ -->
+<section id="pipeline">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <div class="sec-no">03 / CREATIVE FLOW</div>
+        <h2>一念 → 一片 · 创作五阶</h2>
+      </div>
+      <div class="sec-note">普通 AI 生成一个视频；一幕，从一个念头开始，完成一部作品。</div>
+    </div>
+    <div class="pipe-flow rv">
+      <div class="step"><div class="dot"></div><div class="s-cn">一念</div><div class="s-en">Idea</div><div class="s-desc">灵感捕捉<br>热点雷达巡航</div></div>
+      <div class="step"><div class="dot"></div><div class="s-cn">一幕</div><div class="s-en">Story</div><div class="s-desc">故事开启<br>剧本与大纲</div></div>
+      <div class="step"><div class="dot"></div><div class="s-cn">一境</div><div class="s-en">World</div><div class="s-desc">世界建立<br>角色 / 场景 / 道具</div></div>
+      <div class="step"><div class="dot"></div><div class="s-cn">一戏</div><div class="s-en">Production</div><div class="s-desc">故事发生<br>分镜 / 运镜 / 声音</div></div>
+      <div class="step"><div class="dot"></div><div class="s-cn">一片</div><div class="s-en">Creation</div><div class="s-desc">作品完成<br>母带封装与发布</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ INSTALL ══════════ -->
+<section id="install">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <div class="sec-no">04 / INSTALL</div>
+        <h2>安装与部署</h2>
+      </div>
+      <div class="sec-note">安装方式以官方 GitHub 仓库为准 · 所有版本与更新来源：github.com/yimuhub/yimu-baokuanstudio</div>
+    </div>
+    <div class="install-grid">
+      <div class="rv">
+        <div class="code-block">
+          <div class="code-head"><span class="t">macOS / Linux</span><button class="copy-btn" data-copy="cmd-mac">复制</button></div>
+          <pre><span class="k"># 1 · 克隆官方仓库</span>
+<span class="u">git</span> clone https://github.com/yimuhub/yimu-baokuanstudio.git
+<span class="k">cd</span> yimu-baokuanstudio
+
+<span class="k"># 2 · 创建并激活虚拟环境 (Python 3.12+)</span>
+<span class="u">python3.12</span> -m venv .venv && <span class="u">source</span> .venv/bin/activate
+
+<span class="k"># 3 · 安装依赖</span>
+<span class="u">pip</span> install -r requirements.txt
+
+<span class="k"># 4 · 配置环境变量</span>
+<span class="u">cp</span> .env.example .env   <span class="c"># 填写 YIMU_SECRET_KEY 与 ADMIN_PASSWORD</span>
+
+<span class="k"># 5 · 启动服务</span>
+<span class="u">python</span> -m uvicorn web.admin:app --host 127.0.0.1 --port 8790</pre>
+        </div>
+        <div class="code-block" style="margin-top:16px">
+          <div class="code-head"><span class="t">Windows</span><button class="copy-btn" data-copy="cmd-win">复制</button></div>
+          <pre><span class="k"># 方式一 · 一键启动（双击即用）</span>
+<span class="c"># 项目根目录 启动一幕V8.bat / 升级一幕V8.bat，双击即可</span>
+
+<span class="k"># 方式二 · 命令行</span>
+<span class="u">git</span> clone https://github.com/yimuhub/yimu-baokuanstudio.git
+<span class="u">cd</span> yimu-baokuanstudio
+<span class="u">python</span> -m venv .venv && <span class="u">call</span> .venv\Scripts\activate
+<span class="u">pip</span> install -r requirements.txt
+<span class="u">python</span> -m uvicorn web.admin:app --host 127.0.0.1 --port 8790</pre>
+        </div>
+        <div class="code-block" style="margin-top:16px">
+          <div class="code-head"><span class="t">Docker</span><button class="copy-btn" data-copy="cmd-docker">复制</button></div>
+          <pre><span class="u">git</span> clone https://github.com/yimuhub/yimu-baokuanstudio.git
+<span class="u">cd</span> yimu-baokuanstudio && <span class="u">docker</span> compose up -d</pre>
+        </div>
+        <div class="gh-panel" id="gh-panel">
+          <div class="gh-head">
+            <span class="l">⌁ GitHub 实时版本</span>
+            <a href="https://github.com/yimuhub/yimu-baokuanstudio/releases" target="_blank" rel="noopener">github.com/yimuhub/yimu-baokuanstudio →</a>
+          </div>
+          <div class="gh-status" id="gh-status"><span class="led"></span><span id="gh-status-text">正在连接 GitHub…</span></div>
+          <div class="gh-releases" id="gh-releases">
+            <div class="gh-skel">正在拉取 Releases…</div>
+          </div>
+        </div>
+      </div>
+      <div class="inst-notes rv">
+        <div class="inote"><h3>运行环境</h3><p><b>Python 3.12+</b> · macOS / Linux / Windows · 可选 <b>ffmpeg</b>（视频合成需要）。启动后访问 http://127.0.0.1:8790，使用配置的 admin 口令登录。</p></div>
+        <div class="inote"><h3>获取最新版本</h3><p>一切版本与更新均以 <b>GitHub Releases</b> 为准：历史版本永久归档冻结（v8.3.33 / v8.3.2），新版本直接发布并附升级对照。在线热更新检测内置于系统 <code>core/updater.py</code>（Git + GitHub API 双通道）。</p></div>
+        <div class="inote"><h3>版本切换</h3><p><code>git checkout v8.3.33</code> 冻结归档版 · <code>git checkout v9.0.0</code> 主里程碑 · 或直接 <code>git pull</code> 获取 latest main。</p></div>
+        <div class="inote"><h3>CI 质量门禁</h3><p><code>bash ci.sh</code> 四道防线：429+ 自动化测试 · 真活探针（TTS + 网关）· 术语合规扫描 · 零密钥泄漏扫描，全绿方可发版。</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ AGENT MATRIX ══════════ -->
+<section id="matrix">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <div class="sec-no">05 / AGENT MATRIX</div>
+        <h2>11 专职 Agent 剧组</h2>
+      </div>
+      <div class="sec-note">用户看到的是「编剧 / 导演 / 美术 / 摄影 / 声音 / 剪辑」——一幕剧组，后台才是 Agent 矩阵。</div>
+    </div>
+    <div class="matrix-grid">
+      <div class="mcard rv">
+        <h3>新媒体内容矩阵 <span>6 AGENTS</span></h3>
+        <p>从选题到成稿的六人编辑组，每个环节专职 Agent 负责，产出即达发布标准。</p>
+        <div class="agent-grid">
+          <div class="agent"><b>采集</b>Collect</div>
+          <div class="agent"><b>拆解</b>Analyze</div>
+          <div class="agent"><b>写作</b>Write</div>
+          <div class="agent"><b>配图</b>Image</div>
+          <div class="agent"><b>排版</b>Layout</div>
+          <div class="agent"><b>评审</b>Review</div>
+        </div>
+      </div>
+      <div class="mcard rv">
+        <h3>影视短剧制作矩阵 <span>5 AGENTS</span></h3>
+        <p>一支虚拟剧组：总导演统筹全局，角色设计师 / 分镜师 / 摄影动效 / 声音总监各司其职。</p>
+        <div class="agent-grid" style="grid-template-columns:repeat(5,1fr)">
+          <div class="agent"><b>总导演</b>Director</div>
+          <div class="agent"><b>角色设计</b>Character</div>
+          <div class="agent"><b>分镜师</b>Storyboard</div>
+          <div class="agent"><b>摄影动效</b>Cinematog.</div>
+          <div class="agent"><b>声音总监</b>Sound</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ VERSIONS ══════════ -->
+<section id="versions">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <div class="sec-no">06 / RELEASE HISTORY</div>
+        <h2>版本演进</h2>
+      </div>
+      <div class="sec-note">严格语义化版本：历史版本永久归档冻结，新版本直接发布。本页版本列表实时同步自 GitHub Releases（拉取失败时自动回退为随页内置快照）。</div>
+    </div>
+    <table class="vtable rv" id="vtable">
+      <thead>
+        <tr><th>版本</th><th>代号</th><th>里程碑</th><th></th></tr>
+      </thead>
+      <tbody id="vtable-body">
+      </tbody>
+      <div class="vtable-linkwrap"><a id="vtable-github-link" href="https://github.com/yimuhub/yimu-baokuanstudio/releases" target="_blank" rel="noopener">⌁ 完整版本历史以 GitHub Releases 为准 → github.com/yimuhub/yimu-baokuanstudio/releases</a></div>
+    </table>
+  </div>
+</section>
+
+<!-- ══════════ PHILOSOPHY ══════════ -->
+<section id="philo">
+  <div class="wrap">
+    <div class="rv">
+      <div class="quote">一念起，<em>一幕开</em>，万象生。</div>
+      <div class="en">One Thought · One Scene · A World Begins</div>
+      <p class="slogan">让每一个故事，<b>都有机会被看见</b>。</p>
+      <div class="values">
+        <span class="vitem">想象</span><span class="vitem">创作</span><span class="vitem">真实</span><span class="vitem">开放</span>
+      </div>
+      <div class="rule"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ LICENSE ══════════ -->
+<section id="license">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div>
+        <div class="sec-no">06 / LICENSE & TERMS</div>
+        <h2>许可与商用条款</h2>
+      </div>
+      <div class="sec-note">Business Source License 1.1 · 许可方：yimu.hyipf.com</div>
+    </div>
+    <div class="lic-grid">
+      <div class="lic-card rv">
+        <h3>🎁 个人与创作者 · 永久免费</h3>
+        <p>个人学习、研究、非商业用途及个人自媒体 / 带货创作工作流，100% 永久免费，无需任何商业授权。</p>
+        <div class="k">SMALL-SCALE EXEMPTION · 小微商收 &lt; ¥100,000 / 年 亦完全豁免授权费</div>
+      </div>
+      <div class="lic-card rv">
+        <h3>🏢 规模化商用 · 官方授权</h3>
+        <p>商业收入超 RMB ¥100,000 或 SaaS 平台运营，需向 yimu.hyipf.com 申请官方商用授权（免费注册或分级协议）。</p>
+        <div class="k">OPEN CONVERSION · 每个版本发布 4 年后自动转为 Apache 2.0 全开源</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FOOTER ══════════ -->
+<footer>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <div class="zh">一幕 YIMU</div>
+      <p>从想象，到创作。让每个人，都拥有自己的创作世界。</p>
+    </div>
+    <div class="foot-col">
+      <h4>产品线</h4>
+      <a href="#products">YIMU Studio 爆款工作室</a>
+      <a href="#products">YIMU 短剧工坊</a>
+      <a href="#products">YIMU 爆款工作台</a>
+    </div>
+    <div class="foot-col">
+      <h4>联系</h4>
+      <a href="mailto:yimu@yimu.hyipf.com">yimu@yimu.hyipf.com</a>
+      <a href="#license">商用授权申请</a>
+      <a href="#versions">版本与归档</a>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>COPYRIGHT © 2026 yimu.hyipf.com · ALL RIGHTS RESERVED</span>
+    <span>一 · 幕 · YIMU</span>
+  </div>
+</footer>
+
+<script>
+// scroll reveal
+const io=new IntersectionObserver(es=>es.forEach(e=>{
+  if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target)}
+}),{threshold:.12});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+
+// copy buttons (copy clean command text, not the styled <pre> spans)
+const CMD_TEXT={
+  "cmd-mac":"# 1 · 克隆官方仓库\ngit clone https://github.com/yimuhub/yimu-baokuanstudio.git\ncd yimu-baokuanstudio\n\n# 2 · 创建并激活虚拟环境 (Python 3.12+)\npython3.12 -m venv .venv && source .venv/bin/activate\n\n# 3 · 安装依赖\npip install -r requirements.txt\n\n# 4 · 配置环境变量\ncp .env.example .env   # 填写 YIMU_SECRET_KEY 与 ADMIN_PASSWORD\n\n# 5 · 启动服务\npython -m uvicorn web.admin:app --host 127.0.0.1 --port 8790",
+  "cmd-win":":: 方式一 · 一键启动（双击即用）\n:: 项目根目录 启动一幕V8.bat / 升级一幕V8.bat，双击即可\n\n:: 方式二 · 命令行\ngit clone https://github.com/yimuhub/yimu-baokuanstudio.git\ncd yimu-baokuanstudio\npython -m venv .venv && call .venv\\Scripts\\activate\npip install -r requirements.txt\npython -m uvicorn web.admin:app --host 127.0.0.1 --port 8790",
+  "cmd-docker":"git clone https://github.com/yimuhub/yimu-baokuanstudio.git\ncd yimu-baokuanstudio && docker compose up -d"
+};
+document.querySelectorAll('.copy-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const txt=CMD_TEXT[b.dataset.copy]||b.closest('.code-block').querySelector('pre').innerText;
+    navigator.clipboard.writeText(txt).then(()=>{
+      b.textContent='已复制';b.classList.add('ok');
+      setTimeout(()=>{b.textContent='复制';b.classList.remove('ok')},1800);
+    }).catch(()=>{
+      const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);
+      ta.select();document.execCommand('copy');ta.remove();
+      b.textContent='已复制';b.classList.add('ok');
+      setTimeout(()=>{b.textContent='复制';b.classList.remove('ok')},1800);
+    });
+  });
+});
+
+// ══════════ GitHub live releases sync ══════════
+// 数据源：https://github.com/yimuhub/yimu-baokuanstudio
+// 策略：fetch 官方 GitHub REST API (releases + tags)；
+//       任何失败（私有仓库/网络/限流）→ 回退到内置 FALLBACK_RELEASES 快照，页面不白屏。
+const GH_API='https://api.github.com/repos/yimuhub/yimu-baokuanstudio';
+const FALLBACK_RELEASES=[
+  {tag:'v9.1.1',date:'2026-10-13',codename:'万象生 · Infinite Worlds',
+   note:'全站 1,768 词条零残留双语引擎，中英 100% 纯净化热切换；GitHub Releases 官方展示上线'},
+  {tag:'v9.0.0',date:'2026-10-13',codename:'万象生 · Infinite Worlds',
+   note:'2K 超清分镜引擎 + 零烟雾通透管线；统一商业化算力胶囊；全局 i18n 双语引擎首发'},
+  {tag:'v8.3.33',date:'2026-10-13',codename:'星河引 · Galactic Beacon',
+   note:'个人中心深度整合会员与算力账本；套餐卡片交互式选择；口令自助管理'},
+  {tag:'v8.3.2',date:'2026-10-12',codename:'视觉大跃迁 · Visual Quantum Leap',
+   note:'十大前沿视觉美学预设；Copilot 对话式风格热切换；小红书 5 幕磨砂卡片压制引擎'}
+];
+const vbody=document.getElementById('vtable-body');
+const ghStatus=document.getElementById('gh-status');
+const ghStatusText=document.getElementById('gh-status-text');
+const ghRelBox=document.getElementById('gh-releases');
+
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function cleanNotes(s){return String(s||'').replace(/[#*`>|_[\]~-]/g,'').replace(/\n+/g,' ').trim()}
+function vRow(r,isCur){
+  const ver=String(r.tag||'').replace(/^v/i,'');
+  const note=esc(r.note||r.body||'');
+  return '<tr'+(isCur?' class="cur"':'')+'>'
+    +'<td class="ver">V'+esc(ver)+'<span class="cn">'+esc(r.date||'')+'</span></td>'
+    +'<td>'+esc(r.codename||'')+'</td>'
+    +'<td>'+note+'</td>'
+    +'<td><span class="badge '+(isCur?'live':'old')+'">'+(isCur?'当前旗舰':'已归档')+'</span></td>'
+    +'</tr>';
+}
+function renderTable(rows){
+  vbody.innerHTML=rows.map((r,i)=>vRow(r,i===0)).join('');
+}
+function renderGhPanel(rows,ok){
+  ghStatus.className='gh-status '+(ok?'ok':'live');
+  ghStatusText.textContent=ok
+    ? 'LIVE · '+rows.length+' 个 release · 更新于 '+new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})
+    : '离线快照 · GitHub 暂不可达，使用内置数据';
+  if(!ok){ghRelBox.innerHTML='<div class="gh-skel">GitHub 连接暂不可达（仓库可能为私有或网络受限）— 正在使用内置版本快照，下次访问将自动重试</div>';return;}
+  ghRelBox.innerHTML=rows.slice(0,4).map((r,i)=>
+    '<div class="gh-rel"><div class="r-top"><span class="r-ver">V'+esc(String(r.tag).replace(/^v/i,''))+'</span>'
+    +'<span class="r-date">'+esc(r.date||'')+'</span></div>'
+    +'<div class="r-body">'+esc(r.note||r.body||'')+'</div></div>'
+  ).join('');
+}
+renderTable(FALLBACK_RELEASES);
+renderGhPanel(FALLBACK_RELEASES,false);
+
+async function syncGithub(){
+  try{
+    const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),6000);
+    const res=await fetch(GH_API+'/releases?per_page=8',{signal:ctl.signal});
+    clearTimeout(t);
+    if(!res.ok)throw new Error('github '+res.status);
+    const list=await res.json();
+    if(!Array.isArray(list)||!list.length)throw new Error('no releases');
+    const rows=list.map(r=>({
+      tag:r.tag_name,
+      date:(r.published_at||'').slice(0,10),
+      codename:(r.name&&r.name!==r.tag_name)?cleanNotes(r.name):'',
+      note:cleanNotes(r.body).slice(0,220)
+    }));
+    renderTable(rows);
+    renderGhPanel(rows,true);
+  }catch(e){
+    ghStatus.className='gh-status live';
+    ghStatusText.textContent='离线快照 · GitHub 暂不可达（'+e.message+'），使用内置数据，下次访问自动重试';
+  }
+}
+syncGithub();
+</script>
+</body>
+</html>

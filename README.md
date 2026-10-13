@@ -22,7 +22,7 @@
 
 **English** • [简体中文说明](README_ZH.md)
 
-[✨ Features](#-core-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#-system-architecture) • [📦 Release 9.1](RELEASES.md) • [📜 License](#-license--commercial-terms)
+[✨ Features](#-core-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#-system-architecture) • [📦 Release 9.1.1](RELEASES.md) • [🛠️ Dev Guide](DEVELOPMENT.md) • [📜 License](#-license--copyright-terms)
 
 </div>
 
@@ -34,7 +34,7 @@ In the era of AI-generated content (AIGC), creators face two fatal bottlenecks:
 1. **Generic, Plastic Copywriting**: Hollow clichés, lacking deep analytical arguments and the crucial 3-second hook that stops users from scrolling.
 2. **Disconnected, Low-Quality Visuals**: Blind-box image generation where illustrations bear zero relevance to article sections, often plagued by hazy fog, blurriness, or weird AI artifacts.
 
-**YIMU Studio V9.1.0 ("Infinite Worlds" / 万象生)** fundamentally revolutionizes AI content production:
+**YIMU Studio V9.1.1 ("流光澈" / Crystal Clarity · 万象生篇)** fundamentally revolutionizes AI content production:
 - **Cinematic Storyboarding & 2K Crystal-Clear Image Engine**: Before generating any image, the visual agent **reads the entire article end-to-end**, extracting narrative turning points and worldview themes. Covers are mapped to Wide Establishing Shots, while sections are paired with Medium Narrative Shots or Emotional Close-ups. Powered by a specialized 2K resolution pipeline and a **zero-haze transparency prompt engineering pipeline**, visual-to-text semantic alignment is locked at **over 95%** with vivid color saturation and laser-sharp clarity.
 - **Multi-Channel Native Layout Compiler**: One master draft is instantly formatted into WeChat Official Account rich-text, Toutiao information feed layout, and Xiaohongshu (RED) 5-act frosted-glass panoramic cards.
 - **Dual-Device Synchronization & Commercial Gateway**: Real-time parity between Desktop Pro Workbench and Mobile Companion, featuring a unified billing/token portal and an OpenAI-compatible routing gateway.
@@ -194,33 +194,18 @@ bash ci.sh
 
 ---
 
-## 📦 Releases & Version Evolution
+## 📦 Latest Release: V9.1.1 (流光澈 · 万象生)
 
-YIMU Studio strictly implements Semantic Versioning (`SemVer`). **Previous versions remain permanently archived and frozen, while new versions upload directly with clear upgrade paths.**
+YIMU Studio strictly implements Semantic Versioning (`SemVer`). To ensure maximum clarity and a pure presentation, the project homepage focuses exclusively on the **latest active release**:
 
-### 📊 Comparison Matrix: V8.3.33 vs V9.0.0
+### 🌟 V9.1.1 Feature Highlights
+- 🌐 **100% Zero-Residue Bilingual Engine**: Complete 1,768 UI dictionary terms covering desktop & mobile topbars, all 15 system modals, form controls, and attributes with zero Chinese residue in English mode.
+- 🔄 **Bidirectional Lossless Reversion**: Built-in AST-based reverse phrase mapping ensuring instant, lossless switching between pure English and authentic natural Chinese.
+- 🎬 **2K Native Cinematic Storyboarding**: 2K resolution default canvas (`2048x1152`, `1152x2048`, `2048x2048`) with AI zero-haze defogging prompt pipeline.
+- 💎 **Unified Commercial Gateway & Compute Hub**: Integrated billing, credits ledger, and token management in one responsive interface.
+- ⚖️ **Single Source of Truth**: All components across the system strictly aligned to **V9.1.1**.
 
-| Dimension | V8.3.33 (Archived Stable Release) | V9.0.0 (Latest Major Milestone) | Evolution & Impact |
-|---|---|---|---|
-| **Image Resolution** | 1024x1024 (Standard 1K) | **2048x1152 / 1152x2048 / 2048x2048 (2K)** | 200% resolution boost, ultra-sharp detail |
-| **Atmospheric Clarity** | Prone to foggy / smoky AI haze | **Zero-Haze Crystal Prompt Pipeline** | Hardened negative prompting, vivid saturation |
-| **Image Model Alignment**| Standard fallback logic | **Agnes Model Contract Specialization** | Strict size normalization, resilient 400 recovery |
-| **Billing & Compute UI** | Split topbar buttons & external links | **Unified Billing & Compute Capsule** | Deep consolidation of credits, pricing & CDKEY |
-| **Internationalization** | Simplified Chinese only | **Dual-Engine i18n (English & Chinese)** | Hot toggle on Desktop & Mobile, pure EN README |
-| **Account & Security** | Manual auth sync | **Self-Service Password Change** | Integrated into Profile & Auth modals |
-| **GitHub Release Tag** | `git checkout v8.3.33` (Frozen) | `git checkout v9.0.0` (Latest) | Distinct release archives on GitHub |
-
-### 🧭 Switching Between Versions
-- **Check out Latest V9.0.0**:
-  ```bash
-  git checkout v9.0.0
-  ```
-- **Check out Archived V8.3.33 (Historical Release)**:
-  ```bash
-  git checkout v8.3.33
-  ```
-
-For the complete release history and detailed changelog, see [RELEASES.md](RELEASES.md) and [CHANGELOG.md](CHANGELOG.md).
+> For historical version archives and detailed milestone changelogs, please visit the official [Releases Documentation (RELEASES.md)](RELEASES.md) and [GitHub Releases Page](https://github.com/yimuhub/yimu-baokuanstudio/releases).
 
 ---
 

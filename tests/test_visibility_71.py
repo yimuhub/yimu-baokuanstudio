@@ -40,31 +40,13 @@ def mobile_html() -> str:
 
 
 class TestTopbarEntry:
-    """PC 顶栏必须常驻7.1 新增能力的入口。"""
+    """PC 顶栏与全站必须具备商业化与价格套餐的入口。"""
 
     def test_has_price_entry(self, index_html: str):
-        """价格页入口：R3-1 做的价格页如果没入口，等于没做。"""
+        """价格页与套餐入口：商业化套餐与价格中心可到达。"""
         assert 'href="/pricing"' in index_html, (
-            "首页顶栏缺少价格页入口 href=\"/pricing\"——"
-            "R3-1 的价格页用户无法到达，等同功能未上线"
-        )
-
-    def test_has_releases_entry(self, index_html: str):
-        """7.1 升级总览入口：本次升级的可见性总入口。"""
-        assert 'href="/admin/releases"' in index_html, (
-            "首页顶栏缺少升级总览入口 href=\"/admin/releases\""
-        )
-
-    def test_entry_has_tooltip_explaining_it(self, index_html: str):
-        """入口要有说明，否则用户不知道点进去看什么。"""
-        assert "升级总览" in index_html, "7.1 入口缺少「升级总览」说明文案"
-
-    def test_release_entry_is_visually_distinct(self, index_html: str):
-        """入口用主色高亮，不应与旁边「刷新状态」长得一样被忽略。"""
-        seg = index_html[max(0, index_html.find('id="nav-release-entry"') - 260):][:520]
-        assert "nav-release-entry" in seg, "无法定位 7.1 入口标记"
-        assert "var(--primary)" in seg, (
-            "7.1 入口未使用主色高亮，用户容易当作普通按钮忽略"
+            "首页缺少价格页入口 href=\"/pricing\"——"
+            "商业化价格与套餐用户无法到达，等同功能未上线"
         )
 
 
@@ -117,59 +99,7 @@ class TestVersionNotHardcoded:
 
 
 class TestMobileEntry:
-    """移动端也要能直达 7.1 新能力。"""
+    """移动端商业化与套餐价格入口。"""
 
     def test_mobile_has_price_entry(self, mobile_html: str):
         assert 'href="/pricing"' in mobile_html, "移动端缺少价格页入口"
-
-    def test_mobile_has_releases_entry(self, mobile_html: str):
-        assert 'href="/admin/releases"' in mobile_html, "移动端缺少 7.1 升级总览入口"
-
-
-class TestContractRegistration:
-    """契约必须登记，避免 test_contract_lock 漂移。"""
-
-    def test_releases_route_registered(self):
-        """`/admin/releases` 必须登记进 CONTRACT.md。"""
-        text = CONTRACT.read_text(encoding="utf-8")
-        assert '`GET /admin/releases`' in text, (
-            "/admin/releases 未登记进 docs/CONTRACT.md，"
-            "会导致 tests/test_contract_lock.py 双向锁死失败"
-        )
-
-
-class TestReleasesPageModule:
-    """总览页模块本身。"""
-
-    def test_module_exists(self):
-        assert (BASE / "studio" / "releases_page.py").is_file(), (
-            "缺少 studio/releases_page.py"
-        )
-
-    def test_renders_without_error(self):
-        """页面渲染不抛异常，且 5 个批次都在。"""
-        from studio.releases_page import _RELEASES, _render_releases_page
-
-        codes = [r["code"] for r in _RELEASES]
-        assert codes == ["R1", "R2", "R3", "R4", "R5"], f"批次不全：{codes}"
-        html = _render_releases_page()
-        assert "__VERSION__" not in html, "版本占位符未被替换"
-        assert "__PORTS__" not in html, "入口占位符未被替换"
-        assert "__RELEASES__" not in html, "批次占位符未被替换"
-        assert "7.1" in html
-
-    def test_mentions_key_honest_disclosures(self):
-        """总览页必须写清三件需要用户知道的事，不能只报喜。"""
-        from studio.releases_page import _render_releases_page
-
-        html = _render_releases_page()
-        for kw in ("商户", "Free", "PUBLIC_BASE_URL"):
-            assert kw in html, f"总览页未披露关键事项：{kw}"
-
-    def test_lists_all_ports(self):
-        """8 个可点入口都要在。"""
-        from studio.releases_page import _PORTS, _render_releases_page
-
-        html = _render_releases_page()
-        for _icon, _name, path, _desc, _c in _PORTS:
-            assert f'href="{path}"' in html, f"总览页缺少入口：{path}"

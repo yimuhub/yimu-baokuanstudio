@@ -3359,21 +3359,17 @@ input[type=text]:focus, textarea:focus, select:focus {
         <span id="top-auth-text">创作者已登录</span>
       </div>
 
-      <div class="token-pill" onclick="openBillingModal()" style="display:flex;align-items:center;gap:6px;background:rgba(240,136,62,0.12);border:1px solid rgba(240,136,62,0.35);padding:4px 12px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;color:var(--primary)" title="点击打开商业化充值与卡密兑换中心">
+      <!-- 💎 商业化算力与会员套餐中枢（算力余额与套餐价格深度合并统一入口） -->
+      <div class="token-pill unified-billing-pill" onclick="openBillingModal()" style="display:flex;align-items:center;gap:7px;background:linear-gradient(135deg,rgba(240,136,62,0.14),rgba(147,51,234,0.12));border:1px solid rgba(240,136,62,0.4);padding:4px 12px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;color:var(--primary);box-shadow:0 2px 8px rgba(0,0,0,0.2);transition:all .2s" title="商业化中枢：套餐状态、权益价格、算力余额与卡密充值">
         <span>💎 算力:</span>
         <span id="nav-token-bal">—</span>
-        <span style="color:var(--text-muted);font-weight:normal">Token</span>
-        <span class="badge ok" style="margin-left:4px;padding:2px 6px;font-size:10px" id="nav-tier-badge">基础版</span>
+        <span style="color:var(--text-muted);font-size:11px;font-weight:normal">Token</span>
+        <span style="color:rgba(255,255,255,0.25);margin:0 2px">|</span>
+        <span class="badge ok" style="padding:2px 7px;font-size:10.5px" id="nav-tier-badge">基础版</span>
+        <span style="color:var(--primary);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:2px">套餐/价格 ▾</span>
       </div>
       <button class="btn btn-sm ghost" onclick="refresh()">↻ 刷新状态</button>
-      <!-- R3/R5 入口：价格与升级总览。
-           顶栏没有入口会导致「功能做了但用户看不见」，故固定挂此处。 -->
-      <a class="btn btn-sm ghost" href="/pricing" title="查看三档价格与权益"
-         style="text-decoration:none">💰 价格</a>
-      <a class="btn btn-sm" href="/admin/releases" id="nav-release-entry"
-         title="版本升级总览：本次改了什么、在哪里、怎么验证"
-         style="text-decoration:none;background:var(--primary);color:#fff;border:0;font-weight:700"
-      >🆕 <span id="nav-ver-text">8.3.33</span></a>
+      <span id="nav-ver-text" style="display:none">8.3.33</span>
       <span id="header-extra"></span>
     </div>
   </header>
@@ -3882,7 +3878,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div style="margin-top:6px">支持卡密秒级兑换、企业专属批量授权与私域变现</div>
             </div>
             <div style="margin-top:10px;display:flex;gap:8px">
-              <button class="btn btn-sm ok" onclick="openBillingModal()">兑换卡密 / 充值</button>
+              <button class="btn btn-sm ok" onclick="openBillingModal()">💎 选套餐 / 充值算力</button>
               <button class="btn btn-sm ghost" onclick="quickGenSampleKeys()">生成测试卡密</button>
             </div>
           </div>
@@ -8719,7 +8715,10 @@ async function deleteUserAccount(uid, username) {
       </div>
       <div style="font-size:11.5px;color:var(--text-muted);margin-top:8px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
         <span>体验测试可用卡密：<code style="color:var(--primary);cursor:pointer;text-decoration:underline" onclick="fillBillingCdKey('VIP999')" title="点击自动填入">VIP999</code> 或 <code style="color:var(--primary);cursor:pointer;text-decoration:underline" onclick="fillBillingCdKey('PRO2026')" title="点击自动填入">PRO2026</code></span>
-        <a href="javascript:void(0)" onclick="quickGenSampleKeys()" style="color:var(--info);text-decoration:none">管理员生成新卡密 ↗</a>
+        <div style="display:flex;gap:12px;align-items:center">
+          <a href="/pricing" target="_blank" style="color:var(--text-muted);text-decoration:none">💰 查看完整套餐价格与参数页 ↗</a>
+          <a href="javascript:void(0)" onclick="quickGenSampleKeys()" style="color:var(--info);text-decoration:none">管理员生成新卡密 ↗</a>
+        </div>
       </div>
     </div>
   </div>

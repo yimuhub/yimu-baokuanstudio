@@ -2445,16 +2445,6 @@ def admin_metrics_page(request: Request):
     return HTMLResponse(_METRICS_PAGE_HTML)
 
 
-@app.get("/admin/releases")
-def admin_releases_page(request: Request):
-    """7.1 升级总览页：单一入口，讲清「改了什么 / 在哪 / 怎么看」。
-
-    只读页面，不做任何写操作，故只要求登录、不要求管理员。
-    """
-    from studio.releases_page import releases_page as _releases_page
-
-    return _releases_page(request)
-
 
 HEALTH_SERVICES = [
     {"name": "apipool", "label": "apipool 模型池", "port": 8787, "path": "/health",

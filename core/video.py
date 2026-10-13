@@ -1,4 +1,4 @@
-"""一键短视频：草稿 → AI 压缩口播稿 → V7 原生引擎合成 mp4。
+"""一键短视频：草稿 → AI 压缩口播稿 → 原生引擎合成 mp4。
 
 时长：15s≈80字 / 30s≈150字；素材 pexels（key 已配）；配音晓晓；9:16 竖版。
 """
@@ -74,15 +74,15 @@ def make_video(draft_id: str, seconds: int = 15, subject: str = "", emit=None,
         if len(script) < 20:
             raise RuntimeError("口播稿生成失败：" + raw[:150])
 
-    # ② 视频合成：V7 原生引擎（ffmpeg 直出）
+    # ② 视频合成：一幕原生引擎（ffmpeg 直出）
     aspect_tag = "16x9" if aspect == "16:9" else "9x16"
     tid = f"mf-{draft_id}-{seconds}s-{aspect_tag}"
 
     from core import video_native
     if not video_native.ffmpeg_available():
         from core.video_native import ffmpeg_install_hint
-        raise RuntimeError(f"视频合成暂不可用：V7 原生引擎需要 ffmpeg（{ffmpeg_install_hint()}）")
-    emit(f"V7 原生引擎合成（{aspect}画幅，ffmpeg 直出）…")
+        raise RuntimeError(f"视频合成暂不可用：一幕原生引擎需要 ffmpeg（{ffmpeg_install_hint()}）")
+    emit(f"一幕原生引擎合成（{aspect}画幅，ffmpeg 直出）…")
     native_work = Path(__file__).resolve().parent.parent / "runs" / "videos" / tid
     nr = video_native.make_video_native(
         script=script, terms=terms, seconds=seconds,
@@ -99,7 +99,7 @@ def make_video(draft_id: str, seconds: int = 15, subject: str = "", emit=None,
     (mp4.parent / "meta.json").write_text(
         __import__("json").dumps(meta, ensure_ascii=False, indent=2),
         encoding="utf-8")
-    emit("完成（V7 原生引擎）")
+    emit("完成（一幕原生引擎）")
     return {"tid": tid, "script": script, "terms": terms,
             "aspect": aspect, "title": d["title"],
             "mp4": str(mp4), "url": f"/api/video/file/{tid}",
@@ -170,7 +170,7 @@ def recent_tasks(limit: int = 12, workspace_id: str = "") -> list[dict]:
 
 
 def add_task(task_id: str, draft_id: str, title: str, out_file: Path, aspect: str = "9:16", seconds: int = 15):
-    """注册外部生成的成片（如 AI 短剧）至媒体库（V7 原生目录）。"""
+    """注册外部生成的成片（如 AI 短剧）至媒体库（原生媒体库目录）。"""
     tasks_dir = Path(__file__).resolve().parent.parent / "runs" / "videos" / task_id
     tasks_dir.mkdir(parents=True, exist_ok=True)
     dst_mp4 = tasks_dir / "final-1.mp4"

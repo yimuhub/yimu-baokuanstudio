@@ -350,7 +350,7 @@ async def idempotent_posts(request: Request, call_next):
 #      loopback 也不免密（没有口令就没有"默认口令"可免），并在启动时明确告警。
 #   2) mf_token 改为进程内随机密钥签发，重启即失效，外部无法预测或伪造。
 #   3) loopback 免密仅在已配置 ADMIN_PASSWORD 时保留，保证本地开发
-#      （启动一幕V7测试.command 会生成随机口令）开箱可用。
+#      （启动一幕V8.command 会生成随机口令）开箱可用。
 # ---------------------------------------------------------------------------
 
 #: 进程内随机的管理会话密钥：每次启动重新生成，外部无法预测或伪造 mf_token
@@ -398,7 +398,7 @@ def _warn_admin_password_state() -> None:
         print(
             "[安全提示] 未配置 ADMIN_PASSWORD：管理员口令登录与本机免密通行均已关闭，"
             "管理相关接口需要登录会话。请设置 ADMIN_PASSWORD 环境变量"
-            "（本地可运行「启动一幕V7测试.command」自动生成随机口令）。"
+            "（本地可运行「启动一幕V8.command」自动生成随机口令）。"
         )
     else:
         print(

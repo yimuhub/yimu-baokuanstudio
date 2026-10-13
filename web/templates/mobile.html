@@ -4976,7 +4976,7 @@ window.addEventListener('DOMContentLoaded', () => {
   refreshHotTopics();
   applyMobilePlatformsVisibility();
   loadMobileGatewayData();
-  // 版本徽章读接口真实版本，避免写死 'V7' 与实际版本脱节
+  // 版本徽章从单一真源 /api/version 读取真实版本（V8.3.3）
   fetch('/api/version', {credentials:'same-origin'})
     .then(r => r.ok ? r.json() : null)
     .then(d => {

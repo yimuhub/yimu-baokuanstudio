@@ -1,4 +1,4 @@
-"""V7 原生视频合成引擎。
+"""一幕原生视频合成引擎。
 
 链路：口播文案 → TTS 配音 → 免费素材/AI 图片/文字卡 → ffmpeg 合成 MP4。
 
@@ -466,7 +466,7 @@ def make_video_native(script: str, terms: list[str] | None = None,
                       custom_audio: str | Path | None = None,
                       cover_images: list | None = None,
                       person_ref_image: str | Path | None = None) -> dict:
-    """V7 原生视频合成主入口。
+    """一幕原生视频合成主入口。
 
     Args:
         script: 口播文案（纯文本）

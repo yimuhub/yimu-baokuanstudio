@@ -1,4 +1,4 @@
-"""V7 原生视频引擎测试：stock 降级、ffmpeg 可用性、端到端合成。"""
+"""原生视频引擎测试：stock 降级、ffmpeg 可用性、端到端合成。"""
 import os
 import shutil
 import subprocess

@@ -3048,7 +3048,7 @@ input[type=text]:focus, textarea:focus, select:focus {
   color: #4338ca !important;
 }
 
-/* =================== 📱 V7 移动端深度重构响应式设计规范 =================== */
+/* =================== 📱 移动端深度重构响应式设计规范 =================== */
 @media (max-width: 768px) {
   /* 隐藏 PC 侧边栏，将主内容区占满全屏 */
   aside.side {
@@ -3330,7 +3330,7 @@ input[type=text]:focus, textarea:focus, select:focus {
         <span>👤 6维画像</span>
       </button>
 
-      <!-- 🔑 V7 专属 API 保险箱入口 -->
+      <!-- 🔑 专属 API 保险箱入口 -->
       <button class="btn btn-sm" onclick="openUserVaultModal()" style="display:flex;align-items:center;gap:5px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#c084fc;font-weight:600" title="配置我个人的专属 API Key 或切换平台托管服务">
         <span>🔑 我的API</span>
       </button>
@@ -6223,7 +6223,7 @@ input[type=text]:focus, textarea:focus, select:focus {
 </div>
 
 <script>
-/* ==================== V7 原生：API 网关服务 + 会员与账本 ==================== */
+/* ==================== 原生：API 网关服务 + 会员与账本 ==================== */
 function gwNEsc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 /* ---- 上游模型服务状态 ---- */
 async function gwNLoadUpstream(){
@@ -7280,7 +7280,7 @@ function renderAdVideoResult(r) {
       </div>` : ''}`;
 }
 
-/* ==================== V7：视频合成配置（vdCfg） ==================== */
+/* ==================== 视频合成配置（vdCfg） ==================== */
 let _vdCfgData = null;
 async function vdCfgLoad(){
   try{
@@ -8447,7 +8447,7 @@ async function deleteUserAccount(uid, username) {
   </div>
 </div>
 
-<!-- V7 多用户登录与自主注册授权弹窗 -->
+<!-- 多用户登录与自主注册授权弹窗 -->
 <div class="mask" id="m-login">
   <div class="modal-box" style="width:440px;background:linear-gradient(145deg, #161c28, #0d121c);border:1px solid rgba(240,136,62,0.35);box-shadow:0 12px 40px rgba(0,0,0,0.7)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -8493,7 +8493,7 @@ async function deleteUserAccount(uid, username) {
   </div>
 </div>
 
-<!-- 🔑 V7 用户个人专属 API Vault 模型保险箱弹窗 -->
+<!-- 🔑 用户个人专属 API Vault 模型保险箱弹窗 -->
 <div class="mask" id="m-user-vault">
   <div class="modal-box" style="width:520px;max-width:92vw;background:linear-gradient(145deg, #161c28, #0f141f);border:1px solid rgba(139,92,246,0.35);box-shadow:0 16px 50px rgba(0,0,0,0.8);max-height:88vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:10px">
@@ -9776,7 +9776,7 @@ async function doLogin() {
   }
 }
 
-/* =================== 🔑 V7 用户 API Vault 模型保险箱控制 =================== */
+/* =================== 🔑 用户 API Vault 模型保险箱控制 =================== */
 function openUserVaultModal() {
   modal('m-user-vault');
   loadUserVaultKeys();
@@ -11419,7 +11419,7 @@ function updateWbAgentVisibility() {
   const btn = $('wb-float-agent-btn');
   const win = $('wb-floating-agent-window');
   const pDrafts = $('p-drafts');
-  // V7: 内容工作台激活时即显示（不再限制 pro 模式，lite/pro 通用）
+  // 内容工作台激活时即显示（lite/pro 通用）
   const isDraftsActive = pDrafts && pDrafts.classList.contains('on');
   if (btn) {
     btn.style.display = isDraftsActive ? 'inline-flex' : 'none';

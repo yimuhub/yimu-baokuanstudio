@@ -36,7 +36,7 @@ agents:
     skills:
     - director-beat-sheet
   image:
-    instruction: '电影级分镜头视觉总监：深度通读全文稿，解构分镜头节拍，95%+ 图文匹配度，现代高端审美'
+    instruction: 电影级分镜头视觉总监：深度通读全文稿，解构分镜头节拍，95%+ 图文匹配度，现代高端审美
     model: agnes-image-2.5-flash
     skills:
     - storyboard-visual-grammar
@@ -97,7 +97,7 @@ gateway:
     name: agnes-image-2.5-flash
   - category: video
     id: agnes-video-v2.0
-    is_enabled: false        # 2026-10 上游已无渠道(503 model_not_found),停用;保留记录便于日后恢复
+    is_enabled: false
     name: agnes-video-v2.0
   - category: video
     id: agnes-video-2.5-flash
@@ -126,7 +126,7 @@ gateway:
         name: agnes-image-2.5-flash
       - category: video
         id: agnes-video-v2.0
-        is_enabled: false    # 2026-10 上游已无渠道,停用
+        is_enabled: false
         name: agnes-video-v2.0
       model: agnes-3.0-flash
       name: 自定义聚合网关 (硅基流动 / OneAPI)

@@ -813,6 +813,83 @@ def api_auth_me(request: Request):
     return {"ok": True, "user": u}
 
 
+@app.post("/api/auth/change_password")
+async def api_change_password(request: Request):
+    """用户修改自身密码【V8.3.33】
+    
+    支持两种调用场景：
+    1. 已登录会话中调用：guard 校验当前登录用户；
+    2. 未登录/通过账号通行证弹窗修改：根据传入的 username 和 old_password 进行严密凭证核验。
+    """
+    body = await request.json()
+    username = str(body.get("username") or "").strip()
+    old_password = str(body.get("old_password") or "").strip()
+    new_password = str(body.get("new_password") or "").strip()
+    confirm_password = str(body.get("confirm_password") or "").strip()
+
+    if not new_password:
+        raise HTTPException(400, "新密码不能为空")
+    if len(new_password) < 6:
+        raise HTTPException(400, "新密码长度至少为 6 个字符")
+    if confirm_password and new_password != confirm_password:
+        raise HTTPException(400, "两次输入的新密码不一致")
+
+    from core import auth
+    # 先尝试从会话中获取当前用户
+    u = get_current_user(request)
+    user_dict = None
+    user_id = None
+
+    if u and (not username or u.get("username") == username):
+        user_id = u.get("id") or "u-admin"
+        c = auth._db()
+        r = c.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
+        if r:
+            user_dict = dict(r)
+        c.close()
+    
+    if not user_dict and username:
+        c = auth._db()
+        r = c.execute("SELECT * FROM users WHERE username=?", (username,)).fetchone()
+        if r:
+            user_dict = dict(r)
+            user_id = user_dict["id"]
+        c.close()
+
+    if not user_dict:
+        if username in ("admin", ""):
+            # 兼容默认管理员
+            strong_pwd = _admin_password()
+            auth.ensure_default_admin(strong_pwd)
+            c = auth._db()
+            r = c.execute("SELECT * FROM users WHERE id='u-admin' OR username='admin'").fetchone()
+            if r:
+                user_dict = dict(r)
+                user_id = user_dict["id"]
+            c.close()
+
+    if not user_dict:
+        raise HTTPException(404, "目标用户不存在")
+
+    # 验证原密码：若存在原密码哈希或管理员口令，则必须严格核验
+    if user_dict.get("password_hash"):
+        if not old_password:
+            raise HTTPException(400, "请输入原密码以验证身份")
+        verified = auth.verify_password(old_password, user_dict["password_hash"], user_dict.get("salt", ""))
+        strong_pwd = _admin_password()
+        admin_matched = bool(user_dict.get("role") == "admin" and strong_pwd and old_password == strong_pwd)
+        if not verified and not admin_matched:
+            raise HTTPException(400, "原密码不正确，请重新输入")
+    else:
+        # 无哈希（如刚初始化的 admin 预设账号），需校验环境变量强口令
+        strong_pwd = _admin_password()
+        if strong_pwd and old_password != strong_pwd:
+            raise HTTPException(400, "当前管理员口令不正确")
+
+    auth.change_password_crud(user_id, new_password)
+    return {"ok": True, "msg": "密码修改成功，请牢记新密码"}
+
+
 @app.get("/api/user/vault/keys")
 def api_user_vault_keys(request: Request):
     """获取用户自己添加的所有模型服务 API Key 列表"""
@@ -884,7 +961,7 @@ def logout():
 try:
     from version import __version__ as APP_VERSION
 except Exception:
-    APP_VERSION = "8.3.32"
+    APP_VERSION = "8.3.33"
 
 
 @app.get("/health")

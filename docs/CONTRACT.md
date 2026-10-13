@@ -136,6 +136,7 @@
 - `POST /api/auth/register` → api_register：用户自助注册（launch_mode=invite-only 时需邀请码）【V7.0】[B→重写]
 - `POST /api/auth/login` → api_login：登录（写 cookie）【V7.0】[B→重写]
 - `GET /api/auth/me` → api_auth_me：当前用户资料与额度【V7.0】[B]
+- `POST /api/auth/change_password` → api_change_password：当前登录用户修改密码【V8.3.33】[新增]
 - `GET /api/auth/status` → auth_status：登录状态查询【V7.0】[B]
 - `POST /api/auth/logout` → logout：退出登录【V7.0】[B]
 - `POST /login` → login：旧路径兼容别名（deprecated）【V7.0】[B]

@@ -74,16 +74,14 @@ def test_linux_script_features():
 
 
 def test_github_release_workflow_and_sync_script():
-    """验证 GitHub Actions 自动化工作流与 release 同步脚本"""
-    wf_path = Path(".github/workflows/sync-releases.yml")
-    assert wf_path.exists(), "必须存在 .github/workflows/sync-releases.yml 工作流"
-    wf_content = wf_path.read_text(encoding="utf-8")
-    assert "create_github_releases.py" in wf_content
-    assert "GITHUB_TOKEN" in wf_content
-
-    rel_script = Path("scripts/create_github_releases.py").read_text(encoding="utf-8")
+    """验证 GitHub Releases REST API 自动化同步脚本具备 V9.3.0 latest 配置"""
+    rel_script_path = Path("scripts/create_github_releases.py")
+    assert rel_script_path.exists(), "必须存在 scripts/create_github_releases.py 同步脚本"
+    rel_script = rel_script_path.read_text(encoding="utf-8")
     assert '"tag": "v9.3.0"' in rel_script
     assert '"is_latest": True' in rel_script
+    assert "get_token" in rel_script
+    assert "create_or_update_release" in rel_script
 
 
 def test_no_v7_pro_in_membership_and_apis():

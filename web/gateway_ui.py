@@ -782,10 +782,10 @@ def _key_item_public(k: GatewayKey) -> dict:
 async def ui_create_key(request: Request):
     """创建网关 Key：明文只在本次响应返回，入库只存哈希。
 
-    ⭐ 会员分级：网关 API 为 V7 Pro 专属；free 档位直接 403。
+    ⭐ 会员分级：网关 API 为 Pro 专属；free 档位直接 403。
     """
     admin = _require_admin(request)
-    # ⭐ 会员分级检查：网关 API 为 V7 Pro 专属
+    # ⭐ 会员分级检查：网关 API 为 Pro 专属
     try:
         from studio.membership import capabilities as _caps
 
@@ -799,8 +799,8 @@ async def ui_create_key(request: Request):
         if not _caps.is_allowed(_tier, "gateway_api"):
             raise GatewayError(
                 "FORBIDDEN",
-                "网关 API 为 V7 Pro 专属功能",
-                "升级 V7 Pro 解锁网关 API（当前档位：" + _caps.tier_display_name(_tier) + "）",
+                "网关 API 为 Pro 专属功能",
+                "升级 Pro 解锁网关 API（当前档位：" + _caps.tier_display_name(_tier) + "）",
             )
     except GatewayError:
         raise

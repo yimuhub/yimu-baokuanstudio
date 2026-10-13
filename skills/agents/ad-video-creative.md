@@ -5,7 +5,7 @@ description: AI 产品广告短片创意方法论：5种Hook公式+5种脚本结
 
 # AI 产品广告短片创意技能
 
-> 方法论借鉴 creatify-ai/video-ad-generator（MIT）的 Standalone 创意框架，重写为中文并适配 V7 广告短片流水线。只用方法论思想，不依赖其商业 API。
+> 方法论借鉴 creatify-ai/video-ad-generator（MIT）的 Standalone 创意框架，重写为中文并适配一幕 AI 广告短片流水线。只用方法论思想，不依赖其商业 API。
 
 ## 适用场景
 

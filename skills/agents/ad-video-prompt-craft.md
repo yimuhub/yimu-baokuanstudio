@@ -8,7 +8,7 @@ icon: 🎬
 
 # AI 广告视频提示词工程技能
 
-> 方法论借鉴 creatify-ai/ai-ad-prompt-guide（MIT）与 dev.to 社区的 7-slot 产品镜头公式，重写为中文并适配 V7 广告视频生成 Agent。只用方法论思想，不复制原文代码。
+> 方法论借鉴 creatify-ai/ai-ad-prompt-guide（MIT）与 dev.to 社区的 7-slot 产品镜头公式，重写为中文并适配一幕 AI 广告视频生成 Agent。只用方法论思想，不复制原文代码。
 
 ## 适用场景
 
@@ -93,7 +93,7 @@ icon: 🎬
 
 **质检失败直接重生成，不要试图修图**——重写提示词比修图快 10 倍。
 
-## 八、与 V7 流水线的配合
+## 八、与广告视频流水线的配合
 
 - 本技能服务于 `ad_video` stage：输入是分镜表（镜头/时长/画面描述/口播），输出是每个镜头的 7 槽位英文提示词
 - 产品标准描述来自 `analyze_reference_images()` 的视觉分析结果

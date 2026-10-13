@@ -5,16 +5,24 @@ import subprocess
 import urllib.request
 import sys
 
+import os
+
 def get_token():
-    auth_out = subprocess.check_output(
-        ['git', 'credential', 'fill'],
-        input='url=https://github.com/yimuhub/yimu-baokuanstudio.git\n',
-        text=True
-    )
-    for line in auth_out.splitlines():
-        if line.startswith('password='):
-            return line.split('=', 1)[1]
-    raise RuntimeError("No token found from git credential helper")
+    token = os.environ.get('GITHUB_TOKEN')
+    if token:
+        return token.strip()
+    try:
+        auth_out = subprocess.check_output(
+            ['git', 'credential', 'fill'],
+            input='url=https://github.com/yimuhub/yimu-baokuanstudio.git\n',
+            text=True
+        )
+        for line in auth_out.splitlines():
+            if line.startswith('password='):
+                return line.split('=', 1)[1]
+    except Exception:
+        pass
+    raise RuntimeError("No token found from GITHUB_TOKEN env or git credential helper")
 
 def get_existing_releases(token):
     req = urllib.request.Request(
@@ -375,6 +383,90 @@ V9.1.1 彻底消除了顶栏快捷栏、各大功能弹窗、底层配置表单�
 ```bash
 # 获取最新 9.1.1 代码
 git checkout v9.1.1
+# 或者拉取最新 main 分支
+git pull origin main
+```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
+""",
+        "is_latest": False
+    },
+    {
+        "tag": "v9.2.0",
+        "name": "v9.2.0 - 天工开 · Divine Forge (Custom Content Platforms & Agent Layout Skills)",
+        "body": """# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.2.0
+
+> **版本代号 / Codename**: 天工开 · Divine Forge  
+> **发布日期 / Release Date**: 2026-10-13  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 自定义内容派生平台与排版技能大版本升级
+
+---
+
+### 🌟 版本概述 (Overview)
+V9.2.0 正式上线全网任意内容分发平台的自定义添加与智能识别体系，支持一键自学习任意文章网址的排版风格并自蒸馏生成专属 Agent 技能模块；同时锁死全域中文品牌名「一幕·YIMU」，移除版本展示页的商业化冗余。
+
+---
+
+### 🆕 新增功能 (New Features)
+1. **自定义内容分发派生平台中枢 (Custom Platforms Hub)**:
+   - 支持在个人中心任意添加垂直平台或新兴自媒体平台网址；
+   - 智能识别目标平台名称、域名、Favicon 与发布适配接口。
+2. **今日头条高密度资讯流排版规范 (Toutiao Feed Standard)**:
+   - 自定义平台默认统一采用今日头条成熟排版范式：醒目标题、精练段落、金句卡片与重点高亮。
+3. **Agent 专属排版技能自学习与蒸馏 (Layout Skill Distillation)**:
+   - 支持粘贴任意范文网址，Agent 深度解析其排版节奏、色彩与构图规范，自动生成可复用技能。
+4. **品牌翻译锁死与页面纯净化**:
+   - 彻底解决反向翻译导致的「一幕·一幕」错漏，统一呈现「一幕·YIMU」；
+   - 移除 Releases 页面顶部的价格冗余菜单。
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
+""",
+        "is_latest": False
+    },
+    {
+        "tag": "v9.3.0",
+        "name": "v9.3.0 - 万象融 · Cross-Platform Unified (Native Linux & Automated Releases)",
+        "body": """# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.3.0
+
+> **版本代号 / Codename**: 万象融 · Cross-Platform Unified  
+> **发布日期 / Release Date**: 2026-10-13  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: Linux 原生生产支持、全端脚本无版本化与自动发布核心里程碑
+
+---
+
+### 🌟 版本概述 (Overview)
+V9.3.0 带来全面的跨平台生产级就绪能力，原生支持 Linux 服务器与云原生环境，全端一键启动与升级脚本彻底脱离历史版本号羁绊；同时引入全自动化 GitHub Releases 流水线，保证每一次代码推送第一时间同步最新 Release 列表。
+
+---
+
+### 🆕 新增功能 (New Features)
+1. **Linux 原生生产级运行套件 (Native Linux Engine)**:
+   - 新增 `一键启动_linux.sh`：自动检测 Python 3.10+、自动创建 `.venv` 虚拟环境、一键后台多进程守护运行、端口占用自愈、公网/局域网访问 IP 智能探测与系统健康检查；
+   - 新增 `一键升级_linux.sh`：自动从官方 GitHub 拉取最新代码、同步依赖、安全备份数据库并对齐架构、无缝热重启。
+2. **启动与升级脚本全域无版本化规范 (Clean Unified Launchers)**:
+   - 彻底废弃所有历史版本号后缀脚本（如 `*V8.bat`、`*V8.command`）；
+   - Windows 规范为：`一键启动.bat` / `一键升级.bat`；
+   - macOS 规范为：`一键启动.command` / `一键升级.command`；
+   - Linux 规范为：`一键启动_linux.sh` / `一键升级_linux.sh`；
+   - Unix 跨平台通用：`一键启动.sh` / `一键升级.sh`。
+3. **GitHub Releases 自动化工作流 (Automated GitHub Releases)**:
+   - 配置 GitHub Actions 自动发布工作流，代码提交或推送第一时间无缝更新至 GitHub Releases 列表页；
+   - 同步更新官方 Releases API，确保永远指向最新版本。
+4. **历史代码旧版本残留全域统一**:
+   - 彻底清理全工程中遗留的过时版本字眼、测试桩与临时产物，单一真源统一步进至 **9.3.0**。
+
+---
+
+### 📦 获取与使用 (How to Access)
+```bash
+# 获取最新 9.3.0 代码
+git checkout v9.3.0
 # 或者拉取最新 main 分支
 git pull origin main
 ```

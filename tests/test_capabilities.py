@@ -85,7 +85,7 @@ class TestQuotaEngine:
         ok2, r2 = caps.check_and_consume(
             db, tenant_id="t1", user_id="u1", tier="free", capability="hot_daily")
         assert ok2 is False
-        assert "1/1" in r2 and "V7 Pro" in r2
+        assert "1/1" in r2 and "Pro" in r2
 
     def test_pro_unlimited(self, db):
         for _ in range(5):
@@ -122,7 +122,7 @@ class TestQuotaEngine:
         # 开关型：free 拒绝，pro 允许
         ok_f, r_f = caps.check_and_consume(
             db, tenant_id="t1", user_id="u4", tier="free", capability="gateway_api")
-        assert ok_f is False and "V7 Pro" in r_f
+        assert ok_f is False and "Pro" in r_f
         ok_p, _ = caps.check_and_consume(
             db, tenant_id="t1", user_id="u4", tier="pro", capability="gateway_api")
         assert ok_p is True

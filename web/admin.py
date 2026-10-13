@@ -360,7 +360,7 @@ async def idempotent_posts(request: Request, call_next):
 #      loopback 也不免密（没有口令就没有"默认口令"可免），并在启动时明确告警。
 #   2) mf_token 改为进程内随机密钥签发，重启即失效，外部无法预测或伪造。
 #   3) loopback 免密仅在已配置 ADMIN_PASSWORD 时保留，保证本地开发
-#      （启动一幕V8.command 会生成随机口令）开箱可用。
+#      （一键启动.command 会生成随机口令）开箱可用。
 # ---------------------------------------------------------------------------
 
 #: 进程内随机的管理会话密钥：每次启动重新生成，外部无法预测或伪造 mf_token
@@ -408,7 +408,7 @@ def _warn_admin_password_state() -> None:
         print(
             "[安全提示] 未配置 ADMIN_PASSWORD：管理员口令登录与本机免密通行均已关闭，"
             "管理相关接口需要登录会话。请设置 ADMIN_PASSWORD 环境变量"
-            "（本地可运行「启动一幕V8.command」自动生成随机口令）。"
+            "（本地可运行「一键启动.command」或「一键启动.bat」自动生成随机口令）。"
         )
     else:
         print(
@@ -2084,7 +2084,7 @@ async def draft_publish(did: str, request: Request):
     if isinstance(_plimit, int) and _plimit > 0 and len(platforms) > _plimit:
         raise HTTPException(
             400,
-            f"当前档位单次最多发布到 {_plimit} 个平台，升级 V7 Pro 解锁全平台发布",
+            f"当前档位单次最多发布到 {_plimit} 个平台，升级 Pro 解锁全平台发布",
         )
     return orchestrator.approve_and_publish(did, platforms)
 
@@ -2618,7 +2618,7 @@ async def audio_make(request: Request):
         raise HTTPException(
             400,
             f"当前档位单次配音最多 {_max_chars} 字（本次 {len(script)} 字），"
-            "升级 V7 Pro 解锁不限字数",
+            "升级 Pro 解锁不限字数",
         )
     d = db.get_draft(did) or {}
     d_title = d.get("title", did[:8])

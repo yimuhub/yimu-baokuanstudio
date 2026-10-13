@@ -4,6 +4,34 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌟 Version 9.3.0 · Cross-Platform Unified (万象融) · 2026-10-13
+
+> **Milestone**: Native Linux Production Engine, Versionless Cross-Platform Launch Suites & Automated GitHub Releases  
+> **Codename**: 万象融 (Cross-Platform Unified · 全域跨端，融通万象)  
+> **Slogan**: One Thought. One Scene. Infinite Worlds · Cross-Platform Unified (一念起 一幕开 万象生 · 全域跨端)  
+> **Licensor**: yimu.hyipf.com  
+> **Release Date**: 2026-10-13  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.3.0"`)  
+> **Release Policy**: Previous releases remain permanently frozen via Git tags. New releases upload directly with clear upgrade paths and comparative changelogs.
+
+### 🐧 1. Native Linux Production Engine & Cloud Daemon Supervisor
+- **Native Production Script (`一键启动_linux.sh`)**: Built-in support for Ubuntu, Debian, CentOS, RHEL, Arch, and Alpine with automated virtual environment provisioning, multi-thread uvicorn daemonization, port conflict resolution, external IP resolution, and system status health check (`status`, `logs`, `restart`, `stop`).
+- **Linux Upgrade Assistant (`一键升级_linux.sh`)**: Seamless Git branch pull, pip dependency alignment, database structure migrations, and zero-downtime hot reloading.
+
+### ⚡ 2. Versionless Clean Cross-Platform Launchers
+- Deprecated and removed legacy numbered launch scripts (e.g. `*V8.bat`, `*V8.command`).
+- Standardized cross-platform entry points without version suffixes:
+  - Windows: `一键启动.bat` / `一键升级.bat`
+  - macOS: `一键启动.command` / `一键升级.command`
+  - Linux: `一键启动_linux.sh` / `一键升级_linux.sh`
+  - Universal Unix: `一键启动.sh` / `一键升级.sh`
+
+### 🚀 3. Automated Instant GitHub Releases Synchronization
+- Integrated automated GitHub Release workflows and REST API sync pipelines, ensuring every code commit and version push instantly populates GitHub Releases list.
+- Cleaned up legacy historical version labels and unified whole codebase to modern standard.
+
+---
+
 ## 🌟 Version 9.2.0 · Divine Forge (天工开) · 2026-10-13
 
 > **Milestone**: Custom Distribution Platforms & Agent Layout Skill Distillation Hub  

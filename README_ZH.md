@@ -6,7 +6,7 @@
 
 **面向自媒体创作者、短剧团队与 MCN 机构的全链路爆款生产引擎 + 大模型商业网关**
 
-[![Version](https://img.shields.io/badge/version-9.2.0-orange.svg?style=flat-square)](version.py)
+[![Version](https://img.shields.io/badge/version-9.3.0-orange.svg?style=flat-square)](version.py)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Licensor](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E6%96%B9-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
 [![Copyright](https://img.shields.io/badge/%E7%89%88%E6%9D%83%E5%BD%92%E5%B1%9E-%C2%A9%202026%20yimu.hyipf.com-orange.svg?style=flat-square)](https://yimu.hyipf.com)
@@ -185,16 +185,18 @@ bash ci.sh
 
 ---
 
-## 📦 当前最新版本：V9.2.0（天工开 · Divine Forge篇）
+## 📦 当前最新版本：V9.3.0（万象融 · 全域跨端篇）
 
 一幕·YIMU 团队实行纯净发布规范，每次首页仅聚焦展示**当前最新旗舰版本**的完整能力：
 
-### 🌟 V9.2.0 核心特性一览
-- 🌐 **全域 1,768 词条双语零残留**：全面收录覆盖桌面端、移动端顶栏、15 个交互功能弹窗、表单占位符及属性，英文模式下中文残留数严格为 0；
+### 🌟 V9.3.0 核心特性一览
+- 🐧 **原生 Linux 生产环境就绪**：全新推出 Linux 专属生产脚本 `一键启动_linux.sh` 与 `一键升级_linux.sh`，支持进程后台守护、实时日志追踪、外网与本地访问 IP 自动探测及健康检查；
+- ⚡ **启动与升级脚本全域规范化**：彻底剥离启动与升级脚本的历史版本号后缀（Windows `一键启动.bat` / `一键升级.bat`；macOS `一键启动.command` / `一键升级.command`；Linux `./一键启动_linux.sh`），开箱即用，升级免换；
+- 🚀 **GitHub Releases 全自动化同步**：配置 GitHub Actions 流水线，代码提交与版本发布第一时间无缝同步至 GitHub Release List；
+- 🌐 **全域 1,800+ 词条双语零残留**：全面收录覆盖桌面端、移动端顶栏、15 个交互功能弹窗、表单占位符及属性，英文模式下中文残留数严格为 0；
 - 🔄 **双向可逆无损还原**：基于长短语降序算法与智能状态缓存，中英文双向切换瞬间即达且文字 100% 原汁原味无损复原；
 - 🎬 **原生 2K 影视级视觉分镜**：正文配图默认提升至原生 2K（`2048x1152`、`1152x2048`、`2048x2048`），配合去雾通透画质过滤管线，画风鲜艳锐利；
-- 💎 **商业化网关与算力中枢**：算力余额、套餐权益、CDKey 极速核销一体化胶囊交互；
-- ⚖️ **版本单一真源全域统一**：全栈模块、接口契约与页面全量统一为 **V9.2.0**。
+- ⚖️ **版本单一真源全域统一**：全栈模块、接口契约与页面全量统一为 **V9.3.0**。
 
 > 想要了解历史版本归档与完整里程碑演进记录，请参阅：📘 **[版本发布日志 (RELEASES.md)](RELEASES.md)** 与 🏷️ **[GitHub Releases 官方发布页](https://github.com/yimuhub/yimu-baokuanstudio/releases)**。
 

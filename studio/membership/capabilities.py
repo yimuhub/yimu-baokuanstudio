@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BUSL-1.1
-"""会员能力矩阵与配额引擎：V7 Free / V7 Pro / V7 Studio 三档功能区分。
+"""会员能力矩阵与配额引擎：Free / Pro / Studio 三档功能区分。
 
 设计原则（2026-10-08 用户拍板）：
 - 免费版"限量不限功能"：让用户体验完整版内容，用完整体验驱动付费转化。
@@ -40,7 +40,7 @@ TIER_DISPLAY_NAMES: dict[str, str] = {
 }
 
 # 升级引导文案统一出口
-UPGRADE_HINT = "升级 V7 Pro 解锁完整体验"
+UPGRADE_HINT = "升级 Pro 解锁完整体验"
 
 
 def tier_display_name(tier: str) -> str:
@@ -204,7 +204,7 @@ def check_and_consume(
     if isinstance(limit, bool):
         if limit:
             return True, ""
-        return False, f"该功能为 V7 Pro 专属，{UPGRADE_HINT}"
+        return False, f"该功能为 Pro 专属，{UPGRADE_HINT}"
 
     # -1 = 不限
     if limit == -1:
@@ -217,7 +217,7 @@ def check_and_consume(
                 "完整 8 步 AI 短剧为 Pro 专属功能。免费档可先体验「单镜头短剧」，"
                 f"{UPGRADE_HINT}即可生成完整成片。"
             )
-        return False, f"该功能为 V7 Pro 专属，{UPGRADE_HINT}"
+        return False, f"该功能为 Pro 专属，{UPGRADE_HINT}"
 
     # 配额型：按窗口计数
     window = QUOTA_WINDOWS.get(capability)

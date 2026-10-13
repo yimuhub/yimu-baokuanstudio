@@ -385,11 +385,27 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V9.2.0 -->
+      <!-- V9.3.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌟 V9.2.0 · 天工开 (Divine Forge)</span>
+          <span class="t-ver">🌟 V9.3.0 · 万象融 (Cross-Platform Unified)</span>
           <span class="badge orange">当前版本 · 最新</span>
+          <span class="t-date">2026-10-13</span>
+        </div>
+        <div class="t-desc">原生 Linux 生产环境就绪、全端一键脚本无版本化规范、GitHub Releases 自动化流水线。</div>
+        <ul class="t-list">
+          <li><b>🐧 原生 Linux 生产引擎就绪</b>：新增 <code>一键启动_linux.sh</code> 与 <code>一键升级_linux.sh</code>，全面支持 Ubuntu/Debian/CentOS/RHEL 等环境，支持守护进程与状态健康检查；</li>
+          <li><b>⚡ 全端一键脚本无版本号规范化</b>：彻底告别遗留版本号后缀，Windows (<code>一键启动.bat</code>)、macOS (<code>一键启动.command</code>) 与 Linux 全端统一规范；</li>
+          <li><b>🚀 GitHub Releases 自动化实时同步</b>：代码推送与版本更新全自动化同步至 GitHub Release 列表页；</li>
+          <li><b>🛡️ 全代码历史版本残留清理统一</b>：彻底清理废弃版本字眼与陈旧包，全仓代码对齐至最新 9.3 统一标准。</li>
+        </ul>
+      </div>
+
+      <!-- V9.2.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.2.0 · 天工开 (Divine Forge)</span>
+          <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-13</span>
         </div>
         <div class="t-desc">自定义内容分发派生平台中枢、Agent 排版技能自学习自蒸馏与全域纯净「一幕·YIMU」锁定。</div>

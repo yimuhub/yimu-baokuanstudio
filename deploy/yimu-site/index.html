@@ -750,9 +750,10 @@ function cleanNotes(s){return String(s||'').replace(/[#*`>|_[\]~-]/g,'').replace
 function vRow(r,isCur){
   const ver=String(r.tag||'').replace(/^v/i,'');
   const note=esc(r.note||r.body||'');
+  const code=r.codename?esc(r.codename):'常规更新 · '+esc(ver);
   return '<tr'+(isCur?' class="cur"':'')+'>'
     +'<td class="ver">V'+esc(ver)+'<span class="cn">'+esc(r.date||'')+'</span></td>'
-    +'<td>'+esc(r.codename||'')+'</td>'
+    +'<td>'+code+'</td>'
     +'<td>'+note+'</td>'
     +'<td><span class="badge '+(isCur?'live':'old')+'">'+(isCur?'当前旗舰':'已归档')+'</span></td>'
     +'</tr>';

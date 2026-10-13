@@ -330,10 +330,10 @@ git pull origin main
     },
     {
         "tag": "v9.1.1",
-        "name": "v9.1.1 - 万象生 · Infinite Worlds (1,768 UI Terms Zero-Residue Bilingualism)",
+        "name": "v9.1.1 - 流光澈 · 万象生篇 (Crystal Clarity · 1,768 UI Terms Zero-Residue Bilingualism)",
         "body": """# 🚀 一幕 · 爆款工坊 (YIMU Studio) V9.1.1 [最新旗舰版 / Latest]
 
-> **版本代号 / Codename**: 万象生 · Infinite Worlds  
+> **版本代号 / Codename**: 流光澈 · 万象生篇 (Crystal Clarity · Infinite Worlds)  
 > **发布日期 / Release Date**: 2026-10-13  
 > **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
 > **发布类型 / Release Type**: 1,768 词条全量零死角双语系统 & 深度子页面/弹窗绝对纯净

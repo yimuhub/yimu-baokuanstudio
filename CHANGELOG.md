@@ -44,6 +44,19 @@ YIMU Studio maintains strict version discipline:
 
 ---
 
+## [9.1.0] - 2026-10-13 · 万象生 (Infinite Worlds)
+
+### Added
+- **Full i18n Bilingual Unification**: Upgraded `web/static/js/i18n.js` with deep DOM auto-translation and comprehensive bidirectional dictionaries. Enforces 100% pure English when in English mode and 100% pure Chinese when in Chinese mode, eliminating any half-English/half-Chinese inconsistencies.
+- **GitHub Releases Official Showcase**: Created GitHub Releases via GitHub REST API for all releases (`v9.1.0`, `v9.0.0`, `v8.3.33`, `v8.3.2`).
+- **Installed Releases Showcase View & API**: Mounted `GET /releases`, `GET /admin/releases`, and `GET /api/releases` for seamless version tracking.
+
+### Changed
+- **Unified Single Source of Truth**: Updated all version references, docstrings, licenses, and contracts to `V9.1.0` / `9.1.0`.
+- **Licensor Alignment**: Licensor strictly set to `yimu.hyipf.com` in `LICENSE` and across legal notices.
+
+---
+
 ## [9.0.0] - 2026-10-13 · 万象生 (Infinite Worlds)
 
 ### Added

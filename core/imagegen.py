@@ -290,7 +290,7 @@ def photojournalism_prompt_engine(raw_text: str, context: str = "",
     return build_style_enhanced_prompt(raw_text, context=context, force_style=force_style)
 
 
-# 全文通读 ➔ 极致清晰分镜头解构 ➔ 艳丽色彩与现实内容 1:1 锚定（v8.3.34 晶莹通透无烟雾版）
+# 全文通读 ➔ 极致清晰分镜头解构 ➔ 艳丽色彩与现实内容 1:1 锚定（V9.0.0 晶莹通透无烟雾版）
 ARTICLE_VISUAL_DIGEST_PROMPT = """你是一名顶级商业视觉总监兼现代电影摄影大师，以【画质极致通透、纤毫毕现、色彩艳丽鲜活】享誉业界。
 
 【系统核心铁律（必须 100% 贯彻执行）】：

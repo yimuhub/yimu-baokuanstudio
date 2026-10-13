@@ -4,7 +4,7 @@
 
 **面向自媒体创作者、短剧团队与 MCN 机构的全链路爆款生产引擎 + 大模型商业网关**
 
-[![Version](https://img.shields.io/badge/version-9.0.0-orange.svg?style=flat-square)](version.py)
+[![Version](https://img.shields.io/badge/version-9.1.0-orange.svg?style=flat-square)](version.py)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12+-green.svg?style=flat-square)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/framework-FastAPI-009688.svg?style=flat-square)](https://fastapi.tiangolo.com)
@@ -30,7 +30,7 @@
 1. **文案假大空、塑料感严重**：生成套话堆砌，缺乏深度论据与抓人眼球的黄金前 3 秒；
 2. **配图与内容割裂脱节**：盲盒式生图，生成的图片与文章段落风马牛不相及，甚至出现廉价怪异的 AI 塑料感与灰蒙蒙的烟雾模糊感。
 
-**一幕·YIMU V9.0.0（万象生 · Infinite Worlds）** 从底层彻底颠覆这一现状：
+**一幕·YIMU V9.1.0（万象生 · Infinite Worlds）** 从底层彻底颠覆这一现状：
 - **影视短剧分镜法则 + 2K 超清通透画质引擎**：在生成任何一张图片前，Agent **必须先通读全文**，提炼世界观与论述转折，将封面定义为宏大建立镜头（Wide Establishing Shot），各小节定义为叙事中景与情绪特写（Medium Narrative Shot / Close-up）。全新接入 2K 级超清原生画质标准与**零烟雾通透增强算法**，彻底剔除朦胧虚幻感，色彩艳丽、锐度极致，**图文匹配度硬性锁定在 95% 以上**；
 - **全渠道原生排版**：一份核心爆款母本，秒级自动编译为微信公众号富文本、今日头条高密度资讯流、小红书 5 幕磨砂毛玻璃卡片；
 - **多端与双核驱动**：PC 操盘大台与移动随身端数据全域互联，内置兼容 OpenAI 的聚合网关与算力统一账本；

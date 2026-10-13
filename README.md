@@ -4,8 +4,8 @@
 
 **The Full-Lifecycle Viral Content Creation Engine & LLM Commercial Gateway for Digital Creators, Short Drama Studios, and MCN Agencies**
 
-[![Version](https://img.shields.io/badge/version-9.0.0-orange.svg?style=flat-square)](version.py)
-[![Release](https://img.shields.io/badge/release-v9.0%20(Infinite%20Worlds)-blueviolet.svg?style=flat-square)](RELEASES.md)
+[![Version](https://img.shields.io/badge/version-9.1.0-orange.svg?style=flat-square)](version.py)
+[![Release](https://img.shields.io/badge/release-v9.1%20(Infinite%20Worlds)-blueviolet.svg?style=flat-square)](RELEASES.md)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12+-green.svg?style=flat-square)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/framework-FastAPI-009688.svg?style=flat-square)](https://fastapi.tiangolo.com)
@@ -20,7 +20,7 @@
 
 **English** • [简体中文说明](README_ZH.md)
 
-[✨ Features](#-core-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#-system-architecture) • [📦 Release 9.0](RELEASES.md) • [📜 License](#-license--commercial-terms)
+[✨ Features](#-core-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#-system-architecture) • [📦 Release 9.1](RELEASES.md) • [📜 License](#-license--commercial-terms)
 
 </div>
 
@@ -32,7 +32,7 @@ In the era of AI-generated content (AIGC), creators face two fatal bottlenecks:
 1. **Generic, Plastic Copywriting**: Hollow clichés, lacking deep analytical arguments and the crucial 3-second hook that stops users from scrolling.
 2. **Disconnected, Low-Quality Visuals**: Blind-box image generation where illustrations bear zero relevance to article sections, often plagued by hazy fog, blurriness, or weird AI artifacts.
 
-**YIMU Studio V9.0.0 ("Infinite Worlds" / 万象生)** fundamentally revolutionizes AI content production:
+**YIMU Studio V9.1.0 ("Infinite Worlds" / 万象生)** fundamentally revolutionizes AI content production:
 - **Cinematic Storyboarding & 2K Crystal-Clear Image Engine**: Before generating any image, the visual agent **reads the entire article end-to-end**, extracting narrative turning points and worldview themes. Covers are mapped to Wide Establishing Shots, while sections are paired with Medium Narrative Shots or Emotional Close-ups. Powered by a specialized 2K resolution pipeline and a **zero-haze transparency prompt engineering pipeline**, visual-to-text semantic alignment is locked at **over 95%** with vivid color saturation and laser-sharp clarity.
 - **Multi-Channel Native Layout Compiler**: One master draft is instantly formatted into WeChat Official Account rich-text, Toutiao information feed layout, and Xiaohongshu (RED) 5-act frosted-glass panoramic cards.
 - **Dual-Device Synchronization & Commercial Gateway**: Real-time parity between Desktop Pro Workbench and Mobile Companion, featuring a unified billing/token portal and an OpenAI-compatible routing gateway.

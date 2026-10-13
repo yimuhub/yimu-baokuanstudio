@@ -4,14 +4,31 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
-## 🌟 Version 9.0.0 · Infinite Worlds (万象生) · 2026-10-13
+## 🌟 Version 9.1.0 · Infinite Worlds (万象生) · 2026-10-13
 
-> **Milestone**: Major Architecture & Vision Leap  
+> **Milestone**: Full i18n Bilingual Unification & GitHub Releases Integration  
 > **Codename**: 万象生 (Infinite Worlds)  
 > **Slogan**: One Thought. One Scene. Infinite Worlds. (一念起 · 一幕开 · 万象生)  
+> **Licensor**: yimu.hyipf.com  
 > **Release Date**: 2026-10-13  
-> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.0.0"`)  
-> **Release Policy**: Previous releases (e.g. `v8.3.33`, `v8.3.2`) remain permanently frozen via Git tags. New releases upload directly with clear upgrade paths and comparative changelogs.
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.1.0"`)  
+> **Release Policy**: Previous releases (e.g. `v9.0.0`, `v8.3.33`, `v8.3.2`) remain permanently frozen via Git tags. New releases upload directly with clear upgrade paths and comparative changelogs.
+
+### 🌐 1. Full i18n Bilingual Unification (全站中英文绝对统一)
+- **100% Pure English Mode**: When switched to English, all UI text, modals, placeholders, titles, metrics, tooltips, and prompts become 100% pure English. No half-Chinese/half-English state is permitted.
+- **100% Pure Chinese Mode**: When switched to Chinese, all UI content displays 100% pure natural Chinese.
+- **Zero Inconsistency**: Automated DOM text walker and bidirectional dictionaries enforce complete coverage across all dynamic and static views.
+
+### 📦 2. GitHub Releases Integration (GitHub Releases 官方发布展示)
+- Fully published official releases via GitHub REST API for all version tags (`v9.1.0`, `v9.0.0`, `v8.3.33`, `v8.3.2`).
+- Installed `/releases` and `/api/releases` endpoints showcasing interactive changelogs and version evolution matrices.
+
+### 🔄 3. Code-Wide Version Unification (全仓版本号统一)
+- Unified single source of truth across all modules, templates, headers, docstrings, licenses, and contracts to `V9.1.0` / `9.1.0`.
+
+---
+
+## 🏷️ Version 9.0.0 · Infinite Worlds (万象生) · 2026-10-13
 
 ### 📊 Release Comparison Matrix: V8.3.33 vs V9.0.0
 

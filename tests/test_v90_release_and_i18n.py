@@ -14,8 +14,8 @@ import version
 
 
 def test_v90_version_single_source_of_truth():
-    """验证 9.0.0 版本单一真源"""
-    assert version.__version__ == "9.0.0"
+    """验证 9.1.0 版本单一真源"""
+    assert version.__version__ == "9.1.0"
     assert version.__codename__ == "万象生"
     assert "Infinite Worlds" in version.__slogan_en__
 
@@ -26,13 +26,49 @@ def test_v90_version_single_source_of_truth():
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
-    assert "V9.0.0" in index_html
-    assert "9.0.0" in index_html
-    assert "V9.0.0" in mobile_html
-    assert "version-9.0.0" in readme_en
-    assert "version-9.0.0" in readme_zh
-    assert "Version 9.0.0" in releases_md
-    assert "V9.0.0" in license_txt
+    assert "V9.1.0" in index_html
+    assert "9.1.0" in index_html
+    assert "V9.1.0" in mobile_html
+    assert "version-9.1.0" in readme_en
+    assert "version-9.1.0" in readme_zh
+    assert "V9.1.0" in license_txt
+    assert "Licensor:            yimu.hyipf.com" in license_txt
+    assert "The Licensed Work is (c) 2026 yimu.hyipf.com" in license_txt
+
+
+def test_v90_releases_showcase_page_and_api():
+    """验证版本更新展示页 (/releases) 与 API (/api/releases) 正常提供服务"""
+    from fastapi.testclient import TestClient
+    from web.admin import app
+
+    client = TestClient(app)
+
+    # 1. /releases 页面
+    r = client.get("/releases")
+    assert r.status_code == 200
+    assert "V9.1.0" in r.text
+    assert "yimu.hyipf.com" in r.text
+    assert "核心版本差异演进矩阵" in r.text
+
+    # 2. /admin/releases 兼容页面
+    r_admin = client.get("/admin/releases")
+    assert r_admin.status_code == 200
+    assert "V9.1.0" in r_admin.text
+
+    # 3. /api/releases 数据接口
+    r_api = client.get("/api/releases")
+    assert r_api.status_code == 200
+    d = r_api.json()
+    assert d.get("ok") is True
+    assert d.get("current_version") == "9.1.0"
+    assert d.get("licensor") == "yimu.hyipf.com"
+    assert len(d.get("releases", [])) >= 4
+
+    # 4. 前端入口可见性
+    index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
+    mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
+    assert 'href="/releases"' in index_html
+    assert 'href="/releases"' in mobile_html
 
 
 def test_v90_clean_no_legacy_versions():
@@ -40,7 +76,7 @@ def test_v90_clean_no_legacy_versions():
     index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
     mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
 
-    for legacy in ["8.3.33", "V8.3.33", "V8.3.2", "V8.2"]:
+    for legacy in ["9.0.0", "V9.0.0", "8.3.33", "V8.3.33", "V8.3.2", "V8.2"]:
         assert legacy not in index_html, f"Legacy version '{legacy}' still found in index.html"
         assert legacy not in mobile_html, f"Legacy version '{legacy}' still found in mobile.html"
 

@@ -18,6 +18,7 @@ from typing import Optional, List, Dict, Any
 
 BASE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE))
+import version                                       # noqa: E402
 
 import yaml                                          # noqa: E402
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402
@@ -961,7 +962,7 @@ def logout():
 try:
     from version import __version__ as APP_VERSION
 except Exception:
-    APP_VERSION = "9.0.0"
+    APP_VERSION = "9.1.0"
 
 
 @app.get("/health")
@@ -3417,6 +3418,81 @@ def pricing_page(request: Request):
     与项目「无构建步骤」的现状一致：不引前端框架，双击即可用。
     """
     return HTMLResponse(_PRICING_PAGE_HTML)
+
+
+@app.get("/releases", response_class=HTMLResponse)
+def releases_page(request: Request):
+    """版本更新与发布历史展示页【V9.1.0】"""
+    from studio.releases_page import get_releases_html
+    return HTMLResponse(get_releases_html())
+
+
+@app.get("/admin/releases", response_class=HTMLResponse)
+def admin_releases_page(request: Request):
+    """版本更新总览展示页（兼容后台路径）【V9.1.0】"""
+    from studio.releases_page import get_releases_html
+    return HTMLResponse(get_releases_html())
+
+
+@app.get("/api/releases")
+def api_releases():
+    """获取版本更新与发布历史数据【V9.1.0】"""
+    return {
+        "ok": True,
+        "current_version": version.__version__,
+        "codename": getattr(version, "__codename__", "万象生"),
+        "licensor": "yimu.hyipf.com",
+        "releases": [
+            {
+                "version": "9.1.0",
+                "codename": "万象生",
+                "date": "2026-10-13",
+                "status": "latest",
+                "highlights": [
+                    "全站 i18n 国际化双语绝对统一（纯英文与纯中文极致纯粹）",
+                    "GitHub Releases 官方发布展示与版本演进中枢",
+                    "全仓代码多版本号单一真源统一步进至 V9.1.0",
+                    "原生 2K 视觉分镜引擎与 Agnes 零烟雾通透滤镜",
+                    "商业化算力与套餐价格深度合并统一胶囊",
+                ]
+            },
+            {
+                "version": "9.0.0",
+                "codename": "万象生",
+                "date": "2026-10-13",
+                "status": "milestone",
+                "highlights": [
+                    "原生 2K 视觉分镜引擎",
+                    "Agnes 图像大模型零烟雾通透滤镜",
+                    "商业化算力与套餐价格深度合并",
+                    "全局 i18n 国际化双语热切换",
+                    "个人中心账号安全改密",
+                ]
+            },
+            {
+                "version": "8.3.33",
+                "codename": "星河引",
+                "date": "2026-10-13",
+                "status": "archived",
+                "highlights": [
+                    "会员与账本迁入个人中心",
+                    "商业化套餐卡片点击高亮交互",
+                    "账号修改密码接口打通",
+                ]
+            },
+            {
+                "version": "8.3.2",
+                "codename": "视觉大跃迁",
+                "date": "2026-10-12",
+                "status": "archived",
+                "highlights": [
+                    "十大影视级分镜视觉美学体系",
+                    "创作 Agent 一键换图",
+                    "小红书 5 幕磨砂毛玻璃卡片工坊",
+                ]
+            }
+        ]
+    }
 
 
 # ---------------- R3-2 下单收款 ----------------

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BUSL-1.1
-"""一幕·YIMU 爆款工作室 V8.3.3 数据库模型层。
+"""一幕·YIMU 爆款工作室 V9.0.0 数据库模型层。
 
 设计要点（详见 docs/SCHEMA.md）：
 - SQLAlchemy 2.0 ``Mapped`` 注解风格，SQLite / PostgreSQL 双兼容。

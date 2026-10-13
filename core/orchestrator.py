@@ -239,7 +239,11 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
             sec_arg.append((fallback_names[j % len(fallback_names)], para[:140]))
 
     if generate_images:
-        imgs = decorate_draft(ddir, title, sec_arg, body_md=body, count=5, style=image_style)
+        final_style = image_style
+        if not final_style or final_style == "auto":
+            from core.imagegen import _detect_visual_style
+            final_style = _detect_visual_style(f"{title} {body[:400]}")
+        imgs = decorate_draft(ddir, title, sec_arg, body_md=body, count=5, style=final_style)
     else:
         imgs = {"cover": None, "sections": {}}
         if (ddir / "img" / "cover.png").exists():
@@ -334,7 +338,8 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
 
 def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆款工作室",
                    platforms: list[str] | None = None,
-                   user_id: str = "") -> dict:
+                   user_id: str = "",
+                   image_style: str = "") -> dict:
     """对已通过选题生成草稿：LLM 成稿 → 按需多端渲染/配图/卡片 → 自动评分循环。
 
     R4 合规：成稿后先过内容安全前置闸（core.content_guard），
@@ -386,7 +391,7 @@ def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆
     parsed = {"TITLE_WX": title, "BODY_WX": body,
               "TITLE_XHS": title, "BODY_XHS": body,
               "TITLE_TT": title, "BODY_TT": body}
-    _refresh_artifacts(draft["id"], parsed, title, body, media_name=media_name, platforms=selected_platforms)
+    _refresh_artifacts(draft["id"], parsed, title, body, media_name=media_name, platforms=selected_platforms, image_style=image_style)
     db.set_topic_status(topic_id, "drafted")
     result = {"draft": db.get_draft(draft["id"])}
 
@@ -1276,10 +1281,12 @@ def ai_xhs_upgrade_pipeline(draft_id: str, style: str = "ai_visual_dark", emit=N
             sections.append((default_names[j % len(default_names)], [para[:40]]))
 
     # 步骤 2：根据上下文内容生成图片
-    emit("🎨 Step 2/4: 根据提炼的上下文内容，并发生成全套高清视觉配图 (共 5 张)…")
-    from core.imagegen import decorate_draft
+    from core.imagegen import decorate_draft, _detect_visual_style, VISUAL_STYLE_PRESETS
+    detected_style = _detect_visual_style(f"{d['title']} {d['body_md'][:500]}")
+    style_info = VISUAL_STYLE_PRESETS.get(detected_style, {}).get("name", "2K 电影级画质")
+    emit(f"🎨 Step 2/4: 根据提炼的上下文匹配【{style_info}】美学风格，并发生成全套 2K 超清影视配图 (共 5 张)…")
     sec_arg = [(s[0], s[1][0] if s[1] else s[0]) for s in sections[:4]]
-    decorate_draft(ddir, d["title"], sec_arg, body_md=d["body_md"], count=5)
+    decorate_draft(ddir, d["title"], sec_arg, body_md=d["body_md"], count=5, style=detected_style)
 
     # 步骤 3：所展示的内容是总结出来以后让 AI 进行优化以后的内容
     emit("✨ Step 3/4: 总结内容经 AI 深度优化（注入痛点钩子、去AI味、爆款短句排版）…")

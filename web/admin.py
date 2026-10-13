@@ -1266,6 +1266,7 @@ async def topic_action(tid: str, action: str, request: Request):
             pass
         media_name = (body.get("media_name") or "").strip() or "一幕·YIMU 爆款工作室"
         platforms = body.get("platforms")
+        image_style = (body.get("image_style") or "").strip()
         
         plat_desc = f"({len(platforms)}端)" if platforms else ""
         start_async_job(
@@ -1273,7 +1274,7 @@ async def topic_action(tid: str, action: str, request: Request):
             name=f"爆款文章智能生成{plat_desc} #{tid[:8]}",
             task_type="article_gen",
             target_id=tid,
-            params={"topic_id": tid, "media_name": media_name, "platforms": platforms},
+            params={"topic_id": tid, "media_name": media_name, "platforms": platforms, "image_style": image_style},
             initial_step="AI 选题解析与框架构思中…"
         )
 
@@ -1287,6 +1288,7 @@ async def topic_action(tid: str, action: str, request: Request):
                     platforms=platforms,
                     # ⭐ R3-9：草稿归属，避免成稿落库后本人看不到
                     user_id=_current_user_id(user),
+                    image_style=image_style,
                 )
                 draft_info = res.get("draft") or {}
                 d_title = draft_info.get("title") or "新生成文章"

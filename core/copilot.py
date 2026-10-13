@@ -1055,7 +1055,12 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
 
         try:
             from core import imagegen
-            imagegen.decorate_draft(ddir, gen_title, sec_arg, body_md=gen_body, count=4)
+            from core.imagegen import _detect_visual_style, VISUAL_STYLE_PRESETS
+            # 极简模式第一次成稿：自动匹配最契合的高阶美学风格与 2K 超清影视级画质标准
+            copilot_style = _detect_visual_style(f"{gen_title} {gen_body[:600]}")
+            style_name = VISUAL_STYLE_PRESETS.get(copilot_style, {}).get("name", "写实摄影")
+            _report(f"🎨 正在调用 2K 影视级视觉引擎（【{style_name}】美学风格）渲染成套 2K 超清插图…", 78)
+            imagegen.decorate_draft(ddir, gen_title, sec_arg, body_md=gen_body, count=4, style=copilot_style)
             injected_body = imagegen.inject_images_to_markdown(gen_body, new_draft["id"])
             if injected_body and injected_body != gen_body:
                 gen_body = injected_body

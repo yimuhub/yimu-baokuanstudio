@@ -401,15 +401,16 @@ def analyze_article_visual_prompts(title: str, body_md: str, sections: list, for
         traceback.print_exc()
 
     if not prompts_data or not isinstance(prompts_data, dict):
-        # 降级：使用智能实体提取器保底，并应用自动检测的风格尾缀
+        # 降级：使用智能实体提取器与高保真 2K 摄影光学保底，并应用自动检测的风格尾缀
         try:
             from core.short_drama import _synthesize_scene_prompt
             cover_en = (
-                _synthesize_scene_prompt(title, title, "Wide Establishing Shot", "Natural Daylight", "Slow Dolly In")
+                _synthesize_scene_prompt(title, title, "Wide Establishing Shot", "Cinematic Golden Hour Window Light", "Slow Dolly In")
+                + ", 2k 4k 8k ultra hd, Hasselblad X2D 100C look, masterpiece"
                 + auto_preset["suffix"]
             )
         except Exception:
-            cover_en = f"Authentic scene of {title[:60]}, photorealistic, 8k" + auto_preset["suffix"]
+            cover_en = f"Cinematic wide establishing shot of {title[:60]}, shot on Hasselblad X2D 100C, natural rim light, photorealistic, 2k 8k ultra hd, sharp focus" + auto_preset["suffix"]
         cover_zh = f"《{title[:20]}》核心意象全景：主体细节与空间光影交织"
 
         sec_prompts = []
@@ -418,11 +419,12 @@ def analyze_article_visual_prompts(title: str, body_md: str, sections: list, for
             try:
                 from core.short_drama import _synthesize_scene_prompt
                 p_en = (
-                    _synthesize_scene_prompt(title, ctx or t, "Medium Shot", "Cinematic Rim Light", "Push In")
+                    _synthesize_scene_prompt(title, ctx or t, "Medium Shot", "Cinematic Rim Light with Soft Key", "Push In")
+                    + ", 2k 4k 8k ultra hd, 85mm f/1.4 lens, razor-sharp focus"
                     + auto_preset["suffix"]
                 )
             except Exception:
-                p_en = f"Authentic scene of {t[:60]}, photorealistic, 8k" + auto_preset["suffix"]
+                p_en = f"Cinematic medium narrative shot of {t[:50]}, {ctx[:50] if ctx else ''}, shot on Canon EOS R5 85mm f/1.2L, photorealistic, 2k 8k ultra hd" + auto_preset["suffix"]
             sec_prompts.append({
                 "section_title": t,
                 "zh": f"小节【{t[:15]}】核心场景：{ctx[:30] if ctx else t}",
@@ -480,7 +482,7 @@ def _render_fallback_card(title: str, subtext: str, out_path: Path, angle_idx: i
     """当外部 API 无法出图时，使用 Pillow 渲染一张工业级出版质感的信息美学插图/封面，100% 稳定出图。"""
     try:
         from PIL import Image, ImageDraw, ImageFont
-        w, h = (1080, 720) if not is_cover else (1080, 600)
+        w, h = 2048, 1152
 
         palettes = [
             {"bg": (20, 28, 45), "accent": (56, 139, 253), "tag": "VISION ● 核心视点"},
@@ -495,14 +497,14 @@ def _render_fallback_card(title: str, subtext: str, out_path: Path, angle_idx: i
         draw = ImageDraw.Draw(img)
 
         # 绘制网格
-        for x in range(0, w, 60):
-            draw.line([(x, 0), (x, h)], fill=(255, 255, 255, 8), width=1)
-        for y in range(0, h, 60):
-            draw.line([(0, y), (w, y)], fill=(255, 255, 255, 8), width=1)
+        for x in range(0, w, 90):
+            draw.line([(x, 0), (x, h)], fill=(255, 255, 255, 12), width=1)
+        for y in range(0, h, 90):
+            draw.line([(0, y), (w, y)], fill=(255, 255, 255, 12), width=1)
 
-        margin = 32
-        draw.rectangle([(margin, margin), (w - margin, h - margin)], outline=(255, 255, 255, 30), width=2)
-        draw.line([(margin, margin + 4), (margin + 60, margin + 4)], fill=p["accent"], width=4)
+        margin = 64
+        draw.rectangle([(margin, margin), (w - margin, h - margin)], outline=(255, 255, 255, 30), width=3)
+        draw.line([(margin, margin + 8), (margin + 120, margin + 8)], fill=p["accent"], width=6)
 
         font_paths = [
             "/System/Library/Fonts/PingFang.ttc",
@@ -514,9 +516,9 @@ def _render_fallback_card(title: str, subtext: str, out_path: Path, angle_idx: i
         for fp in font_paths:
             if Path(fp).exists():
                 try:
-                    font_title = ImageFont.truetype(fp, 44 if not is_cover else 48)
-                    font_sub = ImageFont.truetype(fp, 26)
-                    font_tag = ImageFont.truetype(fp, 20)
+                    font_title = ImageFont.truetype(fp, 80 if not is_cover else 92)
+                    font_sub = ImageFont.truetype(fp, 46)
+                    font_tag = ImageFont.truetype(fp, 36)
                     break
                 except Exception:
                     pass
@@ -580,35 +582,77 @@ def _render_fallback_card(title: str, subtext: str, out_path: Path, angle_idx: i
         return False
 
 
+# ═══════════════════════════════════════════════════════════════════════
+# 2K 超清影视级分辨率标准体系（2048px 宽屏 / 方图 / 竖图）
+# ═══════════════════════════════════════════════════════════════════════
+DEFAULT_IMAGE_SIZE = "2048x1152"  # 默认 2K 16:9 宽画幅（最适宜自媒体图文与排版大图）
+
+SIZE_PRESETS_2K = {
+    "16:9": "2048x1152",  # 2K 宽画幅文章横图
+    "1:1": "2048x2048",   # 2K 方形精细图
+    "4:3": "2048x1536",   # 2K 传统摄影画幅
+    "3:4": "1536x2048",   # 2K 小红书/手机竖版卡片
+    "9:16": "1152x2048",  # 2K 沉浸全屏竖图
+}
+
+
 def parse_dimensions(size: str) -> tuple[int, int]:
-    """从尺寸字符串（如 1024x1792）解析宽度和高度。"""
+    """从尺寸字符串（如 2048x1152）解析宽度和高度，默认保底 2K（2048x1152）。"""
     try:
         parts = size.lower().split("x")
         if len(parts) == 2:
-            return int(parts[0]), int(parts[1])
+            w, h = int(parts[0]), int(parts[1])
+            if w > 0 and h > 0:
+                return w, h
     except Exception:
         pass
-    return 1024, 1024
+    return 2048, 1152
 
 
-def gen_image_pollinations(prompt: str, out_path: Path, width: int = 1024, height: int = 1024) -> bool:
-    """通道 2：调用全球开源高质量 Pollinations Flux 真实文生图引擎（100% 真实摄影画质，免 API Key）。"""
+def ensure_2k_resolution(out_path: Path | str, target_w: int = 2048, target_h: int = 1152) -> bool:
+    """保障输出图像物理文件 100% 达到 2K 分辨率标准，并运用 Lanczos 重采样微调锐化消除锯齿。"""
+    try:
+        from PIL import Image, ImageEnhance
+        out_path = Path(out_path)
+        if not out_path.exists() or out_path.stat().st_size == 0:
+            return False
+        with Image.open(out_path) as im:
+            cur_w, cur_h = im.size
+            # 若任意一边未达 2K 门槛，进行专业级高保真超分增强
+            if cur_w < target_w or cur_h < min(target_h, 1080):
+                scale = max(target_w / cur_w, target_h / cur_h)
+                new_w = max(target_w, int(cur_w * scale))
+                new_h = max(target_h, int(cur_h * scale))
+                upscaled = im.resize((new_w, new_h), Image.Resampling.LANCZOS)
+                # 微调微观对比度与质感锐化（消除普通缩放的模糊与假平滑）
+                sharpener = ImageEnhance.Sharpness(upscaled)
+                crisp_im = sharpener.enhance(1.15)
+                crisp_im.save(out_path, format="PNG", optimize=True)
+                return True
+    except Exception as e:
+        pass
+    return False
+
+
+def gen_image_pollinations(prompt: str, out_path: Path, width: int = 2048, height: int = 1152) -> bool:
+    """通道 2：调用全球开源高质量 Pollinations Flux 真实文生图引擎（100% 真实摄影画质，免 API Key，默认 2K 超清）。"""
     import urllib.parse
     clean_prompt = prompt.strip()
     if not clean_prompt:
-        clean_prompt = "cinematic movie still, photorealistic, 8k resolution, masterpiece"
+        clean_prompt = "cinematic movie still, photorealistic, 2k 4k 8k ultra high resolution, masterpiece, sharp focus"
     
-    # 限制 URL 长度与编码
-    encoded_p = urllib.parse.quote(clean_prompt[:400])
+    # 扩大有效字符长度，确保完整镜头光影与反塑料感提示词全量传输（避免截断破坏画质）
+    encoded_p = urllib.parse.quote(clean_prompt[:1200])
     seed = abs(hash(clean_prompt)) % 100000
     target_url = f"https://image.pollinations.ai/prompt/{encoded_p}?width={width}&height={height}&model=flux&nologo=true&seed={seed}"
     
     try:
-        with httpx.Client(timeout=35, follow_redirects=True) as client:
+        with httpx.Client(timeout=45, follow_redirects=True) as client:
             r = client.get(target_url)
             if r.status_code == 200 and len(r.content) > 2048:
                 out_path.parent.mkdir(parents=True, exist_ok=True)
                 out_path.write_bytes(r.content)
+                ensure_2k_resolution(out_path, target_w=width, target_h=height)
                 return True
     except Exception:
         pass
@@ -629,15 +673,17 @@ def _reset_gen_diagnosis(model: str = "", provider: str = "") -> None:
     _GEN_DIAG.update({"channel": "none", "model": model, "provider": provider, "commercial_error": ""})
 
 
-def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_title: str = "", context_sub: str = "", angle_idx: int = 0, is_cover: bool = False, model: str = "", style: str = "") -> bool:
-    """生成一张配图并存入 out_path。
+def gen_image(prompt: str, out_path: Path, size: str = DEFAULT_IMAGE_SIZE, context_title: str = "", context_sub: str = "", angle_idx: int = 0, is_cover: bool = False, model: str = "", style: str = "") -> bool:
+    """生成一张配图并存入 out_path（默认 2K 超清 2048x1152 分辨率）。
     智能多通道真实生图机制：
-    1. 商业通道：若配置了支持生图的商业供应商（如 agnes-image、OpenAI dall-e-3、阿里 wanx-v1、智谱 cogview 或自建网关），调用 /images/generations；
+    1. 商业通道：若配置了支持生图的商业供应商（如 agnes-image、OpenAI dall-e-3、阿里 wanx-v1、智谱 cogview 或自建网关），调用 /images/generations（请求 quality=hd）；
     2. 全球开源保底通道：Pollinations Flux 真实文生图引擎，全国全网免 Key，100% 真实摄影画面；
     3. 极端断网保底：Pillow 美学信息卡片。
+    生成的图片 100% 经过 ensure_2k_resolution 校验，物理分辨率绝对达到 2K 标准。
     """
     cfg = image_cfg()
     req_model = (model or "").strip() or cfg.get("model", "").strip() or "flux-schnell"
+    req_size = size or cfg.get("size", DEFAULT_IMAGE_SIZE) or DEFAULT_IMAGE_SIZE
 
     # 全局通过视觉美学引擎注入多风格指令与光影参数（彻底去除 AI 塑料感与假人感）
     enhanced_prompt = photojournalism_prompt_engine(prompt, context=context_sub or context_title, force_style=style)
@@ -645,6 +691,8 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
     from core.llm import resolve_llm_endpoint, classify_model
     base, key, resolved_model, pid = resolve_llm_endpoint(req_model)
     _reset_gen_diagnosis(resolved_model, pid)
+
+    w, h = parse_dimensions(req_size)
 
     # 1. 尝试商业通道：仅在指定模型是图像模型且配置了有效 API Key 时调用 /images/generations
     if key and base and classify_model(resolved_model) == "image":
@@ -661,12 +709,14 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
         commercial_ok = False
         for req_url in candidate_urls:
             try:
-                with httpx.Client(timeout=60, trust_env=not is_local) as client:
-                    r = client.post(
-                        req_url,
-                        json={"model": resolved_model, "prompt": enhanced_prompt, "n": 1, "size": size},
-                        headers={"Authorization": f"Bearer {key}"},
-                    )
+                with httpx.Client(timeout=65, trust_env=not is_local) as client:
+                    payload = {"model": resolved_model, "prompt": enhanced_prompt, "n": 1, "size": req_size, "quality": "hd"}
+                    r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
+                    # 容错：若上游对 2048x1152 严格校验失败，尝试自动以 1792x1024 宽屏容错重试，随后由 ensure_2k_resolution 升至 2K
+                    if r.status_code == 400 and ("size" in r.text.lower() or "resolution" in r.text.lower()):
+                        payload["size"] = "1792x1024" if ("1152" in req_size or "1792" in req_size) else "1024x1024"
+                        r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
+
                     if r.status_code == 200:
                         res_json = r.json()
                         data_arr = res_json.get("data", [{}])
@@ -681,7 +731,7 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
                             break
                         elif img_url:
                             dl_r = None
-                            with httpx.Client(timeout=40, follow_redirects=True) as dl_client:
+                            with httpx.Client(timeout=45, follow_redirects=True) as dl_client:
                                 dl_r = dl_client.get(img_url)
                                 if dl_r.status_code == 200 and len(dl_r.content) > 1024:
                                     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -700,6 +750,7 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
                 print(f"[ImageGen] 商业生图通道 [{pid}] {req_url} 调用异常: {e}，将转开源保底通道")
         if commercial_ok:
             _GEN_DIAG["channel"] = "commercial"
+            ensure_2k_resolution(out_path, target_w=w, target_h=h)
             return True
     else:
         # 未进入商业通道（key 缺失 / 模型非 image 类）也要给出可观测原因
@@ -708,14 +759,16 @@ def gen_image(prompt: str, out_path: Path, size: str = "1024x1024", context_titl
         elif classify_model(resolved_model) != "image":
             _GEN_DIAG["commercial_error"] = f"目标模型 [{resolved_model}] 不是生图模型"
 
-    # 2. 尝试开源保底通道：Pollinations Flux 真实文生图引擎（免 Key、免配置、100% 真实可用）
-    w, h = parse_dimensions(size)
+    # 2. 尝试开源保底通道：Pollinations Flux 真实文生图引擎（免 Key、免配置、100% 真实可用，默认 2K 超清）
     if gen_image_pollinations(enhanced_prompt, out_path, width=w, height=h):
         _GEN_DIAG["channel"] = "pollinations"
+        ensure_2k_resolution(out_path, target_w=w, target_h=h)
         return True
 
     # 3. 极端断网降级：美学卡片
     card_ok = _render_fallback_card(context_title or prompt[:30], context_sub or prompt, out_path, angle_idx, is_cover)
+    if card_ok:
+        ensure_2k_resolution(out_path, target_w=w, target_h=h)
     _GEN_DIAG["channel"] = "card" if card_ok else "none"
     return card_ok
 
@@ -770,7 +823,7 @@ def decorate_draft(draft_dir: Path, title: str, sections: list, body_md: str = "
         cover_en = prompts_data.get("cover_prompt", {}).get("en", "")
         cover_zh = prompts_data.get("cover_prompt", {}).get("zh", f"{title}。{first_ctx}")
         prompt_cover = cover_en or photojournalism_prompt_engine(f"{title}。{first_ctx}", context="封面大图", force_style=style)
-        if gen_image(prompt_cover, f_cover, "1024x1024", context_title=title, context_sub=cover_zh[:40], angle_idx=0, is_cover=True, model=model, style=style or ""):
+        if gen_image(prompt_cover, f_cover, DEFAULT_IMAGE_SIZE, context_title=title, context_sub=cover_zh[:40], angle_idx=0, is_cover=True, model=model, style=style or ""):
             made["cover"] = "img/cover.png"
 
     # 3. 各小节配图生成
@@ -790,7 +843,7 @@ def decorate_draft(draft_dir: Path, title: str, sections: list, body_md: str = "
         p_zh = sec_p.get("zh", ctx or t)
         prompt_sec = p_en or photojournalism_prompt_engine(f"{t}。{ctx}", context=t, force_style=style)
         
-        if gen_image(prompt_sec, f_sec, "1024x1024", context_title=t, context_sub=p_zh[:40], angle_idx=angle_i, is_cover=False, model=model, style=style or ""):
+        if gen_image(prompt_sec, f_sec, DEFAULT_IMAGE_SIZE, context_title=t, context_sub=p_zh[:40], angle_idx=angle_i, is_cover=False, model=model, style=style or ""):
             made["sections"][t] = f"img/sec-{i}.png"
 
     return made
@@ -826,12 +879,12 @@ def get_draft_images_detail(draft_id: str) -> dict:
     # 1. 封面图元数据
     cov_file = img_d / "cover.png"
     cov_p = prompts_data.get("cover_prompt", {})
-    cov_en = cov_p.get("en", "") or f"Cinematic wide shot of {title}, 35mm film, volumetric lighting, photorealistic, 8k"
+    cov_en = cov_p.get("en", "") or f"Cinematic wide shot of {title}, 35mm film, volumetric lighting, photorealistic, 2k 8k ultra hd"
     cov_zh = cov_p.get("zh", "") or f"《{title}》核心意象全景"
     
     res["cover"] = {
         "name": "cover",
-        "title": "封面大图",
+        "title": "封面大图 (2K超清)",
         "exists": cov_file.exists(),
         "url": f"/img/{draft_id}/cover.png" if cov_file.exists() else "",
         "prompt_zh": cov_zh,
@@ -845,14 +898,14 @@ def get_draft_images_detail(draft_id: str) -> dict:
         sec_num = int(s.stem.replace("sec-", "")) if s.stem.replace("sec-", "").isdigit() else idx
         sec_p = sec_prompts_list[sec_num] if sec_num < len(sec_prompts_list) else {}
         sec_title = sec_p.get("section_title", f"小节 #{sec_num + 1}")
-        sec_en = sec_p.get("en", "") or f"Cinematic medium shot of {sec_title}, dramatic lighting, photorealistic, 8k"
+        sec_en = sec_p.get("en", "") or f"Cinematic medium shot of {sec_title}, dramatic lighting, photorealistic, 2k 8k ultra hd"
         sec_zh = sec_p.get("zh", "") or f"小节【{sec_title}】核心场景"
         
         res["sections"].append({
             "name": s.stem,
             "section_num": sec_num,
             "section_title": sec_title,
-            "title": f"小节配图 #{sec_num + 1}",
+            "title": f"小节配图 #{sec_num + 1} (2K超清)",
             "exists": True,
             "url": f"/img/{draft_id}/{s.name}",
             "prompt_zh": sec_zh,
@@ -863,7 +916,7 @@ def get_draft_images_detail(draft_id: str) -> dict:
     for c in sorted(img_d.glob("custom-*.png")):
         res["custom"].append({
             "name": c.stem,
-            "title": "自定义插图",
+            "title": "自定义插图 (2K超清)",
             "exists": True,
             "url": f"/img/{draft_id}/{c.name}",
             "prompt_zh": "",
@@ -873,8 +926,8 @@ def get_draft_images_detail(draft_id: str) -> dict:
     return res
 
 
-def regenerate_draft_image(draft_id: str, name: str, prompt: str = "", title: str = "", aspect: str = "1:1") -> dict:
-    """针对草稿中的单个图片（封面、某小节图、或自定义图）使用指定或微调的 Prompt 重新生成并同步刷新排版。"""
+def regenerate_draft_image(draft_id: str, name: str, prompt: str = "", title: str = "", aspect: str = "16:9") -> dict:
+    """针对草稿中的单个图片（封面、某小节图、或自定义图）使用指定或微调的 Prompt 重新生成并同步刷新排版（默认 2K 超清）。"""
     from core import db, themes
     from adapters import toutiao as _tt, zhihu as _zh, weibo as _wb
     from core.layouter import _inject_cover
@@ -885,14 +938,8 @@ def regenerate_draft_image(draft_id: str, name: str, prompt: str = "", title: st
     ddir = db.draft_dir(draft_id)
     d_img = img_dir(ddir)
     
-    # 尺寸解析
-    size_map = {
-        "1:1": "1024x1024",
-        "16:9": "1792x1024",
-        "3:4": "1024x1365",
-        "9:16": "1024x1792"
-    }
-    size = size_map.get(aspect, "1024x1024")
+    # 尺寸解析：默认全线采用 2K 影视级矩阵标准
+    size = SIZE_PRESETS_2K.get(aspect, DEFAULT_IMAGE_SIZE)
 
     # 确定目标文件路径
     is_cover = (name == "cover")

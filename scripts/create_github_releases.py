@@ -253,9 +253,12 @@ V9.1.0 是官方最新正式发布版本。本次更新彻底解决了界面语�
 ---
 
 ### 🆕 新增功能 (New Features)
-1. **全站 100% 纯英文 / 100% 纯中文深度双语引擎 (Zero Half-Bilingualism)**:
-   - 重构 `web/static/js/i18n.js`，增加深层 DOM 递归翻译引擎 (`translateDOMNode`)，覆盖所有文本节点、输入框占位符 (`placeholder`)、工具提示 (`title`) 与无障碍标签 (`aria-label`)；
-   - 增加动态变动监听器 (`MutationObserver`)，毫秒级捕获异步接口返回的内容和弹窗，确保英文模式下 100% 纯英文，中文模式下 100% 纯中文，严禁任何混杂状态。
+1. **全站 100% 纯英文 / 100% 纯中文深度双语引擎 (Zero Half-Bilingualism & Sub-view Coverage)**:
+   - 全面覆盖全站 984 个 UI 文本词条（`web/static/js/i18n_dict.json`），纯英文对应率 100.0%，零中文残留；
+   - 重构 `web/static/js/i18n.js`，采用 `EXACT_MAP`（$O(1)$ 高速哈希匹配）与 `PHRASE_LIST`（长短语降序安全替换），并具备 100% 可逆恢复 `REVERSE_MAP`；
+   - 各级一级菜单（操盘大屏、极简模式、灵感选题、内容工作台、影音工坊、控制中心、个人中心）点击切换时实时适配英文顶栏标题；
+   - 所有二级子页面、子标签（`switchSubTab`）与懒加载面板实时挂载递归翻译钩子，彻底消灭“半中半英”或二级子页面漏翻/回跳中文；
+   - 增加动态变动监听器 (`MutationObserver`)，毫秒级捕获异步接口返回的内容和弹窗，确保英文模式下 100% 纯英文，中文模式下 100% 纯中文。
 2. **应用内版本演进看板与接口 (In-App Releases Showcase)**:
    - 挂载路由 `GET /releases` 与 `GET /admin/releases`，提供全屏版本演化时间轴与特性对照表；
    - 开放接口 `GET /api/releases`，返回各版本详细结构化演进数据。

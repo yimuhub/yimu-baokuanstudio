@@ -192,10 +192,33 @@ bash ci.sh
 
 ---
 
-## 📦 Releases & Versioning
+## 📦 Releases & Version Evolution
 
-The current release is **V9.0.0 (Codename: Infinite Worlds / 万象生)**.
-For the complete release history, upgrade guidelines, and changelog, see [RELEASES.md](RELEASES.md).
+YIMU Studio strictly implements Semantic Versioning (`SemVer`). **Previous versions remain permanently archived and frozen, while new versions upload directly with clear upgrade paths.**
+
+### 📊 Comparison Matrix: V8.3.33 vs V9.0.0
+
+| Dimension | V8.3.33 (Archived Stable Release) | V9.0.0 (Latest Major Milestone) | Evolution & Impact |
+|---|---|---|---|
+| **Image Resolution** | 1024x1024 (Standard 1K) | **2048x1152 / 1152x2048 / 2048x2048 (2K)** | 200% resolution boost, ultra-sharp detail |
+| **Atmospheric Clarity** | Prone to foggy / smoky AI haze | **Zero-Haze Crystal Prompt Pipeline** | Hardened negative prompting, vivid saturation |
+| **Image Model Alignment**| Standard fallback logic | **Agnes Model Contract Specialization** | Strict size normalization, resilient 400 recovery |
+| **Billing & Compute UI** | Split topbar buttons & external links | **Unified Billing & Compute Capsule** | Deep consolidation of credits, pricing & CDKEY |
+| **Internationalization** | Simplified Chinese only | **Dual-Engine i18n (English & Chinese)** | Hot toggle on Desktop & Mobile, pure EN README |
+| **Account & Security** | Manual auth sync | **Self-Service Password Change** | Integrated into Profile & Auth modals |
+| **GitHub Release Tag** | `git checkout v8.3.33` (Frozen) | `git checkout v9.0.0` (Latest) | Distinct release archives on GitHub |
+
+### 🧭 Switching Between Versions
+- **Check out Latest V9.0.0**:
+  ```bash
+  git checkout v9.0.0
+  ```
+- **Check out Archived V8.3.33 (Historical Release)**:
+  ```bash
+  git checkout v8.3.33
+  ```
+
+For the complete release history and detailed changelog, see [RELEASES.md](RELEASES.md) and [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

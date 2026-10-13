@@ -10,7 +10,20 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 > **Codename**: 万象生 (Infinite Worlds)  
 > **Slogan**: One Thought. One Scene. Infinite Worlds. (一念起 · 一幕开 · 万象生)  
 > **Release Date**: 2026-10-13  
-> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.0.0"`)
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.0.0"`)  
+> **Release Policy**: Previous releases (e.g. `v8.3.33`, `v8.3.2`) remain permanently frozen via Git tags. New releases upload directly with clear upgrade paths and comparative changelogs.
+
+### 📊 Release Comparison Matrix: V8.3.33 vs V9.0.0
+
+| Dimension | V8.3.33 (Archived Stable Release) | V9.0.0 (Latest Major Milestone) | Evolution & Impact |
+|---|---|---|---|
+| **Image Resolution** | 1024x1024 (Standard 1K) | **2048x1152 / 1152x2048 / 2048x2048 (2K)** | 200% resolution boost, ultra-sharp detail |
+| **Atmospheric Clarity** | Prone to foggy / smoky AI haze | **Zero-Haze Crystal Prompt Pipeline** | Hardened negative prompting, vivid saturation |
+| **Image Model Alignment**| Standard fallback logic | **Agnes Model Contract Specialization** | Strict size normalization, resilient 400 recovery |
+| **Billing & Compute UI** | Split topbar buttons & external links | **Unified Billing & Compute Capsule** | Deep consolidation of credits, pricing & CDKEY |
+| **Internationalization** | Simplified Chinese only | **Dual-Engine i18n (English & Chinese)** | Hot toggle on Desktop & Mobile, pure EN README |
+| **Account & Security** | Manual auth sync | **Self-Service Password Change** | Integrated into Profile & Auth modals |
+| **GitHub Release Tag** | `git checkout v8.3.33` (Frozen) | `git checkout v9.0.0` (Latest) | Distinct release archives on GitHub |
 
 ### 🎬 1. 2K Crystal-Clear Visual Storyboarding & Zero-Haze Prompting
 - **Native 2K Resolution by Default**: Articles and inspirations now default to pristine 2K canvas dimensions (`2048x1152` landscape for WeChat/News, `1152x2048` vertical for RED/Mobile, and `2048x2048` square).

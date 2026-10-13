@@ -17,7 +17,7 @@
 
 ### 1. 环境准备
 ```bash
-git clone https://github.com/your-username/yimu-baokuanstudio.git
+git clone https://github.com/yimuhub/yimu-baokuanstudio.git
 cd yimu-baokuanstudio
 
 python3.12 -m venv .venv

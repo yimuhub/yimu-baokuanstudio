@@ -128,7 +128,7 @@ flowchart TD
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/your-username/yimu-baokuanstudio.git
+git clone https://github.com/yimuhub/yimu-baokuanstudio.git
 cd yimu-baokuanstudio
 
 # 2. 创建并激活虚拟环境

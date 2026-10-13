@@ -50,6 +50,13 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ## 🏷️ Version 9.0.0 · Infinite Worlds (万象生) · 2026-10-13
 
+> **Milestone**: 2K Crystal-Clear Image Engine & Global i18n Launch  
+> **Codename**: 万象生 (Infinite Worlds)  
+> **Slogan**: One Thought. One Scene. Infinite Worlds. (一念起 · 一幕开 · 万象生)  
+> **Licensor**: yimu.hyipf.com  
+> **Release Date**: 2026-10-13  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.0.0"`)  
+
 ### 📊 Release Comparison Matrix: V8.3.33 vs V9.0.0
 
 | Dimension | V8.3.33 (Archived Stable Release) | V9.0.0 (Latest Major Milestone) | Evolution & Impact |
@@ -101,3 +108,9 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 - Introduction of 10 Cinematic Visual Aesthetic Presets (Documentary, Swiss Minimal, Cyberpunk, Anime, etc.).
 - Conversational visual style hot-swapping via creator Copilot.
 - Xiaohongshu 5-act panoramic frosted glass card compilation engine.
+
+---
+
+<div align="center">
+  <sub>Copyright © 2026 <a href="https://yimu.hyipf.com">yimu.hyipf.com</a> · All rights reserved.</sub>
+</div>

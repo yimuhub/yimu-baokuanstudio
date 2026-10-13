@@ -6,6 +6,8 @@
 
 [![Version](https://img.shields.io/badge/version-9.1.1-orange.svg?style=flat-square)](version.py)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
+[![Licensor](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E6%96%B9-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
+[![Copyright](https://img.shields.io/badge/%E7%89%88%E6%9D%83%E5%BD%92%E5%B1%9E-%C2%A9%202026%20yimu.hyipf.com-orange.svg?style=flat-square)](https://yimu.hyipf.com)
 [![Python](https://img.shields.io/badge/python-3.12+-green.svg?style=flat-square)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/framework-FastAPI-009688.svg?style=flat-square)](https://fastapi.tiangolo.com)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows%20%7C%20Docker-blueviolet.svg?style=flat-square)](#-快速启动)
@@ -221,13 +223,16 @@ bash ci.sh
 
 ---
 
-## 📜 开源许可与商业授权
+## 📜 开源许可与版权主体 (License & Copyright)
 
-本项目源代码采用 **Business Source License 1.1 (BSL 1.1)** 许可证发布：
+- **版权主体 / 许可方 (Licensor)**：[yimu.hyipf.com](https://yimu.hyipf.com)
+- **版权声明**：Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All Rights Reserved.
+- **开源许可证**：**Business Source License 1.1 (BSL 1.1 / BUSL-1.1)**
 
+### 📄 授权与商业使用规则
 - 🎁 **免费个人与创作者使用**：个人学习、科学研究、非商业用途、以及个人自媒体内容创作（包括通过个人自媒体账号获得的广告收益与带货收益）**永久免费，无需申请授权**；
 - 💼 **小微商用免授权**：任何主体在连续 12 个月内通过本作品直接产生的商业价值低于人民币 10 万元的，**完全免费，无需申请授权**；
-- 🏢 **规模商业授权**：商业价值达到或超过人民币 10 万元的规模化商用或 SaaS 平台运营，须取得官方商业授权登记（可免费登记或协议阶梯定价，联系邮箱：yimu@yimu.hyipf.com）；
+- 🏢 **规模商业授权**：商业价值达到或超过人民币 10 万元的规模化商用或 SaaS 平台运营，须取得 **yimu.hyipf.com** 官方商业授权登记（可免费登记或协议阶梯定价，联系邮箱：yimu@yimu.hyipf.com）；
 - 🔄 **公版自动转换**：每个版本自公开发布之日起满四年后，自动转换为完全自由的 **Apache License 2.0** 协议。
 
 详细条款请参阅 [LICENSE](LICENSE)。
@@ -235,5 +240,5 @@ bash ci.sh
 ---
 
 <div align="center">
-  <sub>Made with ❤️ by 一幕·YIMU 团队</sub>
+  <sub>Copyright © 2026 <a href="https://yimu.hyipf.com">yimu.hyipf.com</a> · 版权所有，保留所有权利</sub>
 </div>

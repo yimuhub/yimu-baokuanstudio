@@ -103,3 +103,9 @@ YIMU Studio maintains strict version discipline:
 - Conversational visual style hot-swapping via creator Copilot.
 - Xiaohongshu 5-act panoramic frosted glass card compilation engine.
 - Permanent Tag: Frozen as git tag `v8.3.2`.
+
+---
+
+<div align="center">
+  <sub>Copyright © 2026 <a href="https://yimu.hyipf.com">yimu.hyipf.com</a> · All rights reserved.</sub>
+</div>

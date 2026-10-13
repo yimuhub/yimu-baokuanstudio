@@ -310,7 +310,7 @@ footer {{
       <div>发布日期: <b>2026-10-13</b></div>
       <div>许可授权方 (Licensor): <b>yimu.hyipf.com</b></div>
       <div>开源协议: <b>BSL 1.1 (Business Source License)</b></div>
-      <div>代码质量门禁: <b>433 测试全绿 · CI 4/4 通过</b></div>
+      <div>代码质量门禁: <b>439 测试全绿 · CI 4/4 通过</b></div>
     </div>
   </div>
 
@@ -473,7 +473,7 @@ git tag -l -n
   </div>
 
   <footer>
-    一幕·YIMU 爆款工作室 · Licensor: <a href="https://yimu.hyipf.com" style="color:#f0883e;text-decoration:none">yimu.hyipf.com</a> · Made with ❤️ for Digital Creators
+    一幕·YIMU 爆款工作室 · 版权主体 (Copyright & Licensor): <a href="https://yimu.hyipf.com" style="color:#f0883e;text-decoration:none">yimu.hyipf.com</a> · © 2026 yimu.hyipf.com. All Rights Reserved.
   </footer>
 </div>
 

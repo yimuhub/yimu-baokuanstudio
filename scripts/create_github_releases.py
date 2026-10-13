@@ -123,6 +123,10 @@ V8.3.2 正式奠定了爆款工坊的影视级视觉分镜能力，实现了文�
 ```bash
 git checkout v8.3.2
 ```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
 """,
         "is_latest": False
     },
@@ -177,6 +181,10 @@ V8.3.33 重点重构了用户身份鉴权、个人中心面板与会员算力体
 ```bash
 git checkout v8.3.33
 ```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
 """,
         "is_latest": False
     },
@@ -232,6 +240,10 @@ V9.0.0 代表一幕工坊迈向全球化与影视级画质的重大升级，原�
 ```bash
 git checkout v9.0.0
 ```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
 """,
         "is_latest": False
     },
@@ -302,6 +314,10 @@ git checkout v9.1.0
 # 或者拉取最新 main 分支
 git pull origin main
 ```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
 """,
         "is_latest": False
     },
@@ -355,6 +371,10 @@ git checkout v9.1.1
 # 或者拉取最新 main 分支
 git pull origin main
 ```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
 """,
         "is_latest": True
     }

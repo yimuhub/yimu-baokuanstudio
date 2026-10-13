@@ -7,6 +7,8 @@
 [![Version](https://img.shields.io/badge/version-9.1.1-orange.svg?style=flat-square)](version.py)
 [![Release](https://img.shields.io/badge/release-v9.1.1%20(Infinite%20Worlds)-blueviolet.svg?style=flat-square)](RELEASES.md)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
+[![Licensor](https://img.shields.io/badge/Licensor-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
+[![Copyright](https://img.shields.io/badge/Copyright-%C2%A9%202026%20yimu.hyipf.com-orange.svg?style=flat-square)](https://yimu.hyipf.com)
 [![Python](https://img.shields.io/badge/python-3.12+-green.svg?style=flat-square)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/framework-FastAPI-009688.svg?style=flat-square)](https://fastapi.tiangolo.com)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux%20%7C%20Windows%20%7C%20Docker-blueviolet.svg?style=flat-square)](#-quick-start)
@@ -222,13 +224,16 @@ For the complete release history and detailed changelog, see [RELEASES.md](RELEA
 
 ---
 
-## 📜 License & Commercial Terms
+## 📜 License & Copyright Terms
 
-YIMU Studio is released under the **Business Source License 1.1 (BSL 1.1)**:
+- **Copyright Entity & Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com)
+- **Copyright Notice**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
+- **License**: **Business Source License 1.1 (BSL 1.1 / BUSL-1.1)**
 
+### 📄 Commercial Terms & Use Grant
 - 🎁 **Free for Individuals & Creators**: Personal learning, research, non-commercial use, and personal digital creator workflows (including ad and e-commerce affiliate revenues earned via personal social media channels) are **100% free forever without requiring commercial authorization**.
 - 💼 **Small & Micro Commercial Exemption**: Any entity whose commercial revenue directly generated through this software is below RMB ¥100,000 (or equivalent USD) in any consecutive 12-month period is **completely exempt from licensing fees**.
-- 🏢 **Scaled Enterprise Licensing**: Commercial usage exceeding RMB ¥100,000 or SaaS platform operation requires official commercial authorization (Free registration or tiered agreements available; contact: `yimu@yimu.hyipf.com`).
+- 🏢 **Scaled Enterprise Licensing**: Commercial usage exceeding RMB ¥100,000 or SaaS platform operation requires official commercial authorization from **yimu.hyipf.com** (Free registration or tiered agreements available; contact: `yimu@yimu.hyipf.com`).
 - 🔄 **Automatic Open Source Conversion**: Exactly four years after the public release date of each version, that version automatically converts to the fully open-source **Apache License 2.0**.
 
 For full legal terms, please read [LICENSE](LICENSE).
@@ -236,5 +241,5 @@ For full legal terms, please read [LICENSE](LICENSE).
 ---
 
 <div align="center">
-  <sub>Engineered with passion by the YIMU Studio Team</sub>
+  <sub>Copyright © 2026 <a href="https://yimu.hyipf.com">yimu.hyipf.com</a> · All rights reserved.</sub>
 </div>

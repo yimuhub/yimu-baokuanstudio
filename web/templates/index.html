@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <title>一幕·YIMU 爆款工作室 V9.1.1 · 全媒体超级创作引擎</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon.png">
+<link rel="apple-touch-icon" href="/static/img/logo-icon.png">
 <script src="/static/js/i18n.js"></script>
 <script>
 (function() {
@@ -2573,8 +2576,9 @@ input[type=text]:focus, textarea:focus, select:focus {
   color: #fff;
 }
 .copilot-msg.user .copilot-avatar {
-  background: linear-gradient(135deg, #f0883e, #ff5722);
-  color: #fff;
+  background: #1e293b url('/static/img/default-avatar.png') center/cover no-repeat;
+  color: transparent;
+  border: 1px solid rgba(240,136,62,0.4);
 }
 .copilot-bubble {
   padding: 10px 14px;
@@ -3194,9 +3198,10 @@ input[type=text]:focus, textarea:focus, select:focus {
 
 <!-- 全局侧边栏 -->
 <aside class="side">
-  <div class="logo-box" style="padding:14px 16px;display:flex;flex-direction:column;gap:4px">
-    <div class="logo-title" style="display:flex;align-items:center;gap:6px;font-size:16px;font-weight:800;letter-spacing:0.5px">
-      <span style="color:var(--primary);font-size:18px">🎬</span> <span data-i18n="brand_title">一幕·YIMU</span>
+  <div class="logo-box" style="padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+    <div class="logo-title" style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;letter-spacing:0.5px">
+      <img src="/static/img/logo-icon.png" style="width:26px;height:26px;border-radius:6px;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(56,189,248,0.4))" alt="Logo">
+      <span data-i18n="brand_title">一幕·YIMU</span>
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.3px" data-i18n="brand_badge">爆款工作室</span>
@@ -3260,8 +3265,8 @@ input[type=text]:focus, textarea:focus, select:focus {
       <span id="gw-status-text">LLM 检测中…</span>
     </div>
     <div id="side-user-profile-btn" style="margin-top:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:11.5px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .2s" onclick="switchToProfileCenter()" title="点击进入个人中心与系统设置">
-      <div style="display:flex;align-items:center;gap:6px">
-        <span>👤</span>
+      <div style="display:flex;align-items:center;gap:7px">
+        <img src="/static/img/default-avatar.png" style="width:20px;height:20px;border-radius:50%;object-fit:cover;border:1px solid rgba(240,136,62,0.4)" alt="会员Logo">
         <span style="color:var(--text);font-weight:600" id="side-user-title">个人中心</span>
       </div>
       <span class="badge ok" id="side-auth-badge">已登录</span>
@@ -3366,8 +3371,9 @@ input[type=text]:focus, textarea:focus, select:focus {
       </button>
 
       <!-- 访问口令验证入口 -->
-      <div id="top-auth-btn" onclick="openLoginModal()" style="display:flex;align-items:center;gap:6px;background:rgba(46,125,82,0.15);border:1px solid rgba(46,125,82,0.4);padding:4px 12px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;color:var(--success)" title="点击登录、注册或切换账号">
-        <span id="top-auth-icon">👤</span>
+      <div id="top-auth-btn" onclick="openLoginModal()" style="display:flex;align-items:center;gap:6px;background:rgba(46,125,82,0.15);border:1px solid rgba(46,125,82,0.4);padding:4px 10px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;color:var(--success)" title="点击登录、注册或切换账号">
+        <img src="/static/img/default-avatar.png" id="top-auth-avatar-img" style="width:18px;height:18px;border-radius:50%;object-fit:cover;border:1px solid rgba(46,125,82,0.5)" alt="会员Logo">
+        <span id="top-auth-icon" style="font-size:9px">🟢</span>
         <span id="top-auth-text" data-i18n="top_auth_logged_in">创作者已登录</span>
       </div>
 
@@ -6160,8 +6166,8 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div class="card" style="margin-bottom:16px;background:radial-gradient(ellipse at top left, rgba(168,85,247,0.18), rgba(15,23,42,0.7));border:1px solid rgba(168,85,247,0.35);padding:22px">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
           <div style="display:flex;align-items:center;gap:16px">
-            <div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#9333ea,#f0883e);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 4px 14px rgba(168,85,247,0.4);border:2px solid rgba(255,255,255,0.25)">
-              👤
+            <div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#9333ea,#f0883e);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(168,85,247,0.4);border:2px solid rgba(255,255,255,0.25);overflow:hidden">
+              <img src="/static/img/default-avatar.png" id="profile-user-avatar-img" style="width:100%;height:100%;object-fit:cover" alt="会员默认Logo">
             </div>
             <div>
               <div style="display:flex;align-items:center;gap:10px">
@@ -8136,8 +8142,9 @@ async function loadAdminUsers(offset = 0) {
 
         return `
           <tr style="border-bottom:1px solid rgba(255,255,255,0.05)">
-            <td style="padding:10px 8px;font-weight:600;color:#fff">
-              ${safeUname} ${isDefaultAdmin ? '<span style="font-size:10px;color:var(--primary)">[系统超管]</span>' : ''}
+            <td style="padding:10px 8px;font-weight:600;color:#fff;display:flex;align-items:center;gap:8px">
+              <img src="${u.avatar_url || '/static/img/default-avatar.png'}" style="width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid rgba(240,136,62,0.4);background:rgba(15,23,42,0.6)" alt="会员默认Logo">
+              <span>${safeUname} ${isDefaultAdmin ? '<span style="font-size:10px;color:var(--primary)">[系统超管]</span>' : ''}</span>
             </td>
             <td style="padding:10px 8px">${roleBadge}</td>
             <td style="padding:10px 8px">${planBadge}</td>
@@ -8742,7 +8749,8 @@ async function deleteUserAccount(uid, username) {
   <div class="modal-box" style="width:440px;background:linear-gradient(145deg, #161c28, #0d121c);border:1px solid rgba(240,136,62,0.35);box-shadow:0 12px 40px rgba(0,0,0,0.7)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <h3 style="margin-bottom:0;color:#fff;display:flex;align-items:center;gap:8px">
-        <span>🎬</span> 一幕·YIMU 创作者通行证
+        <img src="/static/img/logo-icon.png" style="width:22px;height:22px;border-radius:5px;object-fit:contain" alt="Logo">
+        <span>一幕·YIMU 创作者通行证</span>
       </h3>
       <button class="btn btn-sm ghost" onclick="closeModal()" style="padding:2px 8px;border-radius:4px">✕</button>
     </div>

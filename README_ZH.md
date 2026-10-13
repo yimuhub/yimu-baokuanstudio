@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="web/static/img/logo.png" alt="一幕·YIMU 爆款工作室 Logo" width="220" />
+
 # 🎬 一幕·YIMU 爆款工作室 (YIMU Studio)
 
 **面向自媒体创作者、短剧团队与 MCN 机构的全链路爆款生产引擎 + 大模型商业网关**

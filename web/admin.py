@@ -126,6 +126,15 @@ _STATIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static-img/editor_uploads", StaticFiles(directory=str(_STATIC_UPLOAD_DIR)), name="img")
 app.mount("/static", StaticFiles(directory=str(BASE / "web" / "static")), name="static")
 
+
+@app.get("/favicon.ico")
+def get_favicon():
+    fav = BASE / "web" / "static" / "img" / "favicon.ico"
+    if fav.is_file():
+        return FileResponse(str(fav), media_type="image/x-icon")
+    return Response(status_code=404)
+
+
 # ---- V7 网关 + 会员账本 UI（WS1）：/admin/gateway、/admin/billing 功能页 ----
 # 注意：web/gateway_ui.py 模块顶层不导入 web.admin（函数内导入鉴权），无循环导入；
 # gateway/routers_openai.py 仅定义路由（import 无副作用），主 app 此前无 /v1/* 路由。
@@ -477,15 +486,19 @@ def get_current_user(request: Request) -> dict | None:
         if payload and payload.get("user_id"):
             u = auth.get_user_by_id(payload["user_id"])
             if u and u.get("is_active"):
+                u.setdefault("avatar_url", "/static/img/default-avatar.png")
                 return u
 
     # 2. 兼容旧单机模式全局 Token（进程内随机签发，外部不可伪造）
     if request.cookies.get("mf_token") == _token():
-        return {"id": "u-admin", "username": "admin", "role": "admin", "plan": "enterprise"}
+        return {"id": "u-admin", "username": "admin", "role": "admin", "plan": "enterprise", "avatar_url": "/static/img/default-avatar.png"}
 
     # 3. 本地 loopback 自动免密通行（映射为系统超级管理员）
     #    ⭐ fail-closed：未配置 ADMIN_PASSWORD 时不通行（原本恒为真）
-    return _auto_admin_cookie(request) or None
+    adm = _auto_admin_cookie(request)
+    if adm and isinstance(adm, dict):
+        adm.setdefault("avatar_url", "/static/img/default-avatar.png")
+    return adm or None
 
 
 def authed(request: Request) -> bool:
@@ -811,6 +824,8 @@ async def api_login(request: Request):
 def api_auth_me(request: Request):
     """获取当前登录用户的资料与额度"""
     u = guard(request)
+    if isinstance(u, dict):
+        u["avatar_url"] = u.get("avatar_url") or "/static/img/default-avatar.png"
     return {"ok": True, "user": u}
 
 

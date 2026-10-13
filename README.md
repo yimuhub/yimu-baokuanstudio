@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="web/static/img/logo.png" alt="YIMU Studio Logo" width="220" />
+
 # 🎬 YIMU Studio (一幕·YIMU)
 
 **The Full-Lifecycle Viral Content Creation Engine & LLM Commercial Gateway for Digital Creators, Short Drama Studios, and MCN Agencies**

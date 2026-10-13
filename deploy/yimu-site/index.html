@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>一幕 YIMU · AI Storytelling Studio</title>
 <meta name="description" content="一幕 YIMU —— 面向下一代创作者的 AI Storytelling Studio。一念起，一幕开，万象生。全生命周期爆款内容生产引擎与大模型商业网关。">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a0a0a'/%3E%3Crect x='18' y='44' width='64' height='12' rx='6' fill='%23C73A32'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="128x128" href="img/favicon.png">
+<link rel="apple-touch-icon" href="img/logo-icon.png">
 <style>
 /* ============================================================
    一幕 YIMU — Brand VI V1.0
@@ -46,24 +47,25 @@ nav{
   position:fixed;top:0;left:0;right:0;z-index:100;
   display:flex;align-items:center;justify-content:space-between;
   padding:0 clamp(20px,4vw,56px);height:72px;
-  background:rgba(17,17,17,.72);backdrop-filter:blur(18px) saturate(1.3);
-  border-bottom:1px solid var(--line);
+  background:rgba(245,242,234,.82);backdrop-filter:blur(18px) saturate(1.2);
+  border-bottom:1px solid rgba(17,17,17,.12);
 }
-.brand{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--paper)}
+.brand{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--ink)}
 .brand .mark{
-  width:38px;height:38px;border:1px solid var(--line2);border-radius:9px;
+  width:38px;height:38px;border:1px solid rgba(17,17,17,.18);border-radius:9px;
   display:grid;place-items:center;position:relative;overflow:hidden;
-  background:linear-gradient(135deg,#1d1d1d,#141414);
+  background:linear-gradient(135deg,#fffdf7,#efe9dc);
 }
 .brand .mark::before{content:"";position:absolute;left:7px;right:7px;top:50%;height:4px;margin-top:-2px;
   background:var(--vermilion);border-radius:2px;box-shadow:0 0 14px rgba(199,58,50,.8)}
 .brand .mark::after{content:"";position:absolute;top:9px;left:12px;width:2px;height:12px;background:rgba(245,242,234,.55);
   border-radius:1px}
+.brand .mark .logo-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.92;z-index:1}
 .brand .zh{font-size:17px;font-weight:700;letter-spacing:.14em}
-.brand .en{font-size:9.5px;letter-spacing:.32em;color:var(--gray);font-weight:500;text-transform:uppercase;font-family:var(--font-mono)}
+.brand .en{font-size:9.5px;letter-spacing:.32em;color:rgba(17,17,17,.55);font-weight:500;text-transform:uppercase;font-family:var(--font-mono)}
 .nav-links{display:flex;gap:clamp(14px,2.5vw,36px);font-size:13px;letter-spacing:.12em}
-.nav-links a{color:var(--gray);text-decoration:none;transition:color .25s;position:relative}
-.nav-links a:hover{color:var(--paper)}
+.nav-links a{color:rgba(17,17,17,.58);text-decoration:none;transition:color .25s;position:relative}
+.nav-links a:hover{color:var(--ink)}
 .nav-links a::after{content:"";position:absolute;left:0;bottom:-5px;width:0;height:1px;background:var(--vermilion);transition:width .3s}
 .nav-links a:hover::after{width:100%}
 .nav-cta{font-size:12px;letter-spacing:.18em;padding:9px 18px;border:1px solid var(--vermilion);
@@ -74,14 +76,15 @@ nav{
 header{
   min-height:100vh;position:relative;display:flex;flex-direction:column;
   justify-content:center;padding:140px clamp(20px,6vw,90px) 90px;overflow:hidden;
+  background:var(--paper);color:var(--ink);
 }
 /* curtain opening lines */
 .curtain{position:absolute;inset:0;pointer-events:none}
 .curtain::before,.curtain::after{content:"";position:absolute;top:0;bottom:0;width:44vw;
-  background:linear-gradient(90deg,transparent,rgba(17,17,17,.9) 70%);
+  background:linear-gradient(90deg,transparent,rgba(245,242,234,.96) 70%);
   animation:curL 2.6s cubic-bezier(.7,0,.3,1) forwards}
 .curtain::before{left:0;transform:translateX(0)}
-.curtain::after{right:0;background:linear-gradient(270deg,transparent,rgba(17,17,17,.9) 70%);
+.curtain::after{right:0;background:linear-gradient(270deg,transparent,rgba(245,242,234,.96) 70%);
   animation:curR 2.6s cubic-bezier(.7,0,.3,1) forwards}
 @keyframes curL{to{transform:translateX(-101%)}}
 @keyframes curR{to{transform:translateX(101%)}}
@@ -90,39 +93,43 @@ header{
   background:linear-gradient(90deg,transparent 4%,rgba(199,58,50,.0) 30%,rgba(199,58,50,.55) 50%,rgba(199,58,50,0) 70%,transparent 96%);
   transform:scaleX(0);animation:lineIn 1.6s 1.4s cubic-bezier(.2,.8,.2,1) forwards;pointer-events:none}
 @keyframes lineIn{to{transform:scaleX(1)}}
-.grid-bg{position:absolute;inset:0;pointer-events:none;opacity:.5;
-  background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+.grid-bg{position:absolute;inset:0;pointer-events:none;opacity:.6;
+  background-image:linear-gradient(rgba(17,17,17,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(17,17,17,.07) 1px,transparent 1px);
   background-size:80px 80px;
   mask-image:radial-gradient(ellipse 70% 60% at 50% 42%,transparent 30%,#000 100%);
   -webkit-mask-image:radial-gradient(ellipse 70% 60% at 50% 42%,transparent 30%,#000 100%);}
 .hero-inner{position:relative;z-index:2;max-width:1240px;margin:0 auto;width:100%}
 .hero-eyebrow{
-  display:flex;align-items:center;gap:14px;font-size:12px;letter-spacing:.34em;color:var(--gray2);
+  display:flex;align-items:center;gap:14px;font-size:12px;letter-spacing:.34em;color:rgba(17,17,17,.45);
   font-family:var(--font-mono);text-transform:uppercase;margin-bottom:34px}
 .hero-eyebrow::before{content:"";width:44px;height:1px;background:var(--vermilion)}
 h1{font-size:clamp(44px,7.2vw,104px);font-weight:800;letter-spacing:.02em;line-height:1.12}
 h1 .zh{display:block}
 h1 .sub{display:block;font-size:clamp(13px,1.4vw,18px);font-weight:400;letter-spacing:.42em;
   color:var(--gold);margin-top:26px;font-family:var(--font-mono)}
-.hero-credo{margin-top:44px;font-size:clamp(17px,2vw,24px);color:var(--paper);font-weight:300;letter-spacing:.06em}
+.hero-credo{margin-top:44px;font-size:clamp(17px,2vw,24px);color:var(--ink);font-weight:300;letter-spacing:.06em}
 .hero-credo b{font-weight:600;color:var(--vermilion);font-style:normal}
-.hero-tag{margin-top:16px;font-size:14px;color:var(--gray2);letter-spacing:.1em}
+.hero-tag{margin-top:16px;font-size:14px;color:rgba(17,17,17,.5);letter-spacing:.1em}
 .hero-actions{margin-top:52px;display:flex;gap:18px;flex-wrap:wrap}
 .btn{
   display:inline-flex;align-items:center;gap:10px;padding:15px 34px;font-size:14px;font-weight:600;
   letter-spacing:.2em;text-decoration:none;border-radius:2px;transition:.35s;position:relative;overflow:hidden}
 .btn-primary{background:var(--vermilion);color:var(--paper);border:1px solid var(--vermilion)}
 .btn-primary:hover{box-shadow:0 6px 30px rgba(199,58,50,.5);transform:translateY(-2px)}
-.btn-ghost{color:var(--paper);border:1px solid var(--line2)}
-.btn-ghost:hover{border-color:var(--paper);background:rgba(245,242,234,.06);transform:translateY(-2px)}
+.btn-ghost{color:var(--ink);border:1px solid rgba(17,17,17,.3)}
+.btn-ghost:hover{border-color:var(--ink);background:rgba(17,17,17,.05);transform:translateY(-2px)}
 .hero-meta{margin-top:70px;display:flex;gap:clamp(28px,5vw,72px);flex-wrap:wrap}
-.hero-meta .m{border-left:1px solid var(--line2);padding-left:18px}
+.hero-meta .m{border-left:1px solid rgba(17,17,17,.25);padding-left:18px}
 .hero-meta .m .n{font-size:clamp(26px,3vw,40px);font-weight:700;font-family:var(--font-mono);letter-spacing:-.02em}
 .hero-meta .m .n em{color:var(--vermilion);font-style:normal}
-.hero-meta .m .l{font-size:11px;letter-spacing:.24em;color:var(--gray2);text-transform:uppercase;margin-top:4px}
+.hero-meta .m .l{font-size:11px;letter-spacing:.24em;color:rgba(17,17,17,.45);text-transform:uppercase;margin-top:4px}
 
 /* section shells */
 section{padding:120px clamp(20px,6vw,90px);position:relative}
+section.lt{color:var(--ink)}
+section.lt .sec-no::after{background:rgba(17,17,17,.25)}
+section.lt .sec-note{color:rgba(17,17,17,.45)}
+section.lt h2{color:var(--ink)}
 .wrap{max-width:1240px;margin:0 auto}
 .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:30px;margin-bottom:64px;flex-wrap:wrap}
 .sec-no{font-family:var(--font-mono);font-size:12px;letter-spacing:.3em;color:var(--vermilion);
@@ -209,38 +216,47 @@ h2{font-size:clamp(30px,4.4vw,52px);font-weight:800;letter-spacing:.02em;line-he
 .agent b{display:block;font-weight:600;color:var(--paper);font-size:12.5px}
 
 /* ---------- versions ---------- */
-#versions{background:var(--ink)}
+#versions{background:var(--paper);color:var(--ink)}
+#versions .sec-no::after{background:rgba(17,17,17,.25)}
+#versions .sec-note{color:rgba(17,17,17,.45)}
+#versions h2{color:var(--ink)}
 .vtable{width:100%;border-collapse:collapse}
-.vtable th,.vtable td{padding:18px 22px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
-.vtable th{font-size:11px;letter-spacing:.24em;color:var(--gray2);text-transform:uppercase;font-weight:500}
-.vtable td{font-size:14px;color:var(--gray)}
-.vtable td.ver{font-family:var(--font-mono);font-weight:700;font-size:16px;color:var(--paper);white-space:nowrap}
+.vtable th,.vtable td{padding:18px 22px;text-align:left;border-bottom:1px solid rgba(17,17,17,.12);vertical-align:top}
+.vtable th{font-size:11px;letter-spacing:.24em;color:rgba(17,17,17,.45);text-transform:uppercase;font-weight:500}
+.vtable td{font-size:14px;color:rgba(17,17,17,.62)}
+.vtable td.ver{font-family:var(--font-mono);font-weight:700;font-size:16px;color:var(--ink);white-space:nowrap}
 .vtable td .cn{display:block;font-size:12px;color:var(--gold);letter-spacing:.14em;margin-top:4px}
-.vtable tr.cur td{background:linear-gradient(90deg,rgba(199,58,50,.1),transparent 60%)}
+.vtable tr.cur td{background:linear-gradient(90deg,rgba(199,58,50,.08),transparent 60%)}
 .vtable tr.cur td.ver{color:var(--vermilion)}
 .badge{display:inline-block;font-size:10px;letter-spacing:.14em;padding:3px 10px;border-radius:2px;
   font-family:var(--font-mono);margin-top:8px}
 .badge.live{border:1px solid rgba(199,58,50,.6);color:var(--vermilion)}
-.badge.old{border:1px solid var(--line);color:var(--gray2)}
+.badge.old{border:1px solid rgba(17,17,17,.2);color:rgba(17,17,17,.4)}
 
 /* ---------- philosophy ---------- */
-#philo{background:var(--paper);color:var(--ink);text-align:center}
+#philo{background:var(--ink);color:var(--paper);text-align:center}
+#philo .sec-no::after{background:var(--line2)}
+#philo .sec-note{color:var(--gray2)}
+#philo h2{color:var(--paper)}
 #philo .quote{font-size:clamp(30px,4.6vw,58px);font-weight:800;letter-spacing:.14em;line-height:1.5}
 #philo .quote em{font-style:normal;color:var(--vermilion)}
 #philo .en{margin-top:30px;font-family:var(--font-mono);font-size:clamp(13px,1.6vw,17px);
-  letter-spacing:.3em;color:rgba(17,17,17,.5);text-transform:uppercase}
-#philo .slogan{margin-top:52px;font-size:clamp(15px,1.8vw,19px);color:rgba(17,17,17,.65);letter-spacing:.1em}
-#philo .slogan b{color:var(--ink);font-weight:700}
+  letter-spacing:.3em;color:rgba(245,242,234,.5);text-transform:uppercase}
+#philo .slogan{margin-top:52px;font-size:clamp(15px,1.8vw,19px);color:rgba(245,242,234,.65);letter-spacing:.1em}
+#philo .slogan b{color:var(--paper);font-weight:700}
 .values{display:flex;justify-content:center;gap:clamp(24px,5vw,64px);margin-top:64px;flex-wrap:wrap}
-.vitem{font-size:13px;letter-spacing:.2em;color:rgba(17,17,17,.55)}
+.vitem{font-size:13px;letter-spacing:.2em;color:rgba(245,242,234,.55)}
 .vitem::before{content:"——  "}
 #philo .rule{width:64px;height:2px;background:var(--vermilion);margin:46px auto 0}
 
 /* ---------- install section ---------- */
-#install{background:var(--ink)}
+#install{background:var(--paper);color:var(--ink)}
+#install .sec-no::after{background:rgba(17,17,17,.25)}
+#install .sec-note{color:rgba(17,17,17,.45)}
+#install h2{color:var(--ink)}
 .code-block{
-  border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-top:6px;
-  background:#0d0d0d}
+  border:1px solid rgba(17,17,17,.15);border-radius:6px;overflow:hidden;margin-top:6px;
+  background:#141414}
 .code-head{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;
   border-bottom:1px solid var(--line);background:#151515}
 .code-head .t{font-family:var(--font-mono);font-size:11px;letter-spacing:.2em;color:var(--gray2);text-transform:uppercase}
@@ -299,7 +315,8 @@ pre .u{color:#8fb4d8}
 /* ---------- footer ---------- */
 footer{background:#0a0a0a;border-top:1px solid var(--line);padding:80px clamp(20px,6vw,90px) 44px}
 .foot-grid{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px}
-.foot-brand .zh{font-size:26px;font-weight:800;letter-spacing:.16em}
+.foot-brand .zh{font-size:26px;font-weight:800;letter-spacing:.16em;display:flex;align-items:center;gap:16px}
+.foot-brand .foot-logo{width:52px;height:52px;border-radius:10px;object-fit:cover;border:1px solid var(--line2)}
 .foot-brand p{color:var(--gray2);font-size:13px;margin-top:14px;letter-spacing:.06em;max-width:34ch}
 .foot-col h4{font-size:11px;letter-spacing:.28em;color:var(--gray2);text-transform:uppercase;margin-bottom:18px;font-weight:500}
 .foot-col a{display:block;color:var(--gray);text-decoration:none;font-size:13.5px;margin-bottom:12px;transition:.25s;width:fit-content}
@@ -334,7 +351,7 @@ footer{background:#0a0a0a;border-top:1px solid var(--line);padding:80px clamp(20
 
 <nav>
   <a class="brand" href="#top">
-    <span class="mark"></span>
+    <img src="img/logo-icon.png" style="width:34px;height:34px;border-radius:8px;object-fit:contain;filter:drop-shadow(0 2px 8px rgba(56,189,248,0.35))" alt="YIMU Logo">
     <span><span class="zh">一幕</span><span class="en" style="display:block">YIMU Studio</span></span>
   </a>
   <div class="nav-links">
@@ -355,6 +372,9 @@ footer{background:#0a0a0a;border-top:1px solid var(--line);padding:80px clamp(20
   <div class="grid-bg"></div>
   <div class="one-line"></div>
   <div class="hero-inner">
+    <div style="display:flex;justify-content:center;margin-bottom:20px">
+      <img src="img/logo.png" style="width:200px;max-width:85%;height:auto;filter:drop-shadow(0 8px 30px rgba(56,189,248,0.3))" alt="一幕·YIMU Logo">
+    </div>
     <div class="hero-eyebrow">AI Storytelling Studio · V9.1</div>
     <h1>
       <span class="zh">一幕 · YIMU</span>
@@ -675,7 +695,7 @@ footer{background:#0a0a0a;border-top:1px solid var(--line);padding:80px clamp(20
 <footer>
   <div class="foot-grid">
     <div class="foot-brand">
-      <div class="zh">一幕 YIMU</div>
+      <div class="zh"><img class="foot-logo" alt="一幕 YIMU" src="img/logo.png">一幕 YIMU</div>
       <p>从想象，到创作。让每个人，都拥有自己的创作世界。</p>
     </div>
     <div class="foot-col">

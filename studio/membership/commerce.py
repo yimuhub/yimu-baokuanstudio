@@ -510,6 +510,7 @@ def list_users(
             "credits_total": total_credits,
             "credits_used": used,
             "credits_left": max(0, total_credits - used),
+            "avatar_url": "/static/img/default-avatar.png",
             "created_at": _iso(u.created_at),
             "last_login_at": _iso(u.last_login_at),
         })

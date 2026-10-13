@@ -220,7 +220,7 @@ YIMU Studio strictly implements Semantic Versioning (`SemVer`). To ensure maximu
 ### 📄 Commercial Terms & Use Grant
 - 🎁 **Free for Individuals & Creators**: Personal learning, research, non-commercial use, and personal digital creator workflows (including ad and e-commerce affiliate revenues earned via personal social media channels) are **100% free forever without requiring commercial authorization**.
 - 💼 **Small & Micro Commercial Exemption**: Any entity whose commercial revenue directly generated through this software is below RMB ¥100,000 (or equivalent USD) in any consecutive 12-month period is **completely exempt from licensing fees**.
-- 🏢 **Scaled Enterprise Licensing**: Commercial usage exceeding RMB ¥100,000 or SaaS platform operation requires official commercial authorization from **yimu.hyipf.com** (Free registration or tiered agreements available; contact: `yimu@yimu.hyipf.com`).
+- 🏢 **Scaled Enterprise Licensing**: Commercial usage exceeding RMB ¥100,000 or SaaS platform operation requires official commercial authorization from **yimu.hyipf.com** (Free registration or tiered agreements available; contact: `yimu@hyipf.com`).
 - 🔄 **Automatic Open Source Conversion**: Exactly four years after the public release date of each version, that version automatically converts to the fully open-source **Apache License 2.0**.
 
 For full legal terms, please read [LICENSE](LICENSE).

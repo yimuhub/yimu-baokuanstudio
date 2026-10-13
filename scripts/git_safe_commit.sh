@@ -119,7 +119,7 @@ ok "已提交：$LAST"
 step "5/5 推送"
 if [ -n "$REMOTE" ]; then
   git push "$REMOTE" "$BR" || err "push 失败——网络问题或需要 rebase 远端新提交，重跑本脚本"
-  ok "已推送到 $REMOTE/$BR，其他开发者下次 --sync 即可看到"
+  ok "已推送到 $REMOTE/${BR}，其他开发者下次 --sync 即可看到"
 else
   echo "ℹ️  无远端，跳过推送（本地提交完成）"
 fi

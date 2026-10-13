@@ -962,7 +962,7 @@ def logout():
 try:
     from version import __version__ as APP_VERSION
 except Exception:
-    APP_VERSION = "9.1.0"
+    APP_VERSION = "9.1.1"
 
 
 @app.get("/health")
@@ -3444,10 +3444,22 @@ def api_releases():
         "licensor": "yimu.hyipf.com",
         "releases": [
             {
-                "version": "9.1.0",
+                "version": "9.1.1",
                 "codename": "万象生",
                 "date": "2026-10-13",
                 "status": "latest",
+                "highlights": [
+                    "全站各级菜单、二级子页面、弹窗与表单 100% 深度双语纯净切换（零中文残留）",
+                    "1,768 条全量 UI 词典编译与双向可逆无损恢复机制",
+                    "全仓代码多版本号单一真源统一步进至 V9.1.1",
+                    "导航标题、属性、Tab 切换与 MutationObserver 毫秒级语言联动",
+                ]
+            },
+            {
+                "version": "9.1.0",
+                "codename": "万象生",
+                "date": "2026-10-13",
+                "status": "stable",
                 "highlights": [
                     "全站 i18n 国际化双语绝对统一（纯英文与纯中文极致纯粹）",
                     "GitHub Releases 官方发布展示与版本演进中枢",

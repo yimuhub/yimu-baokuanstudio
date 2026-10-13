@@ -4,6 +4,26 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌟 Version 9.1.1 · Infinite Worlds (万象生) · 2026-10-13
+
+> **Milestone**: Complete 1,768 UI Terms Zero-Residue Bilingual Engine & Deep Subview Purity  
+> **Codename**: 万象生 (Infinite Worlds)  
+> **Slogan**: One Thought. One Scene. Infinite Worlds. (一念起 · 一幕开 · 万象生)  
+> **Licensor**: yimu.hyipf.com  
+> **Release Date**: 2026-10-13  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.1.1"`)  
+> **Release Policy**: Previous releases (e.g. `v9.1.0`, `v9.0.0`, `v8.3.33`, `v8.3.2`) remain permanently frozen via Git tags. New releases upload directly with clear upgrade paths and comparative changelogs.
+
+### 🌐 1. Complete Zero-Residue Bilingual Engine (全站 1,768 词条零残留双语引擎)
+- **1,768 Terms Comprehensive Dictionary**: Scanned and cataloged 100% of all UI nodes across primary navigation, secondary sub-tabs, drawers, modals, buttons, options, alerts, and tooltips, achieving **0.0% residual Chinese** in English mode.
+- **Bidirectional Lossless Reversibility**: Built-in `_orig_zh` caching, $O(1)$ `EXACT_MAP`, `PHRASE_LIST`, and `REVERSE_PHRASE_LIST` guarantee that switching back to Chinese restores exact native text without distortion.
+- **Dynamic Title & Subview Synchronization**: Primary menu clicks, sub-tabs (`switchSubTab`), modals, and MutationObservers instantly update language bindings at runtime.
+
+### 🔄 2. Single Source of Truth Upgrade to 9.1.1
+- Unified single source of truth across all modules, templates, headers, docstrings, licenses, and contracts to `V9.1.1` / `9.1.1`.
+
+---
+
 ## 🌟 Version 9.1.0 · Infinite Worlds (万象生) · 2026-10-13
 
 > **Milestone**: Full i18n Bilingual Unification & GitHub Releases Integration  

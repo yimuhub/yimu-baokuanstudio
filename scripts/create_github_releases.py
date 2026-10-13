@@ -303,6 +303,59 @@ git checkout v9.1.0
 git pull origin main
 ```
 """,
+        "is_latest": False
+    },
+    {
+        "tag": "v9.1.1",
+        "name": "v9.1.1 - 万象生 · Infinite Worlds (1,768 UI Terms Zero-Residue Bilingualism)",
+        "body": """# 🚀 一幕 · 爆款工坊 (YIMU Studio) V9.1.1 [最新旗舰版 / Latest]
+
+> **版本代号 / Codename**: 万象生 · Infinite Worlds  
+> **发布日期 / Release Date**: 2026-10-13  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 1,768 词条全量零死角双语系统 & 深度子页面/弹窗绝对纯净
+
+---
+
+### 🌟 版本概述 (Overview)
+V9.1.1 彻底消除了顶栏快捷栏、各大功能弹窗、底层配置表单以及移动端抽屉栏中残留的中文，将国际化字典从 984 条扩充并全量编译至 **1,768 条**，真正做到全站 100% 纯英文与 100% 纯中文的双向可逆无死角切换；同时版本单一真源全域升级为 **9.1.1**。
+
+---
+
+### 🆕 新增功能 (New Features)
+1. **1,768 个 UI 词条全域零残留 (Zero Residue Bilingual Coverage)**:
+   - 全面收录包括 6 维画像弹窗、API Vault 密码箱、商业化算力中枢、水印设置、任务抽屉、IP 资产库等全部功能弹窗中的 784 个专业词条；
+   - 英文模式下经 BeautifulSoup 与 DOM 递归检验，全站残留中文数量降为 **0**。
+2. **双向可逆恢复与长短语逆向字典 (Reversible Engine)**:
+   - 升级 `_orig_zh` 智能缓存，杜绝英文覆盖中文原始值；
+   - 增加 `REVERSE_PHRASE_LIST`，支持英文短语一键安全恢复为原汁原味纯中文。
+3. **顶栏快捷按键与标题即时联动**:
+   - 修复了 `top_profile_6d` 与 `top_my_api` 的 `data-i18n` 映射，更新 `<title>` 页面标题与导航栏标题的即时国际化响应。
+
+---
+
+### 🛠️ 功能优化与更新 (Updates & Enhancements)
+- **版本号统一步进至 9.1.1**:
+  - `version.py` 单一真源升级为 `9.1.1`；
+  - `web/admin.py`, `gateway_ui.py`, `index.html`, `mobile.html`, `README.md`, `LICENSE` 等全域对齐为 `9.1.1`。
+
+---
+
+### 🐛 修复说明 (Bug Fixes)
+- 🐛 修复切换英文模式后，顶栏画像按钮、系统主题切换指示器、弹窗标题和表单占位符仍有部分中文残留的缺陷；
+- 🐛 修复切回中文模式时部分动态长短语未能完全复原的问题；
+- 🐛 修复 MutationObserver 在异步事件处理中的递归触发隐患。
+
+---
+
+### 📦 获取与使用 (How to Access)
+```bash
+# 获取最新 9.1.1 代码
+git checkout v9.1.1
+# 或者拉取最新 main 分支
+git pull origin main
+```
+""",
         "is_latest": True
     }
 ]

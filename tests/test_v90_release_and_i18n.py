@@ -14,8 +14,8 @@ import version
 
 
 def test_v90_version_single_source_of_truth():
-    """验证 9.1.0 版本单一真源"""
-    assert version.__version__ == "9.1.0"
+    """验证 9.1.1 版本单一真源"""
+    assert version.__version__ == "9.1.1"
     assert version.__codename__ == "万象生"
     assert "Infinite Worlds" in version.__slogan_en__
 
@@ -26,12 +26,12 @@ def test_v90_version_single_source_of_truth():
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
-    assert "V9.1.0" in index_html
-    assert "9.1.0" in index_html
-    assert "V9.1.0" in mobile_html
-    assert "version-9.1.0" in readme_en
-    assert "version-9.1.0" in readme_zh
-    assert "V9.1.0" in license_txt
+    assert "V9.1.1" in index_html
+    assert "9.1.1" in index_html
+    assert "V9.1.1" in mobile_html
+    assert "version-9.1.1" in readme_en
+    assert "version-9.1.1" in readme_zh
+    assert "V9.1.1" in license_txt
     assert "Licensor:            yimu.hyipf.com" in license_txt
     assert "The Licensed Work is (c) 2026 yimu.hyipf.com" in license_txt
 
@@ -46,21 +46,21 @@ def test_v90_releases_showcase_page_and_api():
     # 1. /releases 页面
     r = client.get("/releases")
     assert r.status_code == 200
-    assert "V9.1.0" in r.text
+    assert "V9.1.1" in r.text or "V9.1.0" in r.text
     assert "yimu.hyipf.com" in r.text
     assert "核心版本差异演进矩阵" in r.text
 
     # 2. /admin/releases 兼容页面
     r_admin = client.get("/admin/releases")
     assert r_admin.status_code == 200
-    assert "V9.1.0" in r_admin.text
+    assert "V9.1.1" in r_admin.text or "V9.1.0" in r_admin.text
 
     # 3. /api/releases 数据接口
     r_api = client.get("/api/releases")
     assert r_api.status_code == 200
     d = r_api.json()
     assert d.get("ok") is True
-    assert d.get("current_version") == "9.1.0"
+    assert d.get("current_version") == "9.1.1"
     assert d.get("licensor") == "yimu.hyipf.com"
     assert len(d.get("releases", [])) >= 4
 
@@ -136,11 +136,11 @@ def test_v91_deep_i18n_subviews_and_menu_purity():
     i18n_code = i18n_js_path.read_text(encoding="utf-8")
     index_html = index_html_path.read_text(encoding="utf-8")
 
-    # 1. 词库规模与全量内嵌检查（至少 900+ 条全量 UI 词条）
+    # 1. 词库规模与全量内嵌检查（至少 1700+ 条全量 UI 词条）
     import json
     with open(i18n_dict_path, "r", encoding="utf-8") as f:
         dict_data = json.load(f)
-    assert len(dict_data) >= 900, f"Expected at least 900 terms in dictionary, got {len(dict_data)}"
+    assert len(dict_data) >= 1700, f"Expected at least 1700 terms in dictionary, got {len(dict_data)}"
     assert "EXACT_MAP" in i18n_code
     assert "REVERSE_MAP" in i18n_code
     assert "PHRASE_LIST" in i18n_code

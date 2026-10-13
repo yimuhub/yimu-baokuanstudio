@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>一幕·YIMU 爆款工作室 V9.1.0 · 全媒体超级创作引擎</title>
+<title>一幕·YIMU 爆款工作室 V9.1.1 · 全媒体超级创作引擎</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="/static/js/i18n.js"></script>
 <script>
@@ -3200,7 +3200,7 @@ input[type=text]:focus, textarea:focus, select:focus {
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.3px" data-i18n="brand_badge">爆款工作室</span>
-      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V9.1.0</span>
+      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V9.1.1</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -3270,7 +3270,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:6px" onclick="checkSystemUpdate(true)" title="点击检查 GitHub 仓库最新版本更新">
         <span style="font-size:11px">🪐</span>
         <span style="color:var(--text-muted);font-weight:500">版本</span>
-        <code style="color:var(--primary);font-weight:700" id="side-version-text">V9.1.0</code>
+        <code style="color:var(--primary);font-weight:700" id="side-version-text">V9.1.1</code>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <a href="/releases" target="_blank" style="font-size:10px;padding:1px 6px;text-decoration:none;background:rgba(168,85,247,0.18);color:#d8b4fe;border:1px solid rgba(168,85,247,0.3);border-radius:4px;font-weight:700" title="打开版本更新与发布历史展示页">Releases ↗</a>
@@ -3354,12 +3354,12 @@ input[type=text]:focus, textarea:focus, select:focus {
 
       <!-- 👤 账号 6 维数字画像快捷入口 -->
       <button class="btn btn-sm" onclick="openProfileModal()" style="display:flex;align-items:center;gap:5px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.35);color:#d8b4fe;font-weight:600" title="配置账号 6 维数字画像与人设声纹">
-        <span data-i18n="nav_profile">👤 6维画像</span>
+        <span data-i18n="top_profile_6d">👤 6维画像</span>
       </button>
 
       <!-- 🔑 专属 API 保险箱入口 -->
       <button class="btn btn-sm" onclick="openUserVaultModal()" style="display:flex;align-items:center;gap:5px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#c084fc;font-weight:600" title="配置我个人的专属 API Key 或切换平台托管服务">
-        <span data-i18n="nav_my_api">🔑 我的API</span>
+        <span data-i18n="top_my_api">🔑 我的API</span>
       </button>
 
       <!-- 访问口令验证入口 -->
@@ -3378,7 +3378,7 @@ input[type=text]:focus, textarea:focus, select:focus {
         <span style="color:var(--primary);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:2px"><span data-i18n="billing_plans_pricing">套餐/价格</span> ▾</span>
       </div>
       <button class="btn btn-sm ghost" onclick="refresh()" data-i18n="top_refresh">↻ 刷新状态</button>
-      <span id="nav-ver-text" style="display:none">9.1.0</span>
+      <span id="nav-ver-text" style="display:none">9.1.1</span>
       <span id="header-extra"></span>
     </div>
   </header>
@@ -3389,7 +3389,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:12px">
         <span class="live-pulse"></span>
         <span style="font-weight:700;font-size:13.5px;color:#fff" data-i18n="radar_title">一幕·YIMU 爆款雷达实时巡航中</span>
-        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V9.1.0</span>
+        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V9.1.1</span>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap">
         <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">—</strong></div>
@@ -5830,7 +5830,7 @@ input[type=text]:focus, textarea:focus, select:focus {
             <div>
               <div style="font-weight:700;font-size:14px;color:#38bdf8;display:flex;align-items:center;gap:6px"><span>🔄</span> GitHub 仓库在线升级与同步</div>
               <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="st-updater-status">
-                当前版本：<code style="color:var(--primary);font-weight:700">V9.1.0</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
+                当前版本：<code style="color:var(--primary);font-weight:700">V9.1.1</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
@@ -6169,7 +6169,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div style="font-size:12.5px;color:var(--text-muted);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap">
                 <span>媒体名称: <b style="color:var(--text)" id="profile-media-name-text">一幕·YIMU 爆款工作室</b></span>
                 <span>当前算力: <b style="color:var(--primary)" id="profile-token-bal-text">— Token</b></span>
-                <span>当前版本: <code style="color:#38bdf8;font-weight:700">V9.1.0</code></span>
+                <span>当前版本: <code style="color:#38bdf8;font-weight:700">V9.1.1</code></span>
               </div>
             </div>
           </div>
@@ -9984,7 +9984,7 @@ async function checkSystemUpdate(manual = false) {
             if (b) b.outerHTML = '<span class="badge blue">检查更新 ↗</span>';
           }, 3000);
         }
-        if (manual) toast('当前已是最新版本 (V' + (res.current_version || '9.1.0') + ')，无需升级。');
+        if (manual) toast('当前已是最新版本 (V' + (res.current_version || '9.1.1') + ')，无需升级。');
       }
     } else {
       if (statusEl) statusEl.innerHTML = `<span style="color:#ff7b72">⚠️ 检测更新提示: ${escapeHtml(res.error || '连接 GitHub 异常')}</span>`;
@@ -21412,7 +21412,7 @@ async function resetHabitSkill() {
 let yimuUserTier = 'free';
 function getAppVersionShort() {
   const t = document.getElementById('nav-ver-text')?.textContent;
-  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V9.1.0';
+  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V9.1.1';
 }
 const TIER_LABEL_MAP = {free: 'Free', pro: 'Pro', studio: 'Studio'};
 
@@ -21631,7 +21631,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px" id="agent-task-subtitle">全能微创改写与生成引擎调度中…</div>
         </div>
       </div>
-      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V9.1.0</span>
+      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V9.1.1</span>
     </div>
     
     <!-- 当前动态进行中的工作步骤展示卡 -->

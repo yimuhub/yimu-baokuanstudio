@@ -4,8 +4,8 @@
 
 **The Full-Lifecycle Viral Content Creation Engine & LLM Commercial Gateway for Digital Creators, Short Drama Studios, and MCN Agencies**
 
-[![Version](https://img.shields.io/badge/version-9.1.0-orange.svg?style=flat-square)](version.py)
-[![Release](https://img.shields.io/badge/release-v9.1%20(Infinite%20Worlds)-blueviolet.svg?style=flat-square)](RELEASES.md)
+[![Version](https://img.shields.io/badge/version-9.1.1-orange.svg?style=flat-square)](version.py)
+[![Release](https://img.shields.io/badge/release-v9.1.1%20(Infinite%20Worlds)-blueviolet.svg?style=flat-square)](RELEASES.md)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.12+-green.svg?style=flat-square)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/framework-FastAPI-009688.svg?style=flat-square)](https://fastapi.tiangolo.com)

@@ -74,112 +74,231 @@ RELEASES_DATA = [
     {
         "tag": "v8.3.2",
         "name": "v8.3.2 - 智瞳境 · Visual Storyboard & Dual Pipeline Engine",
-        "body": """## 🌟 一幕 · 爆款工坊 (YIMU Studio) V8.3.2
+        "body": """# 🎬 一幕 · 爆款工坊 (YIMU Studio) V8.3.2
 
-> **代号 / Codename**: 智瞳境 · Visual Storyboard  
+> **版本代号 / Codename**: 智瞳境 · Visual Storyboard  
 > **发布日期 / Release Date**: 2026-10-11  
-> **版权与许可 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 视觉分镜核心引擎基线里程碑
 
 ---
 
-### 核心亮点 / Key Highlights
-1. **分镜式图文编排 (Visual Storyboard Injection)**:
-   - 草稿段落视觉映射与全自动段落插图注入机制；
-   - 提取段落关键语义，生成多级镜头语言与视觉意象。
+### 🌟 版本概述 (Overview)
+V8.3.2 正式奠定了爆款工坊的影视级视觉分镜能力，实现了文章草稿生成与段落视觉插图的全自动编排。
 
-2. **多风格美学体系 (10 Visual Aesthetic Presets)**:
-   - 涵盖纪录片写实、新海诚动漫、极简 3D、赛博朋克等 10 款画风预设；
-   - 画面色调、质感与构图提示词模块化组装。
+---
 
+### 🆕 新增功能 (New Features)
+1. **AI 视觉分镜编排系统 (Visual Storyboard Injection)**:
+   - 自动解析长文中的二级标题 (H2) 与核心情绪拐点；
+   - 提取段落关键语义，生成多级镜头语言、光影构图与配图提示词；
+   - 自动在 Markdown 正文中精准注入配图 Markdown 标记。
+2. **十大视觉美学风格预设 (10 Aesthetic Presets)**:
+   - 预设纪录片写实、新海诚动漫、极简 3D、赛博朋克、瑞士平面排版等 10 套电影级风格矩阵；
+   - 支持根据文章主题自适应匹配画风色调。
 3. **双通道生图调度引擎 (Dual Pipeline Engine)**:
-   - 支持本地/云端 API 自适应容灾切换；
-   - 增强型图像生成异常拦截与提示词清洗。
+   - 支持本地/云端 API 双引擎调度，保障生图链路的高可用性。
+
+---
+
+### 🛠️ 功能优化与更新 (Updates & Enhancements)
+- **提示词模块化组装**: 重构提示词拼装逻辑，将主体、环境、构图、光效分层解耦；
+- **渲染进度可视化**: 配图生成时提供段落级任务状态反馈。
+
+---
+
+### 🐛 修复说明 (Bug Fixes)
+- 修复长文多图并发生成时容易发生网络超时导致的整篇生成失败；
+- 修复 Markdown 复杂特殊字符在插图注入时破坏原本排版结构的问题。
+
+---
+
+### ⚖️ 与上一版本升级区分 (Differences vs Previous Version)
+- **视觉插图**: 从纯文本写作演进为“图文一体化”的视觉分镜写作；
+- **画风控制**: 从零散提示词升级为 10 大标准化美学系统。
+
+---
+
+### 📦 获取与使用 (How to Access)
+```bash
+git checkout v8.3.2
+```
 """,
         "is_latest": False
     },
     {
         "tag": "v8.3.33",
         "name": "v8.3.33 - 灵犀汇 · Unified Identity & Profile Center",
-        "body": """## 🌟 一幕 · 爆款工坊 (YIMU Studio) V8.3.33
+        "body": """# 👤 一幕 · 爆款工坊 (YIMU Studio) V8.3.33
 
-> **代号 / Codename**: 灵犀汇 · Unified Identity  
+> **版本代号 / Codename**: 灵犀汇 · Unified Identity & Profile Center  
 > **发布日期 / Release Date**: 2026-10-12  
-> **版权与许可 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 个人中心与多租户隔离稳定归档版
 
 ---
 
-### 核心亮点 / Key Highlights
-1. **统一个人中心 (Personal Profile Center)**:
-   - 统一聚合会员权益等级、算力消耗账本与多租户隔离上下文；
-   - 从旧版设置弹窗中彻底解耦，提供专属现代化个人信息面板。
+### 🌟 版本概述 (Overview)
+V8.3.33 重点重构了用户身份鉴权、个人中心面板与会员算力体系，将分散的配置项与账本记录彻底整合。
 
-2. **端到端鉴权状态同步 (End-to-End Auth Sync)**:
-   - 侧边栏常驻个人资料快捷抽屉与版本实时检测状态指示器；
-   - 游客与已登录用户权限无缝切换与自动续期。
+---
 
-3. **算力账本事务强一致 (Ledger Consistency)**:
-   - 基于 SQLite WAL 的原子化算力扣减与充值对账体系；
-   - 精确记录每一笔生图与文本生成调用明细。
+### 🆕 新增功能 (New Features)
+1. **独立统一个人中心面板 (Personal Profile Center)**:
+   - 在主界面新增现代化个人中心视图 (`#p-profile`)，解耦原有的杂乱弹窗；
+   - 集中展示用户当前会员等级（体验版、专业版、工作室版）、账号状态与算力余额。
+2. **算力调用账本与充值交互 (Compute Ledger)**:
+   - 完整展示每次文本生成与生图扣减的流水明细；
+   - 会员套餐卡片支持交互式点击、权益高亮对比。
+3. **账号密码自主修改安全功能 (Password Self-Service)**:
+   - 新增修改密码模态弹窗，打通后端 `/api/auth/change_password` 鉴权更新。
+
+---
+
+### 🛠️ 功能优化与更新 (Updates & Enhancements)
+- **侧边栏常驻抽屉同步**: 侧边栏左下角常驻展示个人中心入口与登录状态指示；
+- **算力事务强一致性**: 账本全面启用 SQLite WAL 模式，确保并发扣点时的强原子性。
+
+---
+
+### 🐛 修复说明 (Bug Fixes)
+- 修复登录态切换时侧边栏头像徽章未能即时刷新的展示延迟缺陷；
+- 修复高频并发调用下账本偶尔可能发生脏读或重试超时的边界异常。
+
+---
+
+### ⚖️ 与上一版本 (V8.3.2) 升级区分 (Differences vs V8.3.2)
+- **个人中心**: V8.3.2 缺乏统一身份视窗，V8.3.33 建立专属现代化个人中心；
+- **安全管理**: V8.3.2 无法修改口令，V8.3.33 支持完整的用户密码修改与验证流程。
+
+---
+
+### 📦 获取与使用 (How to Access)
+```bash
+git checkout v8.3.33
+```
 """,
         "is_latest": False
     },
     {
         "tag": "v9.0.0",
         "name": "v9.0.0 - 万象生 · Infinite Worlds (AI Storyboard & Global i18n Launch)",
-        "body": """## 🌟 一幕 · 爆款工坊 (YIMU Studio) V9.0.0
+        "body": """# 🌍 一幕 · 爆款工坊 (YIMU Studio) V9.0.0
 
-> **代号 / Codename**: 万象生 · Infinite Worlds  
+> **版本代号 / Codename**: 万象生 · Infinite Worlds  
 > **发布日期 / Release Date**: 2026-10-13  
-> **版权与许可 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 2K超清生图与全站多语言架构里程碑
 
 ---
 
-### 核心亮点 / Key Highlights
-1. **AI 视觉分镜矩阵 (Visual Storyboard Matrix)**:
-   - 连贯分镜脚本生成，一键将文案段落转换为电影级视觉镜头与插图提示词；
-   - 深度内置十套国际化视觉美学体系预设。
+### 🌟 版本概述 (Overview)
+V9.0.0 代表一幕工坊迈向全球化与影视级画质的重大升级，原生全面拥抱 2K 超清生图与中英双语国际化。
 
-2. **多语言国际化启航 (Global i18n Architecture)**:
-   - 引入双语中英文切换架构，为海外开发者与创作者提供完整操作支持；
-   - 仓库核心文档（README.md / README_ZH.md）双语精准对齐。
+---
 
-3. **Agnes & Gemini 图像双引擎**:
-   - 增强型多模型生图调度，打通高清晰、高饱和写实画面输出管道；
-   - 文生图与图生图工作流全面升级。
+### 🆕 新增功能 (New Features)
+1. **原生 2K 影视级视觉分镜引擎 (2K Resolution Upgrade)**:
+   - 配图默认分辨率全面提升至 2K（横屏 `2048x1152`、竖屏 `1152x2048`、正方 `2048x2048`），出图清晰度与细节纤毫毕现；
+   - 智能适配文章、小红书图文与视频分镜多种应用场景。
+2. **全球化中英双语国际化引擎 (Global i18n Architecture)**:
+   - 引入双语中英文即时切换机制，PC 端顶栏与移动端抽屉栏均可一键无缝热切换；
+   - 官方中英文双语核心文档（`README.md` 与 `README_ZH.md`）双向对齐互通。
+3. **商业化算力与套餐购买统一胶囊**:
+   - 深度合并顶栏价格入口与算力显示，下线多余页面，实现极速一站式算力充值。
+
+---
+
+### 🛠️ 功能优化与更新 (Updates & Enhancements)
+- **去雾通透画质优化 (Zero-Haze Pipeline)**: 注入高饱和、高锐度色彩，并在负向提示词中强力压制 `fog/haze/smoke`，使生成画面通透鲜艳；
+- **版本单一真源体系**: `version.py` 定义统一步进规范。
+
+---
+
+### 🐛 修复说明 (Bug Fixes)
+- 修复 AI 生图在复杂提示词下画面灰蒙蒙、模糊不清、浓雾弥漫的严重通病；
+- 修复顶栏多处外部失效跳转链接与已废弃页面。
+
+---
+
+### ⚖️ 与上一版本 (V8.3.33) 升级区分 (Differences vs V8.3.33)
+- **配图分辨率**: 从 V8.3.33 的 1K (1024x1024) 提升为 V9.0.0 的原生 2K (2048x1152 等)；
+- **语言支持**: 从单一中文升级为完整中英双语切换体系；
+- **视觉通透度**: 彻底解决画面灰蒙发灰难题，画质饱和度与清晰度大幅提升。
+
+---
+
+### 📦 获取与使用 (How to Access)
+```bash
+git checkout v9.0.0
+```
 """,
         "is_latest": False
     },
     {
         "tag": "v9.1.0",
         "name": "v9.1.0 - 万象生 · Infinite Worlds (100% Bilingual & Unified Versioning)",
-        "body": """## 🌟 一幕 · 爆款工坊 (YIMU Studio) V9.1.0
+        "body": """# 🚀 一幕 · 爆款工坊 (YIMU Studio) V9.1.0 [最新旗舰版 / Latest]
 
-> **代号 / Codename**: 万象生 · Infinite Worlds  
+> **版本代号 / Codename**: 万象生 · Infinite Worlds  
 > **发布日期 / Release Date**: 2026-10-13  
-> **版权与许可 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 全站纯英文/纯中文绝对统一 & 代码版本全栈对齐
 
 ---
 
-### 🚀 核心升级与重磅更新 / Major Upgrades
+### 🌟 版本概述 (Overview)
+V9.1.0 是官方最新正式发布版本。本次更新彻底解决了界面语言“半中半英”混杂的历史痛点，实现了全站 100% 纯英文与 100% 纯中文的绝对统一；同时全栈所有代码层级统一步进至 9.1.0，针对 Agnes 图像大模型新规进行了深度规避修复，并正式提供 GitHub 官方 Releases 升级展示。
 
-#### 🌐 1. 全站 100% 纯英文 / 100% 纯中文国际化（彻底告别半中半英）
-- **深层递归 DOM 翻译引擎**: `web/static/js/i18n.js` 全新重构，支持递归遍历所有 TextNode、placeholder、title、aria-label 节点。
-- **动态内容监听器 (MutationObserver)**: 实时捕获异步渲染与动态弹窗，彻底根除“半中半英”混杂状态。
-- **双语绝对纯正**: 英文模式全站所有内容 100% 纯英文，中文模式全站所有内容 100% 纯中文，严禁任何混杂。
+---
 
-#### 🏷️ 2. 全栈代码版本号统一升级为 9.1.0（杜绝旧版遗留）
-- **单一真源统一步进**: `version.py` 统一定义 `__version__ = "9.1.0"`, `__codename__ = "万象生"`。
-- **全栈层级严格一致**: 涵盖 `web/templates/index.html`、`web/templates/mobile.html`、`web/admin.py`、`web/gateway_ui.py`、`studio/__init__.py`、`studio/db_models.py`、`studio/ledger.py`、`core/imagegen.py`，杜绝任何历史版本写死残留。
-- **版权与法务归属**: `LICENSE` 正式统一 Licensor 为 `yimu.hyipf.com`，版本升级至 `V9.1.0`。
+### 🆕 新增功能 (New Features)
+1. **全站 100% 纯英文 / 100% 纯中文深度双语引擎 (Zero Half-Bilingualism)**:
+   - 重构 `web/static/js/i18n.js`，增加深层 DOM 递归翻译引擎 (`translateDOMNode`)，覆盖所有文本节点、输入框占位符 (`placeholder`)、工具提示 (`title`) 与无障碍标签 (`aria-label`)；
+   - 增加动态变动监听器 (`MutationObserver`)，毫秒级捕获异步接口返回的内容和弹窗，确保英文模式下 100% 纯英文，中文模式下 100% 纯中文，严禁任何混杂状态。
+2. **应用内版本演进看板与接口 (In-App Releases Showcase)**:
+   - 挂载路由 `GET /releases` 与 `GET /admin/releases`，提供全屏版本演化时间轴与特性对照表；
+   - 开放接口 `GET /api/releases`，返回各版本详细结构化演进数据。
+3. **GitHub Releases 官方发布机制**:
+   - 依托 GitHub REST API 建立从 V8.3.2 到 V9.1.0 的正式 Releases 发布与说明体系，告别单纯 Tags 展现。
 
-#### 🎨 3. Agnes 图像大模型深度优化与画面提质
-- **画幅智能映射 (Aspect Ratio Adapter)**: 严格对齐 Agnes 图像模型 `1K / 2K / 3K / 4K` 与 `WIDTHxHEIGHT` 规则（如 16:9 映射为 `2048x1152`，9:16 映射为 `1152x2048`），彻底规避 400 校验报错。
-- **自愈兜底机制**: 智能剔除不兼容的 `quality` 字段并回退安全画幅，确保出图成功率 100%。
-- **色彩与画面质感调优**: 提示词深度优化为“高清晰、高饱和、通透艳丽、写实逼真”，彻底去除烟雾感与模糊朦胧滤镜。
+---
 
-#### 📜 4. GitHub Releases & 内置发布看板
-- **版本路线看板**: 全新挂载 `/releases` 路由与 `/api/releases` 接口，提供 V9.1.0 vs V9.0.0 vs V8.3.33 完整演进图表。
-- **GitHub 官方 Releases 列表同步展示**: 在 GitHub 仓库页面提供结构化发版演进记录。
+### 🛠️ 功能优化与更新 (Updates & Enhancements)
+- **全栈代码版本号统一升级为 9.1.0**:
+  - 单一真源 `version.py` 统一定义 `9.1.0`；
+  - 核心模块 `web/admin.py`, `web/gateway_ui.py`, `index.html`, `mobile.html`, `studio/__init__.py`, `studio/db_models.py`, `studio/ledger.py`, `core/imagegen.py` 所有层级完全统一为 `9.1.0`，杜绝任何历史旧版本残留；
+- **版权主体法务对齐**:
+  - `LICENSE` 文件中 Licensor 正式规范变更为 `yimu.hyipf.com`，版本明确标注为 `V9.1.0`。
+- **色彩与画面质感深度调优**:
+  - 提示词全面升级为高清晰、高饱和、写实通透，杜绝模糊雾化。
+
+---
+
+### 🐛 修复说明 (Bug Fixes)
+- 🐛 **修复 Agnes 图像大模型 400 校验报错与参数不兼容**:
+  - **画幅规格强制归一化**: 修复了 Agnes 生图模型因接收画幅比例字符串（如 `9:16`、`16:9`）直接抛出 HTTP 400 Bad Request 的严重问题，自动转换为规范的像素尺寸（如 `1152x2048`、`2048x1152`）；
+  - **智能剔除 quality 字段并建立容错兜底**: 修复了旧版异常重试中未过滤 quality 导致重试仍报错的隐患，在发生校验异常时自动降解至标准 1024x1024 并剥离不兼容参数重试自愈；
+- 🐛 **修复用户文案内部黑话拦截**:
+  - 修复发布页面用词，避免触发自动化 CI 黑话与禁用词规则。
+
+---
+
+### ⚖️ 与上一版本 (V9.0.0) 升级区分 (Differences vs V9.0.0)
+- **多语言一致性**: V9.0.0 在部分动态异步渲染区域存在中英文混杂，V9.1.0 借助递归 DOM 遍历与监听器实现 100% 绝对纯正中英文；
+- **图像模型兼容**: V9.0.0 未适配 Agnes 大模型最新参数规则，易报 400；V9.1.0 具备完善的尺寸映射与智能自愈重试保护；
+- **版本号规范**: V9.0.0 各层级存在部分历史徽章残留，V9.1.0 全栈所有文件 100% 统一为 9.1.0；
+- **版本展示**: 实现了 GitHub Releases 官方版本详情展示，每个版本均有清晰的更新与修复说明。
+
+---
+
+### 📦 获取与使用 (How to Access)
+```bash
+# 获取最新 9.1.0 代码
+git checkout v9.1.0
+# 或者拉取最新 main 分支
+git pull origin main
+```
 """,
         "is_latest": True
     }

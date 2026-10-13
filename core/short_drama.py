@@ -1021,19 +1021,20 @@ def _synthesize_scene_prompt(
     title: str,
     scene_context: str = "",
     shot_type: str = "Wide Establishing Shot",
-    lighting: str = "Cinematic Natural Daylight",
+    lighting: str = "Brilliant Natural Daylight Illumination",
     motion: str = "Slow Dolly In"
 ) -> str:
-    """智能合成符合 Midjourney / Flux / SDXL 规范的高清影视场景与分镜英文 Prompt。"""
+    """智能合成符合规范的高清影视场景与分镜英文 Prompt（强调极致清晰、艳丽色彩与零烟雾感）。"""
     clean_title = (title or "").replace('"', '').replace("'", "").strip()[:40]
     clean_ctx = (scene_context or "").replace('"', '').replace("'", "").strip()[:60]
-    subject = clean_ctx or clean_title or "protagonist in dramatic scene"
+    subject = clean_ctx or clean_title or "realistic scene with vivid details"
 
     return (
-        f"Cinematic {shot_type} depicting {subject}, set in the dramatic context of {clean_title}, "
-        f"{lighting}, camera {motion.lower()}, 35mm anamorphic lens aesthetic, shallow depth of field, "
-        f"subtle rim lighting, atmospheric volumetric haze, Kodak Vision3 film grain, hyper-detailed texture, "
-        f"award-winning cinematography, photorealistic, 8k resolution, masterpiece"
+        f"Crystal clear {shot_type} depicting {subject}, strictly aligned with the realistic context of {clean_title}, "
+        f"{lighting}, camera {motion.lower()}, razor-sharp focus, immaculate lens clarity, "
+        f"vivid saturated vibrant colors, crisp brilliant highlights, hyper-detailed texture, "
+        f"photorealistic, 8k ultra-high resolution, masterpiece, "
+        f"no smoke, no fog, no mist, no haze, no blurry blur, no grain, no noise, no text, no watermark"
     )
 
 

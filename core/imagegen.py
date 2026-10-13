@@ -17,221 +17,214 @@ from core.llm import load_config, load_env
 
 # ---------- 通用反 AI 塑料感尾缀 ----------
 HYPER_REAL_PHOTO_SUFFIX = (
-    ", shot on Hasselblad X2D 100C with 50mm f/1.8 lens, authentic documentary photograph, "
-    "natural ambient daylight, soft rim lighting, candid moment, unposed real life scene, "
-    "realistic environment textures, subtle skin pores and authentic imperfections, Kodak Portra 400 film look, "
-    "8k resolution, award-winning photojournalism, no CGI, no 3D render, no plastic skin, "
-    "no airbrushing, no doll face, no stock photo cliche, no text, no watermark, no typography, sharp focus"
+    ", crystal clear photography, shot on Hasselblad X2D 100C with 50mm lens, "
+    "ultra-sharp razor focus, vivid vibrant saturated colors, pristine bright natural daylight, "
+    "realistic immaculate environment textures, brilliant clarity across entire frame, "
+    "8k ultra-high resolution, vibrant saturation, rich crisp contrast, "
+    "no smoke, no fog, no mist, no haze, no blurry blur, no dim lighting, no washed out pale colors, "
+    "no grain, no noise, no CGI, no 3D render, no plastic skin, no text, no watermark, sharp focus"
 )
 STYLE_SUFFIX = HYPER_REAL_PHOTO_SUFFIX  # 兼容旧引用
 
-# ---------- 八大视觉风格体系（深度融合多美学 Prompt 指令与反 AI 塑料感参数）----------
+# ---------- 十大视觉风格体系（深度融合清晰艳丽指令、紧扣现实内容与零烟雾参数）----------
 VISUAL_STYLE_PRESETS = {
     # 1. 纪实摄影（人物/生活/情感类内容）
     "documentary": {
         "name": "纪实摄影·生活烟火",
-        "tag": "Authentic Documentary Photography",
+        "tag": "Crystal Clear Documentary Photography",
         "keywords": ["生活", "情感", "人物", "日常", "故事", "美食", "旅行", "亲子", "健康", "运动"],
-        "style_directive": "authentic candid moment, natural golden-hour window light, realistic skin texture with subtle pores, unposed real-life scene, warm Kodak Portra 400 film grain, bokeh background",
+        "style_directive": "crystal clear authentic snapshot, vivid vibrant natural colors, bright clean natural daylight illumination, razor-sharp focus on realistic living details, authentic unposed real-life scene, Hasselblad X2D 100C 50mm",
         "suffix": (
-            ", shot on Hasselblad X2D 100C 50mm f/1.8, authentic candid moment, "
-            "natural golden-hour window light, realistic skin texture with subtle pores, "
-            "unposed real-life scene, warm Kodak Portra 400 film grain, bokeh background, "
-            "8k photorealistic, no CGI, no plastic skin, no stock photo pose, no text, no watermark"
+            ", crystal clear authentic moment, shot on Hasselblad X2D 100C with 50mm lens, "
+            "razor-sharp focus, vivid vibrant natural colors, bright clean natural illumination, "
+            "realistic authentic environment textures, high clarity, rich contrast, "
+            "8k photorealistic, no smoke, no fog, no mist, no haze, no blur, no grain, "
+            "no CGI, no plastic skin, no stock photo cliche, no text, no watermark"
         ),
         "system_prompt": (
-            "你是普利策奖纪实摄影师兼国家地理图片总监。将用户主题转化为极度具象的真实生活抓拍英文 Prompt。"
-            "要求：①明确人物动作与真实微表情；②具体环境道具与生活杂物细节；"
-            "③光线方向（自然侧光/逆光/窗边漫射光）；④相机参数。只输出英文 Prompt，不要解释。"
+            "你是普利策奖纪实摄影师兼国家地理图片总监。将用户主题转化为极度清晰、生动鲜活的真实生活抓拍英文 Prompt。"
+            "铁律：①必须晶莹清晰、纤毫毕现，严禁任何烟雾感、薄雾或模糊；②色彩必须饱满鲜艳真实；"
+            "③紧扣文章真实客观的生活或工作场景，细节具体。只输出英文 Prompt，不要解释。"
         ),
     },
     # 2. 瑞士极简（商业/知识/效率类内容）
     "swiss_minimal": {
         "name": "瑞士极简·商业质感",
-        "tag": "Swiss Minimalism Commercial",
+        "tag": "Crystal Clear Swiss Minimalism Commercial",
         "keywords": ["商业", "职场", "效率", "管理", "职业", "简历", "成功", "财富", "理财", "投资", "创业", "办公"],
-        "style_directive": "Swiss International Typographic Style, clean negative space, precise geometric composition, muted neutral palette with single accent color, controlled studio lighting with soft boxes, Phase One IQ4 150MP 85mm f/2",
+        "style_directive": "crystal clear Swiss commercial aesthetic, clean modern negative space, razor-sharp geometric precision, vivid bold accent colors, bright clean studio lighting, Phase One IQ4 150MP 85mm",
         "suffix": (
-            ", Swiss International Typographic Style, clean negative space, "
-            "precise geometric composition, muted neutral palette with single accent color, "
-            "high-end editorial photography, shot on Phase One IQ4 150MP with 85mm f/2, "
-            "controlled studio lighting with soft boxes, razor-sharp detail, "
-            "premium commercial photography, minimalist restraint, no clutter, no text, no watermark"
+            ", Swiss International commercial style, crystal clear crisp focus, "
+            "razor-sharp geometric lines, vivid punchy accent colors, clean bright studio illumination, "
+            "shot on Phase One IQ4 150MP with 85mm lens, pristine optical clarity across entire frame, "
+            "high-end commercial photography, 8k ultra-sharp, no smoke, no fog, no mist, no haze, no blur, no text, no watermark"
         ),
         "system_prompt": (
-            "你是顶级商业摄影指导兼平面设计总监，擅长瑞士国际主义风格。"
-            "将用户主题转化为极简高端商业摄影英文 Prompt。"
-            "要求：①大量留白与几何构图；②中性色调搭配单一强调色；"
-            "③专业摄影棚可控光源；④商务场景质感道具。只输出英文 Prompt，不要解释。"
+            "你是顶级商业摄影总监兼设计顾问。将用户主题转化为极致清晰通透的高端商业摄影英文 Prompt。"
+            "铁律：①全画幅极度锐利，绝对零烟雾、零模糊；②鲜明有力的对比与艳丽点缀色；"
+            "③真实客观的现代办公与商业场景。只输出英文 Prompt，不要解释。"
         ),
     },
     # 3. 杂志编辑（时尚/美妆/生活方式类内容）
     "magazine_editorial": {
         "name": "杂志编辑·高端生活方式",
-        "tag": "High Fashion Magazine Editorial",
+        "tag": "Crystal Clear High Fashion Editorial",
         "keywords": ["时尚", "美妆", "美容", "护肤", "穿搭", "风格", "潮流", "设计", "艺术", "创意", "家居", "装修"],
-        "style_directive": "Vogue Harper's Bazaar high fashion editorial aesthetic, dramatic directional lighting, Canon EOS R5 85mm f/1.2L, rich saturated tones, sophisticated fashion color grading, impeccable haute couture styling",
+        "style_directive": "crystal clear high-fashion magazine editorial, vivid vibrant saturated colors, dramatic crisp directional lighting, razor-sharp focus on subject and couture styling, Canon EOS R5 85mm f/1.2L",
         "suffix": (
-            ", Vogue/Harper's Bazaar editorial style, dramatic directional lighting, "
-            "shot on Canon EOS R5 with 85mm f/1.2L lens, rich saturated tones, "
-            "fashion-forward composition, sophisticated color grading, "
-            "high fashion photography, glossy magazine aesthetic, "
-            "impeccable styling, no text, no watermark, 8k ultra-detailed"
+            ", Vogue/Harper's Bazaar high fashion editorial style, crystal clear, ultra-sharp focus, "
+            "vivid rich saturated colors, crisp directional lighting, shot on Canon EOS R5 with 85mm f/1.2L lens, "
+            "pristine glossy texture, punchy contrast, 8k ultra-detailed, "
+            "no smoke, no fog, no mist, no haze, no blur, no dull colors, no text, no watermark"
         ),
         "system_prompt": (
-            "你是《Vogue》《时尚COSMO》资深图片总监。将用户主题转化为顶级时尚杂志摄影英文 Prompt。"
-            "要求：①戏剧性方向光与高对比度；②浓郁饱和色调与精致调色；"
-            "③时尚前沿构图与造型；④高端质感道具细节。只输出英文 Prompt，不要解释。"
+            "你是顶级时尚杂志《Vogue》图片总监。将用户主题转化为清晰艳丽的时尚大片英文 Prompt。"
+            "铁律：①光线明亮透彻，色彩浓郁饱和艳丽；②超清焦段与高质感细节，严禁烟雾朦胧；"
+            "③紧扣文章内容设计造型与环境。只输出英文 Prompt，不要解释。"
         ),
     },
     # 4. 科技赛博（AI/数字/未来/技术类内容）
     "tech_cyber": {
         "name": "科技赛博·数字未来感",
-        "tag": "Cyberpunk Futuristic Tech Realism",
+        "tag": "Crystal Clear Futuristic Tech Realism",
         "keywords": ["科技", "AI", "人工智能", "数字", "互联网", "编程", "代码", "数据", "算法", "区块链", "元宇宙", "芯片", "半导体", "机器人"],
-        "style_directive": "futuristic sci-fi realism, cool blue-cyan-purple glowing lighting, volumetric digital rays, transparent holographic interface HUD, glowing circuitry and data streams, Sony A1 24mm f/1.4 GM",
+        "style_directive": "crystal clear futuristic high-tech reality, vivid electric cyan and magenta colors, razor-sharp glowing digital HUD interfaces and circuitry, bright clean tech laboratory, Sony A1 24mm f/1.4 GM",
         "suffix": (
-            ", cyberpunk-inspired but grounded in near-future realism, "
-            "cool blue-cyan-purple tonal range, volumetric light rays through digital interfaces, "
-            "shallow depth of field on circuitry or glowing screens, "
-            "shot on Sony A1 with 24mm f/1.4 GM, long exposure light trails, "
-            "8k photorealistic rendering, cinematic tech aesthetic, "
-            "no cartoon, no anime, no 3D render plastic, no text, no watermark"
+            ", crystal clear futuristic tech realism, vivid electric cyan and purple colors, "
+            "razor-sharp focus on glowing digital displays and clean modern hardware, "
+            "shot on Sony A1 with 24mm f/1.4 GM lens, crisp high dynamic range, "
+            "8k photorealistic rendering, immaculate clarity, "
+            "no smoke, no fog, no mist, no haze, no blurry glow, no cartoon, no 3D render plastic, no text, no watermark"
         ),
         "system_prompt": (
-            "你是科幻电影视觉总监兼MIT媒体实验室创意总监。将用户主题转化为近未来科技感摄影英文 Prompt。"
-            "要求：①蓝青紫科技色调；②数字界面/电路板/光源轨迹等科技道具；"
-            "③体积光与景深特效；④近未来感真实场景。只输出英文 Prompt，不要解释。"
+            "你是前沿科技视觉总监。将用户主题转化为极致清晰透亮的现代科技感摄影英文 Prompt。"
+            "铁律：①高亮清晰透彻，绝对不要烟雾弥漫与脏乱阴暗；②电子蓝、青、紫等艳丽光轨与屏幕；"
+            "③紧密贴合文章所讲的具体技术、代码、硬件或数字应用。只输出英文 Prompt，不要解释。"
         ),
     },
     # 5. 古风雅韵（传统古风/汉服/仙侠/国风/历史文化）
     "ancient_chinese": {
         "name": "古风雅韵·东方意境",
-        "tag": "Traditional Chinese Hanfu & Oriental Aesthetics",
+        "tag": "Crystal Clear Traditional Chinese Oriental Aesthetics",
         "keywords": ["古风", "国风", "东方", "传统", "文化", "历史", "国学", "茶道", "书法", "汉服", "古建", "仙侠", "非遗", "民俗", "亭台楼阁", "诗意"],
-        "style_directive": "ancient Chinese aesthetic, traditional Hanfu elegance, poetic atmospheric lighting, misty Jiangnan pavilions or classical courtyards, soft ethereal morning mist diffusion, delicate silk and embroidery textures, Leica SL2 50mm f/1.4",
+        "style_directive": "crystal clear traditional Chinese elegance, vivid vermilion and cyan jade palette, bright clean natural daylight illumination, razor-sharp Hanfu silk embroidery and classical woodwork, Leica SL2 50mm f/1.4",
         "suffix": (
-            ", ancient Chinese aesthetic, traditional Hanfu elegance, poetic atmospheric lighting, "
-            "misty Jiangnan pavilions or grand classical courtyards, shot on Leica SL2 with 50mm f/1.4, "
-            "soft ethereal morning mist diffusion, delicate silk and embroidery textures, cinematic color grading, "
-            "refined Oriental composition, elegant wabi-sabi restraint, 8k photorealistic, no modern objects, no text, no watermark"
+            ", crystal clear traditional Chinese classical scene, vivid vermilion red and jade cyan colors, "
+            "bright clean natural daylight, razor-sharp textures of silk embroidery and carved architecture, "
+            "shot on Leica SL2 with 50mm f/1.4 lens, pristine optical clarity across entire frame, "
+            "rich vibrant palette, 8k photorealistic, no smoke, no fog, no mist, no haze, no blur, no text, no watermark"
         ),
         "system_prompt": (
-            "你是顶级古风美学摄影师兼东方影视视觉总监。将用户主题转化为极富诗意意境的中国古风摄影英文 Prompt。"
-            "要求：①古风场景道具（汉服、飞檐、亭台、古卷、水墨意象）；②柔和漫射光与晨雾丁达尔光；"
-            "③深沉典雅的东方传统色彩（朱红、黛青、茶白、水绿）；④电影级胶片质感。只输出英文 Prompt，不要解释。"
+            "你是顶级东方美学摄影师兼影视视觉总监。将用户主题转化为清晰生动、色彩典雅鲜明的中国古风摄影英文 Prompt。"
+            "铁律：①坚决去除烟雾感与浓雾，光线明朗透亮，庭院与服饰纤毫毕现；②朱红、青绿等中国传统色彩艳丽饱和；"
+            "③紧扣文章历史与文化内容。只输出英文 Prompt，不要解释。"
         ),
     },
     # 兼容历史别名
     "chinese_ink": {
         "name": "古风雅韵·东方意境",
-        "tag": "Traditional Chinese Ink & Oriental Aesthetics",
+        "tag": "Crystal Clear Traditional Chinese Oriental Aesthetics",
         "keywords": ["传统", "文化", "历史", "国学", "茶道", "书法", "汉服", "古建", "非遗", "民俗", "中医", "国潮", "东方"],
-        "style_directive": "contemporary Chinese ink wash aesthetic meets classical photography, misty pavilions, delicate silk Hanfu, soft ethereal natural mist diffusion, Leica M11 Monochrom",
+        "style_directive": "crystal clear contemporary Chinese aesthetic, vivid vermilion and deep ink contrasts, bright crisp daylight, razor-sharp architectural lines, Leica M11",
         "suffix": (
-            ", contemporary Chinese ink wash aesthetic meets modern photography, "
-            "misty mountains and ancient architecture, wabi-sabi imperfection, "
-            "shot on Leica M11 Monochrom with 35mm Summilux f/1.4, "
-            "soft natural mist diffusion, warm rice-paper tones or deep ink blacks, "
-            "poetic negative space, traditional craft textures, "
-            "no neon, no western aesthetic, no text, no watermark, 8k"
+            ", crystal clear contemporary Chinese aesthetic, vivid vermilion and ink contrast, "
+            "bright clean daylight, shot on Leica M11 with 35mm lens, razor-sharp focus, "
+            "pristine clarity, rich vibrant traditional colors, 8k resolution, "
+            "no smoke, no fog, no mist, no haze, no blur, no text, no watermark"
         ),
         "system_prompt": (
-            "你是新中式美学摄影师兼东方视觉总监。将用户主题转化为融合水墨与现代摄影的东方美学英文 Prompt。"
-            "要求：①水墨晕染与负空间哲学；②古典道具与现代质感融合；"
-            "③山水薄雾或宣纸暖调；④徕卡胶片质感。只输出英文 Prompt，不要解释。"
+            "你是新中式美学摄影师。将用户主题转化为清晰明亮、色彩生动的东方美学摄影英文 Prompt。"
+            "铁律：透亮清晰，零烟雾感，色彩鲜明。只输出英文 Prompt，不要解释。"
         ),
     },
     # 6. 城市风/都市风（都会天际线/现代街道/车水马龙/摩天大楼/城市街拍）
     "city_urban": {
         "name": "城市风·现代都市摩天",
-        "tag": "Modern Urban Metropolis & City Skyline",
+        "tag": "Crystal Clear Urban Metropolis Skyline",
         "keywords": ["城市", "都市", "都会", "街头", "街拍", "天际线", "摩天大楼", "建筑", "街道", "车水马龙", "夜景", "步行街", "CBD", "地铁"],
-        "style_directive": "modern urban metropolis atmosphere, dramatic city skyline with architectural glass reflections, soaring modern skyscrapers, golden hour sunlight bouncing off buildings, bustling streets, Sony A7R V 35mm f/1.4 GM",
+        "style_directive": "crystal clear modern urban metropolis, brilliant vivid blue sky, golden sunlight reflecting off soaring glass skyscrapers, razor-sharp architectural lines, vibrant bustling streets, Sony A7R V 35mm f/1.4 GM",
         "suffix": (
-            ", modern urban metropolis atmosphere, dramatic city skyline with architectural glass reflections, "
-            "shot on Sony A7R V with 35mm f/1.4 GM lens, golden hour sunlight bouncing off modern skyscrapers, "
-            "bustling metropolitan streets, realistic asphalt and neon city textures, wide-angle cinematic perspective, "
-            "crisp urban details, no CGI cartoon, no plastic, no text, no watermark, 8k ultra-sharp"
+            ", crystal clear modern urban metropolis, dramatic clear city skyline, "
+            "shot on Sony A7R V with 35mm f/1.4 GM lens, golden sunlight reflecting off glass skyscrapers, "
+            "vibrant metropolitan street colors, realistic asphalt and modern architecture, "
+            "crisp urban edge definition, pristine clean air, 8k ultra-sharp, "
+            "no smog, no smoke, no fog, no mist, no haze, no blur, no CGI cartoon, no text, no watermark"
         ),
         "system_prompt": (
-            "你是国家地理都市摄影师兼全球建筑摄影总监。将用户主题转化为繁华现代城市/都市风摄影英文 Prompt。"
-            "要求：①现代化都市地标/摩天大楼/商业街景/天际线构图；②城市黄金时段或蓝调时刻真实光影；"
-            "③高解析度现代城市质感与层次；④大片级景深。只输出英文 Prompt，不要解释。"
+            "你是全球顶尖城市与建筑摄影总监。将用户主题转化为极致通透清晰、色彩鲜明的繁华现代都市摄影英文 Prompt。"
+            "铁律：①空气清澈通透，严禁雾霾、烟雾与朦胧感；②摩天楼玻璃反射与街道色彩饱满艳丽；"
+            "③紧密结合文章现实商业与都市场景。只输出英文 Prompt，不要解释。"
         ),
     },
     # 7. 电影光影（戏剧大片/宽银幕质感）
     "cinematic_movie": {
         "name": "影视大片·电影光影",
-        "tag": "Cinematic Movie Blockbuster Still",
+        "tag": "Crystal Clear Cinematic Blockbuster Still",
         "keywords": ["电影", "影视", "大片", "戏剧", "故事", "光影", "镜头", "叙事", "情绪", "氛围"],
-        "style_directive": "cinematic movie still, 35mm anamorphic widescreen lens with subtle horizontal flares, dramatic chiaroscuro lighting, rich Kodachrome color grading, emotive storytelling atmosphere, Panavision aesthetic",
+        "style_directive": "crystal clear cinematic widescreen blockbuster still, vivid saturated color grading, bright high-contrast visual storytelling, razor-sharp focus on actors and environment, ARRI Alexa 65 optical clarity",
         "suffix": (
-            ", cinematic movie still, 35mm anamorphic lens with subtle horizontal flares, "
-            "dramatic chiaroscuro lighting, rich Kodachrome color grading, emotive storytelling atmosphere, "
-            "shallow depth of field, natural film grain, 8k resolution, Panavision widescreen aesthetic, "
-            "no text, no watermark, award-winning cinematography"
+            ", crystal clear cinematic movie still, 35mm anamorphic widescreen lens, "
+            "vivid rich saturated color grading, crisp directional spotlighting, razor-sharp focus on subject, "
+            "high dynamic range, pristine optics, 8k resolution, award-winning cinematography, "
+            "no smoke, no fog, no mist, no haze, no grain, no blur, no text, no watermark"
         ),
         "system_prompt": (
-            "你是奥斯卡最佳摄影奖电影摄影师。将用户主题转化为电影大片剧照级英文 Prompt。"
-            "要求：①强烈的明暗对比与叙事光影；②变形宽银幕电影构图；"
-            "③电影胶片色调与颗粒感；④极具故事张力的瞬间。只输出英文 Prompt，不要解释。"
+            "你是奥斯卡最佳摄影奖电影摄影师。将用户主题转化为通透清晰、色彩极具张力的电影大片剧照英文 Prompt。"
+            "铁律：①全画幅超清锐利，坚决杜绝烟雾感与朦胧发灰；②浓郁艳丽的电影调色与清晰光影；"
+            "③与文章实际剧情或论点紧密锚定。只输出英文 Prompt，不要解释。"
         ),
     },
     # 8. 高端商业广告（产品/品牌/营销类内容）
     "commercial_premium": {
         "name": "高端商业·品牌广告",
-        "tag": "Luxury Commercial Brand Advertising",
+        "tag": "Crystal Clear Luxury Commercial Brand Advertising",
         "keywords": ["产品", "品牌", "营销", "广告", "推广", "电商", "销售", "促销", "新品", "发布", "种草"],
-        "style_directive": "luxury commercial brand photography, ultra-precise focus stacking, Phase One XF IQ4 150MP, studio strobe lighting with honeycomb grid modifiers, hyper-detailed product textures, premium luxury aesthetic",
+        "style_directive": "crystal clear luxury commercial photography, vivid vibrant colors, hyper-sharp focus stacking, brilliant bright studio lighting, Phase One XF IQ4 150MP, pristine brand visual clarity",
         "suffix": (
-            ", luxury product photography, ultra-precise focus stacking, "
-            "studio strobe lighting with honeycomb grid modifiers, "
-            "shot on Phase One XF IQ4 150MP, perfect white or gradient background, "
-            "hyper-detailed product textures, premium brand aesthetic, "
-            "Apple/Nike/Hermès level visual quality, aspirational lifestyle context, "
-            "no text overlay, no watermark, 100MP ultra-high resolution"
+            ", crystal clear luxury product and lifestyle photography, hyper-precise focus, "
+            "brilliant clean studio strobe lighting, shot on Phase One XF IQ4 150MP, "
+            "vivid punchy colors, hyper-detailed textures, Apple/Nike tier immaculate visual quality, "
+            "8k ultra-high resolution, razor-sharp, no smoke, no fog, no mist, no haze, no blur, no text overlay, no watermark"
         ),
         "system_prompt": (
-            "你是苹果/爱马仕级广告摄影总监。将用户主题转化为奢华品牌级商业广告摄影英文 Prompt。"
-            "要求：①精准焦叠与超清质感；②专业蜂巢遮光器棚拍光源；"
-            "③高端品牌审美与精致背景；④产品细节的超高分辨率呈现。只输出英文 Prompt，不要解释。"
+            "你是苹果/顶级品牌广告摄影总监。将用户主题转化为清澈通透、色彩纯正艳丽的商业广告摄影英文 Prompt。"
+            "铁律：①极高清晰度与纯净背景，零烟雾感、零模糊；②鲜艳饱和的品牌质感；"
+            "③紧扣文章产品、业务或品牌主题。只输出英文 Prompt，不要解释。"
         ),
     },
     # 9. 新海诚系·治愈电影（治愈/动漫/风景/情感/青春）
     "anime_cinematic": {
         "name": "治愈动漫·新海诚光影",
-        "tag": "Makoto Shinkai Cinematic Anime & Kyoto Animation Aesthetic",
+        "tag": "Crystal Clear Makoto Shinkai Cinematic Anime",
         "keywords": ["动漫", "二次元", "治愈", "新海诚", "唯美", "青春", "黄昏", "天空", "夏天", "晚霞", "樱花", "风景", "电影感动漫"],
-        "style_directive": "Makoto Shinkai cinematic animation aesthetic, Kyoto Animation delicate artistry, vibrant saturated azure sky with towering luminous cumulus clouds, dramatic golden hour crepuscular rays piercing atmosphere, cinematic emotional lighting, crystalline water reflections, highly detailed nostalgic background art, Studio Ghibli warmth",
+        "style_directive": "crystal clear Makoto Shinkai anime animation, vivid saturated azure blue sky, luminous crystalline cumulus clouds, sparkling water reflections, highly detailed nostalgic background art, Kyoto Animation masterpiece",
         "suffix": (
-            ", Makoto Shinkai cinematic animation style, Kyoto Animation masterpiece, "
-            "radiant volumetric twilight rays, crystalline translucent clouds, emotive atmosphere, "
-            "hyper-detailed background anime art, 8k wallpaper illustration, rich color gradation, "
-            "nostalgic cinematic lighting, sparkling highlights, no 3D render plastic, no lowres, no text, no watermark"
+            ", crystal clear Makoto Shinkai anime animation style, Kyoto Animation masterpiece, "
+            "vibrant azure sky, brilliant colorful clouds, sparkling crisp reflections, "
+            "hyper-detailed background anime art, 8k wallpaper illustration, rich vibrant color saturation, "
+            "crisp line definition, no smoke, no fog, no mist, no haze, no blur, no 3D render plastic, no lowres, no text, no watermark"
         ),
         "system_prompt": (
-            "你是新海诚与京都动画的主美兼电影分镜导演。将用户主题转化为极具治愈感与光影张力的动漫电影剧照 Prompt。"
-            "要求：①标志性新海诚云层/丁达尔光线/天空渐变；②精致唯美的生活细节或风景；"
-            "③充满青春情感与治愈色彩（蔚蓝、粉紫、金橙）；④极致细节动漫背景美学。只输出英文 Prompt，不要解释。"
+            "你是新海诚与京阿尼的主美。将用户主题转化为澄澈通透、色彩极其艳丽纯净的动漫电影剧照 Prompt。"
+            "铁律：①天空与环境纯净透亮，严禁发灰发暗的烟雾；②蔚蓝、明橙、粉紫等色彩艳丽饱满；"
+            "③紧扣文章意境与真实故事。只输出英文 Prompt，不要解释。"
         ),
     },
     # 10. 极简三维·轻拟物艺术（3D图标/轻拟物/前沿概念/科技设计）
     "minimalist_3d": {
         "name": "极简三维·轻拟物艺术",
-        "tag": "Modern Claymorphism 3D & Isometric Pastel Art",
+        "tag": "Crystal Clear Modern Claymorphism 3D & Isometric Art",
         "keywords": ["3D", "三维", "拟物", "立体", "轻拟物", "粘土", "盲盒", "C4D", "Blender", "图标", "概念", "极简3D", "设计"],
-        "style_directive": "modern minimalist claymorphism 3D art, soft diffused ambient occlusion, isometric clean studio lighting, elegant pastel color palette with matte clay and frosted glass textures, Apple keynote infographic aesthetic, high-end 3D visual concept, smooth rounded geometric forms, octane render 8k",
+        "style_directive": "crystal clear minimalist claymorphism 3D art, vivid vibrant pop and pastel color palette, razor-sharp smooth geometry, bright clean studio global illumination, Apple keynote 3D infographic, Octane Render 8k",
         "suffix": (
-            ", modern minimalist claymorphism 3D style, soft diffused ambient occlusion, "
-            "isometric perspective, studio softbox lighting, matte ceramic and frosted glass material, "
-            "clean pastel color scheme, Apple Keynote 3D illustration aesthetic, Octane Render 8k, "
-            "smooth rounded geometry, elegant composition, no photorealistic humans, no noise, no text, no watermark"
+            ", crystal clear modern claymorphism 3D style, razor-sharp smooth geometry, "
+            "bright clean studio lighting, vivid vibrant pop and pastel colors, "
+            "Apple Keynote 3D illustration aesthetic, Octane Render 8k, crisp reflections, "
+            "no smoke, no fog, no mist, no haze, no noise, no blur, no text, no watermark"
         ),
         "system_prompt": (
-            "你是苹果设计团队与顶级 3D 视觉工作室的创意总监。将用户主题转化为现代极简 3D 轻拟物艺术 Prompt。"
-            "要求：①粘土拟物/磨砂玻璃/柔和陶瓷材质；②柔和全局光照与等轴测透视；"
-            "③高级马卡龙或莫兰迪色系；④优雅圆润的现代三维设计构图。只输出英文 Prompt，不要解释。"
+            "你是苹果设计团队顶级 3D 视觉总监。将用户主题转化为清晰生动、色彩鲜明的三维艺术 Prompt。"
+            "铁律：通透清爽，色彩艳丽，无烟雾无杂质。只输出英文 Prompt，不要解释。"
         ),
     },
 }
@@ -281,10 +274,10 @@ def build_style_enhanced_prompt(raw_text: str, context: str = "", force_style: s
             from core.short_drama import _synthesize_scene_prompt
             scene_core = _synthesize_scene_prompt(
                 raw_s, context or raw_s,
-                "Cinematic Shot", "Atmospheric Lighting", "Steady Framing"
+                "Crystal Clear Shot", "Brilliant Clean Natural Lighting", "Steady Framing"
             )
         except Exception:
-            scene_core = f"Authentic scene of {raw_s[:80]}, detailed cinematic composition"
+            scene_core = f"Crystal clear realistic scene of {raw_s[:80]}, vivid colors, razor-sharp composition, no haze, no smoke"
 
     # 融合风格指令到 AI 提示词（确保风格核心词排在提示词最前列，强力指导生图大模型）
     final_prompt = f"{style_header}, {scene_core}, {directive}{suffix}"
@@ -297,51 +290,57 @@ def photojournalism_prompt_engine(raw_text: str, context: str = "",
     return build_style_enhanced_prompt(raw_text, context=context, force_style=force_style)
 
 
-# 全文通读 ➔ 影视级分镜头剧本解构 ➔ 95%+ 图文超强匹配提示词生成（v8.3.3 影视分镜核心铁律版）
-ARTICLE_VISUAL_DIGEST_PROMPT = """你是一名好莱坞电影摄影总监兼短剧分镜导演，兼具国家地理摄影大师与全球顶尖视觉艺术总监身份。
+# 全文通读 ➔ 极致清晰分镜头解构 ➔ 艳丽色彩与现实内容 1:1 锚定（v8.3.34 晶莹通透无烟雾版）
+ARTICLE_VISUAL_DIGEST_PROMPT = """你是一名顶级商业视觉总监兼现代电影摄影大师，以【画质极致通透、纤毫毕现、色彩艳丽鲜活】享誉业界。
 
-【系统核心铁律（必须严格贯彻执行）】：
-1. 【先通读全文后生图】：你必须先完整、细致地通读文章全文，深刻理解文章的中心思想、叙事情感曲线、论述逻辑以及每个段落的具体核心要点。
-2. 【影视短剧分镜视听语言】：
-   - 【封面大图】：必须设计为电影级“全景建立镜头 (Wide Establishing Hero Shot)”，确立全篇宏大世界观、时空氛围与核心视觉冲突，极具视觉冲击力与现代高级感；
-   - 【各段落配图】：必须设计为“叙事分镜头 (Story Beat Shots)”，包括中景人物动作交互 (Medium Narrative Shot)、情绪微表情特写 (Close-Up Emotion) 或 关键道具微距 (Macro Prop Shot)。严禁空泛抽象假大空概念！
-3. 【图文匹配度 >= 95% 铁律】：
-   - 画面中的角色身份、动作姿态、道具器物、环境场景必须与该段落文案内容严格 1:1 锚定匹配，严丝合缝；
-   - 插入正文的图片必须与上下文文字高度协调共鸣，读者一眼看图就能秒懂该段落的核心精髓。
-4. 【高端现代化审美标准】：
-   - 提示词必须达到院线电影/高端杂志大片标准；
-   - 必须包含专业摄影器材（如 ARRI Alexa 65, Hasselblad H6D, Sony A7R V, Canon EOS R5 85mm f/1.2L 等）；
-   - 必须包含戏剧性布光（Volumetric Tyndall rays, Rembrandt lighting, Softbox diffusion, Cinematic anamorphic horizontal flares）；
-   - 必须严防廉价 AI 塑料感：强制附带反 AI 感负向词（no text, no watermark, no CGI, no cartoon, no plastic skin, no extra fingers, no stock photo look）。
+【系统核心铁律（必须 100% 贯彻执行）】：
+1. 【极致清晰通透铁律（最高优先级）】：
+   - 严禁任何烟雾感、浓雾、薄雾、朦胧遮罩、雾气氤氲或过度大面积虚焦模糊！
+   - 画面光线必须像纯净晴朗日光或清亮专业棚拍一样通透无瑕；
+   - 提示词必须显式使用【crystal clear, ultra-sharp focus, razor-sharp details, pristine optical clarity, immaculate focus across entire frame】；
+   - 强制加入反烟雾负向词：【no smoke, no fog, no mist, no haze, no blurry blur, no dim lighting, no washed out pale colors】。
+2. 【鲜明艳丽色彩铁律】：
+   - 严禁灰暗、泛白、死气沉沉或陈旧褪色的低饱和度色调；
+   - 必须使用【vivid vibrant saturated colors, rich punchy contrast, brilliant luminous highlights】，让画面的色彩饱满、鲜亮、充满视觉冲击力。
+3. 【图文匹配度 >= 95% 紧扣文章现实客观内容】：
+   - 画面必须严格根据文章当前的具体现实题材生成（例如文章写 AI 编程，就展现明亮清爽的现代工位、超清双屏代码与科技工具；文章写副业搞钱，就展现具体落地的工作台、电脑账目、现代都市人；文章写职场管理，就展现高采光会议室里清晰自信的团队；文章写健康美食，就展现鲜艳诱人的食材特写与明快厨房）；
+   - 严禁脱离文章实际内容的虚无缥缈概念或空洞无物的大片烟雾！
+4. 【先通读全文后生图 ➔ 影视短剧分镜视听语言】：
+   - 必须先通读全文后生图，深刻理解文章的中心思想与每个小节的具象论述；
+   - 【封面大图】：必须设计为电影级“全景建立镜头 (Wide Establishing Hero Shot)”，确立全篇清晰鲜活的现实世界观；
+   - 【各段落配图】：必须设计为影视短剧分镜“具象叙事镜头 (Story Beat Shots)”，展现中景人物动作、真实器物道具或关键场景，严禁空泛摆拍！
+5. 【高端现代化审美标准】：
+   - 必须包含专业高端摄影机（如 Hasselblad X2D 100C, Sony A7R V, Canon EOS R5 等）；
+   - 强制附带反 AI 感负向词：【no CGI, no cartoon, no 3D render plastic, no plastic skin, no extra fingers, no text, no watermark】。
 
-【十大多美学风格体系】：
-- documentary: 纪实摄影·真实烟火（哈苏+柯达胶片颗粒，生活与人文真实温度）
-- swiss_minimal: 瑞士极简·现代商务（Phase One 150MP，几何构图，大量留白，高级冷感职场）
-- magazine_editorial: 杂志编辑·高端美学（Canon R5 85mm，戏剧光，高饱和调色，Vogue/Harper's Bazaar）
-- tech_cyber: 科技赛博·数字未来（Sony A1 24mm，蓝青赛博光效，全息 HUD 与电路光轨，近未来科幻）
-- ancient_chinese: 古风雅韵·东方意境（Leica SL2，汉服丝绸质感，晨雾薄暮，水墨负空间与东方亭台）
-- city_urban: 城市风·现代都市摩天（Sony A7R V，摩天大楼玻璃倒影，CBD 黄金时段，繁华街景）
-- cinematic_movie: 影视大片·电影光影（Panavision 宽银幕变形镜头，明暗戏剧对照，电影胶片质感）
-- commercial_premium: 高端商业·品牌广告（Phase One 150MP，精准焦叠，高端布光，奢华品牌画风）
-- anime_cinematic: 治愈动漫·新海诚光影（新海诚与京阿尼画风，高饱和蔚蓝天空与积雨云，唯美黄昏丁达尔光）
-- minimalist_3d: 极简三维·轻拟物艺术（现代粘土拟物与磨砂玻璃，等轴测构图，马卡龙柔和光照，苹果发布会级 3D）
+【十大多美学风格体系（均已全面升级为零烟雾、极致清晰、色彩艳丽）】：
+- documentary: 纪实摄影·生活烟火（哈苏相机，纯净自然光，饱满生活色彩，纤毫毕现）
+- swiss_minimal: 瑞士极简·现代商务（Phase One 150MP，几何构图，鲜明强调色，清爽办公）
+- magazine_editorial: 杂志编辑·高端大片（Canon R5 85mm，明亮立体光，浓郁高级艳丽调色）
+- tech_cyber: 科技赛博·数字未来（Sony A1 24mm，高亮蓝紫电光，清晰数字终端，现代实验室）
+- ancient_chinese: 古风雅韵·东方意境（Leica SL2，纯净明朗日光，朱红黛绿典雅艳丽，精美丝绣建筑细节）
+- city_urban: 城市风·现代都市摩天（Sony A7R V，湛蓝天空，摩天楼明亮倒影，繁华街景鲜亮通透）
+- cinematic_movie: 影视大片·电影光影（ARRI Alexa 65，高清晰度，浓郁艳丽电影色，戏剧张力）
+- commercial_premium: 高端商业·品牌广告（Phase One 150MP，苹果级纯净透彻质感，鲜艳商品细节）
+- anime_cinematic: 治愈动漫·新海诚光影（极清蔚蓝晴空，澄澈水波，鲜艳积雨云，纯净动漫美学）
+- minimalist_3d: 极简三维·轻拟物艺术（现代粘土拟物，亮丽马卡龙色彩，清澈工作室全局光）
 
 【输出格式（严格纯 JSON，禁止任何 markdown 标记或解释说明）】：
 {
-  "theme_vibe": "文章整体视觉世界观与调性总结（如：东方家国情怀·晨雾水墨与金石质感）",
+  "theme_vibe": "文章整体视觉世界观与调性总结（如：现代科技创新·明亮双屏工作台与鲜活色彩）",
   "visual_style": "上述10种风格key之一",
   "storyboard_summary": "全文视听分镜节奏规划简述",
   "cover_prompt": {
     "shot_type": "Wide Establishing Shot",
-    "zh": "封面具象场景分镜描述：建立宏大世界观、主体动作、空间道具、光线",
-    "en": "Cinematic wide establishing shot of [specific scene details from text], shot on ARRI Alexa 65 with 35mm anamorphic lens, [lighting & atmosphere], 8k resolution, photorealistic, no text, no watermark, no CGI"
+    "zh": "封面具象场景分镜描述：建立清晰明朗的现实场景、明确主体动作、鲜亮色彩、清澈光线",
+    "en": "Crystal clear wide establishing shot of [specific realistic details directly from text], razor-sharp focus, vivid vibrant saturated colors, pristine natural daylight illumination, shot on Hasselblad X2D 100C, 8k resolution, ultra-detailed, no smoke, no fog, no mist, no haze, no blur, no text, no watermark"
   },
   "sections_prompts": [
     {
       "section_title": "小节标题",
       "shot_type": "Medium Narrative Shot / Close-up Detail Shot",
-      "zh": "该小节影视分镜场景：与本节文本要点严格1:1锚定的具体主体、动作、环境道具与光影",
-      "en": "Cinematic shot of [specific narrative beat strictly aligned with the section text], shot on [camera], [lighting], [style-specific params], 8k, no text, no watermark"
+      "zh": "该小节影视分镜场景：与本节文本要点严格1:1锚定的具体主体、动作、环境道具，清晰通透，色彩艳丽",
+      "en": "Crystal clear shot of [specific narrative beat strictly aligned with the section text], ultra-sharp focus, razor-sharp details, vivid saturated vibrant colors, bright crisp lighting, shot on Sony A7R V, 8k resolution, no smoke, no fog, no mist, no haze, no blur, no text, no watermark"
     }
   ]
 }
@@ -405,13 +404,13 @@ def analyze_article_visual_prompts(title: str, body_md: str, sections: list, for
         try:
             from core.short_drama import _synthesize_scene_prompt
             cover_en = (
-                _synthesize_scene_prompt(title, title, "Wide Establishing Shot", "Cinematic Golden Hour Window Light", "Slow Dolly In")
-                + ", 2k 4k 8k ultra hd, Hasselblad X2D 100C look, masterpiece"
+                _synthesize_scene_prompt(title, title, "Wide Establishing Shot", "Brilliant Clear Daylight", "Slow Dolly In")
+                + ", crystal clear, ultra-sharp focus, vivid vibrant colors, 8k ultra hd, Hasselblad X2D 100C look, masterpiece"
                 + auto_preset["suffix"]
             )
         except Exception:
-            cover_en = f"Cinematic wide establishing shot of {title[:60]}, shot on Hasselblad X2D 100C, natural rim light, photorealistic, 2k 8k ultra hd, sharp focus" + auto_preset["suffix"]
-        cover_zh = f"《{title[:20]}》核心意象全景：主体细节与空间光影交织"
+            cover_en = f"Crystal clear wide establishing shot of {title[:60]}, razor-sharp focus, vivid vibrant colors, bright natural daylight, shot on Hasselblad X2D 100C, photorealistic, 8k ultra hd, no smoke, no fog, no mist, no haze, no blur" + auto_preset["suffix"]
+        cover_zh = f"《{title[:20]}》现实核心场景：清晰通透，色彩鲜明"
 
         sec_prompts = []
         for i, sec in enumerate(sections):
@@ -419,12 +418,12 @@ def analyze_article_visual_prompts(title: str, body_md: str, sections: list, for
             try:
                 from core.short_drama import _synthesize_scene_prompt
                 p_en = (
-                    _synthesize_scene_prompt(title, ctx or t, "Medium Shot", "Cinematic Rim Light with Soft Key", "Push In")
-                    + ", 2k 4k 8k ultra hd, 85mm f/1.4 lens, razor-sharp focus"
+                    _synthesize_scene_prompt(title, ctx or t, "Medium Shot", "Brilliant Clear Directional Illumination", "Push In")
+                    + ", crystal clear, razor-sharp focus, vivid vibrant colors, 8k ultra hd, Sony A7R V look"
                     + auto_preset["suffix"]
                 )
             except Exception:
-                p_en = f"Cinematic medium narrative shot of {t[:50]}, {ctx[:50] if ctx else ''}, shot on Canon EOS R5 85mm f/1.2L, photorealistic, 2k 8k ultra hd" + auto_preset["suffix"]
+                p_en = f"Crystal clear medium narrative shot of {t[:50]}, {ctx[:50] if ctx else ''}, razor-sharp focus, vivid saturated vibrant colors, bright lighting, shot on Canon EOS R5 85mm f/1.2L, 8k ultra hd, no smoke, no fog, no mist, no haze, no blur" + auto_preset["suffix"]
             sec_prompts.append({
                 "section_title": t,
                 "zh": f"小节【{t[:15]}】核心场景：{ctx[:30] if ctx else t}",

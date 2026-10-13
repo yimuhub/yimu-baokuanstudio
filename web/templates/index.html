@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>一幕·YIMU 爆款工作室 V8.3.31 · 全媒体超级创作引擎</title>
+<title>一幕·YIMU 爆款工作室 V8.3.32 · 全媒体超级创作引擎</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script>
 (function() {
@@ -3199,7 +3199,7 @@ input[type=text]:focus, textarea:focus, select:focus {
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.3px">爆款工作室</span>
-      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.31</span>
+      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.32</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -3242,7 +3242,14 @@ input[type=text]:focus, textarea:focus, select:focus {
       <span class="nav-icon">⚙️</span>
       <div class="nav-txt">
         <span>控制中心</span>
-        <small>每日工单 · 技能 · 设置</small>
+        <small>每日工单 · 技能 · 平台治理</small>
+      </div>
+    </div>
+    <div class="nav-item" data-p="profile" id="nav-item-profile">
+      <span class="nav-icon">👤</span>
+      <div class="nav-txt">
+        <span>个人中心</span>
+        <small>画像 · 密钥 · 偏好设置</small>
       </div>
     </div>
   </nav>
@@ -3251,9 +3258,20 @@ input[type=text]:focus, textarea:focus, select:focus {
       <span class="dot" id="gw-dot"></span>
       <span id="gw-status-text">LLM 检测中…</span>
     </div>
-    <div style="margin-top:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:11.5px;display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="openLoginModal()" title="点击查看授权状态或验证访问口令">
-      <span style="color:var(--text-muted)">🔐 系统授权</span>
+    <div id="side-user-profile-btn" style="margin-top:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:11.5px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:all .2s" onclick="switchToProfileCenter()" title="点击进入个人中心与系统设置">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span>👤</span>
+        <span style="color:var(--text);font-weight:600" id="side-user-title">个人中心</span>
+      </div>
       <span class="badge ok" id="side-auth-badge">已登录</span>
+    </div>
+    <div class="side-version-bar" id="side-version-badge" onclick="checkSystemUpdate(true)" title="点击检查 GitHub 仓库最新版本更新" style="margin-top:10px;padding:7px 10px;background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.22);border-radius:8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:11px;transition:all .2s">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="font-size:11px">🪐</span>
+        <span style="color:var(--text-muted);font-weight:500">版本</span>
+        <code style="color:var(--primary);font-weight:700" id="side-version-text">V8.3.32</code>
+      </div>
+      <span class="badge blue" style="font-size:10px;padding:1px 6px">检查更新 ↗</span>
     </div>
   </div>
 </aside>
@@ -3355,7 +3373,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <a class="btn btn-sm" href="/admin/releases" id="nav-release-entry"
          title="版本升级总览：本次改了什么、在哪里、怎么验证"
          style="text-decoration:none;background:var(--primary);color:#fff;border:0;font-weight:700"
-      >🆕 <span id="nav-ver-text">8.3.31</span></a>
+      >🆕 <span id="nav-ver-text">8.3.32</span></a>
       <span id="header-extra"></span>
     </div>
   </header>
@@ -3366,7 +3384,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:12px">
         <span class="live-pulse"></span>
         <span style="font-weight:700;font-size:13.5px;color:#fff">一幕·YIMU 爆款雷达实时巡航中</span>
-        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.31</span>
+        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.32</span>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap">
         <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">—</strong></div>
@@ -5732,6 +5750,21 @@ input[type=text]:focus, textarea:focus, select:focus {
       <!-- 子视图：系统设置 -->
       <div id="sp-settings" class="sub-view" style="display:none">
         <div class="card" style="display:flex;flex-direction:column;gap:14px">
+          <!-- 个人配置迁移直达引导 -->
+          <div style="background:linear-gradient(135deg,rgba(168,85,247,0.12),rgba(56,189,248,0.08));border:1px solid rgba(168,85,247,0.35);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+            <div style="display:flex;align-items:center;gap:12px">
+              <span style="font-size:24px">👤</span>
+              <div>
+                <div style="font-weight:700;font-size:14px;color:#d8b4fe">创作者个人专属偏好已独立归纳至「个人中心」</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
+                  包含：创作者6维数字画像、个人模型 API Vault、日夜外观、输出水印、矩阵渠道派生预设、GitHub 图床等。
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-sm" style="background:linear-gradient(135deg,#9333ea,#a855f7);color:#fff;border:none;font-weight:700" onclick="switchToProfileCenter()">👉 进入个人中心</button>
+          </div>
+
+          <!-- 企业级 AI 模型中枢 -->
           <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
             <div>
               <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px"><span>⚡</span> 企业级 AI 大模型服务与 API 中枢</div>
@@ -5740,6 +5773,7 @@ input[type=text]:focus, textarea:focus, select:focus {
             <button class="btn btn-sm" style="background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;border:none;font-weight:700" onclick="modal('m-gateway')">⚙️ 配置模型服务与API</button>
           </div>
 
+          <!-- 使用量统计 -->
           <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--border)">
             <div style="flex:1">
               <div style="font-weight:600;font-size:14px">📊 各模型服务使用量统计</div>
@@ -5749,6 +5783,7 @@ input[type=text]:focus, textarea:focus, select:focus {
             <button class="btn btn-sm ghost" onclick="loadLlmUsage()">↻ 刷新统计</button>
           </div>
 
+          <!-- 热点关键词白名单 -->
           <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
             <div>
               <div style="font-weight:600;font-size:14px">热点关键词白名单</div>
@@ -5757,6 +5792,7 @@ input[type=text]:focus, textarea:focus, select:focus {
             <button class="btn btn-sm ghost" onclick="modal('m-keywords')">设置关键词</button>
           </div>
 
+          <!-- AI 质量考核与自动迭代 -->
           <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
             <div>
               <div style="font-weight:600;font-size:14px">AI 质量考核与自动迭代</div>
@@ -5765,57 +5801,7 @@ input[type=text]:focus, textarea:focus, select:focus {
             <button class="btn btn-sm ghost" onclick="modal('m-quality')">配置考核</button>
           </div>
 
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-weight:600;font-size:14px">AI 智能配图</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-image-info"></div>
-            </div>
-            <button class="btn btn-sm ghost" onclick="modal('m-image')">配图设置</button>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-weight:600;font-size:14px">界面外观主题模式</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-theme-mode-info">🌓 跟随系统（随操作系统自动切换日夜模式）</div>
-            </div>
-            <button class="btn btn-sm ghost" onclick="modal('m-theme')">切换外观</button>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-weight:600;font-size:14px">输出水印与品牌印记</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-watermark-info">默认已开启 · 自由支持手动关闭或定制文案</div>
-            </div>
-            <button class="btn btn-sm ghost" onclick="openWatermarkModal()">水印设置</button>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-weight:600;font-size:14px">默认排版与卡片风格</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-theme-info"></div>
-            </div>
-            <button class="btn btn-sm ghost" onclick="modal('m-theme')">排版风格</button>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div style="flex:1">
-              <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px"><span>🚀</span> 默认同时生成与派生平台预设</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:4px">自由选择在生成或母稿驱动派生时默认覆盖的矩阵渠道（按需勾选，立省算力）：</div>
-              <div id="pc-settings-derive-capsules" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">
-                <div class="derive-chip on" data-plat="wechat_mp" onclick="togglePcSettingsDeriveChip(this)">🟢 微信公众号</div>
-                <div class="derive-chip on" data-plat="xhs" onclick="togglePcSettingsDeriveChip(this)">📕 小红书</div>
-                <div class="derive-chip on" data-plat="toutiao" onclick="togglePcSettingsDeriveChip(this)">🔴 今日头条</div>
-                <div class="derive-chip on" data-plat="zhihu" onclick="togglePcSettingsDeriveChip(this)">🔵 知乎专栏</div>
-                <div class="derive-chip on" data-plat="weibo" onclick="togglePcSettingsDeriveChip(this)">🟡 微博快讯</div>
-                <div class="derive-chip on" data-plat="twitter" onclick="togglePcSettingsDeriveChip(this)">𝕏 Twitter/𝕏</div>
-              </div>
-            </div>
-            <div style="display:flex;gap:6px;align-items:center;margin-top:2px">
-              <button class="btn btn-sm ghost" onclick="toggleAllPcSettingsDerivePlatforms()">全选/反选</button>
-              <button class="btn btn-sm ok" onclick="savePcSettingsDerivePlatforms()">💾 保存预设</button>
-            </div>
-          </div>
-
+          <!-- 草稿箱自动过期清理 -->
           <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
             <div>
               <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px"><span>⏳</span> 草稿箱自动过期清理</div>
@@ -5835,27 +5821,12 @@ input[type=text]:focus, textarea:focus, select:focus {
             </div>
           </div>
 
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <div>
-              <div style="font-weight:600;font-size:14px">GitHub 图床（公网图片外链）</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-imgbed-info"></div>
-            </div>
-            <button class="btn btn-sm ghost" onclick="modal('m-imgbed')">配置图床</button>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border)">
-            <div>
-              <div style="font-weight:700;font-size:14px;color:#a855f7;display:flex;align-items:center;gap:6px"><span>👤</span> 账号 6 维数字画像 (Profile & 人设档案)</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-profile-info">定位、声纹语气、受众群体、表达禁忌与爆款长期记忆已同步</div>
-            </div>
-            <button class="btn btn-sm" style="background:rgba(168,85,247,0.18);border:1px solid rgba(168,85,247,0.45);color:#d8b4fe;font-weight:600" onclick="openProfileModal()">👤 配置 6 维数字画像</button>
-          </div>
-
+          <!-- GitHub 仓库在线升级与同步 -->
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);background:rgba(56,189,248,0.03);padding:14px;border-radius:10px;margin-top:12px;border:1px solid rgba(56,189,248,0.2)">
             <div>
               <div style="font-weight:700;font-size:14px;color:#38bdf8;display:flex;align-items:center;gap:6px"><span>🔄</span> GitHub 仓库在线升级与同步</div>
               <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="st-updater-status">
-                当前版本：<code style="color:var(--primary);font-weight:700">V8.3.31</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
+                当前版本：<code style="color:var(--primary);font-weight:700">V8.3.32</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
@@ -6230,6 +6201,204 @@ input[type=text]:focus, textarea:focus, select:focus {
             <button class="btn btn-sm ghost" id="usr-btn-next" onclick="loadAdminUsers(usrCurrentOffset + 20)">下一页</button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ================== 5. 个人中心独立面板 (Personal Center) ================== -->
+    <section class="panel" id="p-profile">
+      <!-- 个人中心头部概览横幅 -->
+      <div class="card" style="margin-bottom:16px;background:radial-gradient(ellipse at top left, rgba(168,85,247,0.18), rgba(15,23,42,0.7));border:1px solid rgba(168,85,247,0.35);padding:22px">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#9333ea,#f0883e);display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 4px 14px rgba(168,85,247,0.4);border:2px solid rgba(255,255,255,0.25)">
+              👤
+            </div>
+            <div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <h2 style="margin:0;font-size:18px;font-weight:700;color:#fff" id="profile-user-display-name">创作者个人中心</h2>
+                <span class="badge ok" id="profile-auth-badge">已登录 · 管理员</span>
+                <span class="badge blue" id="profile-tier-badge" style="cursor:pointer" onclick="openBillingModal()">基础版</span>
+              </div>
+              <div style="font-size:12.5px;color:var(--text-muted);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap">
+                <span>媒体名称: <b style="color:var(--text)" id="profile-media-name-text">一幕·YIMU 爆款工作室</b></span>
+                <span>当前算力: <b style="color:var(--primary)" id="profile-token-bal-text">— Token</b></span>
+                <span>当前版本: <code style="color:#38bdf8;font-weight:700">V8.3.32</code></span>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-sm ghost" onclick="openLoginModal()" title="切换登录身份或重新验证口令">🔐 账号与口令</button>
+            <button class="btn btn-sm ghost" onclick="openBillingModal()" style="color:var(--primary);border-color:rgba(240,136,62,0.4)" title="商业化充值与卡密兑换">💎 算力账本</button>
+            <button class="btn btn-sm ghost" onclick="checkSystemUpdate(true)" title="检查 GitHub 仓库最新代码">🪐 检查更新</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 个人设置卡片网格 -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(360px, 1fr));gap:16px">
+
+        <!-- 1. 账号资料与媒体签名 -->
+        <div class="card" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+            <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px">
+              <span>🆔</span> 创作者媒体与账号档案
+            </div>
+            <span class="badge green">生效中</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted)">设置在推文、海报与分发矩阵中展示的自媒体/MCN机构公用名称：</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input type="text" id="profile-media-name-input" class="m-input" placeholder="输入自媒体或机构名称" style="flex:1;padding:7px 10px;font-size:13px;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:6px;color:#fff">
+            <button class="btn btn-sm ok" onclick="saveProfileMediaName()">💾 保存</button>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+            <span>支持多平台同步发布时的媒体签名引用</span>
+            <button class="btn btn-sm ghost" style="padding:2px 8px;font-size:11px" onclick="openLoginModal()">切换/登出账号</button>
+          </div>
+        </div>
+
+        <!-- 2. 账号 6 维数字画像 (Profile & 人设档案) -->
+        <div class="card" style="display:flex;flex-direction:column;gap:12px;border-left:3px solid #a855f7">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+            <div style="font-weight:700;font-size:14px;color:#d8b4fe;display:flex;align-items:center;gap:6px">
+              <span>👤</span> 账号 6 维数字画像 (Profile & 人设档案)
+            </div>
+            <button class="btn btn-sm" style="background:rgba(168,85,247,0.18);border:1px solid rgba(168,85,247,0.45);color:#d8b4fe;font-weight:600" onclick="openProfileModal()">✏️ 编辑画像</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted)" id="st-profile-info">定位、声纹语气、受众群体、表达禁忌与爆款长期记忆已同步</div>
+          <div id="profile-summary-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+            <span class="badge purple" style="font-size:11px;padding:3px 8px">🎯 创作者定位</span>
+            <span class="badge purple" style="font-size:11px;padding:3px 8px">🎙️ 声纹语气风格</span>
+            <span class="badge purple" style="font-size:11px;padding:3px 8px">👥 目标受众画像</span>
+            <span class="badge purple" style="font-size:11px;padding:3px 8px">🚫 表达禁忌白名单</span>
+            <span class="badge purple" style="font-size:11px;padding:3px 8px">🧠 爆款长期记忆库</span>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-muted)">驱动全自动创作 Copilot、爆款仿写与仿生分发的核心基石</div>
+        </div>
+
+        <!-- 3. 我的专属模型 API 凭证 (User API Vault) -->
+        <div class="card" style="display:flex;flex-direction:column;gap:12px;border-left:3px solid #c084fc">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#c084fc;display:flex;align-items:center;gap:6px">
+                <span>🔑</span> 我的专属模型 API 凭证 (API Vault)
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">自备 Key 直连 · 0加价 · AES-GCM 硬件加密安全</div>
+            </div>
+            <button class="btn btn-sm" style="background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;border:none;font-weight:600" onclick="openUserVaultModal()">🔑 配置我的 API</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">
+            支持自备 OpenAI、DeepSeek、Claude、智谱 GLM、通义千问、Kimi 等私人 Key。<br>
+            未配置自备 Key 时，系统将自动无缝平滑切回一幕平台企业级托管网关。
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+            <span class="badge green">AES-256 加密</span>
+            <span class="badge blue">无缝热切换</span>
+            <span class="badge gold">自备直连零损耗</span>
+          </div>
+        </div>
+
+        <!-- 4. 界面外观与排版风格偏好 -->
+        <div class="card" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+            <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px">
+              <span>🌓</span> 界面外观与排版风格
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm ghost" onclick="modal('m-theme')">排版风格</button>
+              <button class="btn btn-sm ghost" onclick="cycleThemeMode()">切换外观</button>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div style="font-weight:600;font-size:13px">日夜外观主题模式</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="st-theme-mode-info">🌓 跟随系统（随操作系统自动切换日夜模式）</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-sm ghost" onclick="setThemeModeDirect('system')">🌓 系统</button>
+              <button class="btn btn-sm ghost" onclick="setThemeModeDirect('light')">☀️ 浅色</button>
+              <button class="btn btn-sm ghost" onclick="setThemeModeDirect('dark')">🌙 深色</button>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06)">
+            <div>
+              <div style="font-weight:600;font-size:13px">默认文章卡片排版</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="st-theme-info"></div>
+            </div>
+            <button class="btn btn-sm ghost" onclick="modal('m-theme')">选择模版</button>
+          </div>
+        </div>
+
+        <!-- 5. 品牌印记与输出水印 -->
+        <div class="card" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+            <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px">
+              <span>🏷️</span> 输出水印与品牌印记
+            </div>
+            <button class="btn btn-sm ghost" onclick="openWatermarkModal()">⚙️ 水印设置</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted)" id="st-watermark-info">默认已开启 · 自由支持手动关闭或定制文案</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">
+            在导出的推文正文尾部、卡片海报及影音成片中自动添加优雅的原创防盗签名。支持完全自主关闭或自定义品牌前缀。
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:2px">
+            <button class="btn btn-sm ghost" onclick="openWatermarkModal()">✏️ 自定义签名文案</button>
+          </div>
+        </div>
+
+        <!-- 6. GitHub 图床（公网图片外链） -->
+        <div class="card" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+            <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px">
+              <span>🖼️</span> GitHub 图床（公网图片外链）
+            </div>
+            <button class="btn btn-sm ghost" onclick="modal('m-imgbed')">配置图床</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted)" id="st-imgbed-info">未配置（使用系统内置免费图床代理）</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">
+            可绑定您个人的 GitHub 仓库作为专属永久图床。生成配图与短视频成片封面时，自动转为高速 CDN 公网外链，方便一键发布至各大平台。
+          </div>
+        </div>
+
+        <!-- 7. AI 智能生图与配图偏好 -->
+        <div class="card" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+            <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px">
+              <span>🎨</span> AI 智能配图偏好
+            </div>
+            <button class="btn btn-sm ghost" onclick="modal('m-image')">配图设置</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted)" id="st-image-info">默认使用系统智能生图引擎</div>
+          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">
+            自由挑选 DALL-E 3、FLUX.1、Stable Diffusion、通义万相、智谱 CogView 或免版权摄影图库（Pexels / Pixabay）。
+          </div>
+        </div>
+
+        <!-- 8. 默认同时生成与派生平台预设 -->
+        <div class="card" style="grid-column:1 / -1;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px">
+                <span>🚀</span> 默认同时生成与派生平台预设
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+                自由选择在生成或母稿驱动派生时默认覆盖的矩阵渠道（按需勾选，立省算力）：
+              </div>
+              <div id="pc-settings-derive-capsules" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+                <div class="derive-chip on" data-plat="wechat_mp" onclick="togglePcSettingsDeriveChip(this)">🟢 微信公众号</div>
+                <div class="derive-chip on" data-plat="xhs" onclick="togglePcSettingsDeriveChip(this)">📕 小红书</div>
+                <div class="derive-chip on" data-plat="toutiao" onclick="togglePcSettingsDeriveChip(this)">🔴 今日头条</div>
+                <div class="derive-chip on" data-plat="zhihu" onclick="togglePcSettingsDeriveChip(this)">🔵 知乎专栏</div>
+                <div class="derive-chip on" data-plat="weibo" onclick="togglePcSettingsDeriveChip(this)">🟡 微博快讯</div>
+                <div class="derive-chip on" data-plat="twitter" onclick="togglePcSettingsDeriveChip(this)">𝕏 Twitter/𝕏</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+              <button class="btn btn-sm ghost" onclick="toggleAllPcSettingsDerivePlatforms()">全选/反选</button>
+              <button class="btn btn-sm ok" onclick="savePcSettingsDerivePlatforms()">💾 保存预设</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
   </main>
@@ -9636,29 +9805,62 @@ async function checkSystemUpdate(manual = false) {
   const statusEl = document.getElementById('st-updater-status');
   const checkBtn = document.getElementById('btn-check-update');
   const upBtn = document.getElementById('btn-do-upgrade');
+  const sideVerBadge = document.getElementById('side-version-badge');
+  const sideVerText = document.getElementById('side-version-text');
   if (checkBtn) { checkBtn.disabled = true; checkBtn.textContent = '⏳ 正在检测…'; }
+  let origSideBadgeHtml = '';
+  if (sideVerBadge) {
+    const badgeSpan = sideVerBadge.querySelector('.badge');
+    if (badgeSpan) {
+      origSideBadgeHtml = badgeSpan.outerHTML;
+      badgeSpan.outerHTML = '<span class="badge blue" id="side-ver-status-badge">检测中…</span>';
+    }
+  }
   try {
     const res = await api('/api/system/check_update?force=' + (manual ? 'true' : 'false'));
     if (res && res.ok) {
+      if (sideVerText && res.current_version) {
+        sideVerText.textContent = (String(res.current_version).startsWith('V') ? '' : 'V') + res.current_version;
+      }
       if (res.has_update) {
         if (statusEl) {
           statusEl.innerHTML = `<span style="color:#56d364;font-weight:700">🎉 发现新版本！</span> 远程最新: <code style="color:#56d364;font-weight:700">V${res.latest_version}</code> (Commit: <code>${res.latest_commit}</code>)<br><span style="color:var(--text-muted);font-size:11.5px">${escapeHtml(res.commit_message || '有更新可用')}</span>`;
         }
         if (upBtn) upBtn.style.display = 'inline-flex';
-        if (manual) toast(`发现新版本 (V${res.latest_version})，可点击「立即升级」！`);
+        const curSideBadge = document.getElementById('side-ver-status-badge') || (sideVerBadge && sideVerBadge.querySelector('.badge'));
+        if (curSideBadge) {
+          curSideBadge.outerHTML = `<span class="badge red" title="点击立即升级">有新版 V${res.latest_version} ↗</span>`;
+        }
+        if (manual) {
+          if (confirm(`🎉 发现 GitHub 仓库新版本 (V${res.latest_version})！\n\n更新说明: ${res.commit_message || '有更新可用'}\n\n是否立即执行代码热更新？`)) {
+            performSystemUpgrade();
+          }
+        }
       } else {
         if (statusEl) {
           statusEl.innerHTML = `当前版本：<code style="color:var(--primary);font-weight:700">V${res.current_version}</code> (Commit: <code>${res.current_commit}</code>) · <span style="color:#56d364">✅ 已是最新代码</span>`;
         }
         if (upBtn) upBtn.style.display = 'none';
-        if (manual) toast('当前已是最新版本，无需升级。');
+        const curSideBadge = document.getElementById('side-ver-status-badge') || (sideVerBadge && sideVerBadge.querySelector('.badge'));
+        if (curSideBadge) {
+          curSideBadge.outerHTML = '<span class="badge green">已是最新</span>';
+          setTimeout(() => {
+            const b = sideVerBadge && sideVerBadge.querySelector('.badge');
+            if (b) b.outerHTML = '<span class="badge blue">检查更新 ↗</span>';
+          }, 3000);
+        }
+        if (manual) toast('当前已是最新版本 (V' + (res.current_version || '8.3.32') + ')，无需升级。');
       }
     } else {
       if (statusEl) statusEl.innerHTML = `<span style="color:#ff7b72">⚠️ 检测更新提示: ${escapeHtml(res.error || '连接 GitHub 异常')}</span>`;
+      const curSideBadge = document.getElementById('side-ver-status-badge') || (sideVerBadge && sideVerBadge.querySelector('.badge'));
+      if (curSideBadge) curSideBadge.outerHTML = '<span class="badge gold">检测失败</span>';
       if (manual) toast('检测更新失败: ' + (res.error || '请检查网络连接'));
     }
   } catch (e) {
     if (statusEl) statusEl.innerHTML = `<span style="color:#ff7b72">⚠️ 检测异常: ${escapeHtml(e.message)}</span>`;
+    const curSideBadge = document.getElementById('side-ver-status-badge') || (sideVerBadge && sideVerBadge.querySelector('.badge'));
+    if (curSideBadge) curSideBadge.outerHTML = '<span class="badge gold">检测异常</span>';
     if (manual) toast('检测失败: ' + e.message);
   } finally {
     if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = '🔍 检查更新'; }
@@ -9953,15 +10155,98 @@ document.querySelectorAll('.nav-item').forEach(item => {
     const pId = 'p-' + item.dataset.p;
     const targetEl = $(pId);
     if (targetEl) targetEl.classList.add('on');
-    const icons = {dashboard:'🌐', lite:'✨', inspire:'🔥', drafts:'📝', studio:'🎬', console:'⚙️'};
-    const titles = {dashboard:'操盘大屏', lite:'极简模式', inspire:'灵感与选题', drafts:'内容工作台', studio:'影音工坊', console:'控制中心'};
+    const icons = {dashboard:'🌐', lite:'✨', inspire:'🔥', drafts:'📝', studio:'🎬', console:'⚙️', profile:'👤'};
+    const titles = {dashboard:'操盘大屏', lite:'极简模式', inspire:'灵感与选题', drafts:'内容工作台', studio:'影音工坊', console:'控制中心', profile:'个人中心'};
     $('header-icon').textContent = icons[item.dataset.p] || '';
     $('header-title').textContent = titles[item.dataset.p] || '';
     if (item.dataset.p === 'studio' && typeof initStudioModelSelects === 'function') {
       try { initStudioModelSelects(); } catch(e) { console.warn('[studio-models] 初始化失败:', e); }
     }
+    if (item.dataset.p === 'profile' && typeof syncProfileCenterData === 'function') {
+      try { syncProfileCenterData(); } catch(e) { console.warn('[profile-center] 同步失败:', e); }
+    }
   };
 });
+
+/* ==================== 👤 个人中心导航与设置管理 ==================== */
+function switchToProfileCenter() {
+  if (typeof currentSystemMode !== 'undefined' && currentSystemMode === 'lite') {
+    switchSystemMode('pro');
+  }
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  const profileNav = document.querySelector('.nav-item[data-p="profile"]');
+  if (profileNav) profileNav.classList.add('on');
+  const profilePanel = $('p-profile');
+  if (profilePanel) {
+    profilePanel.classList.add('on');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  const hIcon = $('header-icon'), hTitle = $('header-title');
+  if (hIcon) hIcon.textContent = '👤';
+  if (hTitle) hTitle.textContent = '个人中心';
+  if (typeof syncProfileCenterData === 'function') {
+    syncProfileCenterData();
+  }
+}
+
+function syncProfileCenterData() {
+  try {
+    const mediaName = (typeof getUserMediaName === 'function') ? getUserMediaName() : '一幕·YIMU 爆款工作室';
+    const nameInput = $('profile-media-name-input');
+    const nameText = $('profile-media-name-text');
+    if (nameInput) nameInput.value = mediaName;
+    if (nameText) nameText.textContent = mediaName;
+
+    // 同步算力与会员
+    const tokenBalEl = $('nav-token-bal');
+    const profileBalEl = $('profile-token-bal-text');
+    if (tokenBalEl && profileBalEl) {
+      profileBalEl.textContent = (tokenBalEl.textContent || '—') + ' Token';
+    }
+    const tierBadge = $('nav-tier-badge');
+    const profileTierBadge = $('profile-tier-badge');
+    if (tierBadge && profileTierBadge) {
+      profileTierBadge.textContent = tierBadge.textContent || '基础版';
+    }
+
+    // 同步外观主题文字
+    const curThemeMode = localStorage.getItem('yimu_ui_theme_mode') || 'system';
+    const modeMap = { system: '🌓 跟随系统（自动匹配日夜模式）', light: '☀️ 浅色明亮（清爽护眼模式）', dark: '🌙 深色暗黑（沉浸极客模式）' };
+    const stThemeEl = $('st-theme-mode-info');
+    if (stThemeEl) stThemeEl.textContent = modeMap[curThemeMode] || curThemeMode;
+  } catch(e) {
+    console.warn('[syncProfileCenterData] 同步失败:', e);
+  }
+}
+
+function saveProfileMediaName() {
+  const input = $('profile-media-name-input');
+  if (!input) return;
+  const val = (input.value || '').trim();
+  if (!val) return toast('请输入有效的自媒体或机构名称');
+  if (typeof syncUserMediaName === 'function') syncUserMediaName(val);
+  const nameText = $('profile-media-name-text');
+  if (nameText) nameText.textContent = val;
+  toast('✅ 创作者媒体名称已保存: ' + val);
+}
+
+function setThemeModeDirect(mode) {
+  try {
+    localStorage.setItem('yimu_ui_theme_mode', mode);
+    if (typeof applyThemeMode === 'function') {
+      applyThemeMode(mode);
+    } else {
+      document.documentElement.setAttribute('data-theme', mode === 'system' ? (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : mode);
+    }
+    const modeMap = { system: '🌓 跟随系统（自动匹配日夜模式）', light: '☀️ 浅色明亮（清爽护眼模式）', dark: '🌙 深色暗黑（沉浸极客模式）' };
+    const stThemeEl = $('st-theme-mode-info');
+    if (stThemeEl) stThemeEl.textContent = modeMap[mode] || mode;
+    toast('已切换外观为：' + (mode === 'system' ? '跟随系统' : (mode === 'light' ? '浅色明亮' : '深色暗黑')));
+  } catch(e) {
+    console.warn('[setThemeModeDirect]', e);
+  }
+}
 
 function switchSubTab(parentPanel, subId) {
   const p = $('p-' + parentPanel);
@@ -20766,7 +21051,7 @@ async function resetHabitSkill() {
 let yimuUserTier = 'free';
 function getAppVersionShort() {
   const t = document.getElementById('nav-ver-text')?.textContent;
-  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V8.3.31';
+  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V8.3.32';
 }
 const TIER_LABEL_MAP = {free: 'Free', pro: 'Pro', studio: 'Studio'};
 
@@ -20985,7 +21270,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px" id="agent-task-subtitle">全能微创改写与生成引擎调度中…</div>
         </div>
       </div>
-      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V8.3.31</span>
+      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V8.3.32</span>
     </div>
     
     <!-- 当前动态进行中的工作步骤展示卡 -->

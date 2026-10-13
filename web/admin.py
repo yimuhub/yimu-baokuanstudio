@@ -884,7 +884,7 @@ def logout():
 try:
     from version import __version__ as APP_VERSION
 except Exception:
-    APP_VERSION = "8.3.31"
+    APP_VERSION = "8.3.32"
 
 
 @app.get("/health")

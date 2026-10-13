@@ -415,13 +415,13 @@ def _shell(title: str, body: str, username: str = "", active: str = "", embed: b
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{html.escape(title)} · 一幕·YIMU V8.3.33</title>
+<title>{html.escape(title)} · 一幕·YIMU V9.0.0</title>
 <link rel="stylesheet" href="/static/css/modern_studio.css">
 <style>{_PAGE_CSS}</style>
 </head><body>
 <div class="page-wrap">
 <div class="page-top">{top_nav}<h1>{html.escape(title)}</h1>
-<span class="ver-badge">V8.3.33</span>{user_html}</div>
+<span class="ver-badge">V9.0.0</span>{user_html}</div>
 {body}
 </div>
 <script>

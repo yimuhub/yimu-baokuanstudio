@@ -22,18 +22,20 @@ from core.agents import load_config, STAGE_DEFAULT_SKILLS
 
 
 def test_v8333_version_consistency():
-    """验证版本单一真源升级为 8.3.33，杜绝任何旧版本写死徽章"""
-    assert version.__version__ == "8.3.33"
+    """验证版本单一真源升级为 9.0.0，杜绝任何旧版本写死徽章"""
+    assert version.__version__ == "9.0.0"
     index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
     mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
-    assert "V8.3.33" in index_html
-    assert "8.3.33" in index_html
-    assert "V8.3.33" in mobile_html
-    # 杜绝任何旧的 8.2 或 8.3.2 写死徽章
+    assert "V9.0.0" in index_html
+    assert "9.0.0" in index_html
+    assert "V9.0.0" in mobile_html
+    # 杜绝任何旧的 8.2 或 8.3.2 或 8.3.33 写死徽章
     assert "V8.2" not in index_html
     assert "V8.2" not in mobile_html
     assert "V8.3.2" not in index_html
     assert "V8.3.2" not in mobile_html
+    assert "V8.3.33" not in index_html
+    assert "V8.3.33" not in mobile_html
 
 
 def test_visual_style_presets_complete():

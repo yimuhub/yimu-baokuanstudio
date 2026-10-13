@@ -26,7 +26,7 @@ log = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GITHUB_REPO = "yimuhub/yimu-baokuanstudio"
-_DEFAULT_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) YimuStudio/8.3.33"
+_DEFAULT_UA = f"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) YimuStudio/{version.__version__}"
 _CACHE_TIMEOUT_SECONDS = 30  # 30 秒缓存，防频繁触发检测
 
 _cache_check_result: dict[str, Any] | None = None

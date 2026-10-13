@@ -295,7 +295,6 @@ footer {{
     </div>
     <div class="nav-actions">
       <a class="btn" href="/">🏠 进入工作台</a>
-      <a class="btn ghost" href="/pricing">💰 商业化价格</a>
       <a class="btn ghost" href="https://github.com/yimuhub/yimu-baokuanstudio" target="_blank" rel="noopener">🌐 GitHub 仓库</a>
       <a class="btn ghost" href="https://github.com/yimuhub/yimu-baokuanstudio/tags" target="_blank" rel="noopener">🏷️ GitHub Tags</a>
     </div>
@@ -386,18 +385,50 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V9.1.0 -->
+      <!-- V9.2.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌟 V9.1.0 · 万象生 (Infinite Worlds)</span>
+          <span class="t-ver">🌟 V9.2.0 · 天工开 (Divine Forge)</span>
           <span class="badge orange">当前版本 · 最新</span>
+          <span class="t-date">2026-10-13</span>
+        </div>
+        <div class="t-desc">自定义内容分发派生平台中枢、Agent 排版技能自学习自蒸馏与全域纯净「一幕·YIMU」锁定。</div>
+        <ul class="t-list">
+          <li><b>🌐 自定义内容分发派生平台中枢</b>：支持在个人中心添加全网任意内容平台网址（URL），自动智能识别平台名称、域名与图标；</li>
+          <li><b>🔴 今日头条高密度资讯流排版规范</b>：自定义分发平台默认统一采用今日头条高密度资讯流排版模式，主标题突出、节奏紧凑、红框金句；</li>
+          <li><b>🤖 Agent 专属排版技能模块自学习</b>：支持输入任意样例网址，Agent 自动深度读取其排版样式（色调/边框/引用/字号），自蒸馏生成专属排版技能与 CSS；</li>
+          <li><b>🛡️ 全域「一幕·YIMU」品牌翻译纠错锁定</b>：彻底清除多语言反向翻译导致的「一幕·一幕」瑕疵，中文模式绝对呈现纯正「一幕·YIMU」；</li>
+          <li><b>🧭 Releases 页面纯净化升级</b>：彻底移除版本演进顶栏「商业化价格」菜单，纯粹呈现代码演进与里程碑。</li>
+        </ul>
+      </div>
+
+      <!-- V9.1.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.1.1 · 流光澈 (Crystal Clarity)</span>
+          <span class="badge green">稳定归档版</span>
+          <span class="t-date">2026-10-13</span>
+        </div>
+        <div class="t-desc">全域双语零残留覆盖、1,768 词条多语言字典与全系统弹窗国际化覆盖。</div>
+        <ul class="t-list">
+          <li><b>1,768 词条全域双语</b>：覆盖全站各级页面所有弹窗、卡片、按钮与提示词；</li>
+          <li><b>版权主体统一</b>：全站统一标识版权主体为 yimu.hyipf.com；</li>
+          <li><b>专属版本命名规范</b>：在根目录建立 DEVELOPMENT.md 版本规划与寓意库。</li>
+        </ul>
+      </div>
+
+      <!-- V9.1.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.1.0 · 凌云破 (Soaring Sky)</span>
+          <span class="badge blue">已归档稳定版</span>
           <span class="t-date">2026-10-13</span>
         </div>
         <div class="t-desc">全站 i18n 双语绝对统一、GitHub Releases 官方发布展示与全仓代码版本号统一。</div>
         <ul class="t-list">
           <li><b>全站 i18n 双语绝对统一</b>：深度 DOM 自动翻译引擎，英文模式下 100% 全英文，中文模式下 100% 全中文，绝无半中半英；</li>
           <li><b>GitHub Releases 官方发布展示</b>：通过 GitHub 官方 REST API 自动化打标与展示版本更新演进；</li>
-          <li><b>全仓代码版本号单一真源统一步进</b>：全仓代码版本号严格对齐为 9.1.0；</li>
+          <li><b>全仓代码版本号单一真源统一步进</b>：全仓代码版本号严格对齐；</li>
           <li><b>2K 原生超清分镜与 Agnes 零烟雾通透滤镜</b>：默认 2K 尺寸，强力清除朦胧烟雾感；</li>
           <li><b>商业化算力中枢统一</b>：顶栏算力余额与套餐价格整合为统一直达胶囊。</li>
         </ul>

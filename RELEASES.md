@@ -4,6 +4,28 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌟 Version 9.2.0 · Divine Forge (天工开) · 2026-10-13
+
+> **Milestone**: Custom Distribution Platforms & Agent Layout Skill Distillation Hub  
+> **Codename**: 天工开 (Divine Forge · 巧夺天工，开物成务)  
+> **Slogan**: One Thought. One Scene. Infinite Worlds · Divine Forge (一念起 一幕开 万象生 · 天工开物)  
+> **Licensor**: yimu.hyipf.com  
+> **Release Date**: 2026-10-13  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.2.0"`)  
+> **Release Policy**: Previous releases remain permanently frozen via Git tags. New releases upload directly with clear upgrade paths and comparative changelogs.
+
+### 🌐 1. Custom Content Distribution Platform & Agent Layout Skills Hub
+- **Custom Platform Management**: Configure any third-party or vertical content platform URLs directly in Profile Center (`#p-profile`).
+- **Smart URL Detection**: Instant detection of platform name, domain, and icon from any URL.
+- **Toutiao Feed Layout Standard**: Defaults to Toutiao high-density feed layout specifications (bold headlines, red accents, highlighted quote cards).
+- **Agent Layout Skill Distillation**: Enter any sample article URL; the Agent analyzes and extracts visual layout styling rules (fonts, margins, quotes, palettes) into an executable Agent Layout Skill with live preview.
+
+### 🛡️ 2. Brand Translation Purity & Lock
+- Eliminated erroneous reverse translations that caused "一幕·一幕", guaranteeing strict brand presentation as **一幕·YIMU** in Chinese mode.
+- Cleaned up top navigation on `/releases` page by removing commercial pricing menus for a pure release showcase.
+
+---
+
 ## 🌟 Version 9.1.1 · Infinite Worlds (万象生) · 2026-10-13
 
 > **Milestone**: Complete 1,768 UI Terms Zero-Residue Bilingual Engine & Deep Subview Purity  

@@ -366,6 +366,11 @@
 - `POST /api/stream/write` → stream_write：流式写作【V7.0】[B]
 - `POST /api/batch/submit` → batch_submit：批量矩阵生产提交【V7.0】[B]
 - `GET /api/platforms` → platforms_list：平台能力包列表【V7.0】[B]
+- `GET /api/platforms/custom` → platforms_custom_list：获取用户自定义内容分发平台列表【V9.2.0】[新增]
+- `POST /api/platforms/custom` → platforms_custom_save：新增或更新自定义内容分发平台【V9.2.0】[新增]
+- `DELETE /api/platforms/custom/{platform_id}` → platforms_custom_delete：删除自定义分发平台【V9.2.0】[新增]
+- `POST /api/platforms/detect` → platforms_detect：根据URL自动识别平台名称与域名【V9.2.0】[新增]
+- `POST /api/platforms/analyze_style` → platforms_analyze_style：Agent智能读取目标网址并提取专属排版技能【V9.2.0】[新增]
 - `POST /api/render` → render：markdown→微信兼容 HTML 实时渲染【V7.0】[B]
 
 ### 5.13 IP 角色 / 工作区 / 排期 / 水印 / 设置【V7.0】

@@ -2552,6 +2552,55 @@ def platforms_list(request: Request):
     return {"packs": list_packs()}
 
 
+@app.get("/api/platforms/custom")
+def platforms_custom_list(request: Request):
+    guard(request)
+    from core.custom_platforms import get_custom_platforms
+    return {"ok": True, "platforms": get_custom_platforms()}
+
+
+@app.post("/api/platforms/custom")
+async def platforms_custom_save(request: Request):
+    guard(request)
+    body = await request.json()
+    from core.custom_platforms import add_or_update_platform
+    try:
+        saved = add_or_update_platform(body)
+        return {"ok": True, "platform": saved}
+    except Exception as e:
+        raise HTTPException(400, str(e))
+
+
+@app.delete("/api/platforms/custom/{platform_id}")
+def platforms_custom_delete(platform_id: str, request: Request):
+    guard(request)
+    from core.custom_platforms import delete_custom_platform
+    ok = delete_custom_platform(platform_id)
+    return {"ok": ok}
+
+
+@app.post("/api/platforms/detect")
+async def platforms_detect(request: Request):
+    guard(request)
+    body = await request.json()
+    url = body.get("url", "")
+    from core.custom_platforms import detect_platform_from_url
+    result = detect_platform_from_url(url)
+    return {"ok": True, "data": result}
+
+
+@app.post("/api/platforms/analyze_style")
+async def platforms_analyze_style(request: Request):
+    guard(request)
+    body = await request.json()
+    url = body.get("url", "")
+    custom_name = body.get("name", "")
+    from core.custom_platforms import analyze_url_layout_style
+    result = analyze_url_layout_style(url, custom_name=custom_name)
+    return {"ok": True, "skill": result}
+
+
+
 @app.post("/api/audio/make")
 async def audio_make(request: Request):
     u = guard(request)

@@ -9,8 +9,8 @@ import version
 
 def test_v911_version_single_source():
     """验证版本单一真源全栈统一为 9.1.1"""
-    assert version.__version__ == "9.1.1"
-    assert version.__codename__ == "万象生"
+    assert version.__version__ == "9.2.0"
+    assert version.__codename__ == "天工开"
 
     index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
     mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
@@ -19,13 +19,13 @@ def test_v911_version_single_source():
     readme_zh = Path("README_ZH.md").read_text(encoding="utf-8")
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
 
-    assert "V9.1.1" in index_html
-    assert "9.1.1" in index_html
-    assert "V9.1.1" in mobile_html
-    assert "V9.1.1" in license_txt
-    assert "version-9.1.1" in readme_en
-    assert "version-9.1.1" in readme_zh
-    assert "Version 9.1.1" in releases_md
+    assert "V9.2.0" in index_html
+    assert "9.2.0" in index_html
+    assert "V9.2.0" in mobile_html
+    assert "V9.2.0" in license_txt
+    assert "version-9.2.0" in readme_en
+    assert "version-9.2.0" in readme_zh
+    assert "Version 9.2.0" in releases_md
 
 
 def test_v911_dictionary_and_runtime_assets():

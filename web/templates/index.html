@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>一幕·YIMU 爆款工作室 V9.1.1 · 全媒体超级创作引擎</title>
+<title>一幕·YIMU 爆款工作室 V9.2.0 · 全媒体超级创作引擎</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon.png">
@@ -3205,7 +3205,7 @@ input[type=text]:focus, textarea:focus, select:focus {
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.3px" data-i18n="brand_badge">爆款工作室</span>
-      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V9.1.1</span>
+      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V9.2.0</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -3275,7 +3275,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:6px" onclick="checkSystemUpdate(true)" title="点击检查 GitHub 仓库最新版本更新">
         <span style="font-size:11px">🪐</span>
         <span style="color:var(--text-muted);font-weight:500">版本</span>
-        <code style="color:var(--primary);font-weight:700" id="side-version-text">V9.1.1</code>
+        <code style="color:var(--primary);font-weight:700" id="side-version-text">V9.2.0</code>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <a href="/releases" target="_blank" style="font-size:10px;padding:1px 6px;text-decoration:none;background:rgba(168,85,247,0.18);color:#d8b4fe;border:1px solid rgba(168,85,247,0.3);border-radius:4px;font-weight:700" title="打开版本更新与发布历史展示页">Releases ↗</a>
@@ -3398,7 +3398,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:12px">
         <span class="live-pulse"></span>
         <span style="font-weight:700;font-size:13.5px;color:#fff" data-i18n="radar_title">一幕·YIMU 爆款雷达实时巡航中</span>
-        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V9.1.1</span>
+        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V9.2.0</span>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap">
         <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">—</strong></div>
@@ -4512,6 +4512,7 @@ input[type=text]:focus, textarea:focus, select:focus {
                     <div class="wb-nav-tab" data-pst="zhihu" onclick="switchPlatformTab('zhihu')">🔵 知乎问答</div>
                     <div class="wb-nav-tab" data-pst="weibo" onclick="switchPlatformTab('weibo')">🟡 微博快讯</div>
                     <div class="wb-nav-tab" data-pst="twitter" onclick="switchPlatformTab('twitter')">𝕏 Twitter/X</div>
+                    <span id="custom-platform-tabs-container"></span>
                     <div class="wb-nav-tab" data-pst="analysis" onclick="switchPlatformTab('analysis')">🎯 拆解报告</div>
                     <div class="wb-nav-tab" data-pst="score" onclick="switchPlatformTab('score')">⚖️ 7维评分</div>
                     <div class="wb-nav-tab" data-pst="history" onclick="switchPlatformTab('history')">📜 历史版本</div>
@@ -5839,7 +5840,7 @@ input[type=text]:focus, textarea:focus, select:focus {
             <div>
               <div style="font-weight:700;font-size:14px;color:#38bdf8;display:flex;align-items:center;gap:6px"><span>🔄</span> GitHub 仓库在线升级与同步</div>
               <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="st-updater-status">
-                当前版本：<code style="color:var(--primary);font-weight:700">V9.1.1</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
+                当前版本：<code style="color:var(--primary);font-weight:700">V9.2.0</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
@@ -6178,7 +6179,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div style="font-size:12.5px;color:var(--text-muted);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap">
                 <span>媒体名称: <b style="color:var(--text)" id="profile-media-name-text">一幕·YIMU 爆款工作室</b></span>
                 <span>当前算力: <b style="color:var(--primary)" id="profile-token-bal-text">— Token</b></span>
-                <span>当前版本: <code style="color:#38bdf8;font-weight:700">V9.1.1</code></span>
+                <span>当前版本: <code style="color:#38bdf8;font-weight:700">V9.2.0</code></span>
               </div>
             </div>
           </div>
@@ -6360,6 +6361,30 @@ input[type=text]:focus, textarea:focus, select:focus {
               <button class="btn btn-sm ghost" onclick="toggleAllPcSettingsDerivePlatforms()">全选/反选</button>
               <button class="btn btn-sm ok" onclick="savePcSettingsDerivePlatforms()">💾 保存预设</button>
             </div>
+          </div>
+        </div>
+
+        <!-- 8.5 🌐 自定义内容分发派生平台与专属排版技能中枢 -->
+        <div class="card" id="card-custom-platforms" style="grid-column:1 / -1;display:flex;flex-direction:column;gap:14px;border:1px solid rgba(56,189,248,0.35);background:radial-gradient(ellipse at top right, rgba(56,189,248,0.08), rgba(15,23,42,0.6))">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08)">
+            <div>
+              <div style="font-weight:700;font-size:15px;color:#38bdf8;display:flex;align-items:center;gap:8px">
+                <span>🌐</span> 自定义内容分发派生平台与 Agent 排版技能中枢
+                <span class="badge blue" style="font-size:11px">V9.2 旗舰升级</span>
+              </div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
+                除现有 6 大官方平台外，支持自主接入全网任意内容平台。添加网址即可智能识别平台名称与域名；默认采用今日头条高密度资讯流排版规范，亦可通过 Agent 深度读取任意样例文档网址并生成专属排版技能！
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-sm ok" onclick="openAddCustomPlatformModal()" style="font-weight:600;background:linear-gradient(135deg,#0284c7,#38bdf8);border:none;box-shadow:0 2px 8px rgba(56,189,248,0.3)">➕ 添加自定义分发平台</button>
+              <button class="btn btn-sm ghost" onclick="loadCustomPlatformsList()">🔄 刷新平台</button>
+            </div>
+          </div>
+
+          <!-- 已配置的自定义平台列表展示容器 -->
+          <div id="custom-platforms-list" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px">
+            <div style="color:var(--text-muted);font-size:13px;padding:12px">加载中…</div>
           </div>
         </div>
 
@@ -8270,6 +8295,92 @@ async function deleteUserAccount(uid, username) {
 
 <!-- 全局 Toast 提示 -->
 <div id="toast"></div>
+
+<!-- ================= 自定义内容分发平台与专属排版技能 Modal ================= -->
+<div class="mask" id="m-custom-platform" onclick="if(event.target===this)closeModal()"><div class="modal-box" style="max-width:640px;width:92%">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div style="font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px">
+      <span>🌐</span> <span id="custom-platform-modal-title">添加自定义内容分发平台</span>
+    </div>
+    <button class="btn ghost btn-sm" onclick="closeModal()">✕</button>
+  </div>
+  <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;line-height:1.6">
+    配置任意第三方或垂直内容平台。系统默认采用今日头条高密度资讯流排版模式；您也可以粘贴样例文档网址，由 Agent 深度读取排版规则并自蒸馏生成专属排版技能！
+  </div>
+
+  <input type="hidden" id="cp-inp-id" value="">
+
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <!-- 网址输入与智能识别 -->
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">1. 平台网址 (URL) <span style="color:#ef4444">*</span></label>
+      <div style="display:flex;gap:8px">
+        <input type="text" id="cp-inp-url" style="flex:1" placeholder="如 https://sspai.com 或任意内容平台网址" onchange="autoDetectPlatformUrl()">
+        <button type="button" class="btn btn-sm info" onclick="autoDetectPlatformUrl()" id="btn-cp-detect">⚡ 智能识别</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:3px" id="cp-detect-status">输入网址后点击识别，自动探测平台名称、域名与图标</div>
+    </div>
+
+    <!-- 平台名称与图标 -->
+    <div style="display:grid;grid-template-columns:1fr 100px;gap:10px">
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">2. 平台显示名称 <span style="color:#ef4444">*</span></label>
+        <input type="text" id="cp-inp-name" placeholder="如：少数派 / 稀土掘金 / 行业专栏">
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:4px">图标/Emoji</label>
+        <input type="text" id="cp-inp-icon" value="🌐" style="text-align:center">
+      </div>
+    </div>
+
+    <!-- 排版模式选择 -->
+    <div>
+      <label style="font-size:12px;font-weight:600;color:var(--text);display:block;margin-bottom:6px">3. 分发排版模式</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <label style="display:flex;align-items:flex-start;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:rgba(255,255,255,0.02)" id="cp-mode-label-toutiao">
+          <input type="radio" name="cp_layout_mode" value="toutiao" checked onchange="onCustomPlatformModeChange()" style="margin-top:3px">
+          <div>
+            <div style="font-weight:600;font-size:13px;color:#fff">🔴 今日头条模式 (默认推荐)</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">高密度资讯流排版：主标题醒目、短段落节奏快、红色加粗强调、左红条金句块</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:rgba(255,255,255,0.02)" id="cp-mode-label-agent">
+          <input type="radio" name="cp_layout_mode" value="agent_skill" onchange="onCustomPlatformModeChange()" style="margin-top:3px">
+          <div>
+            <div style="font-weight:600;font-size:13px;color:#a855f7">🤖 Agent 专属排版技能</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">读取样例文章网址，Agent 自动学习排版视觉法则并自蒸馏生成专属技能</div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Agent 排版技能设置区 (仅在选择 agent_skill 时显示) -->
+    <div id="cp-agent-skill-panel" style="display:none;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:12px;flex-direction:column;gap:8px">
+      <div style="font-weight:600;font-size:12.5px;color:#d8b4fe;display:flex;align-items:center;gap:6px">
+        <span>🧠</span> Agent 读取目标排版方式自学习
+      </div>
+      <div>
+        <label style="font-size:11.5px;color:var(--text);display:block;margin-bottom:3px">目标排版样例文档/文章网址 (URL)</label>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="cp-inp-sample-url" style="flex:1;font-size:12px" placeholder="粘贴该平台任意一篇心仪排版的文章网址…">
+          <button type="button" class="btn btn-sm" style="background:#9333ea;color:#fff;border:none;font-weight:600" onclick="analyzeTargetPlatformLayout()" id="btn-cp-analyze">🧠 读取并生成排版技能</button>
+        </div>
+      </div>
+      <div id="cp-skill-preview" style="display:none;margin-top:6px;background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.1)">
+        <div style="font-size:11.5px;color:#4ade80;font-weight:600" id="cp-skill-name-txt">✓ Agent 已提炼排版技能</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;white-space:pre-wrap" id="cp-skill-instruction-txt"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-acts" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center">
+    <button class="btn danger btn-sm" id="btn-cp-del" style="display:none" onclick="deleteCurrentCustomPlatform()">🗑️ 删除此平台</button>
+    <div style="display:flex;gap:8px;margin-left:auto">
+      <button class="btn ghost btn-sm" onclick="closeModal()">取消</button>
+      <button class="btn ok btn-sm" onclick="saveCurrentCustomPlatform()">💾 保存并启用平台</button>
+    </div>
+  </div>
+</div></div>
 
 <!-- ================= 账号 6 维数字画像 Modal ================= -->
 <div class="mask" id="m-profile" onclick="if(event.target===this)closeModal()"><div class="modal-box" style="max-width:620px;width:90%">
@@ -13659,11 +13770,28 @@ async function loadAndRenderPlatformData(d, tab) {
       if (!xhsCardList.length && d.cards > 0) {
         for(let i=0; i<d.cards; i++) xhsCardList.push(`/card/${d.id}/card-${i}.png`);
       }
-      xhsCurrentIndex = 0;
       renderXhsWorkbenchView(xhsCardList, res.text || '');
       updateSaveStatus(true, '✓ 已与服务器同步');
     } catch(e) {
       canvas.innerHTML = `<div style="color:#999;padding:40px;text-align:center">卡片加载失败: ${e.message}</div>`;
+      updateSaveStatus(false, '❌ 载入失败');
+    }
+  }
+  else if (tab.startsWith('custom_')) {
+    const platId = tab.replace('custom_', '');
+    const plat = (window.customPlatformsList || []).find(p => p.id === platId);
+    canvas.innerHTML = '<div style="color:#666;text-align:center;padding:50px">加载自定义平台专属排版…</div>';
+    try {
+      const text = (d.custom_platforms && d.custom_platforms[platId]?.text) || d.body_md || '';
+      if(editorInput) {
+        editorInput.value = text;
+        updateWordCount(text);
+      }
+      const renderedHtml = buildCustomPlatformHtml(d, plat, text);
+      renderWorkbenchIframe(renderedHtml);
+      updateSaveStatus(true, '✓ 已与服务器同步 (' + (plat?.name || '自定义平台') + ')');
+    } catch(e) {
+      canvas.innerHTML = `<div style="color:#999;padding:40px;text-align:center">自定义排版加载失败: ${e.message}</div>`;
       updateSaveStatus(false, '❌ 载入失败');
     }
   }
@@ -14519,6 +14647,29 @@ function cleanRichHtmlForPlatformClipboard(html, platform) {
 
 async function copyCurrentRich(platform) {
   if(!curDraft) return toast('未选择草稿');
+  
+  if (platform && platform.startsWith('custom_')) {
+    const platId = platform.replace('custom_', '');
+    const plat = (window.customPlatformsList || []).find(p => p.id === platId);
+    const d = (S.drafts||[]).find(x => x.id === curDraft);
+    const text = (d?.custom_platforms && d.custom_platforms[platId]?.text) || d?.body_md || '';
+    const html = buildCustomPlatformHtml(d, plat, text);
+    try {
+      const blobHtml = new Blob([html], { type: 'text/html' });
+      const blobText = new Blob([text], { type: 'text/plain' });
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/html': blobHtml,
+          'text/plain': blobText
+        })
+      ]);
+      return toast(`✅ ${plat?.name || '自定义平台'} 带排版富文本已复制到剪贴板！可直接粘贴至目标平台！`, 4000);
+    } catch(err) {
+      await navigator.clipboard.writeText(text);
+      return toast(`✅ 已复制 ${plat?.name || '自定义平台'} 正文文本到剪贴板！`, 3000);
+    }
+  }
+
   const labelMap = {
     wechat_mp: '微信公众号',
     toutiao: '今日头条',
@@ -21423,7 +21574,7 @@ async function resetHabitSkill() {
 let yimuUserTier = 'free';
 function getAppVersionShort() {
   const t = document.getElementById('nav-ver-text')?.textContent;
-  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V9.1.1';
+  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V9.2.0';
 }
 const TIER_LABEL_MAP = {free: 'Free', pro: 'Pro', studio: 'Studio'};
 
@@ -21546,12 +21697,376 @@ function showLlmMissingModal() {
   modal('llm-missing-modal');
 }
 
+// ==================== 🌐 V9.2 自定义内容分发派生平台与 Agent 排版技能中枢 ====================
+window.customPlatformsList = [];
+window.currentAnalyzedSkill = null;
+
+async function loadCustomPlatformsList() {
+  const container = $('custom-platforms-list');
+  const tabsContainer = $('custom-platform-tabs-container');
+  try {
+    const res = await api('/api/platforms/custom');
+    if (res && res.platforms) {
+      window.customPlatformsList = res.platforms;
+    }
+  } catch(e) {
+    console.error('加载自定义平台失败:', e);
+  }
+
+  // 1. 渲染个人中心卡片网格
+  if (container) {
+    if (!window.customPlatformsList.length) {
+      container.innerHTML = `
+        <div style="grid-column:1 / -1;padding:24px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.15);border-radius:8px;text-align:center;color:var(--text-muted);font-size:13px">
+          <div>🌐 暂未配置第三方自定义平台（当前默认支持 6 大主流渠道）</div>
+          <div style="margin-top:6px;font-size:12px">点击右上角「➕ 添加自定义分发平台」接入全网任意平台并支持专属排版模式</div>
+        </div>
+      `;
+    } else {
+      container.innerHTML = window.customPlatformsList.map(p => {
+        const isAgent = p.layout_mode === 'agent_skill';
+        const modeBadge = isAgent 
+          ? '<span class="badge purple" style="font-size:10.5px">🤖 Agent 排版技能</span>' 
+          : '<span class="badge" style="background:rgba(237,64,64,0.15);color:#ff6b6b;border:1px solid rgba(237,64,64,0.3);font-size:10.5px">🔴 今日头条排版流</span>';
+        return `
+          <div style="background:rgba(15,23,42,0.65);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;position:relative">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:22px">${p.icon || '🌐'}</span>
+                <div>
+                  <div style="font-weight:700;font-size:14px;color:#fff">${escapeHtml(p.name)}</div>
+                  <div style="font-size:11px;color:var(--text-muted);margin-top:1px">${escapeHtml(p.domain || '')}</div>
+                </div>
+              </div>
+              ${modeBadge}
+            </div>
+            <div style="font-size:11.5px;color:var(--text-muted);word-break:break-all">
+              <b>目标网址:</b> <a href="${escapeHtml(p.url)}" target="_blank" style="color:#38bdf8;text-decoration:none">${escapeHtml(p.url)}</a>
+            </div>
+            ${p.sample_url ? `
+              <div style="font-size:11px;color:var(--text-muted);word-break:break-all">
+                <b>排版样例:</b> <span style="color:#a78bfa">${escapeHtml(p.sample_url)}</span>
+              </div>
+            ` : ''}
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)">
+              <span style="font-size:10.5px;color:var(--text-muted)">ID: ${p.id}</span>
+              <div style="display:flex;gap:6px">
+                <button class="btn btn-xs ghost" onclick="openAddCustomPlatformModal('${p.id}')">✏️ 编辑</button>
+                <button class="btn btn-xs danger ghost" onclick="deleteCustomPlatformById('${p.id}', '${escapeHtml(p.name)}')">🗑️ 删除</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 2. 动态更新工作台的平台 Tabs
+  if (tabsContainer) {
+    tabsContainer.innerHTML = window.customPlatformsList.map(p => `
+      <div class="wb-nav-tab" data-pst="custom_${p.id}" onclick="switchPlatformTab('custom_${p.id}')">
+        ${p.icon || '🌐'} ${escapeHtml(p.name)}
+      </div>
+    `).join('');
+
+    // 动态注册到 PLATFORM_CONFIG
+    window.customPlatformsList.forEach(p => {
+      PLATFORM_CONFIG['custom_' + p.id] = {
+        name: p.name,
+        badge: (p.icon || '🌐') + ' ' + p.name,
+        color: p.layout_mode === 'agent_skill' ? '#8b5cf6' : '#ed4040',
+        custom: true,
+        platformData: p
+      };
+    });
+  }
+}
+
+function openAddCustomPlatformModal(platId) {
+  const modalEl = $('m-custom-platform');
+  if (!modalEl) return;
+  window.currentAnalyzedSkill = null;
+  const delBtn = $('btn-cp-del');
+  const titleEl = $('custom-platform-modal-title');
+  const skillPreview = $('cp-skill-preview');
+  if (skillPreview) skillPreview.style.display = 'none';
+
+  if (platId) {
+    const p = (window.customPlatformsList || []).find(x => x.id === platId);
+    if (!p) return;
+    if (titleEl) titleEl.textContent = '编辑内容分发平台: ' + p.name;
+    $('cp-inp-id').value = p.id;
+    $('cp-inp-url').value = p.url || '';
+    $('cp-inp-name').value = p.name || '';
+    $('cp-inp-icon').value = p.icon || '🌐';
+    $('cp-inp-sample-url').value = p.sample_url || '';
+    
+    const radios = document.getElementsByName('cp_layout_mode');
+    for (let r of radios) {
+      r.checked = (r.value === (p.layout_mode || 'toutiao'));
+    }
+    if (delBtn) delBtn.style.display = 'inline-block';
+    if (p.skill_rules && p.layout_mode === 'agent_skill') {
+      window.currentAnalyzedSkill = p.skill_rules;
+      if (skillPreview) {
+        skillPreview.style.display = 'block';
+        $('cp-skill-name-txt').textContent = '✓ ' + (p.skill_rules.style_name || '专属排版技能');
+        $('cp-skill-instruction-txt').textContent = p.skill_rules.agent_prompt_instruction || '';
+      }
+    }
+  } else {
+    if (titleEl) titleEl.textContent = '添加自定义内容分发平台';
+    $('cp-inp-id').value = '';
+    $('cp-inp-url').value = '';
+    $('cp-inp-name').value = '';
+    $('cp-inp-icon').value = '🌐';
+    $('cp-inp-sample-url').value = '';
+    $('cp-detect-status').textContent = '输入网址后点击识别，自动探测平台名称、域名与图标';
+    const radios = document.getElementsByName('cp_layout_mode');
+    for (let r of radios) {
+      r.checked = (r.value === 'toutiao');
+    }
+    if (delBtn) delBtn.style.display = 'none';
+  }
+  onCustomPlatformModeChange();
+  modal('m-custom-platform');
+}
+
+function onCustomPlatformModeChange() {
+  let mode = 'toutiao';
+  const radios = document.getElementsByName('cp_layout_mode');
+  for (let r of radios) {
+    if (r.checked) mode = r.value;
+  }
+  const panel = $('cp-agent-skill-panel');
+  if (panel) {
+    panel.style.display = (mode === 'agent_skill' ? 'flex' : 'none');
+  }
+}
+
+async function autoDetectPlatformUrl() {
+  const url = ($('cp-inp-url')?.value || '').trim();
+  if (!url) return toast('请先输入平台网址');
+  const statusEl = $('cp-detect-status');
+  const btn = $('btn-cp-detect');
+  if (statusEl) statusEl.textContent = '⏳ 正在联网智能分析识别平台…';
+  if (btn) btn.disabled = true;
+
+  try {
+    const res = await api('/api/platforms/detect', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    if (res && res.data) {
+      const d = res.data;
+      if (d.error) {
+        if (statusEl) statusEl.textContent = '⚠️ ' + d.error;
+        return;
+      }
+      $('cp-inp-name').value = d.name || '';
+      if (d.icon) $('cp-inp-icon').value = d.icon;
+      if (statusEl) statusEl.textContent = `✓ 已识别: ${d.name} (${d.domain})，默认采用今日头条高密度资讯流排版规范`;
+      toast(`✅ 识别成功: ${d.name}`);
+    }
+  } catch(e) {
+    if (statusEl) statusEl.textContent = '识别失败: ' + e.message;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function analyzeTargetPlatformLayout() {
+  const url = ($('cp-inp-sample-url')?.value || '').trim();
+  const name = ($('cp-inp-name')?.value || '').trim();
+  if (!url) return toast('请输入排版样例文档或文章网址');
+  const btn = $('btn-cp-analyze');
+  const preview = $('cp-skill-preview');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Agent 读取分析中…'; }
+
+  try {
+    const res = await api('/api/platforms/analyze_style', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, name })
+    });
+    if (res && res.skill) {
+      window.currentAnalyzedSkill = res.skill;
+      if (preview) {
+        preview.style.display = 'block';
+        $('cp-skill-name-txt').textContent = '✓ ' + (res.skill.style_name || 'Agent 专属排版技能已生成');
+        $('cp-skill-instruction-txt').textContent = res.skill.agent_prompt_instruction || '';
+      }
+      toast('✅ Agent 已成功读取并提取该网址排版技能！');
+    }
+  } catch(e) {
+    toast('读取排版失败: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🧠 读取并生成排版技能'; }
+  }
+}
+
+async function saveCurrentCustomPlatform() {
+  const id = ($('cp-inp-id')?.value || '').trim();
+  const url = ($('cp-inp-url')?.value || '').trim();
+  const name = ($('cp-inp-name')?.value || '').trim();
+  const icon = ($('cp-inp-icon')?.value || '').trim() || '🌐';
+  const sample_url = ($('cp-inp-sample-url')?.value || '').trim();
+  let layout_mode = 'toutiao';
+  const radios = document.getElementsByName('cp_layout_mode');
+  for (let r of radios) {
+    if (r.checked) layout_mode = r.value;
+  }
+
+  if (!url) return toast('平台网址不能为空');
+  if (!name) return toast('平台显示名称不能为空');
+
+  try {
+    const res = await api('/api/platforms/custom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: id || undefined,
+        url,
+        name,
+        icon,
+        layout_mode,
+        sample_url,
+        skill_rules: (layout_mode === 'agent_skill' && window.currentAnalyzedSkill) ? window.currentAnalyzedSkill : undefined
+      })
+    });
+    if (res && res.ok) {
+      toast('✅ 平台已成功保存并启用！');
+      closeModal();
+      await loadCustomPlatformsList();
+    }
+  } catch(e) {
+    toast('保存失败: ' + e.message);
+  }
+}
+
+async function deleteCurrentCustomPlatform() {
+  const id = ($('cp-inp-id')?.value || '').trim();
+  const name = ($('cp-inp-name')?.value || '').trim();
+  if (!id) return;
+  if (!confirm(`确定要删除自定义平台「${name}」吗？`)) return;
+  await deleteCustomPlatformById(id, name);
+  closeModal();
+}
+
+async function deleteCustomPlatformById(id, name) {
+  if (!confirm(`确定要删除自定义平台「${name || id}」吗？`)) return;
+  try {
+    const res = await api(`/api/platforms/custom/${id}`, { method: 'DELETE' });
+    if (res && res.ok) {
+      toast('✅ 已删除平台: ' + name);
+      await loadCustomPlatformsList();
+    }
+  } catch(e) {
+    toast('删除失败: ' + e.message);
+  }
+}
+
+function buildCustomPlatformHtml(draft, plat, text) {
+  const title = draft?.title || '未命名文章';
+  const media = getUserMediaName();
+  const isAgent = plat?.layout_mode === 'agent_skill' && plat?.skill_rules;
+  const slug = isAgent ? (plat.skill_rules.slug || 'custom_target') : 'toutiao';
+  const css = isAgent ? (plat.skill_rules.css || '') : `
+.custom-layout-toutiao {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #222222;
+  font-size: 16px;
+  line-height: 1.8;
+  word-break: break-word;
+  padding: 16px 20px;
+}
+.custom-layout-toutiao h1 {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #111111;
+  margin: 16px 0 12px;
+  border-left: 4px solid #ed4040;
+  padding-left: 10px;
+}
+.custom-layout-toutiao h2 {
+  font-size: 19px;
+  font-weight: 600;
+  color: #222222;
+  margin: 16px 0 10px;
+  border-left: 4px solid #ed4040;
+  padding-left: 8px;
+}
+.custom-layout-toutiao p {
+  margin: 12px 0 14px;
+  line-height: 1.8;
+  text-align: justify;
+}
+.custom-layout-toutiao strong {
+  color: #ed4040;
+  font-weight: 600;
+}
+.custom-layout-toutiao blockquote {
+  margin: 14px 0;
+  padding: 10px 14px;
+  background: #fbf0f0;
+  border-left: 3px solid #ed4040;
+  border-radius: 4px;
+  color: #444444;
+  font-size: 15px;
+}
+`;
+
+  const lines = (text || '').split('\n');
+  let bodyHtml = '';
+  for (let line of lines) {
+    line = line.trim();
+    if (!line) continue;
+    if (line.startsWith('# ')) {
+      bodyHtml += `<h1>${escapeHtml(line.slice(2))}</h1>`;
+    } else if (line.startsWith('## ')) {
+      bodyHtml += `<h2>${escapeHtml(line.slice(3))}</h2>`;
+    } else if (line.startsWith('### ')) {
+      bodyHtml += `<h3>${escapeHtml(line.slice(4))}</h3>`;
+    } else if (line.startsWith('> ')) {
+      bodyHtml += `<blockquote>${escapeHtml(line.slice(2))}</blockquote>`;
+    } else {
+      let pLine = escapeHtml(line).replace(/\\*\\*(.*?)\\*\\*/g, '<strong>$1</strong>');
+      bodyHtml += `<p>${pLine}</p>`;
+    }
+  }
+
+  return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body { margin: 0; padding: 24px 28px; background: #ffffff; color: #1f2937; box-sizing: border-box; }
+${css}
+</style>
+</head>
+<body>
+<div class="custom-layout-${slug}">
+  <h1>${escapeHtml(title)}</h1>
+  <div style="font-size:12px;color:#888;margin-bottom:16px;display:flex;gap:12px">
+    <span>媒体: <b>${escapeHtml(media)}</b></span>
+    <span>平台模式: <b>${escapeHtml(plat?.name || '自定义平台')}</b></span>
+  </div>
+  ${bodyHtml}
+</div>
+</body>
+</html>`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   initSystemMode();
   initCopilotSettingsBadge();
   initWorkspacesUI();
   restoreSelectedDerivePlatforms();
   refreshTierBadge();
+  loadCustomPlatformsList();
 });
 </script>
 
@@ -21642,7 +22157,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px" id="agent-task-subtitle">全能微创改写与生成引擎调度中…</div>
         </div>
       </div>
-      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V9.1.1</span>
+      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V9.2.0</span>
     </div>
     
     <!-- 当前动态进行中的工作步骤展示卡 -->

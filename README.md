@@ -6,8 +6,8 @@
 
 **The Full-Lifecycle Viral Content Creation Engine & LLM Commercial Gateway for Digital Creators, Short Drama Studios, and MCN Agencies**
 
-[![Version](https://img.shields.io/badge/version-9.1.1-orange.svg?style=flat-square)](version.py)
-[![Release](https://img.shields.io/badge/release-v9.1.1%20(Infinite%20Worlds)-blueviolet.svg?style=flat-square)](RELEASES.md)
+[![Version](https://img.shields.io/badge/version-9.2.0-orange.svg?style=flat-square)](version.py)
+[![Release](https://img.shields.io/badge/release-v9.2.0%20(Divine%20Forge)-blueviolet.svg?style=flat-square)](RELEASES.md)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Licensor](https://img.shields.io/badge/Licensor-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
 [![Copyright](https://img.shields.io/badge/Copyright-%C2%A9%202026%20yimu.hyipf.com-orange.svg?style=flat-square)](https://yimu.hyipf.com)
@@ -24,7 +24,7 @@
 
 **English** • [简体中文说明](README_ZH.md)
 
-[✨ Features](#-core-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#-system-architecture) • [📦 Release 9.1.1](RELEASES.md) • [🛠️ Dev Guide](DEVELOPMENT.md) • [📜 License](#-license--copyright-terms)
+[✨ Features](#-core-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#-system-architecture) • [📦 Release 9.2.0](RELEASES.md) • [🛠️ Dev Guide](DEVELOPMENT.md) • [📜 License](#-license--copyright-terms)
 
 </div>
 
@@ -36,7 +36,7 @@ In the era of AI-generated content (AIGC), creators face two fatal bottlenecks:
 1. **Generic, Plastic Copywriting**: Hollow clichés, lacking deep analytical arguments and the crucial 3-second hook that stops users from scrolling.
 2. **Disconnected, Low-Quality Visuals**: Blind-box image generation where illustrations bear zero relevance to article sections, often plagued by hazy fog, blurriness, or weird AI artifacts.
 
-**YIMU Studio V9.1.1 ("流光澈" / Crystal Clarity · 万象生篇)** fundamentally revolutionizes AI content production:
+**YIMU Studio V9.2.0 ("天工开" / Divine Forge)** fundamentally revolutionizes AI content production:
 - **Cinematic Storyboarding & 2K Crystal-Clear Image Engine**: Before generating any image, the visual agent **reads the entire article end-to-end**, extracting narrative turning points and worldview themes. Covers are mapped to Wide Establishing Shots, while sections are paired with Medium Narrative Shots or Emotional Close-ups. Powered by a specialized 2K resolution pipeline and a **zero-haze transparency prompt engineering pipeline**, visual-to-text semantic alignment is locked at **over 95%** with vivid color saturation and laser-sharp clarity.
 - **Multi-Channel Native Layout Compiler**: One master draft is instantly formatted into WeChat Official Account rich-text, Toutiao information feed layout, and Xiaohongshu (RED) 5-act frosted-glass panoramic cards.
 - **Dual-Device Synchronization & Commercial Gateway**: Real-time parity between Desktop Pro Workbench and Mobile Companion, featuring a unified billing/token portal and an OpenAI-compatible routing gateway.
@@ -196,16 +196,16 @@ bash ci.sh
 
 ---
 
-## 📦 Latest Release: V9.1.1 (流光澈 · 万象生)
+## 📦 Latest Release: V9.2.0 (天工开 · Divine Forge)
 
 YIMU Studio strictly implements Semantic Versioning (`SemVer`). To ensure maximum clarity and a pure presentation, the project homepage focuses exclusively on the **latest active release**:
 
-### 🌟 V9.1.1 Feature Highlights
+### 🌟 V9.2.0 Feature Highlights
 - 🌐 **100% Zero-Residue Bilingual Engine**: Complete 1,768 UI dictionary terms covering desktop & mobile topbars, all 15 system modals, form controls, and attributes with zero Chinese residue in English mode.
 - 🔄 **Bidirectional Lossless Reversion**: Built-in AST-based reverse phrase mapping ensuring instant, lossless switching between pure English and authentic natural Chinese.
 - 🎬 **2K Native Cinematic Storyboarding**: 2K resolution default canvas (`2048x1152`, `1152x2048`, `2048x2048`) with AI zero-haze defogging prompt pipeline.
 - 💎 **Unified Commercial Gateway & Compute Hub**: Integrated billing, credits ledger, and token management in one responsive interface.
-- ⚖️ **Single Source of Truth**: All components across the system strictly aligned to **V9.1.1**.
+- ⚖️ **Single Source of Truth**: All components across the system strictly aligned to **V9.2.0**.
 
 > For historical version archives and detailed milestone changelogs, please visit the official [Releases Documentation (RELEASES.md)](RELEASES.md) and [GitHub Releases Page](https://github.com/yimuhub/yimu-baokuanstudio/releases).
 

@@ -884,7 +884,7 @@ def logout():
 try:
     from version import __version__ as APP_VERSION
 except Exception:
-    APP_VERSION = "8.3.3"
+    APP_VERSION = "8.3.31"
 
 
 @app.get("/health")
@@ -900,6 +900,21 @@ def api_health():
 @app.get("/api/version")
 def api_version():
     return {"version": APP_VERSION}
+
+
+@app.get("/api/system/check_update")
+def api_system_check_update(force: bool = False):
+    """访问 GitHub 仓库检测是否有新版本。"""
+    from core import updater
+    return updater.check_for_updates(force=force)
+
+
+@app.post("/api/system/upgrade")
+def api_system_upgrade(request: Request):
+    """一键从 GitHub 同步升级最新代码（需要管理员权限）。"""
+    guard(request)
+    from core import updater
+    return updater.perform_upgrade()
 
 
 # ---------------- R4 内容安全闸管理接口 ----------------

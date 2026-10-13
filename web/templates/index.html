@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<title>一幕·YIMU 爆款工作室 V8.3.3 · 全媒体超级创作引擎</title>
+<title>一幕·YIMU 爆款工作室 V8.3.31 · 全媒体超级创作引擎</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script>
 (function() {
@@ -3199,7 +3199,7 @@ input[type=text]:focus, textarea:focus, select:focus {
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.3px">爆款工作室</span>
-      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.3</span>
+      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.31</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -3355,7 +3355,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <a class="btn btn-sm" href="/admin/releases" id="nav-release-entry"
          title="版本升级总览：本次改了什么、在哪里、怎么验证"
          style="text-decoration:none;background:var(--primary);color:#fff;border:0;font-weight:700"
-      >🆕 <span id="nav-ver-text">8.3.3</span></a>
+      >🆕 <span id="nav-ver-text">8.3.31</span></a>
       <span id="header-extra"></span>
     </div>
   </header>
@@ -3366,7 +3366,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:12px">
         <span class="live-pulse"></span>
         <span style="font-weight:700;font-size:13.5px;color:#fff">一幕·YIMU 爆款雷达实时巡航中</span>
-        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.3</span>
+        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V8.3.31</span>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap">
         <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">—</strong></div>
@@ -5849,6 +5849,19 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-profile-info">定位、声纹语气、受众群体、表达禁忌与爆款长期记忆已同步</div>
             </div>
             <button class="btn btn-sm" style="background:rgba(168,85,247,0.18);border:1px solid rgba(168,85,247,0.45);color:#d8b4fe;font-weight:600" onclick="openProfileModal()">👤 配置 6 维数字画像</button>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);background:rgba(56,189,248,0.03);padding:14px;border-radius:10px;margin-top:12px;border:1px solid rgba(56,189,248,0.2)">
+            <div>
+              <div style="font-weight:700;font-size:14px;color:#38bdf8;display:flex;align-items:center;gap:6px"><span>🔄</span> GitHub 仓库在线升级与同步</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="st-updater-status">
+                当前版本：<code style="color:var(--primary);font-weight:700">V8.3.31</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn btn-sm ghost" id="btn-check-update" onclick="checkSystemUpdate(true)">🔍 检查更新</button>
+              <button class="btn btn-sm ok" id="btn-do-upgrade" style="display:none;background:#238636" onclick="performSystemUpgrade()">⚡ 立即升级</button>
+            </div>
           </div>
         </div>
       </div>
@@ -9618,6 +9631,58 @@ function csrfHeaders() {
       .catch(() => {});
   } catch(e) {}
 })();
+
+async function checkSystemUpdate(manual = false) {
+  const statusEl = document.getElementById('st-updater-status');
+  const checkBtn = document.getElementById('btn-check-update');
+  const upBtn = document.getElementById('btn-do-upgrade');
+  if (checkBtn) { checkBtn.disabled = true; checkBtn.textContent = '⏳ 正在检测…'; }
+  try {
+    const res = await api('/api/system/check_update?force=' + (manual ? 'true' : 'false'));
+    if (res && res.ok) {
+      if (res.has_update) {
+        if (statusEl) {
+          statusEl.innerHTML = `<span style="color:#56d364;font-weight:700">🎉 发现新版本！</span> 远程最新: <code style="color:#56d364;font-weight:700">V${res.latest_version}</code> (Commit: <code>${res.latest_commit}</code>)<br><span style="color:var(--text-muted);font-size:11.5px">${escapeHtml(res.commit_message || '有更新可用')}</span>`;
+        }
+        if (upBtn) upBtn.style.display = 'inline-flex';
+        if (manual) toast(`发现新版本 (V${res.latest_version})，可点击「立即升级」！`);
+      } else {
+        if (statusEl) {
+          statusEl.innerHTML = `当前版本：<code style="color:var(--primary);font-weight:700">V${res.current_version}</code> (Commit: <code>${res.current_commit}</code>) · <span style="color:#56d364">✅ 已是最新代码</span>`;
+        }
+        if (upBtn) upBtn.style.display = 'none';
+        if (manual) toast('当前已是最新版本，无需升级。');
+      }
+    } else {
+      if (statusEl) statusEl.innerHTML = `<span style="color:#ff7b72">⚠️ 检测更新提示: ${escapeHtml(res.error || '连接 GitHub 异常')}</span>`;
+      if (manual) toast('检测更新失败: ' + (res.error || '请检查网络连接'));
+    }
+  } catch (e) {
+    if (statusEl) statusEl.innerHTML = `<span style="color:#ff7b72">⚠️ 检测异常: ${escapeHtml(e.message)}</span>`;
+    if (manual) toast('检测失败: ' + e.message);
+  } finally {
+    if (checkBtn) { checkBtn.disabled = false; checkBtn.textContent = '🔍 检查更新'; }
+  }
+}
+
+async function performSystemUpgrade() {
+  if (!confirm('确定从 GitHub 仓库拉取最新代码并同步升级吗？')) return;
+  const upBtn = document.getElementById('btn-do-upgrade');
+  if (upBtn) { upBtn.disabled = true; upBtn.textContent = '⏳ 正在同步拉取…'; }
+  try {
+    const res = await api('/api/system/upgrade', { method: 'POST' });
+    if (res && res.ok) {
+      toast('🎉 ' + (res.message || '升级成功！'));
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      toast('❌ 升级失败: ' + ((res && res.message) || '拉取异常'), 5000);
+    }
+  } catch (e) {
+    toast('❌ 升级异常: ' + e.message, 5000);
+  } finally {
+    if (upBtn) { upBtn.disabled = false; upBtn.textContent = '⚡ 立即升级'; }
+  }
+}
 
 async function api(path, opts = {}) {
   const fetchOpts = Object.assign({}, opts);
@@ -18346,6 +18411,7 @@ updateThemeToggleDisplay();
     updateAuthUI(false);
   } finally {
     refresh();
+    setTimeout(() => { checkSystemUpdate(false); }, 1500);
   }
 })();
 
@@ -20700,7 +20766,7 @@ async function resetHabitSkill() {
 let yimuUserTier = 'free';
 function getAppVersionShort() {
   const t = document.getElementById('nav-ver-text')?.textContent;
-  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V8.3.3';
+  return t ? (t.startsWith('V') ? t : 'V' + t) : 'V8.3.31';
 }
 const TIER_LABEL_MAP = {free: 'Free', pro: 'Pro', studio: 'Studio'};
 
@@ -20919,7 +20985,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px" id="agent-task-subtitle">全能微创改写与生成引擎调度中…</div>
         </div>
       </div>
-      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V8.3.3</span>
+      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V8.3.31</span>
     </div>
     
     <!-- 当前动态进行中的工作步骤展示卡 -->

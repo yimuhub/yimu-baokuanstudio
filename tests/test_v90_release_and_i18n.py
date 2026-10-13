@@ -122,3 +122,45 @@ def test_v90_bilingual_readmes_interlinked():
     assert "一幕·YIMU 爆款工作室" in readme_zh
     assert "README.md" in readme_zh
     assert "RELEASES.md" in readme_zh
+
+
+def test_v91_deep_i18n_subviews_and_menu_purity():
+    """验证 V9.1 二级子页面、子标签与菜单级 100% 深度双语纯净性机制"""
+    i18n_js_path = Path("web/static/js/i18n.js")
+    i18n_dict_path = Path("web/static/js/i18n_dict.json")
+    index_html_path = Path("web/templates/index.html")
+
+    assert i18n_js_path.exists()
+    assert i18n_dict_path.exists()
+
+    i18n_code = i18n_js_path.read_text(encoding="utf-8")
+    index_html = index_html_path.read_text(encoding="utf-8")
+
+    # 1. 词库规模与全量内嵌检查（至少 900+ 条全量 UI 词条）
+    import json
+    with open(i18n_dict_path, "r", encoding="utf-8") as f:
+        dict_data = json.load(f)
+    assert len(dict_data) >= 900, f"Expected at least 900 terms in dictionary, got {len(dict_data)}"
+    assert "EXACT_MAP" in i18n_code
+    assert "REVERSE_MAP" in i18n_code
+    assert "PHRASE_LIST" in i18n_code
+
+    # 2. 一级导航语言感知与标题英文切换
+    assert "titles_en" in index_html
+    assert "titles_zh" in index_html
+    assert "Dashboard" in index_html
+    assert "Media Studio" in index_html
+    assert "Control Center" in index_html
+    assert "Profile Center" in index_html
+
+    # 3. 二级子页面 (subTab) 语言联动翻译钩子
+    assert "function switchSubTab" in index_html
+    assert "YIMU_I18N.translateNode" in index_html
+
+
+    # 4. 递归翻译节点支持 (TEXT_NODE 与常用属性)
+    assert "translateDOMNode" in i18n_code
+    assert "placeholder" in i18n_code
+    assert "aria-label" in i18n_code
+    assert "title" in i18n_code
+

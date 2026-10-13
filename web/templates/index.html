@@ -10408,9 +10408,14 @@ document.querySelectorAll('.nav-item').forEach(item => {
     const targetEl = $(pId);
     if (targetEl) targetEl.classList.add('on');
     const icons = {dashboard:'🌐', lite:'✨', inspire:'🔥', drafts:'📝', studio:'🎬', console:'⚙️', profile:'👤'};
-    const titles = {dashboard:'操盘大屏', lite:'极简模式', inspire:'灵感与选题', drafts:'内容工作台', studio:'影音工坊', console:'控制中心', profile:'个人中心'};
+    const titles_zh = {dashboard:'操盘大屏', lite:'极简模式', inspire:'灵感与选题', drafts:'内容工作台', studio:'影音工坊', console:'控制中心', profile:'个人中心'};
+    const titles_en = {dashboard:'Dashboard', lite:'Lite Mode', inspire:'Inspirations', drafts:'Workbench', studio:'Media Studio', console:'Control Center', profile:'Profile Center'};
+    const isEn = (typeof YIMU_I18N !== 'undefined' && YIMU_I18N.getLang() === 'en');
     $('header-icon').textContent = icons[item.dataset.p] || '';
-    $('header-title').textContent = titles[item.dataset.p] || '';
+    $('header-title').textContent = (isEn ? titles_en[item.dataset.p] : titles_zh[item.dataset.p]) || '';
+    if (typeof YIMU_I18N !== 'undefined' && targetEl) {
+      YIMU_I18N.translateNode(targetEl);
+    }
     if (item.dataset.p === 'studio' && typeof initStudioModelSelects === 'function') {
       try { initStudioModelSelects(); } catch(e) { console.warn('[studio-models] 初始化失败:', e); }
     }
@@ -10434,9 +10439,13 @@ function switchToProfileCenter() {
     profilePanel.classList.add('on');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+  const isEn = (typeof YIMU_I18N !== 'undefined' && YIMU_I18N.getLang() === 'en');
   const hIcon = $('header-icon'), hTitle = $('header-title');
   if (hIcon) hIcon.textContent = '👤';
-  if (hTitle) hTitle.textContent = '个人中心';
+  if (hTitle) hTitle.textContent = isEn ? 'Profile Center' : '个人中心';
+  if (typeof YIMU_I18N !== 'undefined' && profilePanel) {
+    YIMU_I18N.translateNode(profilePanel);
+  }
   if (typeof syncProfileCenterData === 'function') {
     syncProfileCenterData();
   }
@@ -10538,6 +10547,12 @@ function switchSubTab(parentPanel, subId) {
   /* ⭐ 成片资产资料库自动刷新 */
   if (subId === 'sp-video-tasks' && typeof loadVideoTasks === 'function') {
     try { loadVideoTasks(); } catch(e) { console.warn('[video-tasks] 刷新失败:', e); }
+  }
+  /* ⭐ 子标签视图切换时自动执行 i18n 翻译，保障各级页面纯英文/纯中文一致性 */
+  if (typeof YIMU_I18N !== 'undefined') {
+    const revealedSubView = $(subId);
+    if (revealedSubView) YIMU_I18N.translateNode(revealedSubView);
+    if (p) YIMU_I18N.translateNode(p);
   }
 }
 

@@ -65,7 +65,7 @@ if [ -n "$REMOTE" ]; then
   git fetch "$REMOTE" "$BR" 2>/dev/null || err "fetch 失败——网络或远端不可达，先解决再提交"
   AHEAD=$(git rev-list --count "$REMOTE/$BR"..HEAD 2>/dev/null || echo 0)
   BEHIND=$(git rev-list --count HEAD.."$REMOTE/$BR" 2>/dev/null || echo 0)
-  echo "远端 $REMOTE/$BR：本地领先 $AHEAD 条，落后 $BEHIND 条"
+  echo "远端 $REMOTE/${BR}：本地领先 $AHEAD 条，落后 $BEHIND 条"
   if [ "$BEHIND" -gt 0 ]; then
     if [ $MODE_COMMIT -eq 1 ] && [ -n "$(git status --porcelain)" ]; then
       err "远端有 $BEHIND 条新提交且本地有未提交改动——请先小步提交，或先 git stash。禁止把未提交的大杂烩直接 rebase。"

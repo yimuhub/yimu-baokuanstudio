@@ -68,3 +68,6 @@ docs/REVIEW*.md
 docs/AUDIT*.md
 
 
+
+# 本项目页面已迁移至文稿根目录 Documents/yimu-site，此目录不再随仓库提交
+deploy/yimu-site/

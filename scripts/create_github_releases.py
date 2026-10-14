@@ -530,25 +530,150 @@ git checkout v9.3.1
     {
         "tag": "v9.3.2",
         "name": "v9.3.2 - 扶风翼 · Gale Wings (Free First, Pay Later)",
-        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.3.2\n\n- 官方通道每日免费体验额度（3次/日）\n- 首次登录 3 步引导 Wizard\n- 双层数据访问合并（SQLAlchemy 真源）\n",
+        "body": """# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.3.2
+
+> **版本代号 / Codename**: 扶风翼 · Gale Wings  
+> **发布日期 / Release Date**: 2026-10-14  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+
+### 🌟 核心升级亮点
+- **官方通道每日免费体验额度**：新用户（Free 档）每日 3 次免费轻量 AI 生成，无需自备 API Key；
+- **首次登录 3 步引导 Wizard**：30 秒完成免费额度认知与主链路选择，关闭即持久化；
+- **双层数据访问合并**：`users` / `user_api_keys` 表统一由 SQLAlchemy 真源声明。
+""",
+        "is_latest": False
+    },
+    {
+        "tag": "v9.4.0",
+        "name": "v9.4.0 - 破阵子 · Storm Breaker (5-Perspective Full Audit, Security & BYOK Unification)",
+        "body": """# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.4.0
+
+> **版本代号 / Codename**: 破阵子 · Storm Breaker  
+> **发布日期 / Release Date**: 2026-10-14  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+
+### 🌟 五维深度审查与全栈升级亮点
+1. **全链路安全加固**：反代 `X-Forwarded-For`/`X-Real-IP` 识别防免密超管穿透、跨站 Drive-by CSRF 拦截、API Key Vault 随机 Nonce+HMAC 认证加密 (`v2$`)；
+2. **BYOK 与免费体验主链贯通**：`core/agents.py` 与 `core/llm.py` 自动从上下文提取 `user_id`，自备 Key 模式自动免除 `require_credits` 平台算力扣除；
+3. **6 维人设自动注入与小红书指令精修**：写作/导演/广告 Agent 自动挂载当前工作区 6 维数字画像与声纹记忆；
+4. **数据库 10 倍提速与无冲突热更新**：`core/db.py` 连接初始化缓存化，在线升级自动保护本地 `config.yaml`。
+""",
+        "is_latest": False
+    },
+    {
+        "tag": "v9.4.1",
+        "name": "v9.4.1 - 沉影吟 · Shadow Rhythm (WeChat Image Deduplication, Popup Guard & 80+ Auto-Rewrite)",
+        "body": """# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.4.1
+
+> **版本代号 / Codename**: 沉影吟 · Shadow Rhythm  
+> **发布日期 / Release Date**: 2026-10-14  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+
+### 🌟 核心修复与升级亮点
+1. **极简模式微信公众号插图防重复/防连贴**：重构 `core/imagegen.py` 与 `core/layouter.py`，建立 URL 去重与相邻图片正文间隔守卫，彻底消除 2~3 张图重复堆叠；
+2. **创作过程浏览器弹窗单次熔断拦截**：新增进程级与前端全局单次弹窗拦截器（只弹一回，未选择或取消后直接静默拦截）；
+3. **统一百分制评分标准与 80+ 分自动重写**：自动将 10 分制（如 7.3 分）折算为标准 100 分制（73.0 分），统一前后端评级标准（>=90 优秀、>=80 良好、<80 不合格），并在初稿低于 80 分时自动触发反馈重写直至达标。
+""",
+        "is_latest": False
+    },
+    {
+        "tag": "v9.4.2",
+        "name": "v9.4.2 - 回响曲 · Echo Melody (Integrated /pricing Fixed Sidebar & Purchase Closed Loop)",
+        "body": """# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.4.2
+
+> **版本代号 / Codename**: 回响曲 · Echo Melody  
+> **发布日期 / Release Date**: 2026-10-14  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+
+### 🌟 核心升级亮点
+1. **`/pricing` 深度融入系统固定菜单栏**：在主界面左侧固定导航栏新增「💎 套餐与价格」入口与内嵌面板 `#p-pricing`，并为独立 `/pricing` 页面配备与主工作台完全一致的左侧固定导航栏与顶栏；
+2. **四步可视化购买与核销全流程打通**：打通「选购套餐一键下单 → 内嵌订单收银台确认 → 卡密一键核销激活 → 算力与会员档位实时到账 → 撤单/退款」完整闭环。
+""",
+        "is_latest": False
+    },
+    {
+        "tag": "v9.4.3",
+        "name": "v9.4.3 - 流云赋 · Flowing Clouds (Pure Chinese Menu Alignment & 1-Step Order Activation)",
+        "body": """# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.4.3
+
+> **版本代号 / Codename**: 流云赋 · Flowing Clouds  
+> **发布日期 / Release Date**: 2026-10-14  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+
+### 🌟 核心修复亮点
+1. **左侧菜单「套餐与价格」中英双语精准对齐**：修复 `i18n.js` 中 `nav_pricing` / `nav_pricing_sub` 词条与 `[data-i18n]` 守卫，彻底消除中文模式下显示英文键名的问题；
+2. **一步激活到账零 404 加固**：前端直连 `/api/admin/orders/{id}/confirm` + `/api/billing/redeem`，后端自动对齐单机默认租户与 UUID 租户；
+3. **动态版本号热加载与防回退地板**：`/api/version` 动态重载 `version.py`，前端内置版本地板保护，杜绝左上角徽章回退为旧版本号。
+""",
+        "is_latest": False
+    },
+    {
+        "tag": "v10",
+        "name": "v10 - 鸿蒙始 · Primordial Dawn (Major Milestone Alias)",
+        "body": """# 🌌 一幕 · 爆款工坊 (YIMU Studio) V10 (V10.0.0 跨代里程碑)
+
+> **版本代号 / Codename**: 鸿蒙始 · Primordial Dawn  
+> **关联正式版本**: `v10.0.0`  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+
+本标签为 **V10.0.0（鸿蒙始 · Primordial Dawn）** 跨代大版本里程碑别名标签，完整特性详见 `v10.0.0` Release 说明。
+""",
         "is_latest": False
     },
     {
         "tag": "v10.0.0",
-        "name": "v10.0.0 - 鸿蒙始 · Primordial Dawn (Full-Stack Security, BYOK & 6D Persona Unification)",
-        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V10.0.0\n\n> **版本代号 / Codename**: 鸿蒙始 · Primordial Dawn\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与修复亮点\n1. **全链路安全加固**：反代 `X-Forwarded-For`/`X-Real-IP` 识别防免密超管穿透、跨站 Drive-by CSRF 拦截、按需 HTTPS CSP、API Key Vault 随机 Nonce+HMAC 认证加密 (`v2$`)；\n2. **BYOK 与免费体验主链贯通**：`core/agents.py` 与 `core/llm.py` 自动从上下文提取 `user_id`，自备 Key 模式自动免除 `require_credits` 平台算力扣除，统一 V6/V7 双会话 Cookie (`mf_v6_token` + `yimu_session`)；\n3. **6 维人设自动注入与小红书指令精修**：写作/导演/广告 Agent 自动挂载当前工作区 6 维数字画像与声纹记忆，修复小红书单平台改写指令透传；\n4. **数据库 10 倍提速与无冲突热更新**：`core/db.py` 连接初始化缓存化，在线升级自动保护本地 `config.yaml`，补齐注册与首稿增长漏斗埋点，支持每日工单跨整点 15 分钟窗口与状态持久化。\n",
-        "is_latest": False
-    },
-    {
-        "tag": "v10.0.0",
-        "name": "v10.0.0 - 澄澈镜 · Pristine Mirror (Zero-Duplicate Multi-Platform WeChat Typesetting Engine)",
-        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V10.0.0\n\n> **版本代号 / Codename**: 澄澈镜 · Pristine Mirror\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与修复亮点\n1. **极简模式与全链路排版图片去重**：彻底根除极简模式与全平台首次生成内容（微信公众号）时配图重复出现 2 次的顽疾；\n2. **三层去重防御闭环**：输入层（Markdown 注入防重复与相邻去重 `_dedupe_markdown_images`）、转换层（HTML 语法树构建防二次插入与 URL 唯一规范化对比）、输出层（HTML 全局正则扫描与自愈去重 `_dedupe_wechat_html_images`）；\n3. **跨模块统一调用**：全系统（`core.layouter`、`core.themes`、`core.imagegen`、`core.orchestrator`、`core.fission`、`adapters.wechat_mp`、`web.admin`）统一收口至 `layout_render`，杜绝重复传图参数叠加；\n4. **草稿箱与缓存自愈**：草稿箱打开与分发预览接口内置自愈检测，历史生成的重复图片在打开瞬间自动清洗并无损重写缓存。\n",
-        "is_latest": False
-    },
-    {
-        "tag": "v10.0.0",
-        "name": "v10.0.0 - 鸿蒙始 · Primordial Dawn (Full-Pipeline Text Denoising & Minimalist Section Typography)",
-        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V10.0.0 [最新旗舰版 / Latest]\n\n> **版本代号 / Codename**: 鸿蒙始 · Primordial Dawn\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与去噪亮点\n1. **系统级正文深度去噪引擎 (`core/text_denoise.py`)**：彻底剔除 AI 生成内容中的粗糙分割线（`***`、`---`、`___`、`* * *`），将 `***加粗斜体***` 规范化降级为标准 `**加粗**`，彻底清除残余星号杂质；\n2. **正文标题降噪与排版自然化**：彻底终结正文中充斥的 `###`、`##` 等影响阅读观感的原始 Markdown 符号，智能平滑转换为中文方头括号 `【小节标题】` 与自然中文序号；\n3. **`#` 符号严格限定标签与话题**：强制约束 `#` 严格且仅能用于文末话题标签（如 `#自媒体 #AI爆款`）与成对社交话题（如 `#今日热点#`），正文中混杂的孤立无意义 `#` 全量无损清洗；\n4. **多端排版引擎自适应兼容**：微信公众号、今日头条、知乎等渲染器全面原生兼容方头括号与自然序号小节，自动赋予高颜值主题样式并精准配对小节插图，正文源码彻底告别 `###` 原始符号。\n",
+        "name": "v10.0.0 - 鸿蒙始 · Primordial Dawn (Big-Tech Clean Architecture 4-Layer Refactoring & Full-Stack Unification)",
+        "body": """# 🌌 一幕 · 爆款工坊 (YIMU Studio) V10.0.0 [最新跨代旗舰版 / Latest]
+
+> **版本代号 / Codename**: 鸿蒙始 · Primordial Dawn  
+> **发布日期 / Release Date**: 2026-10-15  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 大厂级 Clean Architecture 四层工程架构重塑、商业化全流程闭环与全栈 V10.0.0 跨代里程碑
+
+---
+
+### 🌟 版本概述 (Overview)
+**V10.0.0（鸿蒙始 · Primordial Dawn）** 是一幕·YIMU 爆款工作室的跨代架构里程碑版本。本次升级按照一线大厂工业级工程标准（Clean Architecture），构建了 **`app/`（接入层）+ `domain/`（领域与统一管线层）+ `infra/`（可观测性与基础设施层）+ `web/`（模块化模板与多语言资源层）** 四层解耦架构；同时将 `/pricing` 套餐与收银台深度融入系统左侧固定菜单栏，打通全流程购买核销闭环，并建立自动化架构防腐化门禁测试集。
+
+---
+
+### 🆕 核心架构升级与新增特性 (Key Architecture & Feature Highlights)
+1. **大厂级 Clean Architecture 四层工程体系 (`app/` · `domain/` · `infra/` · `web/`)**:
+   - **接入层 (`app/`)**：统一 `RequestContext` 依赖注入 (`app/deps.py`)、Pydantic 强类型请求/响应契约 (`app/schemas/billing.py`) 与 `/api/v10/health` 架构健康度探针 (`app/routers/architecture.py`)；
+   - **领域与编排层 (`domain/`)**：
+     - `BillingService` (`domain/billing/service.py`)：收敛 `core/billing.py`、`studio/billing_adapter.py` 与 `studio/membership/commerce.py` 为单一事务级服务门面；
+     - `ArticleQualityGate` & `normalize_score_100` (`domain/pipeline/article_pipeline.py`)：统一百分制折算（自动将 7.3 等 10 分制折算为 73.0 分）与 `< 80` 分自动反馈重写管线；
+     - `dedupe_wechat_html_images` (`domain/pipeline/image_pipeline.py`)：微信公众号插图 URL 去重与防相邻连贴守卫；
+     - `PROMPT_REGISTRY` (`domain/prompts/registry.py` & `templates.yaml`)：将 Agent 核心提示词从 Python 代码中解耦至 YAML 配置中心；
+   - **基础设施层 (`infra/`)**：
+     - `StructuredLogger` (`infra/logging.py`)：带 `trace_id` / `user_id` 的 JSON 结构化日志组件；
+     - `BrowserPopupCircuitBreaker` (`infra/crawlers/popup_guard.py`)：进程级浏览器弹窗单次熔断状态机与无头静默启动规范；
+   - **展示与静态资源层 (`web/`)**：
+     - 将原本内联在 `web/admin.py` 中的 `_PRICING_PAGE_HTML`、`_USERS_PAGE_HTML`、`_AUDIT_PAGE_HTML` 抽离为标准独立模板 (`web/templates/pages/*.html`)；
+     - 抽离全局设计变量 (`web/static/css/design-tokens.css`)、中英双语独立词典 (`web/static/locales/zh-CN.json` & `en-US.json`) 与前端单次弹窗守卫 (`web/static/js/core/popup-guard.js`)。
+2. **`/pricing` 左侧固定菜单栏深度融合与一步激活购买闭环**:
+   - 主工作台左侧固定导航栏新增 **「💎 套餐与价格」** 菜单项与 `#p-pricing` 内嵌收银台面板，独立 `/pricing` 页面同步配备完整左侧固定导航栏；
+   - 打通 **「选购套餐下单 → 收银台确认收款 → 卡密一键核销激活 → 算力与会员等级实时到账 → 撤单/退款」** 全链路，支持 **「🚀 确认收款并立即激活到账（一步走通）」** 零 404 直连核销。
+3. **工程规范与架构门禁 (`pyproject.toml` & `tests/test_v10_architecture_guard.py`)**:
+   - 配备大厂标准 `pyproject.toml`（统一 Ruff、Mypy、Pytest 规范）；
+   - 新增 `tests/test_v10_architecture_guard.py`，自动化守护 `10.0.0` 单一真源、四层架构完整性、百分制折算、微信图片去重与弹窗单次熔断契约。
+
+---
+
+### 📦 获取与部署 (How to Access & Deploy)
+```bash
+# 服务器生产环境单行极速全自动部署：
+curl -fsSL https://raw.githubusercontent.com/yimuhub/yimu-baokuanstudio/main/服务器一键部署.sh | bash
+
+# 本地仓库检出最新 V10.0.0 旗舰版：
+git pull origin main
+git checkout v10.0.0
+```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
+""",
         "is_latest": True
     }
 ]

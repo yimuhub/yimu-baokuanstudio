@@ -4,6 +4,22 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 10.0.0 · Big-Tech Clean Architecture & Full-Stack Unification (鸿蒙始 · Primordial Dawn) · 2026-10-15
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.0.0"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+- **Clean Architecture 4-Layer Refactoring (`app/` · `domain/` · `infra/` · `web/`)**:
+  - `app/`: Unified `RequestContext` dependency injection (`app/deps.py`), Pydantic v2 billing & order schemas (`app/schemas/billing.py`), and `/api/v10/health` architecture health probe (`app/routers/architecture.py`).
+  - `domain/`: Unified `BillingService` facade (`domain/billing/service.py`), `ArticleQualityGate` & `normalize_score_100` (`domain/pipeline/article_pipeline.py`), `dedupe_wechat_html_images` (`domain/pipeline/image_pipeline.py`), and externalized YAML prompt registry (`domain/prompts/registry.py` & `templates.yaml`).
+  - `infra/`: `StructuredLogger` with `trace_id`/`user_id` (`infra/logging.py`) and `BrowserPopupCircuitBreaker` single-popup guard (`infra/crawlers/popup_guard.py`).
+  - `web/`: Extracted inline HTML pages from `web/admin.py` into `web/templates/pages/{pricing,users_admin,audit_admin}.html`, design system CSS tokens (`web/static/css/design-tokens.css`), and standalone locale dictionaries (`web/static/locales/{zh-CN,en-US}.json`).
+- **Integrated `/pricing` Fixed Sidebar & End-to-End Purchase Closed Loop**:
+  - Integrated `💎 套餐与价格` into the fixed left navigation sidebar (`#p-pricing` & `/pricing`) and connected the complete 4-step purchase, 1-step payment confirmation & code redemption, tier upgrade, cancellation, and refund lifecycle.
+- **Engineering Standards & Architecture Guard (`pyproject.toml` & `tests/test_v10_architecture_guard.py`)**:
+  - Added unified `pyproject.toml` and automated architecture guard tests locking V10.0.0 invariants.
+
+---
+
 ## 🌟 Version 10.0.0 · Pristine Rhythm (澄音境 · 正文深度去噪与排版素简专项) · 2026-10-14
 
 > **Milestone**: Full-Pipeline Text Denoising Engine + Anti-Clutter Symbol Cleansing + Strict Hashtag Boundary Guard + Cross-Platform Section Typography  

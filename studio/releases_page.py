@@ -11,6 +11,8 @@ from __future__ import annotations
 import version
 
 def get_releases_html() -> str:
+    import importlib
+    importlib.reload(version)
     cur_ver = version.__version__
     codename = getattr(version, "__codename__", "万象生")
     slogan_cn = getattr(version, "__slogan_cn__", "一念起 一幕开 万象生")
@@ -388,48 +390,75 @@ footer {{
       <!-- V10.0.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌟 V10.0.0 · 鸿蒙始 (Pristine Rhythm)</span>
-          <span class="badge orange">当前版本 · 最新</span>
-          <span class="t-date">2026-10-14</span>
+          <span class="t-ver">🌌 V10.0.0 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="badge orange">当前跨代旗舰版 · 最新</span>
+          <span class="t-date">2026-10-15</span>
         </div>
-        <div class="t-desc">系统级正文深度去噪引擎、消除 *** 与 ### 符号杂音、# 严格限定标签与话题、多端排版原生无缝兼容。</div>
+        <div class="t-desc">大厂级 Clean Architecture 四层工程架构重塑、模板与双语词典解耦、/pricing 固定侧栏深度融合与全流程购买闭环。</div>
         <ul class="t-list">
-          <li><b>🧹 系统级正文深度去噪引擎 (core.text_denoise)</b>：自动剔除粗糙分割线（***、---、___），规整 ***加粗斜体*** 为标准 **加粗**，清理残余星号杂质；</li>
-          <li><b>📐 标题降噪与排版自然化</b>：彻底终结正文中充斥的 ###、## 原始 Markdown 标记，平滑转换为高颜值中文方头括号【小节标题】与自然中文序号；</li>
-          <li><b>🏷️ # 符号话题与标签严格边界守卫</b>：严格且仅保留文末话题标签（#自媒体 #爆款）与成对社媒话题（#今日热点#），彻底清除正文句中混杂的孤立无意义 # 杂音；</li>
-          <li><b>🎨 多端排版引擎自适应兼容</b>：微信公众号、今日头条、知乎等渲染器全面原生兼容方头括号与自然序号小节，自动赋予高颜值主题样式并精准配对小节插图。</li>
+          <li><b>🏛️ Clean Architecture 四层解耦架构 (app / domain / infra / web)</b>：建立统一依赖注入 <code>app/deps.py</code>、Pydantic 契约 <code>app/schemas</code>、统一商业化门面 <code>BillingService</code>、统一创作质量门禁 <code>ArticleQualityGate</code>、外部化 YAML 提示词注册中心与 JSON 结构化日志；</li>
+          <li><b>💎 /pricing 融入左侧固定菜单栏与全流程购买闭环</b>：主界面左侧固定导航栏与独立 <code>/pricing</code> 页面同构集成，支持「选购套餐下单 → 收银台确认收款 → 卡密一步激活到账 → 撤单/退款」全生命周期操作；</li>
+          <li><b>📦 巨石文件内联模板与词典解耦</b>：将 <code>web/admin.py</code> 内联的千行 HTML 页面抽离为 <code>web/templates/pages/*.html</code> 标准模板，抽离 CSS 设计变量与双语 JSON 词典；</li>
+          <li><b>🛡️ 工程规范与架构防腐化门禁</b>：配备标准 <code>pyproject.toml</code> 与 <code>tests/test_v10_architecture_guard.py</code>，全栈版本单一真源统一步进至 <b>10.0.0</b>。</li>
         </ul>
       </div>
 
-      <!-- V10.0.0 -->
+      <!-- V9.4.3 -->
       <div class="timeline-item">
         <div class="t-head">
-          <span class="t-ver">🏷️ V10.0.0 · 澄澈镜 (Pristine Mirror)</span>
+          <span class="t-ver">🏷️ V9.4.3 · 流云赋 (Flowing Clouds)</span>
           <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-14</span>
         </div>
-        <div class="t-desc">极简模式与全链路首次排版图片防重复彻底根治、三层去重防御闭环与排版契约统一。</div>
+        <div class="t-desc">左侧菜单「套餐与价格」中英双语精准对齐、订单一步激活零 404 直连核销与动态版本号热同步。</div>
         <ul class="t-list">
-          <li><b>🖼️ 极简模式与全链路图片防重彻底根治</b>：彻底根治极简模式与选题生成首次排版时微信版图片重复出现 2 次的顽疾；</li>
-          <li><b>🛡️ 三层去重自愈防御防线</b>：输入层 Markdown 标记防重复、转换层正文图片解析与字典防双写修剪、输出层微信 HTML 正则去重过滤；</li>
-          <li><b>📐 全系统排版调用契约统一收口</b>：<code>core.themes</code>、<code>core.imagegen</code>、<code>core.fission</code>、<code>adapters.wechat_mp</code> 与 <code>web.admin</code> 统一由 <code>core.layouter.render</code> 统一守卫；</li>
-          <li><b>✨ 草稿箱与分发预览自愈清洗</b>：草稿箱打开与平台预览加载时对历史缓存自动执行自愈清洗与无损重写。</li>
+          <li><b>🌐 左侧菜单中文纯净显示</b>：补齐 <code>i18n.js</code> 中 <code>nav_pricing</code> 双语词条并加固 <code>[data-i18n]</code> 守卫，杜绝英文键名覆盖中文文案；</li>
+          <li><b>🚀 订单一步激活零 404 加固</b>：直连内置确认收款与卡密核销接口，自动对齐单机默认租户与 UUID 租户；</li>
+          <li><b>🪐 版本号动态热加载与地板保护</b>：<code>/api/version</code> 动态重载磁盘版本，前端内置版本地板防回退。</li>
         </ul>
       </div>
 
-      <!-- V10.0.0 -->
+      <!-- V9.4.2 -->
       <div class="timeline-item">
         <div class="t-head">
-          <span class="t-ver">🏷️ V10.0.0 · 鸿蒙始 (Luminous Chronicles)</span>
+          <span class="t-ver">🏷️ V9.4.2 · 回响曲 (Echo Melody)</span>
+          <span class="badge green">稳定归档版</span>
+          <span class="t-date">2026-10-14</span>
+        </div>
+        <div class="t-desc">/pricing 页面深度融入系统左侧固定菜单栏，打通下单、收银台确认、卡密核销与退款全流程。</div>
+        <ul class="t-list">
+          <li><b>💎 左侧固定导航栏与内嵌价格中心</b>：新增左侧固定菜单「套餐与价格」及内嵌面板 <code>#p-pricing</code>，独立 <code>/pricing</code> 路由同步配备完整左侧固定导航栏；</li>
+          <li><b>🧾 四步可视化收银台与核销明细</b>：支持一键复制卡密、确认收款、一键核销激活到账、会员档位自动升级、取消订单与退款扣回额度。</li>
+        </ul>
+      </div>
+
+      <!-- V9.4.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.4.1 · 沉影吟 (Shadow Rhythm)</span>
+          <span class="badge green">稳定归档版</span>
+          <span class="t-date">2026-10-14</span>
+        </div>
+        <div class="t-desc">极简模式微信公众号插图去重防连贴、浏览器重复弹窗单次熔断拦截、百分制评分统一与 80+ 分自动重写。</div>
+        <ul class="t-list">
+          <li><b>🖼️ 公众号插图防重复与防连贴</b>：建立 URL 归一化去重与相邻图片正文段落间隔守卫，彻底消除 2~3 张重复插图堆叠；</li>
+          <li><b>🛡️ 浏览器弹窗单次熔断守卫</b>：只弹出一回，未选择或取消后自动静默拦截；</li>
+          <li><b>⚖️ 百分制评分统一与 80 分自动重写闭环</b>：自动将 7.3 等 10 分制折算为 73.0 百分制，前后端统一 80 分合格线，低于 80 分自动重写直至达标。</li>
+        </ul>
+      </div>
+
+      <!-- V9.4.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.4.0 · 破阵子 (Storm Breaker)</span>
           <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-14</span>
         </div>
         <div class="t-desc">全栈安全加固、BYOK 与免费体验主链贯通、6 维数字画像全域注入与数据库 10 倍提速。</div>
         <ul class="t-list">
-          <li><b>🛡️ 全链路安全与反代加固</b>：反代转发头识别防免密穿透、跨站 Drive-by CSRF 拦截、按需 HTTPS CSP、API Key Vault 随机 Nonce+HMAC 加密（v2）；</li>
-          <li><b>🔗 身份鉴权与 BYOK 计费贯通</b>：全仓 Agent 自动透传 <code>user_id</code>，自备 Key 模式自动免扣平台算力，统一 V6/V7 双会话 Cookie；</li>
-          <li><b>🎭 6 维数字画像与小红书指令精修</b>：写作/导演/广告 Agent 自动挂载工作区 6 维人设与声纹记忆，修复小红书单平台改写指令透传；</li>
-          <li><b>⚡ 数据库 10 倍提速与无冲突热更新</b>：SQLite 建表与迁移改为进程级缓存，在线升级自动保护本地 <code>config.yaml</code>，补齐注册与首稿增长漏斗埋点。</li>
+          <li><b>🛡️ 全链路安全与反代加固</b>：反代转发头识别防免密穿透、跨站 Drive-by CSRF 拦截、API Key Vault 随机 Nonce+HMAC 加密（v2）；</li>
+          <li><b>🔗 身份鉴权与 BYOK 计费贯通</b>：全仓 Agent 自动透传 <code>user_id</code>，自备 Key 模式自动免扣平台算力；</li>
+          <li><b>🎭 6 维数字画像与数据库 10 倍提速</b>：写作/导演/广告 Agent 自动挂载工作区 6 维人设，SQLite 建表与迁移改为进程级缓存。</li>
         </ul>
       </div>
 

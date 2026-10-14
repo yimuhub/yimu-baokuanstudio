@@ -3613,36 +3613,99 @@ def admin_releases_page(request: Request):
 
 @app.get("/api/releases")
 def api_releases():
-    """获取版本更新与发布历史数据【V9.1.0】"""
+    """获取版本更新与发布历史数据【V10.0.0】"""
+    try:
+        _importlib.reload(version)
+    except Exception:
+        pass
     return {
         "ok": True,
-        "current_version": version.__version__,
-        "codename": getattr(version, "__codename__", "万象生"),
+        "current_version": getattr(version, "__version__", "10.0.0"),
+        "codename": getattr(version, "__codename__", "鸿蒙始"),
         "licensor": "yimu.hyipf.com",
         "releases": [
             {
-                "version": "9.1.1",
-                "codename": "万象生",
-                "date": "2026-10-13",
+                "version": "10.0.0",
+                "codename": "鸿蒙始",
+                "date": "2026-10-15",
                 "status": "latest",
                 "highlights": [
-                    "全站各级菜单、二级子页面、弹窗与表单 100% 深度双语纯净切换（零中文残留）",
-                    "1,768 条全量 UI 词典编译与双向可逆无损恢复机制",
-                    "全仓代码多版本号单一真源统一步进至 V9.1.1",
-                    "导航标题、属性、Tab 切换与 MutationObserver 毫秒级语言联动",
+                    "大厂级 Clean Architecture 四层工程架构重塑（app / domain / infra / web）",
+                    "/pricing 页面深度融入系统左侧固定菜单栏，打通下单、确认收款、一步核销到账与退款全流程",
+                    "抽离 web/admin.py 内联 HTML 页面为标准模板，解耦双语 JSON 词典与全局 CSS 设计变量",
+                    "统一百分制 7 维评分与 80+ 分自动重写门禁、微信公众号插图去重防连贴、浏览器弹窗单次熔断",
                 ]
             },
             {
-                "version": "9.1.0",
-                "codename": "万象生",
-                "date": "2026-10-13",
+                "version": "9.4.3",
+                "codename": "流云赋",
+                "date": "2026-10-14",
                 "status": "stable",
                 "highlights": [
-                    "全站 i18n 国际化双语绝对统一（纯英文与纯中文极致纯粹）",
-                    "GitHub Releases 官方发布展示与版本演进中枢",
-                    "全仓代码多版本号单一真源统一步进至 V9.1.0",
-                    "原生 2K 视觉分镜引擎与 Agnes 零烟雾通透滤镜",
-                    "商业化算力与套餐价格深度合并统一胶囊",
+                    "修复左侧菜单栏中文版「套餐与价格」显示英文键名问题，补齐双语词典与守卫",
+                    "订单「确认收款并立即激活到账（一步走通）」直连内置核销链路，彻底消除 Not Found",
+                    "/api/version 动态热加载磁盘版本与前端版本地板保护，全站版本号强一致",
+                ]
+            },
+            {
+                "version": "9.4.2",
+                "codename": "回响曲",
+                "date": "2026-10-14",
+                "status": "stable",
+                "highlights": [
+                    "/pricing 页面配备固定左侧菜单栏并内嵌至主界面 #p-pricing 面板",
+                    "四步可视化购买路径与订单收银台核销、撤单、退款闭环",
+                ]
+            },
+            {
+                "version": "9.4.1",
+                "codename": "沉影吟",
+                "date": "2026-10-14",
+                "status": "stable",
+                "highlights": [
+                    "修复极简模式微信公众号插图重复与连贴问题",
+                    "浏览器弹窗单次熔断拦截（只弹一回，未选择直接拦截）",
+                    "统一 100 分制评分标准（消除 7.3分 vs 73分不一致）与低于 80 分自动重写",
+                ]
+            },
+            {
+                "version": "9.4.0",
+                "codename": "破阵子",
+                "date": "2026-10-14",
+                "status": "stable",
+                "highlights": [
+                    "反代免密防护、CSRF 防护与 API Vault v2 加密加固",
+                    "BYOK 自备 Key 免扣额度主链贯通与 6 维数字画像自动注入",
+                    "SQLite 建连缓存 10 倍提速与 config.yaml 无损热更新保护",
+                ]
+            },
+            {
+                "version": "9.3.1",
+                "codename": "万象融",
+                "date": "2026-10-14",
+                "status": "archived",
+                "highlights": [
+                    "服务器生产级一键部署脚本与 Systemd 开机自启常驻守护",
+                    "GitHub Releases 自动化同步与语义化版本防回退",
+                ]
+            },
+            {
+                "version": "9.2.0",
+                "codename": "天工开",
+                "date": "2026-10-13",
+                "status": "archived",
+                "highlights": [
+                    "自定义内容分发派生平台中枢与今日头条高密度资讯流排版规范",
+                    "Agent 专属排版技能自学习与蒸馏",
+                ]
+            },
+            {
+                "version": "9.1.1",
+                "codename": "流光澈",
+                "date": "2026-10-13",
+                "status": "archived",
+                "highlights": [
+                    "1,768 条全量 UI 词典编译与双向可逆无损恢复机制",
                 ]
             },
             {
@@ -3651,33 +3714,26 @@ def api_releases():
                 "date": "2026-10-13",
                 "status": "milestone",
                 "highlights": [
-                    "原生 2K 视觉分镜引擎",
-                    "Agnes 图像大模型零烟雾通透滤镜",
-                    "商业化算力与套餐价格深度合并",
+                    "原生 2K 视觉分镜引擎与零烟雾通透滤镜",
                     "全局 i18n 国际化双语热切换",
-                    "个人中心账号安全改密",
                 ]
             },
             {
                 "version": "8.3.33",
-                "codename": "星河引",
-                "date": "2026-10-13",
+                "codename": "灵犀汇",
+                "date": "2026-10-12",
                 "status": "archived",
                 "highlights": [
-                    "会员与账本迁入个人中心",
-                    "商业化套餐卡片点击高亮交互",
-                    "账号修改密码接口打通",
+                    "独立个人中心面板与账号密码自主修改",
                 ]
             },
             {
                 "version": "8.3.2",
-                "codename": "视觉大跃迁",
-                "date": "2026-10-12",
+                "codename": "智瞳境",
+                "date": "2026-10-11",
                 "status": "archived",
                 "highlights": [
-                    "十大影视级分镜视觉美学体系",
-                    "创作 Agent 一键换图",
-                    "小红书 5 幕磨砂毛玻璃卡片工坊",
+                    "十大影视级分镜视觉美学体系与小红书 5 幕磨砂卡片工坊",
                 ]
             }
         ]

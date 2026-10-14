@@ -201,13 +201,20 @@ def client_for_admin_tests(tmp_path, db_session, monkeypatch):
 # ---------------------------------------------------------------------------
 
 @pytest.fixture()
-def billing_json(tmp_path, monkeypatch):
-    """把 core.billing 的 JSON 账本指到临时目录，绝不碰真实 data/billing.json。"""
+def billing_json(tmp_path, db_session, monkeypatch):
+    """把 core.billing 的 JSON 账本指到临时目录，且 DB 指向测试 db_session。"""
     from core import billing
+    from studio import billing_adapter
+    from studio.membership import capabilities as caps
 
     f = tmp_path / "billing.json"
     monkeypatch.setattr(billing, "DATA_DIR", tmp_path)
     monkeypatch.setattr(billing, "BILLING_FILE", f)
+    test_db_url = f"sqlite:///{db_session.bind.url.database}"
+    monkeypatch.setenv("YIMU_DB_URL", test_db_url)
+    monkeypatch.setattr(caps, "_session_factory_cache", {})
+    monkeypatch.setattr(billing, "_session", lambda: db_session)
+    monkeypatch.setattr(billing_adapter, "_web_session", lambda: db_session)
     return billing
 
 
@@ -500,14 +507,11 @@ def test_r1_4_require_credits_raises_402_with_guide(billing_json, monkeypatch):
     from web import admin as web_admin
 
     db = billing_adapter._web_session()
-    try:
-        tid, uid = billing_adapter.get_default_billing_user(db)[0].id, "u-admin"
-        m = ensure_membership(db, tid, uid)
-        db.commit()
-        m.credits_used = int(m.credits_total)  # 余额清零
-        db.commit()
-    finally:
-        db.close()
+    tid, uid = billing_adapter.get_default_billing_user(db)[0].id, "u-admin"
+    m = ensure_membership(db, tid, uid)
+    db.commit()
+    m.credits_used = int(m.credits_total)  # 余额清零
+    db.commit()
 
     with pytest.raises(HTTPException) as exc:
         web_admin.require_credits("rewrite", 1, "测试")

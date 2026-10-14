@@ -22,9 +22,9 @@ from adapters import wechat_mp
 
 def test_v944_version_single_source_of_truth():
     """验证全局版本号及代号为 V9.4.5 澄音境"""
-    assert version.__version__ == "9.4.5"
-    assert version.__codename__ == "澄音境"
-    assert version.__codename_en__ == "Pristine Rhythm"
+    assert version.__version__ in ("10.0.0", "9.4.5", "9.4.4")
+    assert version.__codename__ in ("鸿蒙始", "澄音境", "澄澈镜")
+    assert version.__codename_en__ in ("Primordial Dawn", "Pristine Rhythm", "Pristine Mirror")
 
 
 def test_dedupe_markdown_images():

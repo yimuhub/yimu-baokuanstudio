@@ -1127,10 +1127,14 @@ async def ui_me(request: Request):
             db.add(su)
             db.flush()
         m = ensure_membership(db, TENANT_ID, su.id)
-        # ⭐ 管理员恒为 studio 档（最高权限）
-        if su.id == "u-admin" and m.tier != "studio":
-            m.tier = "studio"
-            m.credits_total = 6000000
+        # ⭐ 管理员默认 studio 档（最高权限，基础额度至少 600 万）
+        if su.id == "u-admin":
+            if not m.tier:
+                m.tier = "studio"
+            if m.credits_total < 6000000:
+                m.credits_total = 6000000
+            if int(m.credits_used or 0) > int(m.credits_total or 0):
+                m.credits_used = 0
         db.commit()
         return JSONResponse(ok_body(_membership_summary(m)))
     finally:
@@ -1161,6 +1165,16 @@ async def ui_init_membership(request: Request):
             db.add(su)
             db.flush()
         m = ensure_membership(db, TENANT_ID, su.id)
+        # 支持更选/切换至 free 体验档
+        body = {}
+        try:
+            body = await request.json()
+        except Exception:
+            pass
+        if body.get("switch_to_free"):
+            m.tier = "free"
+            if int(m.credits_used or 0) > int(m.credits_total or 0):
+                m.credits_used = 0
         db.commit()
         return JSONResponse(ok_body(_membership_summary(m)))
     finally:

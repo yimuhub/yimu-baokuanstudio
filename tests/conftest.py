@@ -24,6 +24,7 @@ _PROD_PATH_MARKERS = (
     "主库",
     "data/yimu.db",
     "yimu.db",
+    "data/mediaflow.db",
     "ledger.db",
     "runs/",
     "runs\\",
@@ -59,6 +60,7 @@ def make_test_db(prefix: str = "yimu_test_") -> tuple[str, str]:
     os.close(fd)
     assert_test_db_isolated(db_path)
     os.environ[_TEST_DB_ENV] = db_path
+    os.environ["YIMU_DB_URL"] = f"sqlite:///{db_path}"
     return db_path, f"sqlite:///{db_path}"
 
 
@@ -81,6 +83,7 @@ def test_db_path(tmp_path_factory):
     db_path = tmp_path_factory.mktemp("yimu_db") / "yimu_test.db"
     assert_test_db_isolated(str(db_path))
     os.environ[_TEST_DB_ENV] = str(db_path)
+    os.environ["YIMU_DB_URL"] = f"sqlite:///{db_path}"
     return str(db_path)
 
 

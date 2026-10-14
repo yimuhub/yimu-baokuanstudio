@@ -4,3 +4,7 @@
 __version__ = "10.0.0"
 __codename__ = "鸿蒙始"
 __codename_en__ = "Primordial Dawn"
+__slogan__ = "一念起 一幕开 万象生 · 鸿蒙开元，正本清源"
+__slogan_cn__ = "一念起 一幕开 万象生 · 鸿蒙开元，正本清源"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Primordial Dawn"
+

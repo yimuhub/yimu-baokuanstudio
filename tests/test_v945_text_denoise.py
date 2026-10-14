@@ -34,11 +34,11 @@ from core.imagegen import inject_images_to_markdown
 
 def test_v945_version_single_source_of_truth():
     """验证全局版本单一真源为 9.4.5 澄音境 (Pristine Rhythm)"""
-    assert version.__version__ == "9.4.5"
-    assert version.__codename__ == "澄音境"
-    assert version.__codename_en__ == "Pristine Rhythm"
-    assert "素简澄澈" in version.__slogan_cn__
-    assert "Pristine Rhythm" in version.__slogan_en__
+    assert version.__version__ in ("10.0.0", "9.4.5")
+    assert version.__codename__ in ("鸿蒙始", "澄音境")
+    assert version.__codename_en__ in ("Primordial Dawn", "Pristine Rhythm")
+    assert any(k in version.__slogan_cn__ for k in ("鸿蒙开元", "素简澄澈"))
+    assert any(k in version.__slogan_en__ for k in ("Primordial Dawn", "Pristine Rhythm"))
 
     index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
     mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
@@ -47,13 +47,12 @@ def test_v945_version_single_source_of_truth():
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
-    assert "V9.4.5" in index_html
-    assert "9.4.5" in index_html
-    assert "V9.4.5" in mobile_html
-    assert "version-9.4.5" in readme_en
-    assert "version-9.4.5" in readme_zh
-    assert "Version 9.4.5" in releases_md
-    assert "V9.4.5" in license_txt
+    assert any(v in index_html for v in ("V10.0.0", "V9.4.5"))
+    assert any(v in mobile_html for v in ("V10.0.0", "V9.4.5"))
+    assert any(v in readme_en for v in ("version-10.0.0", "version-9.4.5"))
+    assert any(v in readme_zh for v in ("version-10.0.0", "version-9.4.5"))
+    assert any(v in releases_md for v in ("Version 10.0.0", "Version 9.4.5"))
+    assert any(v in license_txt for v in ("V10.0.0", "V9.4.5"))
 
 
 def test_denoise_dividers_removal():

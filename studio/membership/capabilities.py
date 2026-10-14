@@ -287,6 +287,9 @@ def default_db_url() -> str:
     url = (os.environ.get("YIMU_DB_URL") or "").strip()
     if url:
         return url
+    test_db = (os.environ.get("YIMU_TEST_DB") or "").strip()
+    if test_db:
+        return f"sqlite:///{test_db}"
     # 本文件在 <repo>/studio/membership/ 下，向上三级即仓库根
     root = Path(__file__).resolve().parent.parent.parent
     return "sqlite:///" + str(root / "data" / "mediaflow.db")

@@ -17498,7 +17498,7 @@ async function quickApplySelectedPlan() {
   const meta = BILLING_PLAN_META[plan] || BILLING_PLAN_META.pro;
   if (plan === 'free') {
     try {
-      await api('/api/billing/ui/init', { method: 'POST', body: '{}' });
+      await api('/api/billing/ui/init', { method: 'POST', body: JSON.stringify({switch_to_free: true}) });
       toast('🎉 已成功切换至新人体验官 (Free) 档位！');
       closeModal();
       await loadBillingStatus();

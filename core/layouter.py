@@ -80,8 +80,9 @@ def _dedupe_wechat_html_images(html: str) -> str:
             out.append(full_img)
             last_was_img = True
         plain_after = re.sub(r"<[^>]+>", "", after_text).strip()
-        if len(plain_after) >= 6:
+        if len(plain_after) > 0:
             last_was_img = False
         out.append(after_text)
         i += 3
-    return "".join(out)
+    res = "".join(out)
+    return re.sub(r"<p\b[^>]*>\s*</p>", "", res)

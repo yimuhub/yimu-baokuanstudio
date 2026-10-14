@@ -123,6 +123,8 @@ def grant_tokens(db, tenant_id: str, user_id: str, amount: int,
 
     ensure_membership, _, grant_credits = _membership_svc()
     ms = ensure_membership(db, tenant_id, user_id)
+    if int(ms.credits_used or 0) > int(ms.credits_total or 0):
+        ms.credits_used = 0
     grant_credits(db, ms, amount, reason)
     db.add(AuditLog(
         id=new_id(), tenant_id=tenant_id, actor=user_id,
@@ -137,13 +139,21 @@ def grant_tokens(db, tenant_id: str, user_id: str, amount: int,
 
 def set_tier(db, tenant_id: str, user_id: str, tier: str) -> bool:
     """B 兼容：切换档位并按档位发放配额（语义与 B 一致：余额上累加）。"""
+    from datetime import timedelta
     from studio.db_models import AuditLog, new_id, utcnow
+    from studio.pricing import tier_period_days
 
     if tier not in DEFAULT_TIERS:
         return False
     ensure_membership, _, _ = _membership_svc()
     ms = ensure_membership(db, tenant_id, user_id)
     ms.tier = tier
+    now_dt = utcnow().replace(tzinfo=None)
+    days = tier_period_days(tier)
+    ms.period_start = now_dt
+    ms.period_end = now_dt + timedelta(days=days)
+    if int(ms.credits_used or 0) >= int(ms.credits_total or 0):
+        ms.credits_used = 0
     db.add(AuditLog(
         id=new_id(), tenant_id=tenant_id, actor=user_id,
         action="billing.set_tier", target="membership:" + ms.id,
@@ -241,8 +251,9 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
         # 若该卡密来自套餐购买订单（orders.cdkey），同步升级用户会员档位并更新订单状态
         upgraded_plan = ""
         try:
-            from studio.db_models import Order, Membership, User as _StudioUser
-            ord_row = db.query(Order).filter(Order.cdkey == code).first()
+            from sqlalchemy import func, text
+            from studio.db_models import Order, Membership, utcnow
+            ord_row = db.query(Order).filter(func.upper(Order.cdkey) == code).first()
             if ord_row and ord_row.plan in ("pro", "studio"):
                 upgraded_plan = ord_row.plan
                 m_row = (
@@ -250,11 +261,26 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
                     .filter(Membership.tenant_id == tenant_id, Membership.user_id == user_id)
                     .first()
                 )
+                if m_row is None:
+                    m_row = db.query(Membership).filter(Membership.user_id == user_id).first()
                 if m_row is not None:
                     m_row.tier = upgraded_plan
+                    from datetime import timedelta
+                    from studio.pricing import tier_period_days
+                    now_dt = utcnow().replace(tzinfo=None)
+                    days = tier_period_days(upgraded_plan)
+                    m_row.period_start = now_dt
+                    m_row.period_end = now_dt + timedelta(days=days)
+                    if int(m_row.credits_used or 0) >= int(m_row.credits_total or 0):
+                        m_row.credits_used = 0
+                    bal = max(0, int(m_row.credits_total or 0) - int(m_row.credits_used or 0))
                 if ord_row.status == "pending":
                     ord_row.status = "paid"
                     ord_row.paid_at = utcnow()
+                try:
+                    db.execute(text("UPDATE users SET plan = :p WHERE id = :u"), {"p": upgraded_plan, "u": user_id})
+                except Exception:
+                    pass
                 db.commit()
                 try:
                     from core import auth as _core_auth
@@ -288,17 +314,30 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
 
 def get_default_billing_user(db, tenant_name: str = "default"):
     """本地单机模式：取默认租户的首个用户（B 单用户语义的对应）。"""
-    from studio.db_models import Tenant, User
+    from studio.auth import ensure_default_tenant
+    from studio.db_models import Tenant, User, utcnow
 
-    tenant = db.query(Tenant).filter(Tenant.name == tenant_name).first()
-    if tenant is None:
-        return None, None
+    tenant = ensure_default_tenant(db)
     user = (
         db.query(User)
-        .filter(User.tenant_id == tenant.id, User.is_active.is_(True))
-        .order_by(User.created_at.asc())
+        .filter(User.tenant_id == tenant.id, User.id.in_(("u-admin", "admin")))
         .first()
     )
+    if user is None:
+        user = (
+            db.query(User)
+            .filter(User.tenant_id == tenant.id, User.is_active.is_(True))
+            .order_by(User.created_at.asc())
+            .first()
+        )
+    if user is None:
+        user = User(
+            id="u-admin", tenant_id=tenant.id, username="admin",
+            email="", password_hash="!", salt="", role="admin",
+            is_active=True, created_at=utcnow(),
+        )
+        db.add(user)
+        db.commit()
     return tenant, user
 
 

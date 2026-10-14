@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BUSL-1.1
-"""V9.4.0 (浮光录 · Luminous Chronicles) 全量审查修复与架构升级专项验收测试。"""
+"""V9.4.0 (回响曲 · Echo Melody) 全量审查修复与架构升级专项验收测试。"""
 from __future__ import annotations
 
 import os

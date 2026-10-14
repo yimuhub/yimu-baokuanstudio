@@ -6824,7 +6824,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>套餐与价格 · 一幕·YIMU 爆款工作室 V9.4.1</title>
+<title>套餐与价格 · 一幕·YIMU 爆款工作室 V9.4.2</title>
 <style>
  :root {
    --bg: #0b0e14;
@@ -6940,7 +6940,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
     </a>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge">爆款工作室</span>
-      <span class="version-badge">V9.4.1</span>
+      <span class="version-badge">V9.4.2</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -6987,7 +6987,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
       <span class="badge ok" id="side-auth-status">在线</span>
     </a>
     <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-muted);padding:4px 2px">
-      <span>🪐 版本 <code style="color:var(--primary);font-weight:700">V9.4.1</code></span>
+      <span>🪐 版本 <code style="color:var(--primary);font-weight:700">V9.4.2</code></span>
       <a href="/releases" style="color:#d8b4fe;text-decoration:none;font-weight:700">Releases ↗</a>
     </div>
   </div>

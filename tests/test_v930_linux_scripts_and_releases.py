@@ -96,3 +96,18 @@ def test_no_v7_pro_in_membership_and_apis():
     gateway_code = Path("web/gateway_ui.py").read_text(encoding="utf-8")
     assert "升级 V7 Pro" not in gateway_code
     assert "网关 API 为 V7 Pro" not in gateway_code
+
+
+def test_updater_check_v930_resolution():
+    """验证在线更新中枢准确识别 9.3.0 为当前与最新版本，且具备系统凭据自动捕获能力"""
+    from core.updater import check_for_updates, _get_github_token
+    # 验证能从系统 git credential 识别到 token
+    token = _get_github_token()
+    assert len(token) > 0, "应能从环境变量或系统 git credential 自动识别到 GitHub Token"
+
+    res = check_for_updates(force=True)
+    assert res.get("ok") is True
+    assert res.get("current_version") == "9.3.0"
+    assert res.get("latest_version") == "9.3.0"
+    assert "万象融" in res.get("release_notes", "") or "V9.3.0" in res.get("release_notes", "")
+

@@ -55,13 +55,29 @@ def _get_github_repo() -> str:
 
 def _get_github_token() -> str:
     env = load_env()
-    return (
+    token = (
         env.get("GITHUB_TOKEN")
         or env.get("GITHUB_PERSONAL_ACCESS_TOKEN")
         or env.get("GH_TOKEN")
         or env.get("GITHUB_IMGBED_TOKEN")
         or ""
     ).strip()
+    if token:
+        return token
+    # 尝试从系统 git credential helper 获取已保存的 GitHub Token
+    try:
+        auth_out = subprocess.check_output(
+            ["git", "credential", "fill"],
+            input=f"url=https://github.com/{_get_github_repo()}.git\n",
+            text=True,
+            timeout=3,
+        )
+        for line in auth_out.splitlines():
+            if line.startswith("password="):
+                return line.split("=", 1)[1].strip()
+    except Exception:
+        pass
+    return ""
 
 
 def check_for_updates(force: bool = False) -> dict[str, Any]:
@@ -107,12 +123,13 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
         "error": None,
     }
 
-    # 1. 优先使用 Git 原生协议探测远端 HEAD（零 Rate Limit 风险）
-    remote_head_sha = ""
+    # 1. 优先使用 Git 原生协议探测远端 HEAD 与 Tags（零 Rate Limit 风险）
+    remote_target = "origin"
+    if token:
+        remote_target = f"https://oauth2:{token}@github.com/{repo}.git"
+
     try:
-        remote_target = "origin"
-        if token:
-            remote_target = f"https://oauth2:{token}@github.com/{repo}.git"
+        # 探测最新 HEAD commit
         ls_out = subprocess.check_output(
             ["git", "ls-remote", remote_target, "HEAD"],
             cwd=str(REPO_ROOT),
@@ -122,9 +139,28 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
         for line in ls_out.splitlines():
             parts = line.strip().split()
             if len(parts) >= 1:
-                remote_head_sha = parts[0][:7]
-                res["latest_commit"] = remote_head_sha
+                res["latest_commit"] = parts[0][:7]
                 break
+
+        # 探测最新 Tags (提取如 9.3.0)
+        ls_tags = subprocess.check_output(
+            ["git", "ls-remote", "--tags", remote_target],
+            cwd=str(REPO_ROOT),
+            text=True,
+            timeout=8,
+        )
+        found_tags: list[str] = []
+        for line in ls_tags.splitlines():
+            parts = line.strip().split()
+            if len(parts) >= 2 and parts[1].startswith("refs/tags/"):
+                raw_tag = parts[1].replace("refs/tags/", "").replace("^{}", "").strip()
+                v_clean = raw_tag.lstrip("vV").strip()
+                if v_clean and any(c.isdigit() for c in v_clean):
+                    found_tags.append(v_clean)
+        if found_tags:
+            # 语义化版本降序排列，取最新
+            found_tags.sort(key=lambda x: [int(n) for n in re.findall(r"\d+", x) or [0]])
+            res["latest_version"] = found_tags[-1]
     except Exception as exc:
         log.debug("[updater] git ls-remote 探测略过: %s", exc)
 
@@ -134,22 +170,39 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
         headers["Authorization"] = f"token {token}"
 
     try:
-        # 获取最新 Release
-        rel_req = urllib.request.Request(
-            f"https://api.github.com/repos/{repo}/releases/latest",
-            headers=headers,
-        )
-        with urllib.request.urlopen(rel_req, timeout=6) as resp:
-            if resp.status == 200:
-                rel_data = json.loads(resp.read().decode("utf-8"))
-                tag_name = (rel_data.get("tag_name") or "").lstrip("vV").strip()
-                if tag_name:
-                    res["latest_version"] = tag_name
-                    res["release_notes"] = rel_data.get("body") or ""
-                    res["published_at"] = rel_data.get("published_at") or ""
-                    res["channel"] = "release"
-    except Exception:
-        pass
+        rel_data: dict[str, Any] = {}
+        try:
+            rel_req = urllib.request.Request(
+                f"https://api.github.com/repos/{repo}/releases/latest",
+                headers=headers,
+            )
+            with urllib.request.urlopen(rel_req, timeout=6) as resp:
+                if resp.status == 200:
+                    rel_data = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as he:
+            if he.code == 404:
+                # 兼容未标记 latest 的 release 列表
+                list_req = urllib.request.Request(
+                    f"https://api.github.com/repos/{repo}/releases?per_page=1",
+                    headers=headers,
+                )
+                with urllib.request.urlopen(list_req, timeout=6) as resp:
+                    if resp.status == 200:
+                        items = json.loads(resp.read().decode("utf-8"))
+                        if items and isinstance(items, list):
+                            rel_data = items[0]
+            else:
+                raise
+
+        if rel_data:
+            tag_name = (rel_data.get("tag_name") or "").lstrip("vV").strip()
+            if tag_name:
+                res["latest_version"] = tag_name
+                res["release_notes"] = rel_data.get("body") or ""
+                res["published_at"] = rel_data.get("published_at") or ""
+                res["channel"] = "release"
+    except Exception as exc:
+        log.debug("[updater] GitHub Release API 获取略过: %s", exc)
 
     # 尝试获取最新 Commit Message
     try:
@@ -237,12 +290,26 @@ def perform_upgrade() -> dict[str, Any]:
         if proc.returncode == 0:
             global _cache_check_result
             _cache_check_result = None
+            # 自动对齐数据库结构
+            try:
+                from studio.db import get_engine, init_db
+                db_url = os.environ.get("YIMU_DB_URL", "sqlite:///./data/mediaflow.db")
+                init_db(get_engine(db_url))
+            except Exception as e:
+                log.warning("[updater] 自动对齐数据库结构提示: %s", e)
+
+            # 重新加载单一真源版本模块
+            import importlib
+            importlib.reload(version)
+            upgraded_version = getattr(version, "__version__", cur_commit)
+
             return {
                 "ok": True,
-                "message": "更新成功！代码已同步至最新版本。",
+                "message": f"🎉 升级成功！系统已同步至最新版本 (V{upgraded_version})。",
                 "output": output,
                 "previous_commit": prev_commit,
                 "current_commit": cur_commit,
+                "version": upgraded_version,
             }
         else:
             return {

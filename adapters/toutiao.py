@@ -58,17 +58,17 @@ def _format_toutiao_paragraphs(body_md: str, section_images: list[str] | dict[st
         # 2. 处理标题
         if ln.startswith("# "):
             continue
-        elif ln.startswith("### "):
-            sub = html.escape(ln[4:].strip())
+        elif ln.startswith("## "):
+            sub = html.escape(ln[3:].strip())
+            out_lines.append(f"<h2 style='font-size:20px;font-weight:800;color:#111;margin:28px 0 14px;display:flex;align-items:center;gap:8px;'><span style='width:5px;height:20px;background:#e23838;border-radius:2px;display:inline-block;'></span>{sub}</h2>")
+        elif ln.startswith("### ") or (ln.startswith("【") and ln.endswith("】") and len(ln) <= 45) or re.match(r"^(?:第[一二三四五六七八九十0-9]+[章节篇部分]|(?:[一二三四五六七八九十]+)[、.．]|（[一二三四五六七八九十\d]+）)\s*[\u4e00-\u9fa5\w\s]{2,40}$", ln):
+            sub = html.escape(ln.lstrip("# ").strip())
             out_lines.append(f"<h3 style='font-size:18px;font-weight:700;color:#222;margin:24px 0 12px;display:flex;align-items:center;gap:8px;'><span style='width:4px;height:18px;background:#f85959;border-radius:2px;display:inline-block;'></span>{sub}</h3>")
             # 自动注入小节配图（若正文无嵌入图片且有可用小节图）
             if "![" not in body_md and sec_idx < len(sec_img_list):
                 img_url = sec_img_list[sec_idx]
                 out_lines.append(f"<div style='margin:18px 0;text-align:center;'><img src='{html.escape(img_url)}' style='width:100%;max-width:100%;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.06);display:block;margin:0 auto;'><div style='font-size:12.5px;color:#888;text-align:center;margin-top:6px;'>{sub}</div></div>")
                 sec_idx += 1
-        elif ln.startswith("## "):
-            sub = html.escape(ln[3:].strip())
-            out_lines.append(f"<h2 style='font-size:20px;font-weight:800;color:#111;margin:28px 0 14px;display:flex;align-items:center;gap:8px;'><span style='width:5px;height:20px;background:#e23838;border-radius:2px;display:inline-block;'></span>{sub}</h2>")
         elif ln.startswith(">"):
             q = _format_inline_markdown(html.escape(ln.lstrip("> ").strip()))
             out_lines.append(f"<div style='background:#fdf6f6;border-left:4px solid #f85959;border-radius:0 8px 8px 0;padding:12px 16px;margin:16px 0;font-size:15px;color:#444;line-height:1.7;font-style:italic;'>“{q}”</div>")

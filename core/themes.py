@@ -88,9 +88,10 @@ def _inline_md(text: str, st: dict) -> str:
 
 
 def clean_markdown_body(text: str) -> str:
-    """全面清洗大模型生成的 Markdown 正文，彻底剥离思考标签、代码块围栏与 YAML frontmatter。"""
+    """全面清洗大模型生成的 Markdown 正文，彻底剥离思考标签、代码块围栏与 YAML frontmatter，并执行系统级文本去噪（V9.4.5）。"""
     if not text:
         return ""
+    from core.text_denoise import denoise_body_text
     # 剥离思考标签 <think>...</think>
     text = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.I)
     # 剥离开头的 YAML frontmatter
@@ -98,6 +99,7 @@ def clean_markdown_body(text: str) -> str:
     # 剥离外层包裹的 ```markdown / ```html / ```
     text = re.sub(r"^\s*```(?:markdown|md|html)?\s*\n", "", text, flags=re.I)
     text = re.sub(r"\n\s*```\s*$", "", text)
+    text = denoise_body_text(text)
     return text.strip()
 
 
@@ -138,7 +140,7 @@ def md_to_wechat_html(body_md: str, title: str, theme: str = DEFAULT_THEME,
                       meta: str = "一幕·YIMU 爆款工作室", images: dict | None = None,
                       theme_key: str | None = None, cover: str | None = None,
                       **kwargs) -> str:
-    """markdown → 微信兼容行内样式 HTML（内置全链路图片防重复与防连贴守卫）。"""
+    """markdown → 微信兼容行内样式 HTML（内置全链路图片防重复与防连贴守卫，全面支持 V9.4.5 无噪标题与小节排版）。"""
     actual_theme = theme_key or theme or DEFAULT_THEME
     body_md = clean_markdown_body(body_md)
     st = WECHAT_THEMES.get(actual_theme, WECHAT_THEMES[DEFAULT_THEME])
@@ -176,21 +178,34 @@ def md_to_wechat_html(body_md: str, title: str, theme: str = DEFAULT_THEME,
         # 跳过 Obsidian/GitHub callout 元标记行（[!NOTE] 等）
         if re.match(r"^\[![\w\s]+\]", s):
             continue
+
+        is_h3 = False
+        is_h2 = False
+        heading_title = ""
+
         if s.startswith("### "):
-            if in_list:
-                out.append("</ul>"); in_list = False
-            cur_section = s[4:].strip()
-            out.append(f"<h3 style='{st['h3']}'>{_inline_md(cur_section, st)}</h3>")
+            is_h3 = True
+            heading_title = s[4:].strip()
         elif s.startswith("## "):
-            if in_list:
-                out.append("</ul>"); in_list = False
-            cur_section = s[3:].strip()
-            out.append(f"<h2 style='{st['h2']}'>{_inline_md(cur_section, st)}</h2>")
+            is_h2 = True
+            heading_title = s[3:].strip()
         elif s.startswith("# "):
+            is_h2 = True
+            heading_title = s[2:].strip()
+        elif s.startswith("【") and s.endswith("】") and 2 <= len(s) <= 45:
+            is_h3 = True
+            heading_title = s.strip()
+        elif re.match(r"^(?:第[一二三四五六七八九十0-9]+[章节篇部分]|(?:[一二三四五六七八九十]+)[、.．]|（[一二三四五六七八九十\d]+）)\s*[\u4e00-\u9fa5\w\s]{2,40}$", s):
+            is_h3 = True
+            heading_title = s.strip()
+
+        if is_h3 or is_h2:
             if in_list:
                 out.append("</ul>"); in_list = False
-            cur_section = s[2:].strip()
-            out.append(f"<h2 style='{st['h2']}'>{_inline_md(cur_section, st)}</h2>")
+            cur_section = heading_title
+            tag = "h2" if is_h2 else "h3"
+            style_key = "h2" if is_h2 else "h3"
+            out.append(f"<{tag} style='{st[style_key]}'>{_inline_md(cur_section, st)}</{tag}>")
         elif s.startswith("- ") or s.startswith("• "):
             if not in_list:
                 out.append("<ul style='padding-left:22px;margin:10px 0;'>"); in_list = True
@@ -224,12 +239,23 @@ def md_to_wechat_html(body_md: str, title: str, theme: str = DEFAULT_THEME,
             if in_list:
                 out.append("</ul>"); in_list = False
             out.append(f"<p style='{st['p']}'>{_inline_md(s, st)}</p>")
-            if effective_images and cur_section in effective_images:
-                sec_img = effective_images.pop(cur_section)
-                norm_sec = sec_img.split("?")[0].strip().rstrip("/")
-                if norm_sec not in emitted_srcs:
-                    emitted_srcs.add(norm_sec)
-                    out.append(f"<img src='{sec_img}' style='{st['img']}'/>")
+            if effective_images and cur_section:
+                match_key = None
+                if cur_section in effective_images:
+                    match_key = cur_section
+                else:
+                    norm_sec = cur_section.strip("【】").strip()
+                    for k in list(effective_images.keys()):
+                        k_clean = k.strip("【】").strip()
+                        if k_clean == norm_sec or k_clean in norm_sec or norm_sec in k_clean:
+                            match_key = k
+                            break
+                if match_key:
+                    sec_img = effective_images.pop(match_key)
+                    norm_sec_img = sec_img.split("?")[0].strip().rstrip("/")
+                    if norm_sec_img not in emitted_srcs:
+                        emitted_srcs.add(norm_sec_img)
+                        out.append(f"<img src='{sec_img}' style='{st['img']}'/>")
 
     if in_list:
         out.append("</ul>")

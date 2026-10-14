@@ -10,10 +10,10 @@ import version
 
 
 def test_v940_version_truth():
-    """验证 V9.4.4 版本单一真源与专属代号"""
-    assert version.__version__ == "9.4.4"
-    assert version.__codename__ == "澄澈镜"
-    assert "Pristine Mirror" in version.__slogan_en__
+    """验证 V9.4.5 版本单一真源与专属代号"""
+    assert version.__version__ == "9.4.5"
+    assert version.__codename__ == "澄音境"
+    assert "Pristine Rhythm" in version.__slogan_en__
 
 
 def test_v940_reverse_proxy_loopback_guard():

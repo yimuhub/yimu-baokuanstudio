@@ -36,7 +36,7 @@ def _format_zhihu_body(body_md: str, section_images: list[str] | dict[str, str] 
 
         if ln.startswith("# "):
             continue
-        elif ln.startswith("### ") or ln.startswith("## "):
+        elif ln.startswith("### ") or ln.startswith("## ") or (ln.startswith("【") and ln.endswith("】") and len(ln) <= 45) or re.match(r"^(?:第[一二三四五六七八九十0-9]+[章节篇部分]|(?:[一二三四五六七八九十]+)[、.．]|（[一二三四五六七八九十\d]+）)\s*[\u4e00-\u9fa5\w\s]{2,40}$", ln):
             title = ln.lstrip("# ").strip()
             out.append(f"<h3 style=\"font-size:18px;font-weight:700;color:#121212;margin:24px 0 12px;display:flex;align-items:center;gap:8px;\"><span style=\"color:#0066ff;font-size:16px;\">▍</span>{html.escape(title)}</h3>")
             if "![" not in body_md and sec_idx < len(sec_img_list):

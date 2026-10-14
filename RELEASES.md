@@ -4,6 +4,33 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌟 Version 9.4.5 · Pristine Rhythm (澄音境 · 正文深度去噪与排版素简专项) · 2026-10-14
+
+> **Milestone**: Full-Pipeline Text Denoising Engine + Anti-Clutter Symbol Cleansing + Strict Hashtag Boundary Guard + Cross-Platform Section Typography  
+> **Codename**: 澄音境 (Pristine Rhythm · 素简澄澈，正文纯净)  
+> **Slogan**: One Thought. One Scene. Infinite Worlds · Pristine Rhythm (一念起 一幕开 万象生 · 素简澄澈，正文纯净)  
+> **Licensor**: yimu.hyipf.com  
+> **Release Date**: 2026-10-14  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.4.5"`)  
+
+### 🧹 1. 系统级正文深度去噪引擎 (`core/text_denoise.py`)
+- **粗糙分割线彻底剔除**：自动识别并剥离独占一行的 `***`、`* * *`、`---`、`___`、`- - -` 分割线，消除排版断裂感；
+- **星号降噪规范化**：将容易影响阅读的 `***加粗斜体***` 优雅降噪为标准 `**加粗**`，彻底清除孤立与残余的 `***` 杂质；
+- **正文标题降噪与排版升级**：
+  - 彻底终结正文充斥 `###`、`##` 等影响阅读观感的原始 Markdown 符号；
+  - 中文序号标题（如 `### 一、核心观点`）平滑转换为自然编号；
+  - 普通小节标题（如 `### 核心优势`）规范化转为高颜值中文方头括号 `【核心优势】`，兼顾阅读舒适感与视觉识别。
+
+### 🏷️ 2. `#` 话题与标签严格边界守卫
+- **用途严格收敛**：正文中约束 `#` 严格且仅能用于文末话题标签（如 `#自媒体 #AI爆款`）与成对社交话题（如 `#今日热点#`）；
+- **孤立杂音清洗**：彻底清除正文句中混杂的孤立无意义 `#` 符号（如 `关于#AI 的讨论`、`第#1条建议`），无损还原清晰文本。
+
+### 🎨 3. 多端排版引擎与配图智能对齐
+- **排版引擎原生支持**：微信公众号、今日头条、知乎等渲染器全面兼容方头括号 `【...】` 与中文序号小节，自动赋予专属 `<h3>` 主题样式；
+- **配图链路精准适配**：配图提取引擎与小节插图智能对齐无噪标题，图片精准绑定所属小节。
+
+---
+
 ## 🌟 Version 9.4.4 · Pristine Mirror (澄澈镜 · 极简模式与全链路排版图片去重专项) · 2026-10-14
 
 > **Milestone**: Full-Pipeline Image Deduplication for WeChat MP Typesetting + Unified Layout Rendering Contract + Self-Healing Draft Cache  

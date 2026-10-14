@@ -14,10 +14,10 @@ import version
 
 
 def test_v90_version_single_source_of_truth():
-    """验证 9.4.4 版本单一真源（V9.4.4 · 澄澈镜 · 极简与全链路排版图片去重）"""
-    assert version.__version__ == "9.4.4"
-    assert version.__codename__ == "澄澈镜"
-    assert "Pristine Mirror" in version.__slogan_en__
+    """验证 9.4.5 版本单一真源（V9.4.5 · 澄音境 · 正文深度去噪与排版素简）"""
+    assert version.__version__ == "9.4.5"
+    assert version.__codename__ == "澄音境"
+    assert "Pristine Rhythm" in version.__slogan_en__
 
     index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
     mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
@@ -26,12 +26,12 @@ def test_v90_version_single_source_of_truth():
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
-    assert "V9.4.4" in index_html
-    assert "9.4.4" in index_html
-    assert "V9.4.4" in mobile_html
-    assert "version-9.4.4" in readme_en
-    assert "version-9.4.4" in readme_zh
-    assert "V9.4.4" in license_txt
+    assert "V9.4.5" in index_html
+    assert "9.4.5" in index_html
+    assert "V9.4.5" in mobile_html
+    assert "version-9.4.5" in readme_en
+    assert "version-9.4.5" in readme_zh
+    assert "V9.4.5" in license_txt
     assert "Licensor:            yimu.hyipf.com" in license_txt
     assert "The Licensed Work is (c) 2026 yimu.hyipf.com" in license_txt
 
@@ -60,7 +60,7 @@ def test_v90_releases_showcase_page_and_api():
     assert r_api.status_code == 200
     d = r_api.json()
     assert d.get("ok") is True
-    assert d.get("current_version") == "9.4.4"
+    assert d.get("current_version") == "9.4.5"
     assert d.get("licensor") == "yimu.hyipf.com"
     assert len(d.get("releases", [])) >= 4
 

@@ -31,6 +31,10 @@ COPILOT_SYSTEM_PROMPT = """你是一幕·YIMU 爆款创作工作室的专属【�
 
 重要铁律：
 在生成或修改正文时，必须直接输出高质量的成稿，严禁出现“视觉指南/封面建议/排版说明/提示词”等读者不该见到的制作杂质！
+【正文排版去噪铁律】：
+1. 严禁在正文中使用 *** 或 --- 分割线，严禁使用 *** 符号（如需强调仅用标准 **加粗**）；
+2. 严禁在正文中使用 ### 或 ## 符号作为小节标题，小节标题统一采用【小节标题】或中文序号（如 一、xxx / 1. xxx）；
+3. # 符号严格且仅能用于文末话题标签（如 #标签1 #标签2）或成对社媒话题（如 #话题名#），正文中严禁随意夹杂孤立无意义的 # 符号。
 正文必须纯粹干净，适合读者直接阅读或一键复制发布。
 """
 
@@ -77,11 +81,12 @@ def extract_xhs_card_selling_points(title: str, body_md: str, model: Optional[st
     sections = []
     lines = [ln.strip() for ln in body_md.splitlines() if ln.strip()]
     cur_title, cur_pts = None, []
+    from core.text_denoise import is_section_heading, extract_section_title
     for ln in lines:
-        if ln.startswith("### ") or ln.startswith("## "):
+        if is_section_heading(ln):
             if cur_title and cur_pts:
                 sections.append((cur_title, cur_pts[:3]))
-            cur_title = re.sub(r'^[#\s]+', '', ln).strip()[:18]
+            cur_title = extract_section_title(ln, strip_brackets=True)[:18]
             cur_pts = []
         elif ln.startswith("- ") or ln.startswith("• ") or re.match(r'^\d+[\.、]', ln):
             clean_pt = re.sub(r'^[\-•\d\.\、\s]+', '', ln).strip()
@@ -979,7 +984,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
             f"【改写与创作具体要求】：\n"
             f"1. 标题必须有悬念钩子、数字或反差（25字内，高吸引力）；\n"
             f"2. 正文开头前30字黄金3秒必须紧抓读者痛点或制造悬念好奇心；\n"
-            f"3. 层次分明，使用 ### 小节标题与 - 列表清晰梳理；\n"
+            f"3. 层次分明，使用【小节标题】或中文序号与 - 列表清晰梳理，严禁在正文中使用 ### 或 ## 符号，严禁使用 *** 或 --- 分割线，# 仅限文末标签；\n"
             f"4. 核心论点、数据、案例与逻辑必须源自真实文章蓝本，有理有据，具备穿透性干货价值；\n"
             f"{skill_instruction}"
             f"6. 结尾设置强互动引导（点赞/收藏/评论引发共鸣）；\n"
@@ -1049,13 +1054,8 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
 
         # 2. 提取文章各小节并生成全套配图（封面 + 多张小节插图）
         _report("🎨 正在调用 AI 视觉引擎为公众号与头条绘制成套插图…", 78)
-        sec_meta, cur_sec = [], None
-        for line in gen_body.splitlines():
-            if line.startswith("## ") or line.startswith("### "):
-                cur_sec = [line.lstrip("#").strip(), []]
-                sec_meta.append(cur_sec)
-            elif cur_sec is not None and line.strip():
-                cur_sec[1].append(line.strip().lstrip("- "))
+        from core.text_denoise import extract_section_headings
+        sec_meta = extract_section_headings(gen_body)
         
         sec_arg = []
         for i, (t, paras) in enumerate(sec_meta):

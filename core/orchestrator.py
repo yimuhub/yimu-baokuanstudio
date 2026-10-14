@@ -42,10 +42,14 @@ SYS_PROMPT = (
     f"{VIRAL_FORMULAS}\n"
     "创作要求：必须严格围绕用户给定的主题领域展开深度创作，严禁擅自偏离主题！"
     "从『当日热榜参考』和『对标网页全文素材』里观察爆款切入角度与情绪点；"
-    "正文结构：钩子开头→痛点共鸣→干货分点（### 分节、- 列表）→结尾CTA引导关注。\n"
+    "正文结构：钩子开头→痛点共鸣→干货分点（【小节标题】或中文序号分节、- 列表）→结尾CTA引导关注。\n"
+    "【排版去噪铁律】：\n"
+    "1. 正文严禁使用 *** 或 --- 作为分割线，严禁使用 ***加粗斜体***（强调仅用标准 **加粗**）；\n"
+    "2. 严禁在正文中使用 ### 或 ## 等符号作为标题，小节标题统一采用【小节标题】或自然序号（如 一、xxx / 二、xxx）；\n"
+    "3. # 符号严格且仅能用于文末话题标签（如 #标签1 #标签2）或成对社媒话题（如 #话题名#），正文中严禁随意夹杂孤立无意义的 # 符号。\n"
     "严格按以下格式输出，不要额外解释：\n"
     "TITLE: <爆款标题，不超过30字，含数字或悬念钩子>\n"
-    "BODY:\n<正文 markdown>\n"
+    "BODY:\n<正文 markdown，去噪纯净版>\n"
     "铁律：正文里禁止出现任何『视觉指南/配图建议/封面设计/排版说明』等制作性内容——视觉由系统自动处理。"
     "另外所有成稿统一禁止这类内容出现在读者可见的正文中。"
 )
@@ -58,9 +62,10 @@ REWRITE_PROMPT = (
     "第二步【仿写】严格遵循用户指定的创作主题（若未指定，则严格跟随参考素材的核心领域，严禁臆想偏向无关领域），"
     "融合参考爆款的事实骨架与金句技巧，写出具备爆款潜力的多平台版本"
     "（公众号长文、小红书短句体+标签、头条资讯体），标题含数字或悬念钩子。\n"
+    "【排版去噪铁律】：正文严禁出现 *** 或 --- 分割线，严禁使用 *** 符号；严禁在正文中使用 ### 或 ## 符号，小节标题统一采用【小节标题】或中文序号；# 仅限文末标签或 #话题#。\n"
     "严格按以下格式输出，不要额外解释：\n"
     "ANALYSIS:\n<拆解报告，4-6行>\n"
-    "TITLE_WX: <公众号标题>\nBODY_WX:\n<公众号正文 markdown，### 分节>\n"
+    "TITLE_WX: <公众号标题>\nBODY_WX:\n<公众号正文 markdown，【小节标题】或序号分节，无 ### 噪音>\n"
     "TITLE_XHS: <小红书标题，20字内>\nBODY_XHS:\n<小红书正文，短句分点，末尾带 #标签>\n"
     "TITLE_TT: <头条标题>\nBODY_TT:\n<头条正文 markdown>"
 )
@@ -76,13 +81,14 @@ STRUCTURE_PRESERVING_REWRITE_PROMPT = (
     "  - 案例与转折层：如何展开论据、如何推进认知升级？\n"
     "  - 升华与收尾层：如何金句收拢、促成行动号召？\n"
     "第二阶段【同骨架名家深度改写】：\n"
-    "  1. 严格锁定原篇的段落节次与论证逻辑，原文有几大章节，改写后的公众号文章就必须有相同章节（### 分节）与论述对应关系，绝不能随意打散或缩水遗漏！\n"
+    "  1. 严格锁定原篇的段落节次与论证逻辑，原文有几大章节，改写后的公众号文章就必须有相同章节（小节标题统一使用【小节标题】或中文序号）与论述对应关系，绝不能随意打散或缩水遗漏！\n"
     "  2. 对原文的每一节内容进行深度重写：更换全新鲜活的案例、重塑论述词句、融入所挂载的名家文风（语调口吻、句式节奏、修辞习惯），彻底去除陈词滥调与 AI 味；\n"
     "  3. 严格围绕用户指定的主题展开，若未指定主题则严格跟随原文核心领域，严禁无中生有偏向无关领域；\n"
-    "  4. 同步产出符合该骨架的小红书短句笔记与头条深度资讯版本。\n\n"
+    "  4. 同步产出符合该骨架的小红书短句笔记与头条深度资讯版本。\n"
+    "  5.【排版去噪铁律】：严禁正文出现 *** 或 --- 分割线，严禁使用 *** 符号；严禁使用 ### 或 ## 符号；# 仅限文末标签或 #话题#。\n\n"
     "严格按以下格式输出，不要额外解释：\n"
     "ANALYSIS:\n<原文骨架解构（引子/核心节次/递进逻辑）与改写策略说明，4-6行>\n"
-    "TITLE_WX: <公众号标题，含悬念或利益钩子>\nBODY_WX:\n<公众号正文 markdown，严格对应原文架构，### 分节>\n"
+    "TITLE_WX: <公众号标题，含悬念或利益钩子>\nBODY_WX:\n<公众号正文 markdown，严格对应原文架构，使用【小节标题】或中文序号分节>\n"
     "TITLE_XHS: <小红书爆款标题，20字内>\nBODY_XHS:\n<小红书正文，短句分点，段落精悍，末尾带 #标签>\n"
     "TITLE_TT: <今日头条深度标题>\nBODY_TT:\n<今日头条正文 markdown>"
 )
@@ -95,10 +101,11 @@ ONE_SENTENCE_VIRAL_PROMPT = (
     "1. 充分消化理解抓取到的 3~5 篇真实长文中的核心论据、真实史料考证、专业案例与深度视角，以这些真实素材为事实底座，绝不凭空胡编！\n"
     "2. 针对用户的一句话核心意图与聚焦重点（例如若用户重点突出诸葛亮，则全篇必须紧扣诸葛亮的智慧与破局展开），绝不跑题！\n"
     "3. 严格融入用户指定挂载的名家文风指纹（如王小波、鲁迅、余华、张爱玲等，体现独特的冷峻/幽默/犀利语调与文学质感）；\n"
-    "4. 同时生成三平台高标准爆款成稿（公众号深度长文、小红书高赞图文笔记、头条热点资讯）。\n\n"
+    "4. 同时生成三平台高标准爆款成稿（公众号深度长文、小红书高赞图文笔记、头条热点资讯）；\n"
+    "5.【排版去噪铁律】：正文严禁使用 *** 或 --- 分割线，严禁使用 *** 符号；严禁在正文中使用 ### 或 ## 符号（小节标题统一采用【小节标题】或中文序号）；# 仅限文末标签或 #话题#。\n\n"
     "严格按以下格式输出，不要额外解释：\n"
     "ANALYSIS:\n<创作意图拆解与全网素材整合思路，4-6行>\n"
-    "TITLE_WX: <公众号高点击标题>\nBODY_WX:\n<公众号正文 markdown，### 分节，故事切入，论证详实，金句频出>\n"
+    "TITLE_WX: <公众号高点击标题>\nBODY_WX:\n<公众号正文 markdown，【小节标题】或序号分节，故事切入，论证详实，金句频出>\n"
     "TITLE_XHS: <小红书高赞标题，带情绪钩子，20字内>\nBODY_XHS:\n<小红书正文，短句分点，击中痛点，末尾带 #标签>\n"
     "TITLE_TT: <今日头条高推荐标题>\nBODY_TT:\n<今日头条正文 markdown>"
 )
@@ -106,8 +113,9 @@ ONE_SENTENCE_VIRAL_PROMPT = (
 REVISION_PROMPT = (
     "你是自查自改的新媒体爆款写手。这是你的稿子和评审官的打分意见，请针对性修改（保持格式不变）：\n"
     f"{VIRAL_FORMULAS}\n"
+    "【排版去噪铁律】：正文严禁出现 *** 或 --- 分割线，严禁出现 *** 符号；严禁使用 ### 或 ## 符号，小节标题统一采用【小节标题】或中文序号；# 仅限文末标签或 #话题#。\n"
     "严格按以下格式输出修改后的完整稿，不要额外解释：\n"
-    "TITLE_WX: <公众号标题>\nBODY_WX:\n<公众号正文 markdown，### 分节>\n"
+    "TITLE_WX: <公众号标题>\nBODY_WX:\n<公众号正文 markdown，【小节标题】或序号分节>\n"
     "TITLE_XHS: <小红书标题，20字内>\nBODY_XHS:\n<小红书正文，短句分点，末尾带 #标签>\n"
     "TITLE_TT: <头条标题>\nBODY_TT:\n<头条正文 markdown>\n"
     "铁律：任何版本正文里禁止出现『视觉指南/配图建议/封面设计/排版说明』等制作性内容。"
@@ -115,14 +123,16 @@ REVISION_PROMPT = (
 
 
 def clean_generated_markdown(text: str) -> str:
-    """全面消毒 LLM 生成的正文：剔除 think 标签、剔除代码块围栏标记（如 ```markdown）、剔除 YAML frontmatter。"""
+    """全面消毒 LLM 生成的正文：剔除 think 标签、剔除代码块围栏标记、剔除 YAML frontmatter，并执行全系统级正文去噪（V9.4.5）。"""
     if not text:
         return ""
+    from core.text_denoise import denoise_body_text
     text = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.I)
     text = re.sub(r"^\s*---[\s\S]*?---\s*\n?", "", text)
     # 剥离前缀 ```markdown 或 ```
     text = re.sub(r"^\s*```(?:markdown|md|html)?\s*\n?", "", text, flags=re.I)
     text = re.sub(r"\n?\s*```\s*$", "", text)
+    text = denoise_body_text(text)
     return text.strip()
 
 
@@ -144,8 +154,8 @@ def _split_llm_output(text: str) -> tuple[str, str]:
 
 def _placeholder(topic_title: str) -> tuple[str, str]:
     title = f"{topic_title[:28]}：深度解析与实操指南"
-    body = ("### 为什么值得看\n- 选题来自热榜/对标爆款：{t}\n- 结构深度参考全网爆款结构公式\n\n### 三个核心维度\n"
-            "- 要点一：核心痛点与现象解析\n- 要点二：底层逻辑与实操步骤\n- 要点三：高频避坑与认知升级\n\n### 写在最后\n配置 AI 模型网关后此占位稿将全自动替换为顶尖爆款成稿。"
+    body = ("【为什么值得看】\n- 选题来自热榜/对标爆款：{t}\n- 结构深度参考全网爆款结构公式\n\n【三个核心维度】\n"
+            "- 要点一：核心痛点与现象解析\n- 要点二：底层逻辑与实操步骤\n- 要点三：高频避坑与认知升级\n\n【写在最后】\n配置 AI 模型网关后此占位稿将全自动替换为顶尖爆款成稿。"
             ).format(t=topic_title)
     return title, body
 
@@ -162,19 +172,20 @@ def _strip_meta_sections(text: str) -> str:
     """从成稿里剔除『视觉指南/配图建议』等制作说明段落——这些不该出现在读者面前。"""
     if not text:
         return text
+    from core.text_denoise import is_section_heading
     lines = text.splitlines()
     out, skip = [], False
     for ln in lines:
         st = ln.strip()
-        # 命中制作说明标题行（### 视觉指南… / 【视觉指南…】 / PAGE: 视觉指南…）→ 开始跳过
-        is_heading = st.startswith(("###", "# ", "【", "PAGE:")) or (
+        # 命中制作说明标题行（小节标题 / PAGE: 视觉指南…）→ 开始跳过
+        is_heading = is_section_heading(st) or st.startswith(("PAGE:", "TITLE:", "BODY:")) or (
             any(k in st[:12] for k in META_KEYWORDS) and ("：" in st[:16] or ":" in st[:16]))
         if any(k in st for k in META_KEYWORDS) and is_heading:
             skip = True
             continue
         if skip:
-            # 新的 ### 标题 / 【段落头】 / PAGE 行 = 结束跳过
-            if st.startswith(("###", "# ", "【", "PAGE:", "TITLE", "BODY", "TAGS", "LINE:")) and not any(
+            # 新的小节标题 / 【段落头】 / PAGE 行 = 结束跳过
+            if (is_section_heading(st) or st.startswith(("PAGE:", "TITLE", "BODY", "TAGS", "LINE:"))) and not any(
                     k in st for k in META_KEYWORDS):
                 skip = False
                 out.append(ln)
@@ -218,13 +229,8 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
 
     ddir = db.draft_dir(draft_id)
     # AI 配图（按小节内容生成，差异化角度；失败自动回落）
-    sec_meta, cur = [], None
-    for line in body.splitlines():
-        if line.startswith("### "):
-            cur = [line[4:].strip(), []]
-            sec_meta.append(cur)
-        elif cur is not None and line.strip():
-            cur[1].append(line.strip().lstrip("- "))
+    from core.text_denoise import extract_section_headings, is_section_heading
+    sec_meta = extract_section_headings(body)
     # 配图上下文：上一节的结尾 + 本节内容
     sec_arg = []
     for i, (t, paras) in enumerate(sec_meta):
@@ -232,7 +238,7 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
         sec_arg.append((t, (prev_tail + " " + " ".join(paras))[:140]))
     # 兜底：若解析出的小节 < 4，从正文段落自动补充，确保至少 4 个小节条目生成配图
     if len(sec_arg) < 4:
-        para_chunks = [p.strip() for p in body.split("\n\n") if p.strip() and not p.strip().startswith("#")]
+        para_chunks = [p.strip() for p in body.split("\n\n") if p.strip() and not is_section_heading(p.strip())]
         fallback_names = ["核心背景", "深度解析", "实战方法论", "价值洞察", "行动指南"]
         for j, para in enumerate(para_chunks[:5]):
             if len(sec_arg) >= 5:
@@ -298,7 +304,7 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
             s = line.strip()
             if not s:
                 continue
-            if s.startswith("### ") or s.startswith("## ") or (s.startswith("【") and s.endswith("】")):
+            if is_section_heading(s):
                 if cur_t and cur_pts:
                     sections.append((cur_t[:18], cur_pts[:3]))
                 cur_t = re.sub(r'^[#【\s]+|[】]+$', '', s).strip()
@@ -602,9 +608,9 @@ PLATFORM_REWRITE_PROMPTS = {
         "你是顶级微信公众号内容策划与写手。\n"
         "任务：对给定草稿进行深度改写，专为微信公众号读者优化。\n"
         "要求：① 标题悬念感强，含数字/反差钩子；② 深度叙事，逻辑严密；"
-        "③ 分节清晰（### 标题 + 列表），5-10分钟阅读量；④ 结尾 CTA 明确。\n"
+        "③ 分节清晰（采用【小节标题】或中文序号分节 + 列表），5-10分钟阅读量；④ 结尾 CTA 明确；⑤ 严禁使用 ### 标题符，严禁使用 *** 分割线，# 仅限文末标签。\n"
         "严格按格式输出，不要额外解释：\n"
-        "TITLE_WX: <公众号精改标题>\nBODY_WX:\n<公众号正文 markdown，### 分节>"
+        "TITLE_WX: <公众号精改标题>\nBODY_WX:\n<公众号正文 markdown，【小节标题】或序号分节>"
     ),
     "xhs": (
         "你是顶级小红书爆款博主和内容策划。\n"
@@ -793,13 +799,13 @@ SURGICAL_REFINE_PROMPT = (
     "- 标题钩子弱：重炼更具数字悬念、反差或认知颠覆的高点击标题；\n"
     "- 干货深度不足/缺数据：在对应正文段落注入权威数据、真实案例与专业操作细节；\n"
     "- 语言平淡/缺情绪：强化冲突与共鸣，提炼金句；\n"
-    "- 视觉排版密集：优化分段分节（### 小节、- 列表），制造呼吸感；\n"
+    "- 视觉排版密集：优化分段分节（【小节标题】或中文序号、- 列表），制造呼吸感，去噪去杂质；\n"
     "- 结尾缺乏转化：强化引导评论、收藏、转发的强互动 CTA 与情绪收口。\n\n"
     "严格按以下格式输出精修后的完整稿，不要输出任何多余解释：\n"
-    "TITLE_WX: <公众号精修标题>\nBODY_WX:\n<公众号精修正文 markdown，### 分节>\n"
+    "TITLE_WX: <公众号精修标题>\nBODY_WX:\n<公众号精修正文 markdown，【小节标题】或序号分节>\n"
     "TITLE_XHS: <小红书精修标题，20字内>\nBODY_XHS:\n<小红书精修正文，短句分点，末尾带 #标签>\n"
     "TITLE_TT: <头条精修标题>\nBODY_TT:\n<头条精修正文 markdown>\n"
-    "铁律：任何版本正文里严禁出现『视觉指南/配图建议/封面设计/排版说明』等制作性文字。"
+    "铁律：任何版本正文里严禁出现『视觉指南/配图建议/封面设计/排版说明』等制作性文字，严禁使用 *** 或 ### 符号，# 仅限文末标签。"
 )
 
 
@@ -832,7 +838,7 @@ def init_draft_artifacts(draft_id: str, title: str, body_md: str, media_name: st
     """为新建或导入的外稿初始化多端文件与初始预览。有实质内容时自动后台生成 3-5 张配图。"""
     ddir = db.draft_dir(draft_id)
     (ddir / "img").mkdir(parents=True, exist_ok=True)
-    clean_body = body_md.strip() if body_md and body_md.strip() else "### 核心内容\n在此输入您的草稿正文…"
+    clean_body = body_md.strip() if body_md and body_md.strip() else "【核心内容】\n在此输入您的草稿正文…"
     parsed = {
         "TITLE_WX": title,
         "BODY_WX": clean_body,
@@ -931,7 +937,7 @@ def ai_upgrade_draft(
         f"{skills_rule}\n"
         f"{profile_rule}\n\n"
         "严格按以下格式输出改写后的各平台完整内容，不要输出任何额外的解释或对话：\n"
-        "TITLE_WX: <公众号重塑后爆款标题，28字内>\nBODY_WX:\n<公众号重塑后正文 markdown，使用 ### 分节，金句加粗，段落短小有呼吸感>\n"
+        "TITLE_WX: <公众号重塑后爆款标题，28字内>\nBODY_WX:\n<公众号重塑后正文 markdown，使用【小节标题】或中文序号分节，金句加粗，段落短小有呼吸感，杜绝 ### 噪音，严禁 *** 符号，# 仅限文末标签>\n"
         "TITLE_XHS: <小红书高赞标题，情绪钩子，20字内>\nBODY_XHS:\n<小红书爆款文案，短句分点，击中痛点，末尾带 #标签>\n"
         "TITLE_TT: <今日头条高推荐标题>\nBODY_TT:\n<今日头条正文 markdown>\n"
         "铁律：任何平台正文中严禁出现『视觉指南/配图建议/封面设计/排版说明』等幕后制作性文字。"
@@ -1281,7 +1287,7 @@ def ai_xhs_upgrade_pipeline(draft_id: str, style: str = "ai_visual_dark", emit=N
         lines = [ln.strip() for ln in d["body_md"].splitlines() if ln.strip()]
         cur_t, cur_pts = None, []
         for ln in lines:
-            if ln.startswith("### ") or ln.startswith("## ") or (ln.startswith("【") and ln.endswith("】")):
+            if is_section_heading(ln):
                 if cur_t and cur_pts:
                     sections.append((cur_t, cur_pts))
                 cur_t = re.sub(r'^[#【\s]+|[】]+$', '', ln).strip()
@@ -1453,7 +1459,7 @@ def change_xhs_style(draft_id: str, style: str = "magazine") -> dict:
         line_s = line.strip()
         if line_s.startswith("# "):
             title = line_s[2:].strip()
-        elif line_s.startswith("### ") or line_s.startswith("## ") or (line_s.startswith("【") and line_s.endswith("】")):
+        elif is_section_heading(line_s):
             if cur_title and cur_paras:
                 sections.append((cur_title, cur_paras))
             cur_title = line_s.lstrip("#【").rstrip("】").strip()
@@ -1897,6 +1903,8 @@ def clean_xhs_text(text: str, title: str = "") -> str:
     """去除 Markdown 符号噪音（#、***、**、-、###等），转换为地道小红书爆款排版格式。"""
     if not text:
         return ""
+    from core.text_denoise import denoise_body_text
+    text = denoise_body_text(text)
     import re
     lines = text.splitlines()
     clean_lines = []

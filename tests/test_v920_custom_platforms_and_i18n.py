@@ -33,10 +33,10 @@ from web.admin import app
 
 
 def test_v920_version_single_source_of_truth():
-    """验证版本单一真源为 9.4.4，专属代号为澄澈镜"""
-    assert version.__version__ == "9.4.4"
-    assert getattr(version, "__codename__", "") == "澄澈镜"
-    assert "澄澈分明" in getattr(version, "__slogan_cn__", "")
+    """验证版本单一真源为 9.4.5，专属代号为澄音境"""
+    assert version.__version__ == "9.4.5"
+    assert getattr(version, "__codename__", "") == "澄音境"
+    assert "素简澄澈" in getattr(version, "__slogan_cn__", "")
 
 
 def test_releases_page_no_pricing_menu_and_has_v920():

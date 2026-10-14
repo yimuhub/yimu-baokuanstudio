@@ -385,11 +385,27 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V9.4.4 -->
+      <!-- V9.4.5 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌟 V9.4.4 · 澄澈镜 (Pristine Mirror)</span>
+          <span class="t-ver">🌟 V9.4.5 · 澄音境 (Pristine Rhythm)</span>
           <span class="badge orange">当前版本 · 最新</span>
+          <span class="t-date">2026-10-14</span>
+        </div>
+        <div class="t-desc">系统级正文深度去噪引擎、消除 *** 与 ### 符号杂音、# 严格限定标签与话题、多端排版原生无缝兼容。</div>
+        <ul class="t-list">
+          <li><b>🧹 系统级正文深度去噪引擎 (core.text_denoise)</b>：自动剔除粗糙分割线（***、---、___），规整 ***加粗斜体*** 为标准 **加粗**，清理残余星号杂质；</li>
+          <li><b>📐 标题降噪与排版自然化</b>：彻底终结正文中充斥的 ###、## 原始 Markdown 标记，平滑转换为高颜值中文方头括号【小节标题】与自然中文序号；</li>
+          <li><b>🏷️ # 符号话题与标签严格边界守卫</b>：严格且仅保留文末话题标签（#自媒体 #爆款）与成对社媒话题（#今日热点#），彻底清除正文句中混杂的孤立无意义 # 杂音；</li>
+          <li><b>🎨 多端排版引擎自适应兼容</b>：微信公众号、今日头条、知乎等渲染器全面原生兼容方头括号与自然序号小节，自动赋予高颜值主题样式并精准配对小节插图。</li>
+        </ul>
+      </div>
+
+      <!-- V9.4.4 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.4.4 · 澄澈镜 (Pristine Mirror)</span>
+          <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-14</span>
         </div>
         <div class="t-desc">极简模式与全链路首次排版图片防重复彻底根治、三层去重防御闭环与排版契约统一。</div>

@@ -1150,8 +1150,9 @@ def inject_images_to_markdown(body_md: str, draft_id: str) -> str:
     num_secs = len(imgs["sections"])
     injected_urls: set[str] = set()
 
+    from core.text_denoise import is_section_heading, extract_section_title
     for ln in lines:
-        if not cover_injected and (ln.startswith("## ") or ln.startswith("### ")):
+        if not cover_injected and is_section_heading(ln):
             cov_url = imgs.get("cover")
             if cov_url:
                 norm_cov = cov_url.split("?")[0].strip().rstrip("/")
@@ -1162,8 +1163,8 @@ def inject_images_to_markdown(body_md: str, draft_id: str) -> str:
 
         out.append(ln)
 
-        if (ln.startswith("## ") or ln.startswith("### ")) and sec_idx < num_secs:
-            sec_title = ln.lstrip("#").strip()
+        if is_section_heading(ln) and sec_idx < num_secs:
+            sec_title = extract_section_title(ln)
             sec_url = imgs["sections"][sec_idx]
             norm_sec = sec_url.split("?")[0].strip().rstrip("/")
             if norm_sec not in injected_urls:
@@ -1203,13 +1204,8 @@ def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", f
     title = d["title"]
     body_md = d["body_md"]
 
-    sec_meta, cur = [], None
-    for line in body_md.splitlines():
-        if (line.startswith("## ") or line.startswith("### ")):
-            cur = [line.lstrip("#").strip(), []]
-            sec_meta.append(cur)
-        elif cur is not None and line.strip():
-            cur[1].append(line.strip().lstrip("- "))
+    from core.text_denoise import extract_section_headings, is_section_heading, extract_section_title
+    sec_meta = extract_section_headings(body_md)
 
     sec_arg = []
     for i, (t, paras) in enumerate(sec_meta):
@@ -1241,7 +1237,7 @@ def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", f
         cov_inserted = False
         new_lines = []
         for ln in lines:
-            if not cov_inserted and (ln.startswith("## ") or ln.startswith("### ")):
+            if not cov_inserted and is_section_heading(ln):
                 new_lines.append(f"![封面](/img/{draft_id}/cover.png{v_param})\n")
                 cov_inserted = True
             new_lines.append(ln)
@@ -1265,9 +1261,11 @@ def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", f
             new_lines = []
             for ln in lines:
                 new_lines.append(ln)
-                if not injected and (ln.startswith("## ") or ln.startswith("### ")):
-                    hdr = ln.lstrip("#").strip()
-                    if hdr == sec_title or (len(sec_meta) == 0 and i == 0):
+                if not injected and is_section_heading(ln):
+                    hdr = extract_section_title(ln)
+                    norm_sec_title = sec_title.strip("【】").strip()
+                    norm_hdr = hdr.strip("【】").strip()
+                    if hdr == sec_title or norm_hdr == norm_sec_title or (len(sec_meta) == 0 and i == 0):
                         new_lines.append(f"\n![{sec_title}]({sec_url})\n")
                         injected = True
             if not injected:

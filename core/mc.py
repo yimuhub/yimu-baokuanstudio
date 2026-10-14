@@ -39,6 +39,9 @@ def _venv_python() -> Path:
     return vp if vp.exists() else Path(sys.executable)
 
 
+_MC_POPUP_INTERCEPTED: set[str] = set()
+
+
 def search(platform: str, keyword: str, limit: int = 12) -> list[dict]:
     """跑一次 MediaCrawler 关键词搜索并解析（同步，60~180s）。"""
     if not available():
@@ -46,14 +49,23 @@ def search(platform: str, keyword: str, limit: int = 12) -> list[dict]:
     mc_platform = MC_PLATFORMS.get(platform)
     if not mc_platform:
         raise RuntimeError(f"不支持的源: {platform}")
+    if platform in _MC_POPUP_INTERCEPTED or 'ALL' in _MC_POPUP_INTERCEPTED:
+        raise RuntimeError(f'{platform} 浏览器弹窗已自动拦截（单次默契模式）：跳过外部浏览器唤起')
     if not platform_ok(platform):
+        _MC_POPUP_INTERCEPTED.add(platform)
+        _MC_POPUP_INTERCEPTED.add('ALL')
         raise RuntimeError(f"{platform} 未登录：在 vendors/MediaCrawler 目录运行 "
                            f"`.venv/bin/python main.py --platform {mc_platform} --lt qrcode --type search --keywords 测试` 扫码一次")
     before = set(MC_DIR.rglob("*.json"))
     cmd = [str(_venv_python()), "main.py", "--platform", mc_platform,
            "--lt", "qrcode", "--type", "search", "--keywords", keyword,
            "--save-data-option", "json"]
-    subprocess.run(cmd, cwd=str(MC_DIR), timeout=600, capture_output=True)
+    _MC_POPUP_INTERCEPTED.add(platform)
+    try:
+        subprocess.run(cmd, cwd=str(MC_DIR), timeout=25, capture_output=True)
+    except Exception:
+        _MC_POPUP_INTERCEPTED.add('ALL')
+        return []
     files = sorted(set(MC_DIR.rglob("*.json")) - before, key=lambda p: p.stat().st_mtime)
     items = []
     for f in files:

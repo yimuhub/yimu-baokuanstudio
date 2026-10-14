@@ -534,9 +534,9 @@ git checkout v9.3.1
         "is_latest": False
     },
     {
-        "tag": "v9.4.0",
-        "name": "v9.4.0 - 浮光录 · Luminous Chronicles (Full-Stack Security, BYOK & 6D Persona Unification)",
-        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.4.0 [最新旗舰版 / Latest]\n\n> **版本代号 / Codename**: 浮光录 · Luminous Chronicles\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与修复亮点\n1. **全链路安全加固**：反代 `X-Forwarded-For`/`X-Real-IP` 识别防免密超管穿透、跨站 Drive-by CSRF 拦截、按需 HTTPS CSP、API Key Vault 随机 Nonce+HMAC 认证加密 (`v2$`)；\n2. **BYOK 与免费体验主链贯通**：`core/agents.py` 与 `core/llm.py` 自动从上下文提取 `user_id`，自备 Key 模式自动免除 `require_credits` 平台算力扣除，统一 V6/V7 双会话 Cookie (`mf_v6_token` + `yimu_session`)；\n3. **6 维人设自动注入与小红书指令精修**：写作/导演/广告 Agent 自动挂载当前工作区 6 维数字画像与声纹记忆，修复小红书单平台改写指令透传；\n4. **数据库 10 倍提速与无冲突热更新**：`core/db.py` 连接初始化缓存化，在线升级自动保护本地 `config.yaml`，补齐注册与首稿增长漏斗埋点，支持每日工单跨整点 15 分钟窗口与状态持久化。\n",
+        "tag": "v9.4.1",
+        "name": "v9.4.1 - 浮光录 · Luminous Chronicles (Full-Stack Security, BYOK & 6D Persona Unification)",
+        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.4.1 [最新旗舰版 / Latest]\n\n> **版本代号 / Codename**: 浮光录 · Luminous Chronicles\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与修复亮点\n1. **全链路安全加固**：反代 `X-Forwarded-For`/`X-Real-IP` 识别防免密超管穿透、跨站 Drive-by CSRF 拦截、按需 HTTPS CSP、API Key Vault 随机 Nonce+HMAC 认证加密 (`v2$`)；\n2. **BYOK 与免费体验主链贯通**：`core/agents.py` 与 `core/llm.py` 自动从上下文提取 `user_id`，自备 Key 模式自动免除 `require_credits` 平台算力扣除，统一 V6/V7 双会话 Cookie (`mf_v6_token` + `yimu_session`)；\n3. **6 维人设自动注入与小红书指令精修**：写作/导演/广告 Agent 自动挂载当前工作区 6 维数字画像与声纹记忆，修复小红书单平台改写指令透传；\n4. **数据库 10 倍提速与无冲突热更新**：`core/db.py` 连接初始化缓存化，在线升级自动保护本地 `config.yaml`，补齐注册与首稿增长漏斗埋点，支持每日工单跨整点 15 分钟窗口与状态持久化。\n",
         "is_latest": True
     }
 ]

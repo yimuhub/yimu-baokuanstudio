@@ -1,9 +1,74 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
+<script id="yimu-popup-once-guard">
+(function() {
+  if (window.__yimuPopupGuardInstalled) return;
+  window.__yimuPopupGuardInstalled = true;
+  const _seenPopups = new Set();
+  let _dismissedOnce = false;
+  const _origAlert = window.alert ? window.alert.bind(window) : function(){};
+  const _origConfirm = window.confirm ? window.confirm.bind(window) : function(){ return false; };
+  const _origPrompt = window.prompt ? window.prompt.bind(window) : function(){ return null; };
+  const _origOpen = window.open ? window.open.bind(window) : function(){ return null; };
+
+  function _isGenerating() {
+    return Boolean(window._copilotGenerating || window._pipelineRunning);
+  }
+
+  window.alert = function(msg) {
+    const key = 'alert:' + String(msg || '').slice(0, 80);
+    if (_isGenerating() || _dismissedOnce || _seenPopups.has(key)) {
+      if (typeof window.toast === 'function') window.toast(String(msg || '').replace(/\n+/g, ' '), 3000);
+      return;
+    }
+    _seenPopups.add(key);
+    _dismissedOnce = true;
+    return _origAlert(msg);
+  };
+
+  window.confirm = function(msg) {
+    const key = 'confirm:' + String(msg || '').slice(0, 80);
+    // 生成创作过程中或已弹出但未选择（取消）过的同类弹窗，直接静默拦截不再弹出
+    if (_isGenerating() || _seenPopups.has(key) || (_dismissedOnce && String(msg || '').includes('更新'))) {
+      console.info('[PopupGuard] 已自动拦截重复确认框:', key);
+      return false;
+    }
+    _seenPopups.add(key);
+    const res = _origConfirm(msg);
+    if (!res) _dismissedOnce = true;
+    return res;
+  };
+
+  window.prompt = function(msg, defVal) {
+    const key = 'prompt:' + String(msg || '').slice(0, 80);
+    if (_isGenerating() || _seenPopups.has(key)) {
+      console.info('[PopupGuard] 已自动拦截重复输入框:', key);
+      return defVal || null;
+    }
+    _seenPopups.add(key);
+    const res = _origPrompt(msg, defVal);
+    if (res === null) _dismissedOnce = true;
+    return res;
+  };
+
+  window.open = function(url, target, features) {
+    const key = 'open:' + String(url || '');
+    if (_isGenerating()) {
+      console.info('[PopupGuard] 创作期间已拦截外部浏览器窗口弹出:', url);
+      return null;
+    }
+    if (_seenPopups.has(key) && _dismissedOnce) {
+      return null;
+    }
+    _seenPopups.add(key);
+    return _origOpen(url, target, features);
+  };
+})();
+</script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>一幕·YIMU 移动工作室 V9.4.0</title>
+<title>一幕·YIMU 移动工作室 V9.4.1</title>
 <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon.png">
 <link rel="apple-touch-icon" href="/static/img/logo-icon.png">
@@ -1096,7 +1161,7 @@ body {
     <div style="margin: 14px 0 10px;text-align:center">
       <div style="font-size:11.5px;color:var(--text-muted);display:flex;align-items:center;justify-content:center;gap:6px">
         <span>🎬 一幕·YIMU 爆款工作室</span>
-        <span id="mobile-ver-badge" style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(168,85,247,0.18);color:#d8b4fe;border:1px solid rgba(168,85,247,0.3);font-weight:700">V9.4.0</span>
+        <span id="mobile-ver-badge" style="font-size:10px;padding:1px 6px;border-radius:4px;background:rgba(168,85,247,0.18);color:#d8b4fe;border:1px solid rgba(168,85,247,0.3);font-weight:700">V9.4.1</span>
       </div>
       <div style="font-size:10.5px;color:rgba(255,255,255,0.4);margin-top:4px">Licensor: <a href="https://yimu.hyipf.com" style="color:var(--primary);text-decoration:none">yimu.hyipf.com</a></div>
     </div>
@@ -4992,7 +5057,7 @@ window.addEventListener('DOMContentLoaded', () => {
   refreshHotTopics();
   applyMobilePlatformsVisibility();
   loadMobileGatewayData();
-  // 版本徽章从单一真源 /api/version 读取真实版本（V9.4.0）
+  // 版本徽章从单一真源 /api/version 读取真实版本（V9.4.1）
   fetch('/api/version', {credentials:'same-origin'})
     .then(r => r.ok ? r.json() : null)
     .then(d => {

@@ -385,10 +385,10 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V9.4.0 -->
+      <!-- V9.4.1 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌟 V9.4.0 · 浮光录 (Luminous Chronicles)</span>
+          <span class="t-ver">🌟 V9.4.1 · 浮光录 (Luminous Chronicles)</span>
           <span class="badge orange">当前版本 · 最新</span>
           <span class="t-date">2026-10-14</span>
         </div>

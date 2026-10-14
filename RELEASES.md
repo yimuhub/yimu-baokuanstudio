@@ -4,14 +4,14 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
-## 🌟 Version 9.4.0 · Luminous Chronicles (浮光录 · 全栈精铸与架构贯通篇) · 2026-10-14
+## 🌟 Version 9.4.1 · Luminous Chronicles (浮光录 · 全栈精铸与架构贯通篇) · 2026-10-14
 
 > **Milestone**: Full-Stack Security Hardening + BYOK/Free-Demo Pipeline Unification + 6D Persona Injection + 10x DB Speedup  
 > **Codename**: 浮光录 (Luminous Chronicles · 浮光掠影，字字珠玑)  
 > **Slogan**: One Thought. One Scene. Infinite Worlds · Luminous Chronicles (一念起 一幕开 万象生 · 浮光掠影，字字珠玑)  
 > **Licensor**: yimu.hyipf.com  
 > **Release Date**: 2026-10-14  
-> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.4.0"`)  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.4.1"`)  
 
 ### 🛡️ 1. Security & Reverse-Proxy Hardening
 - **Reverse-Proxy Loopback Protection**: `_is_loopback` now validates `X-Forwarded-For` and `X-Real-IP` headers so cloud deployments behind Nginx/Caddy never mistake proxied internet traffic for localhost admin access.

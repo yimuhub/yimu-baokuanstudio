@@ -113,15 +113,20 @@ def xhs_detail(note_id: str, xsec_token: str) -> str:
 
 # ---------------- 今日头条（无头 Chrome 抓搜索页） ----------------
 
+_BROWSER_POPUP_ONCE_GUARD = {'triggered': False, 'blocked': False}
+
+
 def toutiao_search(keyword: str, limit: int = 12) -> list[dict]:
+    if _BROWSER_POPUP_ONCE_GUARD.get('blocked'):
+        return []
     from playwright.sync_api import sync_playwright
     kw = urllib.parse.quote(keyword)
     out, seen = [], set()
     with sync_playwright() as p:
         try:
-            browser = p.chromium.launch(channel="chrome", headless=True)
+            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
         except Exception:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check"])
         ctx = browser.new_context(user_agent=UA, viewport={"width": 1440, "height": 900})
         pg = ctx.new_page()
         pg.goto(f"https://so.toutiao.com/search?dvpf=pc&source=input&keyword={kw}",
@@ -189,9 +194,9 @@ def toutiao_detail(url: str) -> str:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         try:
-            browser = p.chromium.launch(channel="chrome", headless=True)
+            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
         except Exception:
-            browser = p.chromium.launch(headless=True)
+            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check"])
         pg = browser.new_context(user_agent=UA).new_page()
         try:
             pg.goto(url, timeout=25000, wait_until="domcontentloaded")
@@ -445,8 +450,10 @@ def fetch_topic_multisource_references(query: str, limit: int = 5) -> list[dict]
     except Exception:
         pass
 
-    # 3. 补充今日头条或资讯热搜搜索
-    if len(articles) < limit:
+    # 3. 补充今日头条或资讯热搜搜索（仅在未触发浏览器拦截且完全无结果时静默尝试一次）
+    if len(articles) == 0 and not _BROWSER_POPUP_ONCE_GUARD.get('triggered'):
+        _BROWSER_POPUP_ONCE_GUARD['triggered'] = True
+        _BROWSER_POPUP_ONCE_GUARD['blocked'] = True
         try:
             tt_items = toutiao_search(kw, limit=limit)
             for it in tt_items:

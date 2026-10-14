@@ -170,7 +170,7 @@ publish:
   xhs_mode: manual
 quality:
   max_rounds: 3
-  threshold: 75
+  threshold: 80
 topics:
   keywords: []
   max_daily: 10

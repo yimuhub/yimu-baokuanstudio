@@ -76,8 +76,12 @@ JUDGE_PROMPT = (
 
 
 def grade(total: float) -> str:
-    if total < 75:
-        return "不合格"
+    """统一百分制评级标准：>=90 优秀，80~89.9 良好（合格线 80 分），<80 一律为不合格。"""
+    if total >= 90:
+        return "优秀"
+    if total >= 80:
+        return "良好"
+    return "不合格"
     if total < 85:
         return "合格"
     if total < 95:

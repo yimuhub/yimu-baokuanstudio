@@ -6,7 +6,7 @@
 
 **面向自媒体创作者、短剧团队与 MCN 机构的全链路爆款生产引擎 + 大模型商业网关**
 
-[![Version](https://img.shields.io/badge/version-9.4.2-orange.svg?style=flat-square)](version.py)
+[![Version](https://img.shields.io/badge/version-9.4.3-orange.svg?style=flat-square)](version.py)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Licensor](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E6%96%B9-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
 [![Copyright](https://img.shields.io/badge/%E7%89%88%E6%9D%83%E5%BD%92%E5%B1%9E-%C2%A9%202026%20yimu.hyipf.com-orange.svg?style=flat-square)](https://yimu.hyipf.com)
@@ -34,7 +34,7 @@
 1. **文案假大空、塑料感严重**：生成套话堆砌，缺乏深度论据与抓人眼球的黄金前 3 秒；
 2. **配图与内容割裂脱节**：盲盒式生图，生成的图片与文章段落风马牛不相及，甚至出现廉价怪异的 AI 塑料感与灰蒙蒙的烟雾模糊感。
 
-**一幕·YIMU V9.4.2（回响曲 · Echo Melody篇）** 从底层彻底颠覆这一现状：
+**一幕·YIMU V9.4.3（回响曲 · Echo Melody篇）** 从底层彻底颠覆这一现状：
 - **影视短剧分镜法则 + 2K 超清通透画质引擎**：在生成任何一张图片前，Agent **必须先通读全文**，提炼世界观与论述转折，将封面定义为宏大建立镜头（Wide Establishing Shot），各小节定义为叙事中景与情绪特写（Medium Narrative Shot / Close-up）。全新接入 2K 级超清原生画质标准与**零烟雾通透增强算法**，彻底剔除朦胧虚幻感，色彩艳丽、锐度极致，**图文匹配度硬性锁定在 95% 以上**；
 - **全渠道原生排版**：一份核心爆款母本，秒级自动编译为微信公众号富文本、今日头条高密度资讯流、小红书 5 幕磨砂毛玻璃卡片；
 - **多端与双核驱动**：PC 操盘大台与移动随身端数据全域互联，内置兼容 OpenAI 的聚合网关与算力统一账本；
@@ -201,16 +201,16 @@ bash ci.sh
 
 ---
 
-## 📦 当前最新版本：V9.4.2（浮光录 · 全栈精铸与架构贯通篇）
+## 📦 当前最新版本：V9.4.3（浮光录 · 全栈精铸与架构贯通篇）
 
 一幕·YIMU 团队实行纯净发布规范，每次首页仅聚焦展示**当前最新旗舰版本**的完整能力：
 
-### 🌟 V9.4.2 核心特性一览
+### 🌟 V9.4.3 核心特性一览
 - 🎁 **官方通道免费体验额度（让第一次成功先于第一次付费）**：新用户注册即可享**每日 3 次免费轻量 AI 生成**（单次 ≤512 tokens），**无需自备任何 API Key**；免费体验次数耗尽后自动切换到正常算力扣费，不额外计费——从此新用户的首条爆款不再被 401 卡死；
 - 🚀 **首次登录 3 步引导 Wizard**：30 秒完成设置——认识免费额度、选主链路（直接官方通道 / 填入自备 Key），关闭即持久化标记，绝不反复打扰；
 - 🏛️ **双层数据访问合并（P0 债务清偿）**：`users` / `user_api_keys` 表统一由 SQLAlchemy 真源（`studio/db_models.py`）声明全部 V6 兼容列，裸 sqlite 自愈（`ensure_users_columns`）降为兜底；时间列统一 ISO-8601（`FlexibleDateTime`），彻底杜绝浮点/字符串混存；
 - 🌐 **全域 1,835+ 词条双语零残留**：全面收录覆盖桌面端、移动端顶栏、16 个交互功能弹窗（含全新引导 Wizard）、表单占位符及属性，英文模式下中文残留数严格为 0；
-- ⚖️ **版本单一真源全域统一**：全栈模块、接口契约与页面全量统一为 **V9.4.2**。
+- ⚖️ **版本单一真源全域统一**：全栈模块、接口契约与页面全量统一为 **V9.4.3**。
 
 > 想要了解历史版本归档与完整里程碑演进记录，请参阅：📘 **[版本发布日志 (RELEASES.md)](RELEASES.md)** 与 🏷️ **[GitHub Releases 官方发布页](https://github.com/yimuhub/yimu-baokuanstudio/releases)**。
 

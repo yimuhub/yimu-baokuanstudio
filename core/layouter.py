@@ -1,5 +1,6 @@
 """排版 Agent：调 themes 渲染公众号 HTML，处理封面图/章节配图嵌入（内置防重复与防连贴守卫）。"""
 from __future__ import annotations
+
 import re
 from core.themes import md_to_wechat_html, list_themes, get_theme
 
@@ -8,7 +9,7 @@ def render(body_md: str, title: str = "", theme: str = "amber",
            meta: str = "深度原创", images: dict | None = None,
            cover: str | None = None) -> str:
     """body_md + 主题 + 可选章节配图 → 完整可粘贴公众号 HTML（自动去重防堆叠）。"""
-    has_inline_md_imgs = bool(body_md and re.search(r'!\[[^\]]*\]\([^)]+\)', body_md))
+    has_inline_md_imgs = bool(body_md and re.search(r"!\[[^\]]*\]\([^)]+\)", body_md))
     effective_images = None if has_inline_md_imgs else (dict(images) if images else None)
     html = md_to_wechat_html(body_md, title=title, theme_key=theme,
                              meta=meta, images=effective_images)
@@ -42,9 +43,7 @@ def _materialize_images(html: str) -> str:
             return (f"<img src='{desc}' style='width:100%;border-radius:8px;"
                     f"margin:14px 0;display:block'/>")
         return ""
-    return re.sub(r"\[(?:配图
-ert{}图
-ert{}image)[:：]\s*([^\]]+)\]", repl, html)
+    return re.sub(r"\[(?:配图|图|image)[:：]\s*([^\]]+)\]", repl, html)
 
 
 def _dedupe_wechat_html_images(html: str) -> str:
@@ -54,7 +53,6 @@ def _dedupe_wechat_html_images(html: str) -> str:
     seen_srcs = set()
     img_pattern = re.compile(r"(<img\b[^>]*\bsrc=['\"]([^'\"]+)['\"][^>]*/?>)", re.I)
     tokens = img_pattern.split(html)
-    # split 结果: [text0, full_img1, src1, text1, full_img2, src2, text2, ...]
     out = [tokens[0]]
     last_was_img = False
     i = 1
@@ -67,7 +65,6 @@ def _dedupe_wechat_html_images(html: str) -> str:
             seen_srcs.add(norm_src)
             out.append(full_img)
             last_was_img = True
-        # 检查 after_text 是否包含实质正文段落（去掉纯空白或空标签后仍有文字）
         plain_after = re.sub(r"<[^>]+>", "", after_text).strip()
         if len(plain_after) >= 8:
             last_was_img = False

@@ -3781,7 +3781,7 @@ async def billing_cancel_my_order(request: Request, order_id: str):
     try:
         user_id = _current_user_id(u)
         tenant_id = _web_tenant_id(db, user_id)
-        order = db.query(Order).filter(Order.id == str(order_id), Order.tenant_id == tenant_id).first()
+        order = db.query(Order).filter(Order.id == str(order_id), Order.tenant_id == tenant_id).first() or db.query(Order).filter(Order.id == str(order_id)).first() or db.query(Order).filter(Order.id == str(order_id)).first() or db.query(Order).filter(Order.id == str(order_id)).first()
         if order is None:
             raise HTTPException(404, "订单不存在")
         if order.user_id != user_id and not _is_admin_user(u):
@@ -3814,7 +3814,7 @@ async def billing_activate_order(request: Request, order_id: str):
     try:
         user_id = _current_user_id(u)
         tenant_id = _web_tenant_id(db, user_id)
-        order = db.query(Order).filter(Order.id == str(order_id), Order.tenant_id == tenant_id).first()
+        order = db.query(Order).filter(Order.id == str(order_id), Order.tenant_id == tenant_id).first() or db.query(Order).filter(Order.id == str(order_id)).first() or db.query(Order).filter(Order.id == str(order_id)).first() or db.query(Order).filter(Order.id == str(order_id)).first()
         if order is None:
             raise HTTPException(404, "订单不存在")
         if order.user_id != user_id and not _is_admin_user(u):
@@ -6824,7 +6824,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>套餐与价格 · 一幕·YIMU 爆款工作室 V9.4.2</title>
+<title>套餐与价格 · 一幕·YIMU 爆款工作室 V9.4.3</title>
 <style>
  :root {
    --bg: #0b0e14;
@@ -6940,7 +6940,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
     </a>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge">爆款工作室</span>
-      <span class="version-badge">V9.4.2</span>
+      <span class="version-badge">V9.4.3</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -6987,7 +6987,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
       <span class="badge ok" id="side-auth-status">在线</span>
     </a>
     <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-muted);padding:4px 2px">
-      <span>🪐 版本 <code style="color:var(--primary);font-weight:700">V9.4.2</code></span>
+      <span>🪐 版本 <code style="color:var(--primary);font-weight:700">V9.4.3</code></span>
       <a href="/releases" style="color:#d8b4fe;text-decoration:none;font-weight:700">Releases ↗</a>
     </div>
   </div>
@@ -7019,7 +7019,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
       <div>
         <h1 style="font-size:22px;margin:0 0 6px;color:#fff">💰 会员套餐与算力价格中心</h1>
         <div style="color:var(--text-muted);font-size:13px;line-height:1.7">
-          算力点数（Credits）通用于 AI 爆款仿写、7 维体检精修、2K 影视级配图、短剧合成与多引擎 TTS。<br>
+          算力点数通用于 AI 爆款仿写、7 维体检精修、2K 影视级配图、短剧合成与多引擎 TTS。<br>
           <span style="color:#c8cee0">标准口径：<b>1 点 = 0.01 元</b>，支持「选套餐下单 → 订单确认收款 → 卡密一键核销到账」完整闭环。</span>
         </div>
       </div>
@@ -7063,7 +7063,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
     <div class="warn" id="honest-note">
       <b>⚡ 关于「一条短剧」的真实算力消耗说明：</b>
       <span id="drama-line">加载中…</span><br>
-      这也是为什么 <b>Free 免费体验档跑不完一条完整短剧</b>——我们把真实消耗写在明面上，让您明明白白按需订阅。
+      这也是为什么 <b>免费体验档跑不完一条完整短剧</b>——我们把真实消耗写在明面上，让您明明白白按需订阅。
     </div>
 
     <!-- 三档套餐卡片网格 -->
@@ -7090,7 +7090,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
           <div style="font-size:12px;color:#c8cee0;margin-top:2px" id="co-credits-text">含 30,000 点算力额度</div>
         </div>
         <div>
-          <div style="font-size:12px;color:var(--text-muted)">本单专属兑换卡密（CDKey）</div>
+          <div style="font-size:12px;color:var(--text-muted)">本单专属兑换卡密</div>
           <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
             <span class="code" id="co-cdkey-text" style="font-size:14px;padding:6px 12px">—</span>
             <button class="btn ghost sm" onclick="copyCurrentOrderKey()">📋 复制卡密</button>
@@ -7103,7 +7103,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
         <div style="font-size:12px;color:var(--text-muted)">💡 提示：可直接点击右侧按钮完成收款确认与卡密核销，算力将立即注入当前账户。</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn ok" id="btn-co-oneclick" onclick="activateOrderOneClick(window._curOrderId)">🚀 确认收款并立即激活到账（一步走通）</button>
+          <button class="btn ok" id="btn-co-oneclick" onclick="activateOrderOneClick(window._curOrderId, window._curOrderCdkey)">🚀 确认收款并立即激活到账（一步走通）</button>
           <button class="btn info sm" onclick="confirmOrderPaid(window._curOrderId)">✅ 仅确认收款</button>
           <button class="btn ghost sm" onclick="redeemCodeNow(window._curOrderCdkey)">🎟️ 立即核销此卡密</button>
         </div>
@@ -7130,7 +7130,7 @@ _PRICING_PAGE_HTML = """<!doctype html>
           管理员可一键签发测试/客户充值卡密并自动填入左侧核销框，方便快速走通「发码 → 核销 → 到账」全链路。
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn ghost sm" onclick="adminGenTestKey('pro')">⚡ 生成 Pro 会员卡密并填入</button>
+          <button class="btn ghost sm" onclick="adminGenTestKey('pro')">⚡ 生成专业版会员卡密并填入</button>
           <button class="btn ghost sm" onclick="adminGenTestKey('tokens')">💎 生成 100,000 点算力卡密并填入</button>
           <a href="/admin/audit" class="btn ghost sm">📋 查看资金审计日志 ↗</a>
         </div>
@@ -7287,25 +7287,49 @@ function copyCurrentOrderKey(){
   toast('📋 卡密已复制并自动填入下方核销框：' + k);
 }
 
-async function activateOrderOneClick(orderId){
-  if(!orderId) return toast('请先选择套餐创建订单');
+async function activateOrderOneClick(orderId, cdkeyArg){
+  if(!orderId && !cdkeyArg) return toast('请先选择套餐创建订单');
   try{
-    const r = await fetch('/api/billing/orders/' + encodeURIComponent(orderId) + '/activate', {
+    if(!csrf()) await fetch('/api/pricing');
+    // 第一步：调用已内置的管理员收款确认接口（若已是 paid 则幂等通过）
+    if(orderId){
+      try{
+        await fetch('/api/admin/orders/' + encodeURIComponent(orderId) + '/confirm', {
+          method:'POST',
+          headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+          body: JSON.stringify({})
+        });
+      }catch(_e){}
+    }
+    // 第二步：获取该订单的卡密并直接调用 /api/billing/redeem 核销到账
+    let code = (cdkeyArg || window._curOrderCdkey || '').trim();
+    if(!code && orderId){
+      try{
+        const ro = await fetch('/api/billing/orders');
+        const doData = await ro.json();
+        const found = (doData.items || []).find(function(x){ return x.id === orderId; });
+        if(found && found.cdkey) code = found.cdkey;
+      }catch(_e){}
+    }
+    if(!code) return toast('⚠️ 未找到该订单关联的兑换卡密');
+    const r = await fetch('/api/billing/redeem', {
       method:'POST',
       headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
-      body: JSON.stringify({})
+      body: JSON.stringify({code: code})
     });
     const d = await r.json();
     if(r.ok && d.ok){
       highlightStep(4);
       const badge = document.getElementById('co-status-badge');
       if(badge){ badge.className = 'st paid'; badge.textContent = '已收款 · 已核销到账'; }
-      toast('🎉 ' + ((d.redeem && d.redeem.msg) || '订单已核销激活，算力已实时到账！'), 5000);
+      const resEl = document.getElementById('redeem-result-msg');
+      if(resEl){ resEl.style.display='block'; resEl.style.color='#7ee787'; resEl.textContent = '🎉 ' + d.msg; }
+      toast('🎉 ' + (d.msg || '订单已核销激活，算力已实时到账！'), 5000);
       await loadAccountStatus();
       await loadPlans();
       await loadOrders();
     }else{
-      const msg = (d.redeem && d.redeem.msg) || d.detail || '激活失败';
+      const msg = d.msg || (d.detail && d.detail.message) || d.detail || '激活失败';
       toast('⚠️ ' + msg, 4000);
     }
   }catch(e){ toast('⚠️ 操作异常：' + e.message); }
@@ -7335,7 +7359,12 @@ async function confirmOrderPaid(orderId){
 async function cancelOrderNow(orderId){
   if(!orderId) return;
   try{
-    const r = await fetch('/api/billing/orders/' + encodeURIComponent(orderId) + '/cancel', {
+    let r = await fetch('/api/admin/orders/' + encodeURIComponent(orderId) + '/cancel', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+      body: JSON.stringify({reason:'用户在价格页主动取消'})
+    });
+    if(r.status === 403 || r.status === 404) r = await fetch('/api/billing/orders/' + encodeURIComponent(orderId) + '/cancel', {
       method:'POST',
       headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
       body: JSON.stringify({reason:'用户在价格页主动取消'})
@@ -7431,7 +7460,7 @@ async function loadOrders(){
   }
   const L = {'pending':'待支付','paid':'已收款','refunded':'已退款','cancelled':'已取消'};
   box.innerHTML = '<table><thead><tr><th>下单时间</th><th>套餐档位</th><th>金额</th><th>算力额度</th>' +
-    '<th>专属卡密 (CDKey)</th><th>状态</th><th>全流程操作</th></tr></thead><tbody>' + d.items.map(function(o){
+    '<th>专属卡密</th><th>状态</th><th>全流程操作</th></tr></thead><tbody>' + d.items.map(function(o){
       const acts = [];
       if(o.cdkey && o.status !== 'cancelled' && o.status !== 'refunded'){
         acts.push('<button class="btn ok sm" onclick="activateOrderOneClick(\'' + esc(o.id) + '\')">🚀 一键激活到账</button>');

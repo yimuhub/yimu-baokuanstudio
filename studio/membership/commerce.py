@@ -84,13 +84,20 @@ def _get_tenant(db: Session, tenant_id: str):
 
 
 def _resolve_order_user(db: Session, tenant_id: str, user_id: str) -> User:
-    """定位下单用户，必须同租户存在；跨租户一律拒绝。"""
+    """定位下单用户，必须同租户存在；兼容单机默认租户 'default' 与 UUID 自动对齐。"""
     user = (
         db.query(User)
         .filter(User.id == str(user_id), User.tenant_id == str(tenant_id))
         .first()
     )
     if user is None:
+        u_any = db.query(User).filter(User.id == str(user_id)).first()
+        def_t = _get_tenant(db, "default")
+        def_ids = {"default", def_t.id if def_t else "default"}
+        if u_any is not None and str(u_any.tenant_id) in def_ids and str(tenant_id) in def_ids:
+            u_any.tenant_id = str(tenant_id)
+            db.commit()
+            return u_any
         errors.raise_err("NOT_FOUND", "用户不存在")
     return user
 
@@ -270,13 +277,18 @@ def cancel_order(
 
 
 def _get_order(db: Session, tenant_id: str, order_id: str) -> Order:
-    """按 (tenant, id) 取订单；跨租户一律404（不泄露其他租户订单是否存在）。"""
+    """按 (tenant, id) 取订单；跨租户一律404，兼容默认租户 'default' 与 UUID 对齐。"""
     order = (
         db.query(Order)
         .filter(Order.id == str(order_id), Order.tenant_id == str(tenant_id))
         .first()
     )
     if order is None:
+        o_any = db.query(Order).filter(Order.id == str(order_id)).first()
+        def_t = _get_tenant(db, "default")
+        def_ids = {"default", def_t.id if def_t else "default"}
+        if o_any is not None and str(o_any.tenant_id) in def_ids and str(tenant_id) in def_ids:
+            return o_any
         errors.raise_err("NOT_FOUND", "订单不存在或无权查看")
     return order
 

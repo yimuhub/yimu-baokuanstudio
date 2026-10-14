@@ -1,4 +1,5 @@
 """知乎专业问答与深度专栏排版适配器：结构化论证、专业图表、金句引用与答主权威感。"""
+from __future__ import annotations
 import html
 import re
 import time

@@ -3,6 +3,7 @@
 公众号：markdown → 微信兼容行内样式 HTML，5 套主题可换肤；
 小红书：3 套卡片风格（奶油信息卡/极简蓝白/杂志棕金）。
 """
+from __future__ import annotations
 import html
 import re
 

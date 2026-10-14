@@ -11,6 +11,7 @@ Step 6: 分镜头关键帧画面生成 (Shot Keyframe Image Generation)
 Step 7: 分镜头动态视频切片合成 (Shot Video Motion & Speech Audio Synthesis)
 Step 8: 全剧视听母带拼接封装 (Final Drama Video Stitching, Audio Ducking & Subtitles)
 """
+from __future__ import annotations
 import asyncio
 import base64
 import json

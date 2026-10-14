@@ -11,6 +11,7 @@ v3.33新增：平台差异化评分体系
 - 知乎(zhihu)：专业深度、逻辑严密权重更高
 - 推特/X(twitter)：简洁金句、话题标签、英文适配权重更高
 """
+from __future__ import annotations
 import json
 import re
 
@@ -130,9 +131,14 @@ def judge_draft(draft_id: str, platform: str | None = None,
     if not d:
         raise RuntimeError(f"草稿不存在: {draft_id}")
 
-    # 取草稿当前已持久化的分数作为内置地板
-    existing_score = d.get("score") or 0.0
-    floor = max(float(existing_score), float(min_score) if min_score is not None else 0.0)
+    # 取草稿当前已持久化的分数作为内置地板（若历史存了 10 分制如 7.3，自动折算为 73.0）
+    existing_score = float(d.get("score") or 0.0)
+    if 0.0 < existing_score <= 10.5:
+        existing_score = round(existing_score * 10.0, 1)
+    min_sc_val = float(min_score) if min_score is not None else 0.0
+    if 0.0 < min_sc_val <= 10.5:
+        min_sc_val = round(min_sc_val * 10.0, 1)
+    floor = max(existing_score, min_sc_val)
 
     # 构建平台专属补充提示
     platform_hint = ""
@@ -167,11 +173,29 @@ def judge_draft(draft_id: str, platform: str | None = None,
             norm[k] = float(val)
         except Exception:
             norm[k] = 0.0
-    # 若明显是百分制（多项超过满分），按比例折算
-    if any(norm[k] > maxmap[k] + 0.01 for k in maxmap):
+    raw_sum = sum(max(0.0, v) for v in norm.values())
+    raw_total_reported = 0.0
+    try:
+        raw_total_reported = float(data.get("total") or 0.0)
+    except Exception:
+        raw_total_reported = 0.0
+
+    # 兼容模型按 10 分制返回（如总和 7.3，或各维 0~10 平均得 7.3），统一折算为 100 分制
+    if 0.0 < raw_sum <= 10.5:
+        scale_100 = raw_sum * 10.0
+        norm = {k: (max(0.0, norm[k]) / raw_sum) * scale_100 for k in maxmap}
+    elif 0.0 < raw_total_reported <= 10.5 and raw_sum <= 15.0:
+        scale_100 = raw_total_reported * 10.0
+        norm = {k: (float(maxmap[k]) / 100.0) * scale_100 for k in maxmap}
+    elif all(0.0 <= norm[k] <= 10.0 for k in maxmap) and 0.0 < raw_sum < 68.0 and any(norm[k] > 5.0 for k in ("cta",)):
+        norm = {k: (norm[k] / 10.0) * float(maxmap[k]) for k in maxmap}
+    elif any(norm[k] > maxmap[k] + 0.01 for k in maxmap):
         norm = {k: norm[k] / 100.0 * maxmap[k] for k in maxmap}
+
     scores = {k: round(max(0.0, min(norm[k], float(maxmap[k]))), 1) for k in maxmap}
     total = round(sum(scores.values()), 1)
+    if 0.0 < total <= 10.5:
+        total = round(total * 10.0, 1)
     detail = {
         "scores": scores,
         "reasons": data.get("reasons", {}),

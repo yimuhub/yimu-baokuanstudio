@@ -2,6 +2,7 @@
 
 卡片风格由 core/themes.XHS_CARD_STYLES 提供。
 """
+from __future__ import annotations
 import html
 import re
 from pathlib import Path

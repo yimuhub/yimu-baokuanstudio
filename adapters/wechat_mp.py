@@ -1,4 +1,5 @@
 """公众号适配器：主题化排版（core/themes 5 套主题）+ AI 配图 + 草稿箱 API。"""
+from __future__ import annotations
 import re
 import time
 

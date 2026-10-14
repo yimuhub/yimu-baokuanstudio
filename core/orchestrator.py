@@ -1,4 +1,5 @@
 """编排器：选题/搜索 → 创作 → 评分 → 重写 → 排版 → 草稿箱 → 人工确认后发布。"""
+from __future__ import annotations
 import json
 import logging
 import re

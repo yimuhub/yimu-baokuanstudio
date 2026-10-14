@@ -1,4 +1,5 @@
 """排版 Agent：调 themes 渲染公众号 HTML，处理封面图/章节配图嵌入（内置防重复与防连贴守卫）。"""
+from __future__ import annotations
 import re
 from core.themes import md_to_wechat_html, list_themes, get_theme
 
@@ -41,7 +42,9 @@ def _materialize_images(html: str) -> str:
             return (f"<img src='{desc}' style='width:100%;border-radius:8px;"
                     f"margin:14px 0;display:block'/>")
         return ""
-    return re.sub(r"\[(?:配图ert{}图ert{}image)[:：]\s*([^\]]+)\]", repl, html)
+    return re.sub(r"\[(?:配图
+ert{}图
+ert{}image)[:：]\s*([^\]]+)\]", repl, html)
 
 
 def _dedupe_wechat_html_images(html: str) -> str:

@@ -4,6 +4,7 @@
 1. 将成稿图文一键解构为 4~8 个影视级标准分镜（景别、运镜轨迹、光影调色、中英文 Prompt、负向词）。
 2. 生成剪映标准工程草稿（draft_content.json + draft_meta_info.json），一键导出 zip 压缩包直接在剪映中打开。
 """
+from __future__ import annotations
 import io
 import json
 import os

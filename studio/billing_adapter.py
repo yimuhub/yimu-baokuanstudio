@@ -206,6 +206,13 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
         .first()
     )
     if inv is None:
+        # 兼容单机默认租户与 uuid 租户并存场景：按 code 查找有效卡密并对齐 tenant_id
+        inv = (
+            db.query(Invite)
+            .filter(Invite.code == code, Invite.status == "active")
+            .first()
+        )
+    if inv is None:
         return {"ok": False, "msg": "无效的卡密兑换码，请检查拼写"}
     if inv.expires_at is not None and inv.expires_at.replace(
             tzinfo=timezone.utc) < datetime.now(timezone.utc):
@@ -231,6 +238,42 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
             return {"ok": True, "msg": "兑换成功！已升级为 MCN 机构版并获得配额"}
         amt = inv.credits_grant or 0
         bal = grant_tokens(db, tenant_id, user_id, amt, "兑换卡密: " + code)
+        # 若该卡密来自套餐购买订单（orders.cdkey），同步升级用户会员档位并更新订单状态
+        upgraded_plan = ""
+        try:
+            from studio.db_models import Order, Membership, User as _StudioUser
+            ord_row = db.query(Order).filter(Order.cdkey == code).first()
+            if ord_row and ord_row.plan in ("pro", "studio"):
+                upgraded_plan = ord_row.plan
+                m_row = (
+                    db.query(Membership)
+                    .filter(Membership.tenant_id == tenant_id, Membership.user_id == user_id)
+                    .first()
+                )
+                if m_row is not None:
+                    m_row.tier = upgraded_plan
+                if ord_row.status == "pending":
+                    ord_row.status = "paid"
+                    ord_row.paid_at = utcnow()
+                db.commit()
+                try:
+                    from core import auth as _core_auth
+                    c_auth = _core_auth._db()
+                    c_auth.execute("UPDATE users SET plan=? WHERE id=?", (upgraded_plan, user_id))
+                    c_auth.commit()
+                    c_auth.close()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        if upgraded_plan:
+            plan_label = "Pro 专业版" if upgraded_plan == "pro" else "Studio 工作室版"
+            return {
+                "ok": True,
+                "msg": f"兑换成功！已升级为【{plan_label}】并注入 {amt:,} 点算力额度",
+                "balance": bal,
+                "tier": upgraded_plan,
+            }
         return {"ok": True, "msg": "兑换成功！已为账户注入 %s 点数" % f"{amt:,}", "balance": bal}
     except Exception:
         db.rollback()
@@ -282,17 +325,20 @@ def _web_session():
 
 def redeem_cdkey_for_user(code: str, user_id: str,
                          tenant_name: str = WEB_TENANT_NAME) -> dict:
-    """web 层卡密兑换：按 web 用户 id 兑换，返回结构同 redeem_cdkey。
-
-    与 core.billing.redeem_cdkey 的差异（刻意为之）：
-    - 走 invites 表（ledger-backed），有原子核销防重放，不认任何万能码/前缀码；
-    - 无需路由层自己管DB session。
-    """
+    """web 层卡密兑换：按 web 用户 id 兑换，返回结构同 redeem_cdkey。"""
+    from studio.db_models import User as _StudioUser
     db = _web_session()
     try:
-        tenant, _user = get_default_billing_user(db, tenant_name)
-        tenant_id = tenant.id if tenant is not None else tenant_name
-        return redeem_cdkey(db, tenant_id, user_id, code)
+        uid = str(user_id or "")
+        tenant_id = ""
+        if uid:
+            row = db.query(_StudioUser.tenant_id).filter(_StudioUser.id == uid).first()
+            if row and row[0]:
+                tenant_id = str(row[0])
+        if not tenant_id:
+            tenant, _user = get_default_billing_user(db, tenant_name)
+            tenant_id = tenant.id if tenant is not None else tenant_name
+        return redeem_cdkey(db, tenant_id, uid, code)
     finally:
         db.close()
 

@@ -6,6 +6,7 @@
 
 返回统一结构：{"platform","title","author","likes","date","url","snippet","extra"}
 """
+from __future__ import annotations
 import json
 import subprocess
 import sys

@@ -2,6 +2,7 @@
 
 支持主流全球与国产大模型供应商一键切换、毫秒级连通性测速 (Ping)、多 Agent 智能分工路由。
 """
+from __future__ import annotations
 import logging
 import os
 import time

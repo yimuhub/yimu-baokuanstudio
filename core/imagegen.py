@@ -1,5 +1,6 @@
 """AI 生图与智能排版配图引擎：多通道生图（支持各大供应商生图模型） + 电影级 Pillow 美学信息插图 100% 保底 + 正文自动插图回填。
 """
+from __future__ import annotations
 import base64
 import json
 import os

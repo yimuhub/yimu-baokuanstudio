@@ -1,4 +1,5 @@
 """全域多端矩阵级裂变引擎：按需并发产出 6 大主流平台版本（公众号、小红书5图全集、今日头条、知乎、微博、Twitter / 𝕏）。"""
+from __future__ import annotations
 import html
 import json
 import logging

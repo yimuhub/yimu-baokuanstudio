@@ -4,6 +4,7 @@
 技能库：skills/agents/*.md（frontmatter: name/description，正文=注入 prompt 的技能文本）
 配置：config.yaml agents.{stage} = {model, skills: [name], instruction}
 """
+from __future__ import annotations
 from pathlib import Path
 
 import yaml

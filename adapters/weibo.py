@@ -1,4 +1,5 @@
 """微博 / 即刻快讯排版适配器：短平快爆点、话题标签、情绪张力与碎片化阅读适配。"""
+from __future__ import annotations
 import html
 import re
 import time

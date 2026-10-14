@@ -17,6 +17,7 @@ R4 合规新增：
 - 采集入库前经 core.content_guard 敏感过滤，命中者**标记 blocked 不入 pending 池**
 - 统计数据新增 blocked / blocked_titles 字段，便于前端展示「已拦下 N 条敏感选题」
 """
+from __future__ import annotations
 import re
 import httpx
 

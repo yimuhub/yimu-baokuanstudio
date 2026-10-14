@@ -6,6 +6,7 @@
 - Token 机制：无依赖轻量级签名令牌（自包含 exp、user_id、role，有效期30天）
 - API Key Vault：带随机 Nonce + HMAC 校验的流加密存储（v2 格式），向后兼容旧版解密
 """
+from __future__ import annotations
 import base64
 import hashlib
 import hmac

@@ -1,4 +1,5 @@
 """音频管线：草稿 → 口播稿 → TTS 音频（edge-tts，微软免费音色）。"""
+from __future__ import annotations
 import logging
 import re
 from pathlib import Path

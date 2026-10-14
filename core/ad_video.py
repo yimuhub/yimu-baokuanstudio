@@ -16,6 +16,7 @@
 不重复造轮子：LLM 调用走 core/agents.chat_for，视频模型走 core/llm.resolve_llm_endpoint，
 拼接/配音/字幕复用 core/video_native 的 _concat_videos/_make_tts_audio/_mux_audio_subtitle。
 """
+from __future__ import annotations
 import json
 import logging
 import re

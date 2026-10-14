@@ -32,6 +32,7 @@ R2-3：为什么本文件不再自己记账
    （VIP999 / MEDIAFLOW888 / PRO2026），不按前缀放行（TOKEN- / PRO- / MCN-），
    也不用 used 标记之外的任何旁路。需要发放额度请走 generate_cdkeys 正式生成。
 """
+from __future__ import annotations
 import json
 from pathlib import Path
 

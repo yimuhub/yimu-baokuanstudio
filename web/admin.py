@@ -5,6 +5,7 @@
 v2：仿写按钮禁用态+进度、toast、草稿左右分栏工作区、手机壳预览、评分Tab、
     重新评分/定向重写、多主题排版、AI 配图、考核配置。
 """
+from __future__ import annotations
 import asyncio
 import hashlib
 import re
@@ -3487,21 +3488,60 @@ async def billing_gen_keys(request: Request):
 #   为准（core.auth 返回的 tenant_id 可能是字符串 'default'，与 studio 的 uuid
 #   租户不一致会查不到 memberships）。抽成 _web_tenant_id() 供全批次复用。
 
-def _web_tenant_id(db, user_id: str) -> str:
-    """解析当前用户所在 studio 租户 id（口径同 require_credits）。
-
-    查不到 studio 用户行时退化为默认租户，保证单机模式不中断业务。
-    """
+def _web_tenant_id(db, user_id: str, user_dict: dict | None = None) -> str:
+    """解析当前用户所在 studio 租户 id，并在缺失时自动对齐/补齐 studio 用户与会员账本行。"""
     from studio import billing_adapter
-    from studio.db_models import User as _StudioUser
+    from studio.auth import ensure_default_tenant
+    from studio.db_models import Tenant as _StudioTenant, User as _StudioUser
+    from studio.membership.service import ensure_membership
 
     uid = str(user_id or "")
     if uid:
-        row = db.query(_StudioUser.tenant_id).filter(_StudioUser.id == uid).first()
-        if row and row[0]:
-            return str(row[0])
+        u_row = db.query(_StudioUser).filter(_StudioUser.id == uid).first()
+        if u_row is not None and u_row.tenant_id:
+            # 检查该 tenant_id 是否真实存在于 tenants 表；若为 core.auth 默认写的 'default' 字符串则对齐到真实租户
+            t_exists = db.query(_StudioTenant).filter(_StudioTenant.id == str(u_row.tenant_id)).first()
+            if t_exists is not None:
+                return str(u_row.tenant_id)
+            t_def = ensure_default_tenant(db)
+            u_row.tenant_id = t_def.id
+            db.commit()
+            ensure_membership(db, t_def.id, uid)
+            db.commit()
+            return str(t_def.id)
+        # 若当前登录用户（如本机免密 u-admin）尚未在 studio users 表落行，自动补齐以打通下单与账本链路
+        try:
+            t_def = ensure_default_tenant(db)
+            u_info = user_dict or _CURRENT_USER.get() or {}
+            role = str(u_info.get("role") or ("admin" if uid == "u-admin" else "user"))
+            uname = str(u_info.get("username") or uid)
+            db.add(_StudioUser(
+                id=uid,
+                tenant_id=t_def.id,
+                username=uname,
+                email=str(u_info.get("email") or ""),
+                password_hash="x",
+                salt="x",
+                role=role,
+                is_active=True,
+            ))
+            db.commit()
+            ensure_membership(db, t_def.id, uid)
+            db.commit()
+            return str(t_def.id)
+        except Exception:
+            db.rollback()
+
     tenant, _u = billing_adapter.get_default_billing_user(db)
-    return tenant.id if tenant is not None else billing_adapter.WEB_TENANT_NAME
+    if tenant is not None:
+        return str(tenant.id)
+    try:
+        t_def = ensure_default_tenant(db)
+        db.commit()
+        return str(t_def.id)
+    except Exception:
+        db.rollback()
+        return billing_adapter.WEB_TENANT_NAME
 
 
 def _r3_session():
@@ -3724,6 +3764,73 @@ def billing_my_orders(request: Request):
     finally:
         db.close()
     return {"ok": True, "items": items, "total": len(items)}
+
+
+@app.post("/api/billing/orders/{order_id}/cancel")
+async def billing_cancel_my_order(request: Request, order_id: str):
+    """用户取消自己的待支付订单（或管理员取消订单），并同步作废对应卡密。"""
+    u = guard(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    from studio.membership import commerce
+    from studio.db_models import Order
+
+    db = _r3_session()
+    try:
+        user_id = _current_user_id(u)
+        tenant_id = _web_tenant_id(db, user_id)
+        order = db.query(Order).filter(Order.id == str(order_id), Order.tenant_id == tenant_id).first()
+        if order is None:
+            raise HTTPException(404, "订单不存在")
+        if order.user_id != user_id and not _is_admin_user(u):
+            raise HTTPException(403, "无权操作他人订单")
+        view = commerce.cancel_order(
+            db, tenant_id, order_id,
+            actor=user_id,
+            reason=str((body or {}).get("reason") or "用户主动取消"),
+        )
+    except HTTPException:
+        db.rollback()
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"取消订单失败: {e}")
+    finally:
+        db.close()
+    return {"ok": True, "order": view}
+
+
+@app.post("/api/billing/orders/{order_id}/activate")
+async def billing_activate_order(request: Request, order_id: str):
+    """一键完成订单收款确认与卡密核销到账（完整购买闭环加速通道）。"""
+    u = guard(request)
+    from studio.membership import commerce
+    from studio import billing_adapter
+    from studio.db_models import Order
+
+    db = _r3_session()
+    try:
+        user_id = _current_user_id(u)
+        tenant_id = _web_tenant_id(db, user_id)
+        order = db.query(Order).filter(Order.id == str(order_id), Order.tenant_id == tenant_id).first()
+        if order is None:
+            raise HTTPException(404, "订单不存在")
+        if order.user_id != user_id and not _is_admin_user(u):
+            raise HTTPException(403, "无权操作他人订单")
+        if order.status == "pending":
+            commerce.confirm_order_paid(db, tenant_id, order_id, actor=user_id)
+            db.refresh(order)
+        cdkey = order.cdkey
+        target_uid = order.user_id
+    finally:
+        db.close()
+
+    if not cdkey:
+        raise HTTPException(400, "该订单无可用卡密")
+    res = billing_adapter.redeem_cdkey_for_user(cdkey, target_uid)
+    return {"ok": bool(res.get("ok")), "redeem": res, "order_id": order_id}
 
 
 @app.get("/api/admin/orders")
@@ -6717,73 +6824,384 @@ _PRICING_PAGE_HTML = """<!doctype html>
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>价格 · 一幕 YIMU</title>
+<title>套餐与价格 · 一幕·YIMU 爆款工作室 V9.4.1</title>
 <style>
+ :root {
+   --bg: #0b0e14;
+   --panel: #121722;
+   --card: #161c28;
+   --border: #262d3d;
+   --text: #e8ecf8;
+   --text-muted: #8b93ad;
+   --primary: #f0883e;
+   --success: #3fb950;
+   --info: #58a6ff;
+   --purple: #a855f7;
+   --danger: #f85149;
+ }
  *{box-sizing:border-box}
- body{margin:0;background:#0f1220;color:#e8ecf8;font-family:PingFang SC,Microsoft YaHei,sans-serif}
- .wrap{max-width:1000px;margin:0 auto;padding:32px 20px 70px}
- h1{font-size:26px;margin:0 0 6px}
- .sub{color:#8b93ad;font-size:13px;line-height:1.8;margin-bottom:26px}
- .warn{background:rgba(240,136,62,.1);border:1px solid rgba(240,136,62,.35);
-       border-radius:10px;padding:14px 16px;font-size:13px;line-height:1.9;margin-bottom:24px}
- .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px}
- .plan{background:#161c28;border:1px solid #262d3d;border-radius:14px;padding:22px;display:flex;flex-direction:column}
- .plan.hot{border-color:#f0883e;box-shadow:0 0 0 1px rgba(240,136,62,.25)}
- .pname{font-size:17px;font-weight:800;margin-bottom:4px}
- .ptag{font-size:12px;color:#8b93ad;min-height:34px;line-height:1.7}
- .price{font-size:30px;font-weight:800;color:#f0883e;margin:12px 0 2px}
- .price small{font-size:13px;color:#8b93ad;font-weight:400}
- .credits{font-size:13px;color:#c8cee0;margin-bottom:12px}
- .cap{font-size:12.5px;color:#9aa3bd;background:#0d1117;border-radius:8px;padding:10px 12px;line-height:1.9;margin-bottom:14px}
+ body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;display:flex;min-height:100vh;overflow-x:hidden}
+ /* 左侧固定全局导航栏（与主系统 100% 统一） */
+ aside.side{width:230px;min-width:230px;background:#0d1119;border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;user-select:none}
+ .logo-box{padding:14px 16px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid rgba(255,255,255,0.06)}
+ .logo-title{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;letter-spacing:0.5px;color:#fff;text-decoration:none}
+ .logo-badge{background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px}
+ .version-badge{background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px}
+ .nav-group{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+ .nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--text-muted);text-decoration:none;transition:all .18s;border:1px solid transparent}
+ .nav-item:hover{background:rgba(255,255,255,0.04);color:#fff}
+ .nav-item.on{background:linear-gradient(135deg,rgba(240,136,62,0.16),rgba(240,136,62,0.05));border-color:rgba(240,136,62,0.38);color:#fff}
+ .nav-icon{font-size:18px;width:24px;text-align:center}
+ .nav-txt{display:flex;flex-direction:column;gap:2px}
+ .nav-txt span{font-size:13.5px;font-weight:700}
+ .nav-txt small{font-size:11px;color:var(--text-muted)}
+ .nav-item.on .nav-txt span{color:var(--primary)}
+ .side-foot{padding:12px;border-top:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.2)}
+ .gw-pill{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-muted);padding:6px 10px;border-radius:8px;background:rgba(255,255,255,0.03)}
+ .gw-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 8px var(--success)}
+ /* 主内容区包装 */
+ .main-wrapper{flex:1;margin-left:230px;display:flex;flex-direction:column;min-width:0;min-height:100vh}
+ header.sys-header{height:58px;background:rgba(13,17,25,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:90}
+ .page-title{display:flex;align-items:center;gap:12px;font-size:16px;font-weight:800;color:#fff}
+ .top-acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+ .token-pill{display:flex;align-items:center;gap:7px;background:linear-gradient(135deg,rgba(240,136,62,0.14),rgba(147,51,234,0.12));border:1px solid rgba(240,136,62,0.4);padding:5px 13px;border-radius:20px;font-size:12px;font-weight:600;color:var(--primary)}
+ .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700}
+ .badge.ok{background:rgba(63,185,80,0.15);color:#7ee787;border:1px solid rgba(63,185,80,0.35)}
+ .badge.info{background:rgba(88,166,255,0.15);color:#58a6ff;border:1px solid rgba(88,166,255,0.35)}
+ .badge.warn{background:rgba(240,136,62,0.15);color:#f0883e;border:1px solid rgba(240,136,62,0.35)}
+ .wrap{max-width:1160px;width:100%;margin:0 auto;padding:24px 28px 80px}
+ /* 账户状态横幅与四步购买流程条 */
+ .hero-bar{background:radial-gradient(ellipse at top left,rgba(240,136,62,0.16),rgba(168,85,247,0.08),#141a26);border:1px solid rgba(240,136,62,0.32);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px}
+ .stat-cards{display:flex;gap:14px;flex-wrap:wrap}
+ .stat-box{background:rgba(13,17,23,0.75);border:1px solid var(--border);border-radius:10px;padding:10px 16px;min-width:145px}
+ .stat-box .lbl{font-size:11.5px;color:var(--text-muted)}
+ .stat-box .val{font-size:20px;font-weight:800;color:#fff;margin-top:3px}
+ .stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}
+ .step-item{background:#131926;border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;font-size:12.5px}
+ .step-item.active{border-color:rgba(240,136,62,0.55);background:rgba(240,136,62,0.08)}
+ .step-num{width:24px;height:24px;border-radius:50%;background:rgba(240,136,62,0.2);color:var(--primary);font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+ .warn{background:rgba(240,136,62,.09);border:1px solid rgba(240,136,62,.35);border-radius:10px;padding:13px 16px;font-size:13px;line-height:1.85;margin-bottom:22px}
+ .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;margin-bottom:24px}
+ .plan{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:22px;display:flex;flex-direction:column;position:relative;transition:transform .18s,border-color .18s}
+ .plan:hover{transform:translateY(-2px);border-color:rgba(240,136,62,0.5)}
+ .plan.hot{border:2px solid var(--primary);box-shadow:0 8px 30px rgba(240,136,62,.14)}
+ .plan-ribbon{position:absolute;top:-11px;right:16px;background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px}
+ .pname{font-size:18px;font-weight:800;margin-bottom:4px;color:#fff}
+ .ptag{font-size:12.5px;color:var(--text-muted);min-height:36px;line-height:1.65}
+ .price{font-size:32px;font-weight:800;color:var(--primary);margin:12px 0 4px}
+ .price small{font-size:13px;color:var(--text-muted);font-weight:400}
+ .credits{font-size:13px;color:#c8cee0;margin-bottom:12px;font-weight:600}
+ .cap{font-size:12.5px;color:#9aa3bd;background:#0d1117;border-radius:8px;padding:11px 13px;line-height:1.9;margin-bottom:14px;border:1px solid rgba(255,255,255,0.05)}
  .cap b{color:#e8ecf8}
  .cap .no{color:#ff7b72}
- ul{list-style:none;padding:0;margin:0 0 18px;font-size:13px;line-height:2;color:#c8cee0}
- li:before{content:"· ";color:#f0883e}
- .btn{background:#f0883e;color:#fff;border:0;border-radius:9px;padding:11px 18px;
-      font-size:14px;font-weight:700;cursor:pointer;width:100%}
- .btn.ghost{background:#0d1117;border:1px solid #2c3446;color:#c8cee0}
+ ul.plan-feats{list-style:none;padding:0;margin:0 0 18px;font-size:13px;line-height:2.05;color:#c8cee0;flex:1}
+ ul.plan-feats li:before{content:"✓ ";color:var(--primary);font-weight:800;margin-right:4px}
+ .btn{background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;border:0;border-radius:9px;padding:11px 18px;font-size:13.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .18s;text-decoration:none}
+ .btn:hover{filter:brightness(1.08)}
+ .btn.w100{width:100%}
+ .btn.ok{background:linear-gradient(135deg,#2ea043,#238636)}
+ .btn.info{background:linear-gradient(135deg,#388bfd,#1f6feb)}
+ .btn.ghost{background:#111622;border:1px solid #2c3446;color:#c8cee0}
+ .btn.danger{background:rgba(248,81,73,0.16);border:1px solid rgba(248,81,73,0.4);color:#ff7b72}
+ .btn.sm{padding:6px 12px;font-size:12px;border-radius:7px}
  .btn:disabled{opacity:.5;cursor:not-allowed}
- .note{font-size:12px;color:#6f7896;line-height:1.9;margin-top:8px}
- h2{font-size:16px;margin:34px 0 12px}
+ /* 收银台与卡密核销区 */
+ .checkout-panel{display:none;background:linear-gradient(145deg,#182032,#111726);border:2px solid var(--primary);border-radius:14px;padding:22px;margin-bottom:24px;box-shadow:0 12px 36px rgba(0,0,0,0.45)}
+ .two-col{display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-bottom:24px}
+ .box-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px}
+ .box-card h3{margin:0 0 8px;font-size:15.5px;color:#fff;display:flex;align-items:center;gap:8px}
+ .input{background:#0d1117;border:1px solid #2c3446;border-radius:8px;padding:10px 12px;color:#fff;font-size:13px;outline:none;width:100%}
+ .input:focus{border-color:var(--primary)}
  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
- th,td{padding:9px 10px;border-bottom:1px solid #262d3d;text-align:left}
- th{color:#8b93ad;font-weight:600}
- .code{font-family:ui-monospace,Menlo,monospace;background:#0d1117;padding:3px 8px;
-       border-radius:5px;color:#7ee787;letter-spacing:1px}
- .st{font-size:12px;padding:3px 9px;border-radius:20px}
+ th,td{padding:11px 10px;border-bottom:1px solid var(--border);text-align:left;vertical-align:middle}
+ th{color:var(--text-muted);font-weight:600;background:rgba(0,0,0,0.2)}
+ .code{font-family:ui-monospace,Menlo,monospace;background:#0d1117;padding:4px 9px;border-radius:6px;color:#7ee787;letter-spacing:0.8px;border:1px solid rgba(126,231,135,0.25);font-size:12.5px}
+ .st{font-size:11.5px;padding:3px 9px;border-radius:20px;font-weight:700;display:inline-block}
  .st.paid{background:rgba(126,231,135,.15);color:#7ee787}
  .st.pending{background:rgba(240,136,62,.15);color:#f0883e}
  .st.refunded{background:rgba(255,123,114,.15);color:#ff7b72}
  .st.cancelled{background:#262d3d;color:#8b93ad}
- .empty{color:#8b93ad;padding:16px 0;font-size:13px}
+ .empty{color:var(--text-muted);padding:20px 0;font-size:13px;text-align:center}
+ #toast-box{position:fixed;top:20px;right:24px;z-index:99999;display:flex;flex-direction:column;gap:8px}
+ .toast-msg{background:#161c28;border:1px solid var(--primary);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
+ @media (max-width: 900px) {
+   aside.side{display:none}
+   .main-wrapper{margin-left:0}
+   .stepper,.two-col{grid-template-columns:1fr}
+ }
 </style></head><body>
-<div class="wrap">
-  <h1>💰 价格与套餐</h1>
-  <div class="sub">算力点数（credits）用于 AI 仿写、短剧渲染、图片生成等所有 AI 能力。
-    1 点 = 0.01 元，额度按周期刷新，周期内用不完不累计。</div>
 
-  <div class="warn" id="honest-note">
-    <b>关于「一条短剧」的真实消耗：</b>
-    <span id="drama-line">加载中…</span><br>
-    这也是为什么 Free 档<b>跑不完一条完整短剧</b>——我们把这一点写在明面上，
-    而不是让你付了钱才发现限制。
+<!-- 左侧固定全局菜单栏（与主工作台完全一致） -->
+<aside class="side">
+  <div class="logo-box">
+    <a href="/" class="logo-title">
+      <img src="/static/img/logo-icon.png" style="width:26px;height:26px;border-radius:6px;object-fit:contain" alt="Logo" onerror="this.style.display='none'">
+      <span>一幕·YIMU</span>
+    </a>
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      <span class="logo-badge">爆款工作室</span>
+      <span class="version-badge">V9.4.1</span>
+    </div>
   </div>
+  <nav class="nav-group">
+    <a class="nav-item" href="/?panel=dashboard">
+      <span class="nav-icon">🌐</span>
+      <div class="nav-txt"><span>操盘大屏</span><small>全网雷达 · 产能中枢</small></div>
+    </a>
+    <a class="nav-item" href="/?panel=lite">
+      <span class="nav-icon">✨</span>
+      <div class="nav-txt"><span>极简模式</span><small>对话成稿 · 秒出排版</small></div>
+    </a>
+    <a class="nav-item" href="/?panel=inspire">
+      <span class="nav-icon">🔥</span>
+      <div class="nav-txt"><span>灵感与选题</span><small>热榜挖掘 · 爆款仿写</small></div>
+    </a>
+    <a class="nav-item" href="/?panel=drafts">
+      <span class="nav-icon">📝</span>
+      <div class="nav-txt"><span>内容工作台</span><small>真机实景排版 · 复制</small></div>
+    </a>
+    <a class="nav-item" href="/?panel=studio">
+      <span class="nav-icon">🎬</span>
+      <div class="nav-txt"><span>影音工坊</span><small>口播 TTS · 竖版短视频</small></div>
+    </a>
+    <a class="nav-item" href="/?panel=console">
+      <span class="nav-icon">⚙️</span>
+      <div class="nav-txt"><span>控制中心</span><small>每日工单 · 技能 · 平台治理</small></div>
+    </a>
+    <a class="nav-item on" href="/pricing">
+      <span class="nav-icon">💎</span>
+      <div class="nav-txt"><span>套餐与价格</span><small>会员订阅 · 算力充值</small></div>
+    </a>
+    <a class="nav-item" href="/?panel=profile">
+      <span class="nav-icon">👤</span>
+      <div class="nav-txt"><span>个人中心</span><small>画像 · 密钥 · 偏好设置</small></div>
+    </a>
+  </nav>
+  <div class="side-foot">
+    <div class="gw-pill">
+      <span class="dot"></span>
+      <span>商业化账本与网关在线</span>
+    </div>
+    <a href="/?panel=profile" style="margin-top:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-size:11.5px;display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:var(--text)">
+      <span style="font-weight:600" id="side-user-name">👤 创作者账户</span>
+      <span class="badge ok" id="side-auth-status">在线</span>
+    </a>
+    <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-muted);padding:4px 2px">
+      <span>🪐 版本 <code style="color:var(--primary);font-weight:700">V9.4.1</code></span>
+      <a href="/releases" style="color:#d8b4fe;text-decoration:none;font-weight:700">Releases ↗</a>
+    </div>
+  </div>
+</aside>
 
-  <div class="grid" id="plans"><div class="empty">套餐加载中…</div></div>
+<!-- 右侧主内容区 -->
+<div class="main-wrapper">
+  <header class="sys-header">
+    <div class="page-title">
+      <span>💎</span>
+      <span>套餐与价格 · 商业化订阅与算力充值中枢</span>
+    </div>
+    <div class="top-acts">
+      <div class="token-pill">
+        <span>💎 算力余额:</span>
+        <strong id="top-balance-val">—</strong>
+        <span style="color:var(--text-muted);font-size:11px">点</span>
+        <span style="color:rgba(255,255,255,0.2)">|</span>
+        <span class="badge ok" id="top-tier-badge">加载中</span>
+      </div>
+      <a href="/?panel=lite" class="btn ghost sm">✨ 极简创作模式</a>
+      <a href="/?panel=dashboard" class="btn ghost sm">← 返回工作台</a>
+    </div>
+  </header>
 
-  <h2>🧾 我的订单</h2>
-  <div id="orders"><div class="empty">订单加载中…</div></div>
-  <div class="note">未登录时看不到订单。订单状态为「待支付」时，请按下方指引线下转账后联系管理员核销。</div>
+  <div class="wrap">
+    <!-- 顶部账户实时资产与说明横幅 -->
+    <div class="hero-bar">
+      <div>
+        <h1 style="font-size:22px;margin:0 0 6px;color:#fff">💰 会员套餐与算力价格中心</h1>
+        <div style="color:var(--text-muted);font-size:13px;line-height:1.7">
+          算力点数（Credits）通用于 AI 爆款仿写、7 维体检精修、2K 影视级配图、短剧合成与多引擎 TTS。<br>
+          <span style="color:#c8cee0">标准口径：<b>1 点 = 0.01 元</b>，支持「选套餐下单 → 订单确认收款 → 卡密一键核销到账」完整闭环。</span>
+        </div>
+      </div>
+      <div class="stat-cards">
+        <div class="stat-box">
+          <div class="lbl">当前会员档位</div>
+          <div class="val" id="hero-tier-name" style="color:var(--primary)">加载中…</div>
+        </div>
+        <div class="stat-box">
+          <div class="lbl">账户可用算力</div>
+          <div class="val" id="hero-balance-num" style="color:#7ee787">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="lbl">累计已用算力</div>
+          <div class="val" id="hero-consumed-num">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 步全链路可视化购买路径 -->
+    <div class="stepper">
+      <div class="step-item active" id="step-1">
+        <span class="step-num">1</span>
+        <div><div style="font-weight:700;color:#fff">选购套餐下单</div><div style="font-size:11px;color:var(--text-muted)">点击下方套餐立即生成订单与专属卡密</div></div>
+      </div>
+      <div class="step-item" id="step-2">
+        <span class="step-num">2</span>
+        <div><div style="font-weight:700;color:#fff">订单支付与收款核销</div><div style="font-size:11px;color:var(--text-muted)">按指引完成支付并确认核销订单</div></div>
+      </div>
+      <div class="step-item" id="step-3">
+        <span class="step-num">3</span>
+        <div><div style="font-weight:700;color:#fff">一键核销卡密激活</div><div style="font-size:11px;color:var(--text-muted)">点击「一键激活到账」或粘贴卡密核销</div></div>
+      </div>
+      <div class="step-item" id="step-4">
+        <span class="step-num">4</span>
+        <div><div style="font-weight:700;color:#fff">算力与权益实时到账</div><div style="font-size:11px;color:var(--text-muted)">会员等级与算力余额秒级刷新生效</div></div>
+      </div>
+    </div>
+
+    <!-- 诚实性说明（R3-1 红线） -->
+    <div class="warn" id="honest-note">
+      <b>⚡ 关于「一条短剧」的真实算力消耗说明：</b>
+      <span id="drama-line">加载中…</span><br>
+      这也是为什么 <b>Free 免费体验档跑不完一条完整短剧</b>——我们把真实消耗写在明面上，让您明明白白按需订阅。
+    </div>
+
+    <!-- 三档套餐卡片网格 -->
+    <div class="grid" id="plans"><div class="empty">套餐加载中…</div></div>
+
+    <!-- 下单成功后的内嵌收银台与一键激活向导 -->
+    <div class="checkout-panel" id="checkout-box">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:20px">🧾</span>
+            <h3 style="margin:0;font-size:17px;color:#fff">订单收银台与一键核销向导</h3>
+            <span class="st pending" id="co-status-badge">待支付 / 待激活</span>
+          </div>
+          <div style="font-size:12.5px;color:var(--text-muted);margin-top:4px" id="co-order-meta">订单号：—</div>
+        </div>
+        <button class="btn ghost sm" onclick="document.getElementById('checkout-box').style.display='none'">收起收银台 ✕</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;background:rgba(0,0,0,0.28);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:16px">
+        <div>
+          <div style="font-size:12px;color:var(--text-muted)">应付金额 / 套餐额度</div>
+          <div style="font-size:22px;font-weight:800;color:var(--primary);margin-top:4px" id="co-amount-text">¥300.00</div>
+          <div style="font-size:12px;color:#c8cee0;margin-top:2px" id="co-credits-text">含 30,000 点算力额度</div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted)">本单专属兑换卡密（CDKey）</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+            <span class="code" id="co-cdkey-text" style="font-size:14px;padding:6px 12px">—</span>
+            <button class="btn ghost sm" onclick="copyCurrentOrderKey()">📋 复制卡密</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:12.5px;color:#c8cee0;line-height:1.9;background:#0d1117;border-radius:8px;padding:12px 14px;margin-bottom:16px" id="co-instructions"></div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
+        <div style="font-size:12px;color:var(--text-muted)">💡 提示：可直接点击右侧按钮完成收款确认与卡密核销，算力将立即注入当前账户。</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn ok" id="btn-co-oneclick" onclick="activateOrderOneClick(window._curOrderId)">🚀 确认收款并立即激活到账（一步走通）</button>
+          <button class="btn info sm" onclick="confirmOrderPaid(window._curOrderId)">✅ 仅确认收款</button>
+          <button class="btn ghost sm" onclick="redeemCodeNow(window._curOrderCdkey)">🎟️ 立即核销此卡密</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 双栏：卡密直接核销激活 + 快捷操作 -->
+    <div class="two-col">
+      <div class="box-card">
+        <h3>🎟️ 卡密 / 兑换码核销激活（第三步）</h3>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px">
+          下单生成的卡密或管理员发放的充值卡密，在此粘贴即可实时增加账户算力并升级对应会员档位。
+        </div>
+        <div style="display:flex;gap:10px">
+          <input type="text" id="redeem-code-input" class="input" placeholder="粘贴或输入卡密兑换码（如订单专属卡密）…">
+          <button class="btn ok" style="white-space:nowrap" onclick="redeemFromInput()">立即核销到账</button>
+        </div>
+        <div id="redeem-result-msg" style="font-size:12.5px;margin-top:10px;display:none"></div>
+      </div>
+
+      <div class="box-card">
+        <h3>🛠️ 运营核销与体验卡密工具（管理员通道）</h3>
+        <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px">
+          管理员可一键签发测试/客户充值卡密并自动填入左侧核销框，方便快速走通「发码 → 核销 → 到账」全链路。
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn ghost sm" onclick="adminGenTestKey('pro')">⚡ 生成 Pro 会员卡密并填入</button>
+          <button class="btn ghost sm" onclick="adminGenTestKey('tokens')">💎 生成 100,000 点算力卡密并填入</button>
+          <a href="/admin/audit" class="btn ghost sm">📋 查看资金审计日志 ↗</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- 我的订单与全流程管理列表 -->
+    <div class="box-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+        <h3 style="margin:0">🧾 我的订单与核销明细</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost sm" onclick="loadOrders()">↻ 刷新订单列表</button>
+        </div>
+      </div>
+      <div id="orders"><div class="empty">订单加载中…</div></div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:10px">
+        说明：待支付订单支持「一键激活到账」「确认收款」「核销卡密」或「取消订单」；已收款订单支持管理员执行「退款（自动扣回未用额度并记录审计）」。
+      </div>
+    </div>
+  </div>
 </div>
+
+<div id="toast-box"></div>
 
 <script>
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 
+function csrf(){
+  const m = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
+function toast(msg, ms){
+  const box = document.getElementById('toast-box');
+  if(!box) return;
+  const el = document.createElement('div');
+  el.className = 'toast-msg';
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(function(){ el.remove(); }, ms || 3500);
+}
+
+function highlightStep(n){
+  for(let i=1;i<=4;i++){
+    const el = document.getElementById('step-'+i);
+    if(el) el.classList.toggle('active', i<=n);
+  }
+}
+
+async function loadAccountStatus(){
+  try{
+    const r = await fetch('/api/billing/status');
+    if(!r.ok) return;
+    const d = await r.json();
+    const bal = Number(d.balance || 0).toLocaleString();
+    const used = Number(d.total_consumed || 0).toLocaleString();
+    const tName = d.tier_name || (d.tier === 'studio' ? 'Studio 工作室版' : (d.tier === 'pro' ? 'Pro 专业版' : 'Free 体验版'));
+    document.getElementById('top-balance-val').textContent = bal;
+    document.getElementById('top-tier-badge').textContent = tName;
+    document.getElementById('hero-tier-name').textContent = tName;
+    document.getElementById('hero-balance-num').textContent = bal + ' 点';
+    document.getElementById('hero-consumed-num').textContent = used + ' 点';
+  }catch(e){}
+}
+
 async function loadPlans(){
   const r = await fetch('/api/pricing');
   const d = await r.json();
   const full = d.full_drama_credits;
+  const curTier = (d.current && d.current.tier) ? d.current.tier : 'free';
   document.getElementById('drama-line').innerHTML =
     '一条完整短剧（分镜解构 + 4 张生图 + 渲染合成 + 4 段配音）约消耗 <b>' +
     Number(full).toLocaleString() + '</b> 点。';
@@ -6791,33 +7209,37 @@ async function loadPlans(){
   document.getElementById('plans').innerHTML = d.plans.map(function(p){
     const cap = p.capacity;
     const free = p.code === 'free';
-    // ⭐ 诚实标注：跑不完就明说，不含糊
+    const isCur = p.code === curTier;
     const dramaTxt = cap.can_run_full_drama
-      ? '可跑 <b>' + cap.dramas + '</b> 条完整短剧'
-      : '<span class="no">额度不足，<b>跑不完一条完整短剧</b>（约 ' +
+      ? '🎬 可跑 <b>' + cap.dramas + '</b> 条完整短剧'
+      : '<span class="no">⚠️ 额度不足，<b>跑不完一条完整短剧</b>（约 ' +
         cap.dramas_exact + ' 条）</span>';
     return '<div class="plan' + (p.code === 'pro' ? ' hot' : '') + '">' +
-      '<div class="pname">' + esc(p.name) + '</div>' +
+      (p.code === 'pro' ? '<span class="plan-ribbon">🔥 主力推荐</span>' : '') +
+      (p.code === 'studio' ? '<span class="plan-ribbon" style="background:linear-gradient(135deg,#9333ea,#6366f1)">🏢 团队旗舰</span>' : '') +
+      '<div class="pname">' + esc(p.name) + (isCur ? ' <span class="badge info">当前档位</span>' : '') + '</div>' +
       '<div class="ptag">' + esc(p.tagline) + '</div>' +
       '<div class="price">' + (p.price_yuan > 0 ? '¥' + p.price_yuan : '免费') +
         (p.price_yuan > 0 ? '<small> / ' + p.period_days + ' 天</small>' : '') + '</div>' +
-      '<div class="credits">' + Number(p.credits).toLocaleString() + ' 点额度' +
+      '<div class="credits">💎 ' + Number(p.credits).toLocaleString() + ' 点算力额度' +
         (p.price_yuan > 0 ? '（约 ' + p.price_yuan + ' 元等值）' : '') + '</div>' +
-      '<div class="cap">' + dramaTxt + '<br>可产出 <b>' + cap.graphic_posts +
-        '</b> 篇图文（仿写+评分+排版）</div>' +
-      '<ul>' + (p.highlights || []).map(function(h){
-        return '<li>' + esc(h.replace(/^\\*\\*|\\*\\*$/g, '')) + '</li>';}).join('') + '</ul>' +
-      (free ? '<button class="btn ghost" disabled>免费档，无需购买</button>'
-            : '<button class="btn" onclick="order(\\'' + p.code + '\\')">立即购买 ' +
+      '<div class="cap">' + dramaTxt + '<br>📝 可产出 <b>' + cap.graphic_posts +
+        '</b> 篇爆款图文（仿写+评分+排版）</div>' +
+      '<ul class="plan-feats">' + (p.highlights || []).map(function(h){
+        return '<li>' + esc(h.replace(/^\*\*|\*\*$/g, '')) + '</li>';}).join('') + '</ul>' +
+      (free ? '<button class="btn ghost w100" disabled>免费体验档 · 注册即享</button>'
+            : '<button class="btn w100" onclick="order(\'' + p.code + '\', this)">🚀 立即购买 ' +
               esc(p.name) + '</button>') +
       '</div>';
   }).join('');
 }
 
-async function order(code){
-  const btn = event.target;
-  btn.disabled = true; btn.textContent = '下单中…';
+async function order(code, btnEl){
+  const btn = btnEl || (typeof event !== 'undefined' ? event.target : null);
+  const origTxt = btn ? btn.textContent : '立即购买';
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ 正在创建订单…'; }
   try{
+    if(!csrf()) await fetch('/api/pricing');
     const r = await fetch('/api/billing/order', {
       method:'POST',
       headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
@@ -6825,26 +7247,176 @@ async function order(code){
     });
     const d = await r.json();
     if(!r.ok || !d.ok){
-      alert(d.detail && d.detail.message ? d.detail.message
-            : (d.error || '下单失败，请稍后重试'));
+      const msg = (d.detail && d.detail.message) ? d.detail.message : (typeof d.detail === 'string' ? d.detail : (d.error || '下单失败，请稍后重试'));
+      toast('⚠️ ' + msg, 4500);
       return;
     }
     showPay(d.order);
-    loadOrders();
-  }catch(e){ alert('下单异常：' + e); }
-  finally{ btn.disabled = false; btn.textContent = '立即购买'; }
+    await loadOrders();
+    toast('✅ 订单已创建！可在收银台一键确认并核销到账', 4000);
+  }catch(e){
+    toast('⚠️ 下单异常：' + e.message, 4000);
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = origTxt; }
+  }
 }
 
 function showPay(o){
-  const L = {'pending':'待支付','paid':'已收款','refunded':'已退款','cancelled':'已取消'};
-  alert(
-    '订单已创建（订单号 ' + o.id.slice(0,8) + '）\\n\\n' +
-    '应付金额：¥' + o.amount_yuan + '（' + o.credits + ' 点）\\n' +
-    '你的卡密：' + (o.cdkey || '（已退款）') + '\\n\\n' +
-    (o.payment_instructions || []).map(function(s,i){return (i+1)+'. '+s;}).join('\\n') +
-    '\\n\\n卡密请复制保存，可在「设置 - 会员与额度」粘贴兑换。'
-  );
-  void L;
+  window._curOrderId = o.id;
+  window._curOrderCdkey = o.cdkey || '';
+  highlightStep(2);
+  const box = document.getElementById('checkout-box');
+  if(box) box.style.display = 'block';
+  document.getElementById('co-order-meta').textContent = '订单号：' + o.id + ' · 套餐：' + (o.plan || '').toUpperCase() + ' · 创建时间：' + ((o.created_at || '').slice(0,19).replace('T',' '));
+  document.getElementById('co-amount-text').textContent = '¥' + Number(o.amount_yuan || 0).toFixed(2);
+  document.getElementById('co-credits-text').textContent = '含 ' + Number(o.credits || 0).toLocaleString() + ' 点算力额度';
+  document.getElementById('co-cdkey-text').textContent = o.cdkey || '—';
+  const inst = (o.payment_instructions || []).map(function(s){ return '<div>' + esc(s) + '</div>'; }).join('');
+  document.getElementById('co-instructions').innerHTML = inst || '请确认收款后核销卡密完成充值。';
+  const input = document.getElementById('redeem-code-input');
+  if(input && o.cdkey) input.value = o.cdkey;
+  if(box && box.scrollIntoView) box.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function copyCurrentOrderKey(){
+  const k = window._curOrderCdkey || '';
+  if(!k) return toast('当前无卡密可复制');
+  if(navigator.clipboard) navigator.clipboard.writeText(k);
+  const input = document.getElementById('redeem-code-input');
+  if(input) input.value = k;
+  toast('📋 卡密已复制并自动填入下方核销框：' + k);
+}
+
+async function activateOrderOneClick(orderId){
+  if(!orderId) return toast('请先选择套餐创建订单');
+  try{
+    const r = await fetch('/api/billing/orders/' + encodeURIComponent(orderId) + '/activate', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+      body: JSON.stringify({})
+    });
+    const d = await r.json();
+    if(r.ok && d.ok){
+      highlightStep(4);
+      const badge = document.getElementById('co-status-badge');
+      if(badge){ badge.className = 'st paid'; badge.textContent = '已收款 · 已核销到账'; }
+      toast('🎉 ' + ((d.redeem && d.redeem.msg) || '订单已核销激活，算力已实时到账！'), 5000);
+      await loadAccountStatus();
+      await loadPlans();
+      await loadOrders();
+    }else{
+      const msg = (d.redeem && d.redeem.msg) || d.detail || '激活失败';
+      toast('⚠️ ' + msg, 4000);
+    }
+  }catch(e){ toast('⚠️ 操作异常：' + e.message); }
+}
+
+async function confirmOrderPaid(orderId){
+  if(!orderId) return;
+  try{
+    const r = await fetch('/api/admin/orders/' + encodeURIComponent(orderId) + '/confirm', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+      body: JSON.stringify({})
+    });
+    const d = await r.json();
+    if(r.ok && d.ok){
+      highlightStep(3);
+      const badge = document.getElementById('co-status-badge');
+      if(badge){ badge.className = 'st paid'; badge.textContent = '已收款（可核销卡密）'; }
+      toast('✅ 已确认收款！现在可点击「立即核销此卡密」将算力充入账户');
+      await loadOrders();
+    }else{
+      toast('⚠️ ' + (d.detail && d.detail.message ? d.detail.message : (d.detail || '确认收款失败')));
+    }
+  }catch(e){ toast('⚠️ 异常：' + e.message); }
+}
+
+async function cancelOrderNow(orderId){
+  if(!orderId) return;
+  try{
+    const r = await fetch('/api/billing/orders/' + encodeURIComponent(orderId) + '/cancel', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+      body: JSON.stringify({reason:'用户在价格页主动取消'})
+    });
+    const d = await r.json();
+    if(r.ok && d.ok){
+      toast('已取消该订单，对应卡密已同步作废');
+      await loadOrders();
+    }else{
+      toast('⚠️ ' + (d.detail && d.detail.message ? d.detail.message : (d.detail || '取消失败')));
+    }
+  }catch(e){ toast('⚠️ 异常：' + e.message); }
+}
+
+async function refundOrderNow(orderId){
+  if(!orderId) return;
+  try{
+    const r = await fetch('/api/admin/orders/' + encodeURIComponent(orderId) + '/refund', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+      body: JSON.stringify({reason:'价格页订单管理申请退款'})
+    });
+    const d = await r.json();
+    if(r.ok && d.ok){
+      toast('↩ 订单已退款，剩余未消费额度已扣回并写入审计日志');
+      await loadAccountStatus();
+      await loadOrders();
+    }else{
+      toast('⚠️ ' + (d.detail && d.detail.message ? d.detail.message : (d.detail || '退款失败')));
+    }
+  }catch(e){ toast('⚠️ 异常：' + e.message); }
+}
+
+async function redeemCodeNow(code){
+  const c = (code || '').trim();
+  if(!c) return toast('请输入或选择要核销的卡密');
+  try{
+    const r = await fetch('/api/billing/redeem', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+      body: JSON.stringify({code: c})
+    });
+    const d = await r.json();
+    const resEl = document.getElementById('redeem-result-msg');
+    if(r.ok && d.ok){
+      highlightStep(4);
+      if(resEl){ resEl.style.display='block'; resEl.style.color='#7ee787'; resEl.textContent = '🎉 ' + d.msg; }
+      toast('🎉 ' + d.msg, 4500);
+      await loadAccountStatus();
+      await loadPlans();
+      await loadOrders();
+    }else{
+      const err = d.msg || d.detail || '核销失败';
+      if(resEl){ resEl.style.display='block'; resEl.style.color='#ff7b72'; resEl.textContent = '✕ ' + err; }
+      toast('✕ ' + err, 4000);
+    }
+  }catch(e){ toast('⚠️ 核销异常：' + e.message); }
+}
+
+function redeemFromInput(){
+  const input = document.getElementById('redeem-code-input');
+  redeemCodeNow(input ? input.value : '');
+}
+
+async function adminGenTestKey(ktype){
+  try{
+    const r = await fetch('/api/billing/admin/gen_keys', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+      body: JSON.stringify({key_type: ktype || 'tokens', amount: 100000, count: 1})
+    });
+    const d = await r.json();
+    if(r.ok && d.keys && d.keys.length){
+      const k = d.keys[0];
+      const input = document.getElementById('redeem-code-input');
+      if(input) input.value = k;
+      toast('🔑 已生成新卡密 [' + k + '] 并填入核销框，点击「立即核销到账」即可激活！', 4500);
+    }else{
+      toast('⚠️ 生成失败：' + (d.detail || '需要管理员权限'));
+    }
+  }catch(e){ toast('⚠️ 异常：' + e.message); }
 }
 
 async function loadOrders(){
@@ -6854,20 +7426,37 @@ async function loadOrders(){
     box.innerHTML = '<div class="empty">请先登录后查看订单</div>'; return;
   }
   const d = await r.json();
-  if(!d.ok || !d.items.length){
-    box.innerHTML = '<div class="empty">暂无订单</div>'; return;
+  if(!d.ok || !d.items || !d.items.length){
+    box.innerHTML = '<div class="empty">暂无订单，点击上方「立即购买」即可创建首笔套餐订单</div>'; return;
   }
   const L = {'pending':'待支付','paid':'已收款','refunded':'已退款','cancelled':'已取消'};
-  box.innerHTML = '<table><tr><th>时间</th><th>套餐</th><th>金额</th><th>额度</th>' +
-    '<th>卡密</th><th>状态</th></tr>' + d.items.map(function(o){
-      return '<tr><td>' + esc((o.created_at||'').slice(0,16).replace('T',' ')) + '</td><td>' +
-        esc(o.plan) + '</td><td>¥' + o.amount_yuan + '</td><td>' +
-        Number(o.credits).toLocaleString() + '</td><td><span class="code">' +
+  box.innerHTML = '<table><thead><tr><th>下单时间</th><th>套餐档位</th><th>金额</th><th>算力额度</th>' +
+    '<th>专属卡密 (CDKey)</th><th>状态</th><th>全流程操作</th></tr></thead><tbody>' + d.items.map(function(o){
+      const acts = [];
+      if(o.cdkey && o.status !== 'cancelled' && o.status !== 'refunded'){
+        acts.push('<button class="btn ok sm" onclick="activateOrderOneClick(\'' + esc(o.id) + '\')">🚀 一键激活到账</button>');
+        acts.push('<button class="btn ghost sm" onclick="redeemCodeNow(\'' + esc(o.cdkey) + '\')">🎟️ 兑换卡密</button>');
+      }
+      if(o.status === 'pending'){
+        acts.push('<button class="btn info sm" onclick="confirmOrderPaid(\'' + esc(o.id) + '\')">✅ 确认收款</button>');
+        acts.push('<button class="btn danger sm" onclick="cancelOrderNow(\'' + esc(o.id) + '\')">取消</button>');
+      }else if(o.status === 'paid'){
+        acts.push('<button class="btn danger sm" onclick="refundOrderNow(\'' + esc(o.id) + '\')">↩ 退款</button>');
+      }
+      return '<tr><td>' + esc((o.created_at||'').slice(0,16).replace('T',' ')) + '</td><td><b>' +
+        esc((o.plan||'').toUpperCase()) + '</b></td><td style="color:var(--primary);font-weight:700">¥' + o.amount_yuan + '</td><td>' +
+        Number(o.credits).toLocaleString() + ' 点</td><td><span class="code">' +
         esc(o.cdkey || '—') + '</span></td><td><span class="st ' + esc(o.status) + '">' +
-        esc(L[o.status] || o.status) + '</span></td></tr>';}).join('') + '</table>';
+        esc(L[o.status] || o.status) + '</span></td><td><div style="display:flex;gap:6px;flex-wrap:wrap">' +
+        (acts.join('') || '<span style="color:var(--text-muted);font-size:12px">已闭环</span>') + '</div></td></tr>';
+    }).join('') + '</tbody></table>';
 }
 
-loadPlans(); loadOrders();
+(async function initPricingCenter(){
+  await loadPlans();
+  await loadAccountStatus();
+  await loadOrders();
+})();
 </script></body></html>"""
 
 

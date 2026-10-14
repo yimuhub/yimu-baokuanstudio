@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: BUSL-1.1
 """SQLite 存储层：选题 / 草稿 / 发布任务。"""
+from __future__ import annotations
 import json
 import shutil
 import sqlite3

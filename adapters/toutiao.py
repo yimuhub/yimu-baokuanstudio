@@ -1,4 +1,5 @@
 """今日头条专属排版适配器：原生头条排版规范、两句一断黄金短律、红标导读卡与互动投票模块。"""
+from __future__ import annotations
 import html
 import re
 import time

@@ -15,6 +15,7 @@
 
 只依赖：标准库 + pillow + 系统 ffmpeg（8.x 已验证）。
 """
+from __future__ import annotations
 import logging
 import platform
 import re

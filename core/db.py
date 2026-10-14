@@ -409,6 +409,8 @@ def conn() -> sqlite3.Connection:
         except Exception:
             has_drafts = False
     if has_drafts:
+        c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
+        c.commit()
         return c
 
     c.executescript(SCHEMA)

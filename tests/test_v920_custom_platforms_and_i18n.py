@@ -33,10 +33,10 @@ from web.admin import app
 
 
 def test_v920_version_single_source_of_truth():
-    """验证版本单一真源为 9.4.3，专属代号为浮光录"""
-    assert version.__version__ == "9.4.3"
-    assert getattr(version, "__codename__", "") == "浮光录"
-    assert "浮光掠影" in getattr(version, "__slogan_cn__", "")
+    """验证版本单一真源为 9.4.4，专属代号为澄澈镜"""
+    assert version.__version__ == "9.4.4"
+    assert getattr(version, "__codename__", "") == "澄澈镜"
+    assert "澄澈分明" in getattr(version, "__slogan_cn__", "")
 
 
 def test_releases_page_no_pricing_menu_and_has_v920():
@@ -61,7 +61,7 @@ def test_i18n_script_purified_yimu_translation():
     # 验证含有纠错锁定逻辑
     assert "一幕·YIMU" in content
     assert "一幕[·\\.]一幕" in content
-    assert "V9.2.0" in content
+    assert f"V{version.__version__}" in content
 
 
 def test_detect_platform_from_url():

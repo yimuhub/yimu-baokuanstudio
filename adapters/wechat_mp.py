@@ -6,13 +6,14 @@ import time
 import httpx
 
 from core.llm import load_env
-from core.themes import DEFAULT_THEME, md_to_wechat_html
+from core.themes import DEFAULT_THEME
+from core.layouter import render as layout_render
 
 
 def render_preview(body_md: str, title: str, theme: str = DEFAULT_THEME,
-                   images: dict | None = None) -> str:
-    """微信兼容行内样式 HTML（主题化 + 可插 AI 配图）。"""
-    return md_to_wechat_html(body_md, title, theme=theme, images=images)
+                   images: dict | None = None, cover: str | None = None, **kwargs) -> str:
+    """微信兼容行内样式 HTML（主题化 + 可插 AI 配图 + 全链路防重复）。"""
+    return layout_render(body_md, title=title, theme=theme, images=images, cover=cover, **kwargs)
 
 
 def _access_token() -> str:

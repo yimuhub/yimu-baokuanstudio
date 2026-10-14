@@ -385,11 +385,27 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V9.4.3 -->
+      <!-- V9.4.4 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌟 V9.4.3 · 浮光录 (Luminous Chronicles)</span>
+          <span class="t-ver">🌟 V9.4.4 · 澄澈镜 (Pristine Mirror)</span>
           <span class="badge orange">当前版本 · 最新</span>
+          <span class="t-date">2026-10-14</span>
+        </div>
+        <div class="t-desc">极简模式与全链路首次排版图片防重复彻底根治、三层去重防御闭环与排版契约统一。</div>
+        <ul class="t-list">
+          <li><b>🖼️ 极简模式与全链路图片防重彻底根治</b>：彻底根治极简模式与选题生成首次排版时微信版图片重复出现 2 次的顽疾；</li>
+          <li><b>🛡️ 三层去重自愈防御防线</b>：输入层 Markdown 标记防重复、转换层正文图片解析与字典防双写修剪、输出层微信 HTML 正则去重过滤；</li>
+          <li><b>📐 全系统排版调用契约统一收口</b>：<code>core.themes</code>、<code>core.imagegen</code>、<code>core.fission</code>、<code>adapters.wechat_mp</code> 与 <code>web.admin</code> 统一由 <code>core.layouter.render</code> 统一守卫；</li>
+          <li><b>✨ 草稿箱与分发预览自愈清洗</b>：草稿箱打开与平台预览加载时对历史缓存自动执行自愈清洗与无损重写。</li>
+        </ul>
+      </div>
+
+      <!-- V9.4.3 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.4.3 · 浮光录 (Luminous Chronicles)</span>
+          <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-14</span>
         </div>
         <div class="t-desc">全栈安全加固、BYOK 与免费体验主链贯通、6 维数字画像全域注入与数据库 10 倍提速。</div>

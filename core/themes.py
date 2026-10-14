@@ -101,13 +101,69 @@ def clean_markdown_body(text: str) -> str:
     return text.strip()
 
 
+def list_themes() -> dict[str, dict]:
+    """返回所有已注册的公众号主题。"""
+    return dict(WECHAT_THEMES)
+
+
+def get_theme(theme_key: str) -> dict:
+    """按标识获取公众号主题，回退至默认主题。"""
+    return WECHAT_THEMES.get(theme_key, WECHAT_THEMES[DEFAULT_THEME])
+
+
+def _dedupe_wechat_html_images(html_str: str) -> str:
+    """对公众号 HTML 中的 <img> 进行 URL 全局去重与冗余空标签清理。"""
+    if not html_str or "<img" not in html_str:
+        return html_str
+    seen_srcs = set()
+    img_pattern = re.compile(r"(<img\b[^>]*\bsrc=['\"]([^'\"]+)['\"][^>]*/?>)", re.I)
+    tokens = img_pattern.split(html_str)
+    out = [tokens[0]]
+    i = 1
+    while i < len(tokens):
+        full_img = tokens[i]
+        src = tokens[i + 1]
+        after_text = tokens[i + 2] if (i + 2) < len(tokens) else ""
+        norm_src = (src or "").split("?")[0].strip().rstrip("/")
+        if norm_src and norm_src not in seen_srcs:
+            seen_srcs.add(norm_src)
+            out.append(full_img)
+        out.append(after_text)
+        i += 3
+    res = "".join(out)
+    return re.sub(r"<p\b[^>]*>\s*</p>", "", res)
+
+
 def md_to_wechat_html(body_md: str, title: str, theme: str = DEFAULT_THEME,
-                      meta: str = "一幕·YIMU 爆款工作室", images: dict | None = None) -> str:
-    """markdown → 微信兼容行内样式 HTML。images: {小节标题: 图片url}"""
+                      meta: str = "一幕·YIMU 爆款工作室", images: dict | None = None,
+                      theme_key: str | None = None, cover: str | None = None,
+                      **kwargs) -> str:
+    """markdown → 微信兼容行内样式 HTML（内置全链路图片防重复与防连贴守卫）。"""
+    actual_theme = theme_key or theme or DEFAULT_THEME
     body_md = clean_markdown_body(body_md)
-    st = WECHAT_THEMES.get(theme, WECHAT_THEMES[DEFAULT_THEME])
+    st = WECHAT_THEMES.get(actual_theme, WECHAT_THEMES[DEFAULT_THEME])
+
+    # 提取正文中已包含的所有图片 URL（防重复注入）
+    seen_img_urls: set[str] = set()
+    for m in re.finditer(r"!\[[^\]]*\]\(([^)]+)\)|<img\b[^>]*\bsrc=['\"]([^'\"]+)['\"]", body_md, re.I):
+        u = (m.group(1) or m.group(2) or "").strip()
+        if u:
+            seen_img_urls.add(u.split("?")[0].strip().rstrip("/"))
+
+    effective_images: dict[str, str] = {}
+    if images:
+        for k, v in images.items():
+            if not v:
+                continue
+            norm_v = v.split("?")[0].strip().rstrip("/")
+            # 如果该图片已经在 Markdown 正文中显式包含，则绝不在段落中再次重复注入
+            if norm_v not in seen_img_urls:
+                effective_images[k] = v
+
     out, in_list, cur_section = [], False, None
     in_code_fence = False
+    emitted_srcs: set[str] = set()
+
     for ln in body_md.strip().splitlines():
         s = ln.strip()
         if not s:
@@ -128,11 +184,13 @@ def md_to_wechat_html(body_md: str, title: str, theme: str = DEFAULT_THEME,
         elif s.startswith("## "):
             if in_list:
                 out.append("</ul>"); in_list = False
-            out.append(f"<h2 style='{st['h2']}'>{_inline_md(s[3:], st)}</h2>")
+            cur_section = s[3:].strip()
+            out.append(f"<h2 style='{st['h2']}'>{_inline_md(cur_section, st)}</h2>")
         elif s.startswith("# "):
             if in_list:
                 out.append("</ul>"); in_list = False
-            out.append(f"<h2 style='{st['h2']}'>{_inline_md(s[2:], st)}</h2>")
+            cur_section = s[2:].strip()
+            out.append(f"<h2 style='{st['h2']}'>{_inline_md(cur_section, st)}</h2>")
         elif s.startswith("- ") or s.startswith("• "):
             if not in_list:
                 out.append("<ul style='padding-left:22px;margin:10px 0;'>"); in_list = True
@@ -148,25 +206,56 @@ def md_to_wechat_html(body_md: str, title: str, theme: str = DEFAULT_THEME,
         elif s.startswith("![") or s.startswith("<img"):
             if in_list:
                 out.append("</ul>"); in_list = False
-            m = re.search(r"\((.+?)\)", s)
-            if m:
-                out.append(f"<img src='{m.group(1)}' style='{st['img']}'/>")
+            img_src = ""
+            if s.startswith("!["):
+                m = re.search(r"\((.+?)\)", s)
+                if m:
+                    img_src = m.group(1).strip()
+            elif "<img" in s:
+                m = re.search(r"""src=['"]([^'"]+)['"]""", s, re.I)
+                if m:
+                    img_src = m.group(1).strip()
+            if img_src:
+                norm_s = img_src.split("?")[0].strip().rstrip("/")
+                if norm_s not in emitted_srcs:
+                    emitted_srcs.add(norm_s)
+                    out.append(f"<img src='{img_src}' style='{st['img']}'/>")
         else:
             if in_list:
                 out.append("</ul>"); in_list = False
             out.append(f"<p style='{st['p']}'>{_inline_md(s, st)}</p>")
-            if images and cur_section in images:
-                out.append(f"<img src='{images.pop(cur_section)}' style='{st['img']}'/>")
+            if effective_images and cur_section in effective_images:
+                sec_img = effective_images.pop(cur_section)
+                norm_sec = sec_img.split("?")[0].strip().rstrip("/")
+                if norm_sec not in emitted_srcs:
+                    emitted_srcs.add(norm_sec)
+                    out.append(f"<img src='{sec_img}' style='{st['img']}'/>")
+
     if in_list:
         out.append("</ul>")
     body = "".join(out)
-    return (f"<!doctype html><meta charset='utf-8'>"
-            f"<div style='max-width:677px;margin:0 auto;padding:26px 24px;"
-            f"font-family:-apple-system,'PingFang SC',sans-serif;background:#fff;"
-            f"border-top:4px solid {st['accent']};'>"
-            f"<h1 style='{st['h1']}'>{html.escape(title)}</h1>"
-            f"<p style='{st['meta']}'>{html.escape(meta)} · {__import__('time').strftime('%Y-%m-%d')}</p>"
-            f"{body}</div>")
+
+    # 封面图智能补充注入（仅当文章正文尚未包含封面时才在导语后插入）
+    if cover:
+        norm_cov = cover.split("?")[0].strip().rstrip("/")
+        if norm_cov not in emitted_srcs and norm_cov not in body:
+            emitted_srcs.add(norm_cov)
+            cov_html = f"<img src='{cover}' style='{st['img']}'/>"
+            p_idx = body.find("</p>")
+            if p_idx != -1:
+                body = body[:p_idx + 4] + cov_html + body[p_idx + 4:]
+            else:
+                body = cov_html + body
+
+    final_html = (f"<!doctype html><meta charset='utf-8'>"
+                  f"<div style='max-width:677px;margin:0 auto;padding:26px 24px;"
+                  f"font-family:-apple-system,'PingFang SC',sans-serif;background:#fff;"
+                  f"border-top:4px solid {st['accent']};'>"
+                  f"<h1 style='{st['h1']}'>{html.escape(title)}</h1>"
+                  f"<p style='{st['meta']}'>{html.escape(meta)} · {__import__('time').strftime('%Y-%m-%d')}</p>"
+                  f"{body}</div>")
+
+    return _dedupe_wechat_html_images(final_html)
 
 
 # ---------- 小红书卡片风格 ----------

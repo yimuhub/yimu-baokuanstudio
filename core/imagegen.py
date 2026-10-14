@@ -1054,9 +1054,9 @@ def regenerate_draft_image(draft_id: str, name: str, prompt: str = "", title: st
     images_dict = {f.name: f"/img/{draft_id}/{f.name}" for f in sorted(d_img.glob("sec-*.png"))}
     cover_url = f"/img/{draft_id}/cover.png" if (d_img / "cover.png").exists() else None
 
+    from core.layouter import render as layout_render
     theme = load_config().get("creation", {}).get("wechat_theme", "caozhou")
-    wx_html = themes.md_to_wechat_html(body_md, d["title"], theme=theme, images=images_dict)
-    wx_html = _inject_cover(wx_html, cover_url)
+    wx_html = layout_render(body_md, d["title"], theme=theme, images=images_dict, cover=cover_url)
     (ddir / "preview-wechat_mp.html").write_text(wx_html, encoding="utf-8")
 
     tt_html = _tt.render_preview(body_md, d["title"])
@@ -1103,10 +1103,42 @@ def get_draft_images(draft_id: str) -> dict:
     return res
 
 
-def inject_images_to_markdown(body_md: str, draft_id: str) -> str:
-    """若 markdown 中未显式包含图片标记，自动在合适位置注入已生成的封面与小节配图。"""
-    if "![" in body_md:
+def _dedupe_markdown_images(body_md: str) -> str:
+    """对 Markdown 正文中的图片（![alt](url) 与 <img src="...">）进行 URL 全局去重处理。"""
+    if not body_md or ("![" not in body_md and "<img" not in body_md):
         return body_md
+    lines = body_md.splitlines()
+    out = []
+    seen_urls: set[str] = set()
+
+    for ln in lines:
+        s = ln.strip()
+        img_url = ""
+        if s.startswith("!["):
+            m = re.search(r"\((.+?)\)", s)
+            if m:
+                img_url = m.group(1).strip()
+        elif s.startswith("<img") or ("<img" in s and s.endswith(">")):
+            m = re.search(r"""src=['"]([^'"]+)['"]""", s, re.I)
+            if m:
+                img_url = m.group(1).strip()
+
+        if img_url:
+            norm_u = img_url.split("?")[0].strip().rstrip("/")
+            if norm_u in seen_urls:
+                continue
+            seen_urls.add(norm_u)
+            out.append(ln)
+        else:
+            out.append(ln)
+
+    return "\n".join(out).strip()
+
+
+def inject_images_to_markdown(body_md: str, draft_id: str) -> str:
+    """若 markdown 中未显式包含图片标记，自动在合适位置注入已生成的封面与小节配图（内置防重复防连贴）。"""
+    if "![" in body_md or "<img" in body_md:
+        return _dedupe_markdown_images(body_md)
     imgs = get_draft_images(draft_id)
     if not imgs["all"]:
         return body_md
@@ -1116,24 +1148,38 @@ def inject_images_to_markdown(body_md: str, draft_id: str) -> str:
     cover_injected = False
     sec_idx = 0
     num_secs = len(imgs["sections"])
+    injected_urls: set[str] = set()
 
     for ln in lines:
         if not cover_injected and (ln.startswith("## ") or ln.startswith("### ")):
-            if imgs["cover"]:
-                out.append(f"![封面]({imgs['cover']})\n")
+            cov_url = imgs.get("cover")
+            if cov_url:
+                norm_cov = cov_url.split("?")[0].strip().rstrip("/")
+                if norm_cov not in injected_urls:
+                    out.append(f"![封面]({cov_url})\n")
+                    injected_urls.add(norm_cov)
             cover_injected = True
 
         out.append(ln)
 
         if (ln.startswith("## ") or ln.startswith("### ")) and sec_idx < num_secs:
             sec_title = ln.lstrip("#").strip()
-            out.append(f"\n![{sec_title}]({imgs['sections'][sec_idx]})\n")
+            sec_url = imgs["sections"][sec_idx]
+            norm_sec = sec_url.split("?")[0].strip().rstrip("/")
+            if norm_sec not in injected_urls:
+                out.append(f"\n![{sec_title}]({sec_url})\n")
+                injected_urls.add(norm_sec)
             sec_idx += 1
 
-    if not cover_injected and imgs["cover"]:
-        out.insert(0, f"![封面]({imgs['cover']})\n")
+    if not cover_injected and imgs.get("cover"):
+        cov_url = imgs["cover"]
+        norm_cov = cov_url.split("?")[0].strip().rstrip("/")
+        if norm_cov not in injected_urls:
+            out.insert(0, f"![封面]({cov_url})\n")
+            injected_urls.add(norm_cov)
 
-    return "\n".join(out).strip()
+    res = "\n".join(out).strip()
+    return _dedupe_markdown_images(res)
 
 
 def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", force_regen: bool = False, model: str = "") -> dict:
@@ -1236,9 +1282,9 @@ def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", f
     images_dict = {f.name: f"/img/{draft_id}/{f.name}{v_param}" for f in sec_files}
     cover_url = f"/img/{draft_id}/cover.png{v_param}" if has_cover else None
     
+    from core.layouter import render as layout_render
     theme = load_config().get("creation", {}).get("wechat_theme", "caozhou")
-    wx_html = themes.md_to_wechat_html(updated_body_md, title, theme=theme, images=images_dict)
-    wx_html = _inject_cover(wx_html, cover_url)
+    wx_html = layout_render(updated_body_md, title, theme=theme, images=images_dict, cover=cover_url)
     (ddir / "preview-wechat_mp.html").write_text(wx_html, encoding="utf-8")
 
     tt_html = _tt.render_preview(updated_body_md, title, images=[f"/img/{draft_id}/{f.name}{v_param}" for f in sec_files], cover=cover_url, draft_id=draft_id)

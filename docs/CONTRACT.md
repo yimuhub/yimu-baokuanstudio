@@ -340,6 +340,8 @@
 - `GET /api/releases` → api_releases：获取版本更新与发布历史数据【V9.1.0】[新增]
 - `POST /api/billing/order` → billing_create_order：下单购买套餐→生成 CDKey+支付指引【V7.2/R3-2】[NEW]
 - `GET /api/billing/orders` → billing_my_orders：当前用户自己的订单列表【V7.2/R3-2】[NEW]
+- `POST /api/billing/orders/{order_id}/activate` → billing_activate_order：用户核销激活订单【V9.4】[NEW]
+- `POST /api/billing/orders/{order_id}/cancel` → billing_cancel_order：用户取消待支付订单【V9.4】[NEW]
 - `GET /api/billing/upgrade` → billing_upgrade_options：额度墙付费引导（缺口+套餐对比，取定价真源）【V7.2/R3-4】[NEW]
 - `GET /api/admin/orders` → admin_list_orders：订单管理列表（管理员，分页+状态筛选）【V7.2/R3-2】[NEW]
 - `POST /api/admin/orders/{order_id}/confirm` → admin_confirm_order：管理员核销收款（pending→paid）【V7.2/R3-2】[NEW]

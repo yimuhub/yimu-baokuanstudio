@@ -2,7 +2,7 @@
 # ==============================================================================
 #  一幕·YIMU 爆款工作室 (YIMU Studio) - 服务器一键部署脚本 (Server Auto-Deployer)
 #  官方网站: https://yimu.hyipf.com
-#  版本: V9.4.3
+#  版本: V9.4.4
 #  支持系统: Ubuntu 20.04+ / Debian 11+ / CentOS 8+ / RHEL 8+ / Rocky Linux / Fedora / Arch / Alpine
 #
 #  使用方法:
@@ -30,7 +30,7 @@ CURRENT_DIR="$(pwd)"
 banner() {
   echo -e "${PURPLE}╔══════════════════════════════════════════════════════════════════════════╗${NC}"
   echo -e "${PURPLE}║${NC}   ${CYAN}🎬 一幕·YIMU 爆款工作室 (YIMU Studio) - 服务器生产环境一键部署${NC}      ${PURPLE}║${NC}"
-  echo -e "${PURPLE}║${NC}   版本: ${GREEN}V9.4.3${NC} · 官网: ${BLUE}https://yimu.hyipf.com${NC} · 自动化云原生部署中枢     ${PURPLE}║${NC}"
+  echo -e "${PURPLE}║${NC}   版本: ${GREEN}V9.4.4${NC} · 官网: ${BLUE}https://yimu.hyipf.com${NC} · 自动化云原生部署中枢     ${PURPLE}║${NC}"
   echo -e "${PURPLE}╚══════════════════════════════════════════════════════════════════════════╝${NC}"
   echo ""
 }
@@ -264,7 +264,7 @@ show_summary() {
 
   echo ""
   echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${GREEN}🎉 恭喜！一幕·YIMU 爆款工作室 (V9.4.3) 服务器生产环境已成功部署上线！${NC}"
+  echo -e "${GREEN}🎉 恭喜！一幕·YIMU 爆款工作室 (V9.4.4) 服务器生产环境已成功部署上线！${NC}"
   echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo -e "  🌐 ${CYAN}公网浏览器访问:${NC}  ${BLUE}http://${ext_ip}:${PORT}${NC}"
   echo -e "  🏠 ${CYAN}内网/局域网访问:${NC} ${BLUE}http://${int_ip}:${PORT}${NC}"

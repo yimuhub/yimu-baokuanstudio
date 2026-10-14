@@ -267,7 +267,7 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
     # 微信公众号
     if "wechat_mp" in selected_platforms:
         save_preview(ddir, "wechat_mp",
-                     layout_render(body, title, theme, meta=media_name, images=images, cover=cover))
+                     layout_render(injected_body, title, theme, meta=media_name, images=images, cover=cover))
 
     from adapters import toutiao, zhihu, weibo, twitter
     if "toutiao" in selected_platforms:
@@ -698,7 +698,7 @@ def rewrite_single_platform(draft_id: str, platform: str, instruction: str = "")
             from core.imagegen import inject_images_to_markdown
             theme, card_style = _cfg_theme()
             injected = inject_images_to_markdown(body, draft_id)
-            save_preview(ddir, "wechat_mp", layout_render(body, title, theme, meta="一幕·YIMU 爆款工作室"))
+            save_preview(ddir, "wechat_mp", layout_render(injected, title, theme, meta="一幕·YIMU 爆款工作室"))
             c = db.conn()
             c.execute("UPDATE drafts SET title=?, body_md=? WHERE id=?", (title, body, draft_id))
             c.commit(); c.close()

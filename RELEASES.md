@@ -4,6 +4,27 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌟 Version 9.4.4 · Pristine Mirror (澄澈镜 · 极简模式与全链路排版图片去重专项) · 2026-10-14
+
+> **Milestone**: Full-Pipeline Image Deduplication for WeChat MP Typesetting + Unified Layout Rendering Contract + Self-Healing Draft Cache  
+> **Codename**: 澄澈镜 (Pristine Mirror · 澄澈明镜，图文无瑕)  
+> **Slogan**: One Thought. One Scene. Infinite Worlds · Pristine Mirror (一念起 一幕开 万象生 · 澄澈分明，绝无重复)  
+> **Licensor**: yimu.hyipf.com  
+> **Release Date**: 2026-10-14  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.4.4"`)  
+
+### 🖼️ 1. 极简模式与全链路首次排版图片防重复彻底根治
+- **三层防重过滤防线**：
+  - **输入层 (`_dedupe_markdown_images`)**：在 Markdown 语法树注入与处理阶段，严格过滤同 URL 重复图片及连续相邻紧挨堆叠的图片标记；
+  - **转换层 (`md_to_wechat_html`)**：解析正文提取已有图片集 `seen_img_urls`，修剪外部 `effective_images` 字典；单篇 HTML 输出严格保证规范化 URL 仅渲染一次，彻底终结正文与字典配图双写冲突；
+  - **输出层 (`_dedupe_wechat_html_images`)**：针对微信公众号 HTML 输出全局正则扫描，自动清除重复 `<img>` 标签及空段落。
+- **全平台多端排版契约统一收口**：
+  - 将 `core.themes.md_to_wechat_html`、`core.imagegen`（成套生图与局部重绘）、`core.fission`（母稿派生）、`adapters.wechat_mp`、`web.admin` 等全部微信公众号排版调用统一路由至具有守卫能力的高阶 `core.layouter.render`。
+- **草稿箱与分发预览自愈清洗**：
+  - 接口 `GET /api/drafts/{did}/raw/wechat_mp` 增加历史缓存自愈机制，旧草稿在首次排版与二次查看时自动完成图片去重自愈与缓存重写。
+
+---
+
 ## 🌟 Version 9.4.3 · Luminous Chronicles (浮光录 · 全栈精铸与架构贯通篇) · 2026-10-14
 
 > **Milestone**: Full-Stack Security Hardening + BYOK/Free-Demo Pipeline Unification + 6D Persona Injection + 10x DB Speedup  

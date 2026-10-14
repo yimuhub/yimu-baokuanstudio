@@ -102,10 +102,9 @@ def switch_theme_pure(
 
     images = {f.name: f"/img/{draft_id}/{f.name}" for f in sorted((ddir / "img").glob("sec-*.png"))} if (ddir / "img").exists() else {}
     cover = f"/img/{draft_id}/cover.png" if (ddir / "img" / "cover.png").exists() else None
+    from core.layouter import render as layout_render
     meta = media_name or "一幕·YIMU 爆款工作室"
-
-    html = md_to_wechat_html(cur_body, cur_title, theme=theme, meta=meta, images=images)
-    html = _inject_cover(html, cover)
+    html = layout_render(cur_body, cur_title, theme=theme, meta=meta, images=images, cover=cover)
     save_preview(ddir, "wechat_mp", html)
 
     return {
@@ -160,12 +159,10 @@ def derive_all_platforms_from_master(
     # 2. 微信公众号（若选中）
     if "wechat_mp" in selected_platforms:
         emit("🟢 渲染微信公众号版本（零篡改纯排版，文字 100% 忠实母稿）…")
-        from core.themes import md_to_wechat_html
-        from core.layouter import _inject_cover
+        from core.layouter import render as layout_render
         images = {f.name: f"/img/{draft_id}/{f.name}" for f in sorted((ddir / "img").glob("sec-*.png"))} if (ddir / "img").exists() else {}
         cover = f"/img/{draft_id}/cover.png" if (ddir / "img" / "cover.png").exists() else None
-        wx_html = md_to_wechat_html(body_md, title, theme=theme, meta=media_name, images=images)
-        wx_html = _inject_cover(wx_html, cover)
+        wx_html = layout_render(body_md, title, theme=theme, meta=media_name, images=images, cover=cover)
         save_preview(ddir, "wechat_mp", wx_html)
 
     # 3. 按需大模型并发派生其他各端

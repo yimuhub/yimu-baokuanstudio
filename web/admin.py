@@ -1242,7 +1242,7 @@ def status(request: Request):
         "platform_names": NAMES,
         "themes": {"wechat": {**{k: v["name"] + "（规则）" for k, v in WECHAT_THEMES.items()},
                               **{k: v["name"] for k, v in layouter.list_themes().items()
-                                 if v["has_prompt"]}},
+                                 if v.get("has_prompt")}},
                    "card": {k: v["name"] for k, v in XHS_CARD_STYLES.items()},
                    "current": {"wechat_theme": cr.get("wechat_theme", "caozhou"),
                                "card_style": cr.get("card_style", "magazine")}},
@@ -1424,8 +1424,8 @@ async def api_render(request: Request):
             if (ddir / "img" / "cover.png").exists():
                 cover = f"/img/{did}/cover.png"
     meta = (body.get("meta") or body.get("media_name") or "").strip() or "一幕·YIMU 爆款工作室"
-    html = md_to_wechat_html(body_md, title, theme=theme, meta=meta, images=images)
-    html = _inject_cover(html, cover)
+    from core.layouter import render as layout_render
+    html = layout_render(body_md, title=title, theme=theme, meta=meta, images=images, cover=cover)
     return {"html": html}
 
 
@@ -1893,9 +1893,8 @@ async def draft_save_wechat(did: str, request: Request):
     cover = f"/img/{did}/cover.png" if (ddir / "img" / "cover.png").exists() else None
     if not body.get("keep_ai_preview"):
         meta = (body.get("meta") or body.get("media_name") or "").strip() or "一幕·YIMU 爆款工作室"
-        html = md_to_wechat_html(body_md, d["title"], theme=theme, meta=meta, images=images)
-        from core.layouter import _inject_cover
-        html = _inject_cover(html, cover)
+        from core.layouter import render as layout_render
+        html = layout_render(body_md, d["title"], theme=theme, meta=meta, images=images, cover=cover)
         (ddir / "preview-wechat_mp.html").write_text(html, encoding="utf-8")
         # 头条预览与 toutiao.md 同步（保留原标题行）
         from adapters import toutiao as _tt
@@ -2052,15 +2051,13 @@ async def draft_ai_layout(did: str, request: Request):
                 update_async_job(jid, status="done", step="微博快讯排版完成", progress=100, result={"html": html, "text": body_text})
             else:
                 update_async_job(jid, step="渲染微信公众号美学主题…", progress=50)
-                from core import themes
-                from core.layouter import _inject_cover
+                from core.layouter import render as layout_render
                 images = {f.name: f"/img/{did}/{f.name}"
                           for f in sorted((ddir / "img").glob("sec-*.png"))} \
                     if (ddir / "img").exists() else {}
                 cover = f"/img/{did}/cover.png" if (ddir / "img" / "cover.png").exists() else None
                 meta = (body.get("meta") or body.get("media_name") or "").strip() or "一幕·YIMU 爆款工作室"
-                html = themes.md_to_wechat_html(body_text, d["title"], theme=theme, meta=meta, images=images)
-                html = _inject_cover(html, cover)
+                html = layout_render(body_text, d["title"], theme=theme, meta=meta, images=images, cover=cover)
                 (ddir / "preview-wechat_mp.html").write_text(html, encoding="utf-8")
                 update_async_job(jid, status="done", step="微信公众号排版完成", progress=100, result={"html": html, "text": body_text})
         except Exception as e:
@@ -5284,8 +5281,8 @@ def draft_raw(did: str, platform: str):
         from core.imagegen import get_draft_images
         d_imgs = get_draft_images(did)
         has_imgs_on_disk = bool(d_imgs.get("cover") or d_imgs.get("sections"))
+        from core.layouter import render as layout_render, _dedupe_wechat_html_images
         if not f.exists() or f.stat().st_size < 100 or (has_imgs_on_disk and "<img" not in content):
-            from core.layouter import render as layout_render
             images_dict = {f"sec-{i}": u for i, u in enumerate(d_imgs.get("sections", []))}
             sec_meta = [line[4:].strip() for line in d["body_md"].splitlines() if line.startswith("### ")]
             for i, sec_t in enumerate(sec_meta):
@@ -5293,8 +5290,14 @@ def draft_raw(did: str, platform: str):
                     images_dict[sec_t] = d_imgs["sections"][i]
             wx_html = layout_render(d["body_md"], d["title"], theme="spring-fresh", images=images_dict, cover=d_imgs.get("cover"))
             f.write_text(wx_html, encoding="utf-8")
+            content = wx_html
+        else:
+            deduped = _dedupe_wechat_html_images(content)
+            if deduped != content:
+                content = deduped
+                f.write_text(content, encoding="utf-8")
         return {"title": d["title"],
-                "html": f.read_text(encoding="utf-8"),
+                "html": content,
                 "text": d["body_md"]}
     if platform == "body":
         return {"title": d["title"], "body_md": d["body_md"], "text": d["body_md"]}
@@ -5429,7 +5432,7 @@ async def draft_save_platform(did: str, request: Request):
         c = db.conn()
         c.execute("UPDATE drafts SET body_md=? WHERE id=?", (text, did))
         c.commit(); c.close()
-        from core.themes import md_to_wechat_html
+        from core.layouter import render as layout_render
         if not theme:
             theme = load_config().get("creation", {}).get("wechat_theme", "caozhou")
         theme = theme if theme in WECHAT_THEMES else "caozhou"
@@ -5437,9 +5440,7 @@ async def draft_save_platform(did: str, request: Request):
             if (ddir / "img").exists() else {}
         cover = f"/img/{did}/cover.png" if (ddir / "img" / "cover.png").exists() else None
         meta = (body.get("meta") or body.get("media_name") or "").strip() or "一幕·YIMU 爆款工作室"
-        html = md_to_wechat_html(text, d["title"], theme=theme, meta=meta, images=images)
-        from core.layouter import _inject_cover
-        html = _inject_cover(html, cover)
+        html = layout_render(text, d["title"], theme=theme, meta=meta, images=images, cover=cover)
         (ddir / "preview-wechat_mp.html").write_text(html, encoding="utf-8")
         return {"ok": True, "text": text, "html": html}
 

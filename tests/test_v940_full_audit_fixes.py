@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BUSL-1.1
-"""V9.4.3 (回响曲 · Echo Melody) 全量审查修复与架构升级专项验收测试。"""
+"""V9.4.4 (回响曲 · Echo Melody) 全量审查修复与架构升级专项验收测试。"""
 from __future__ import annotations
 
 import os
@@ -10,10 +10,10 @@ import version
 
 
 def test_v940_version_truth():
-    """验证 V9.4.3 版本单一真源与专属代号"""
-    assert version.__version__ == "9.4.3"
-    assert version.__codename__ == "浮光录"
-    assert "Luminous Chronicles" in version.__slogan_en__
+    """验证 V9.4.4 版本单一真源与专属代号"""
+    assert version.__version__ == "9.4.4"
+    assert version.__codename__ == "澄澈镜"
+    assert "Pristine Mirror" in version.__slogan_en__
 
 
 def test_v940_reverse_proxy_loopback_guard():
@@ -120,6 +120,7 @@ def test_v940_byok_waives_platform_credits(tmp_path, monkeypatch):
     monkeypatch.setattr(core_db, "DB_PATH", test_db)
     monkeypatch.setattr(core_db, "DATA", tmp_path)
     monkeypatch.setattr(core_auth, "DB_PATH", test_db)
+    core_db.conn()
 
     reg = core_auth.register_user("byok_user", "password123")
     uid = reg["user"]["id"]

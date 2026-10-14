@@ -6,8 +6,8 @@
 
 **The Full-Lifecycle Viral Content Creation Engine & LLM Commercial Gateway for Digital Creators, Short Drama Studios, and MCN Agencies**
 
-[![Version](https://img.shields.io/badge/version-9.4.3-orange.svg?style=flat-square)](version.py)
-[![Release](https://img.shields.io/badge/release-v9.4.3%20(Server%20Deploy)-blueviolet.svg?style=flat-square)](RELEASES.md)
+[![Version](https://img.shields.io/badge/version-9.4.4-orange.svg?style=flat-square)](version.py)
+[![Release](https://img.shields.io/badge/release-v9.4.4%20(Server%20Deploy)-blueviolet.svg?style=flat-square)](RELEASES.md)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Licensor](https://img.shields.io/badge/Licensor-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
 [![Copyright](https://img.shields.io/badge/Copyright-%C2%A9%202026%20yimu.hyipf.com-orange.svg?style=flat-square)](https://yimu.hyipf.com)
@@ -24,7 +24,7 @@
 
 **English** • [简体中文说明](README_ZH.md)
 
-[✨ Features](#-core-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#-system-architecture) • [📦 Release 9.4.3](RELEASES.md) • [🛠️ Dev Guide](DEVELOPMENT.md) • [📜 License](#-license--copyright-terms)
+[✨ Features](#-core-features) • [🚀 Quick Start](#-quick-start) • [🏗️ Architecture](#-system-architecture) • [📦 Release 9.4.4](RELEASES.md) • [🛠️ Dev Guide](DEVELOPMENT.md) • [📜 License](#-license--copyright-terms)
 
 </div>
 
@@ -36,7 +36,7 @@ In the era of AI-generated content (AIGC), creators face two fatal bottlenecks:
 1. **Generic, Plastic Copywriting**: Hollow clichés, lacking deep analytical arguments and the crucial 3-second hook that stops users from scrolling.
 2. **Disconnected, Low-Quality Visuals**: Blind-box image generation where illustrations bear zero relevance to article sections, often plagued by hazy fog, blurriness, or weird AI artifacts.
 
-**YIMU Studio V9.4.3 ("天工开" / Divine Forge)** fundamentally revolutionizes AI content production:
+**YIMU Studio V9.4.4 ("天工开" / Divine Forge)** fundamentally revolutionizes AI content production:
 - **Cinematic Storyboarding & 2K Crystal-Clear Image Engine**: Before generating any image, the visual agent **reads the entire article end-to-end**, extracting narrative turning points and worldview themes. Covers are mapped to Wide Establishing Shots, while sections are paired with Medium Narrative Shots or Emotional Close-ups. Powered by a specialized 2K resolution pipeline and a **zero-haze transparency prompt engineering pipeline**, visual-to-text semantic alignment is locked at **over 95%** with vivid color saturation and laser-sharp clarity.
 - **Multi-Channel Native Layout Compiler**: One master draft is instantly formatted into WeChat Official Account rich-text, Toutiao information feed layout, and Xiaohongshu (RED) 5-act frosted-glass panoramic cards.
 - **Dual-Device Synchronization & Commercial Gateway**: Real-time parity between Desktop Pro Workbench and Mobile Companion, featuring a unified billing/token portal and an OpenAI-compatible routing gateway.
@@ -212,16 +212,16 @@ bash ci.sh
 
 ---
 
-## 📦 Latest Release: V9.4.3 (扶风翼 · Gale Wings: Free First, Pay Later)
+## 📦 Latest Release: V9.4.4 (扶风翼 · Gale Wings: Free First, Pay Later)
 
 YIMU Studio strictly implements Semantic Versioning (`SemVer`). To ensure maximum clarity and a pure presentation, the project homepage focuses exclusively on the **latest active release**:
 
-### 🌟 V9.4.3 Feature Highlights
+### 🌟 V9.4.4 Feature Highlights
 - 🎁 **Official-Channel Free Trial Quota (First Success Before First Paywall)**: New users now get **3 free lightweight AI generations per day** via the official channel — no API Key required. Free trials auto-revert to normal compute-credit billing when exhausted, so a brand-new creator's first viral post is never blocked by a 401/502.
 - 🚀 **First-Run Onboarding Wizard**: A 3-step, 30-second setup guide on first login — explains the free trial quota, lets users either start instantly on the official channel or drop in their own API Key. Dismissal is persisted so it never nags again.
 - 🏛️ **Dual Data-Access Unification (P0 Debt Paydown)**: The `users` / `user_api_keys` tables are now declared in the single SQLAlchemy source of truth (`studio/db_models.py`) with all V6-era columns; raw-sqlite self-healing (`ensure_users_columns`) is demoted to a guarded fallback. Time columns unified to ISO-8601 via `FlexibleDateTime` — no more mixed float/ISO encoding.
 - 🌐 **100% Zero-Residue Bilingual Engine**: 1,835+ UI dictionary terms covering desktop & mobile topbars, all 16 system modals (incl. the new wizard), form controls, and attributes — zero Chinese residue in English mode.
-- ⚖️ **Single Source of Truth**: All components across the system strictly unified to **V9.4.3**.
+- ⚖️ **Single Source of Truth**: All components across the system strictly unified to **V9.4.4**.
 
 > For historical version archives and detailed milestone changelogs, please visit the official [Releases Documentation (RELEASES.md)](RELEASES.md) and [GitHub Releases Page](https://github.com/yimuhub/yimu-baokuanstudio/releases).
 

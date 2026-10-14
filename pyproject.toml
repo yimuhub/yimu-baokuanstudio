@@ -1,0 +1,25 @@
+[project]
+name = "yimu-baokuanstudio"
+version = "10.0.0"
+description = "一幕·YIMU 爆款工作室 V10.0.0 (鸿蒙始 · Primordial Dawn) — 全自主 Multi-Agent 全媒体内容与影视短剧创作系统"
+readme = "README_ZH.md"
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+exclude = [".venv", "vendors", "data", "runs", "logs"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = ["E501", "E402"]
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+check_untyped_defs = false

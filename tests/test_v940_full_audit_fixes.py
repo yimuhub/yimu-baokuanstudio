@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: BUSL-1.1
-"""V9.4.4 (回响曲 · Echo Melody) 全量审查修复与架构升级专项验收测试。"""
+"""V10.0.0 (鸿蒙始 · Primordial Dawn) 全量审查修复与架构升级专项验收测试。"""
 from __future__ import annotations
 
 import os
@@ -10,8 +10,8 @@ import version
 
 
 def test_v940_version_truth():
-    """验证 V9.4.5 版本单一真源与专属代号"""
-    assert version.__version__ == "9.4.5"
+    """验证 V10.0.0 版本单一真源与专属代号"""
+    assert version.__version__ == "10.0.0"
     assert version.__codename__ == "澄音境"
     assert "Pristine Rhythm" in version.__slogan_en__
 

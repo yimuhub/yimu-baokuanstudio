@@ -385,10 +385,10 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V9.4.5 -->
+      <!-- V10.0.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌟 V9.4.5 · 澄音境 (Pristine Rhythm)</span>
+          <span class="t-ver">🌟 V10.0.0 · 鸿蒙始 (Pristine Rhythm)</span>
           <span class="badge orange">当前版本 · 最新</span>
           <span class="t-date">2026-10-14</span>
         </div>
@@ -401,10 +401,10 @@ footer {{
         </ul>
       </div>
 
-      <!-- V9.4.4 -->
+      <!-- V10.0.0 -->
       <div class="timeline-item">
         <div class="t-head">
-          <span class="t-ver">🏷️ V9.4.4 · 澄澈镜 (Pristine Mirror)</span>
+          <span class="t-ver">🏷️ V10.0.0 · 澄澈镜 (Pristine Mirror)</span>
           <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-14</span>
         </div>
@@ -417,10 +417,10 @@ footer {{
         </ul>
       </div>
 
-      <!-- V9.4.3 -->
+      <!-- V10.0.0 -->
       <div class="timeline-item">
         <div class="t-head">
-          <span class="t-ver">🏷️ V9.4.3 · 浮光录 (Luminous Chronicles)</span>
+          <span class="t-ver">🏷️ V10.0.0 · 鸿蒙始 (Luminous Chronicles)</span>
           <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-14</span>
         </div>

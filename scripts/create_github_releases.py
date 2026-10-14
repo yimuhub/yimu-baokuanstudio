@@ -534,21 +534,21 @@ git checkout v9.3.1
         "is_latest": False
     },
     {
-        "tag": "v9.4.3",
-        "name": "v9.4.3 - 回响曲 · Echo Melody (Full-Stack Security, BYOK & 6D Persona Unification)",
-        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.4.3\n\n> **版本代号 / Codename**: 回响曲 · Echo Melody\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与修复亮点\n1. **全链路安全加固**：反代 `X-Forwarded-For`/`X-Real-IP` 识别防免密超管穿透、跨站 Drive-by CSRF 拦截、按需 HTTPS CSP、API Key Vault 随机 Nonce+HMAC 认证加密 (`v2$`)；\n2. **BYOK 与免费体验主链贯通**：`core/agents.py` 与 `core/llm.py` 自动从上下文提取 `user_id`，自备 Key 模式自动免除 `require_credits` 平台算力扣除，统一 V6/V7 双会话 Cookie (`mf_v6_token` + `yimu_session`)；\n3. **6 维人设自动注入与小红书指令精修**：写作/导演/广告 Agent 自动挂载当前工作区 6 维数字画像与声纹记忆，修复小红书单平台改写指令透传；\n4. **数据库 10 倍提速与无冲突热更新**：`core/db.py` 连接初始化缓存化，在线升级自动保护本地 `config.yaml`，补齐注册与首稿增长漏斗埋点，支持每日工单跨整点 15 分钟窗口与状态持久化。\n",
+        "tag": "v10.0.0",
+        "name": "v10.0.0 - 鸿蒙始 · Primordial Dawn (Full-Stack Security, BYOK & 6D Persona Unification)",
+        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V10.0.0\n\n> **版本代号 / Codename**: 鸿蒙始 · Primordial Dawn\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与修复亮点\n1. **全链路安全加固**：反代 `X-Forwarded-For`/`X-Real-IP` 识别防免密超管穿透、跨站 Drive-by CSRF 拦截、按需 HTTPS CSP、API Key Vault 随机 Nonce+HMAC 认证加密 (`v2$`)；\n2. **BYOK 与免费体验主链贯通**：`core/agents.py` 与 `core/llm.py` 自动从上下文提取 `user_id`，自备 Key 模式自动免除 `require_credits` 平台算力扣除，统一 V6/V7 双会话 Cookie (`mf_v6_token` + `yimu_session`)；\n3. **6 维人设自动注入与小红书指令精修**：写作/导演/广告 Agent 自动挂载当前工作区 6 维数字画像与声纹记忆，修复小红书单平台改写指令透传；\n4. **数据库 10 倍提速与无冲突热更新**：`core/db.py` 连接初始化缓存化，在线升级自动保护本地 `config.yaml`，补齐注册与首稿增长漏斗埋点，支持每日工单跨整点 15 分钟窗口与状态持久化。\n",
         "is_latest": False
     },
     {
-        "tag": "v9.4.4",
-        "name": "v9.4.4 - 澄澈镜 · Pristine Mirror (Zero-Duplicate Multi-Platform WeChat Typesetting Engine)",
-        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.4.4\n\n> **版本代号 / Codename**: 澄澈镜 · Pristine Mirror\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与修复亮点\n1. **极简模式与全链路排版图片去重**：彻底根除极简模式与全平台首次生成内容（微信公众号）时配图重复出现 2 次的顽疾；\n2. **三层去重防御闭环**：输入层（Markdown 注入防重复与相邻去重 `_dedupe_markdown_images`）、转换层（HTML 语法树构建防二次插入与 URL 唯一规范化对比）、输出层（HTML 全局正则扫描与自愈去重 `_dedupe_wechat_html_images`）；\n3. **跨模块统一调用**：全系统（`core.layouter`、`core.themes`、`core.imagegen`、`core.orchestrator`、`core.fission`、`adapters.wechat_mp`、`web.admin`）统一收口至 `layout_render`，杜绝重复传图参数叠加；\n4. **草稿箱与缓存自愈**：草稿箱打开与分发预览接口内置自愈检测，历史生成的重复图片在打开瞬间自动清洗并无损重写缓存。\n",
+        "tag": "v10.0.0",
+        "name": "v10.0.0 - 澄澈镜 · Pristine Mirror (Zero-Duplicate Multi-Platform WeChat Typesetting Engine)",
+        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V10.0.0\n\n> **版本代号 / Codename**: 澄澈镜 · Pristine Mirror\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与修复亮点\n1. **极简模式与全链路排版图片去重**：彻底根除极简模式与全平台首次生成内容（微信公众号）时配图重复出现 2 次的顽疾；\n2. **三层去重防御闭环**：输入层（Markdown 注入防重复与相邻去重 `_dedupe_markdown_images`）、转换层（HTML 语法树构建防二次插入与 URL 唯一规范化对比）、输出层（HTML 全局正则扫描与自愈去重 `_dedupe_wechat_html_images`）；\n3. **跨模块统一调用**：全系统（`core.layouter`、`core.themes`、`core.imagegen`、`core.orchestrator`、`core.fission`、`adapters.wechat_mp`、`web.admin`）统一收口至 `layout_render`，杜绝重复传图参数叠加；\n4. **草稿箱与缓存自愈**：草稿箱打开与分发预览接口内置自愈检测，历史生成的重复图片在打开瞬间自动清洗并无损重写缓存。\n",
         "is_latest": False
     },
     {
-        "tag": "v9.4.5",
-        "name": "v9.4.5 - 澄音境 · Pristine Rhythm (Full-Pipeline Text Denoising & Minimalist Section Typography)",
-        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.4.5 [最新旗舰版 / Latest]\n\n> **版本代号 / Codename**: 澄音境 · Pristine Rhythm\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与去噪亮点\n1. **系统级正文深度去噪引擎 (`core/text_denoise.py`)**：彻底剔除 AI 生成内容中的粗糙分割线（`***`、`---`、`___`、`* * *`），将 `***加粗斜体***` 规范化降级为标准 `**加粗**`，彻底清除残余星号杂质；\n2. **正文标题降噪与排版自然化**：彻底终结正文中充斥的 `###`、`##` 等影响阅读观感的原始 Markdown 符号，智能平滑转换为中文方头括号 `【小节标题】` 与自然中文序号；\n3. **`#` 符号严格限定标签与话题**：强制约束 `#` 严格且仅能用于文末话题标签（如 `#自媒体 #AI爆款`）与成对社交话题（如 `#今日热点#`），正文中混杂的孤立无意义 `#` 全量无损清洗；\n4. **多端排版引擎自适应兼容**：微信公众号、今日头条、知乎等渲染器全面原生兼容方头括号与自然序号小节，自动赋予高颜值主题样式并精准配对小节插图，正文源码彻底告别 `###` 原始符号。\n",
+        "tag": "v10.0.0",
+        "name": "v10.0.0 - 鸿蒙始 · Primordial Dawn (Full-Pipeline Text Denoising & Minimalist Section Typography)",
+        "body": "# 🎬 一幕 · 爆款工坊 (YIMU Studio) V10.0.0 [最新旗舰版 / Latest]\n\n> **版本代号 / Codename**: 鸿蒙始 · Primordial Dawn\n> **发布日期 / Release Date**: 2026-10-14\n> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1\n\n### 🌟 核心升级与去噪亮点\n1. **系统级正文深度去噪引擎 (`core/text_denoise.py`)**：彻底剔除 AI 生成内容中的粗糙分割线（`***`、`---`、`___`、`* * *`），将 `***加粗斜体***` 规范化降级为标准 `**加粗**`，彻底清除残余星号杂质；\n2. **正文标题降噪与排版自然化**：彻底终结正文中充斥的 `###`、`##` 等影响阅读观感的原始 Markdown 符号，智能平滑转换为中文方头括号 `【小节标题】` 与自然中文序号；\n3. **`#` 符号严格限定标签与话题**：强制约束 `#` 严格且仅能用于文末话题标签（如 `#自媒体 #AI爆款`）与成对社交话题（如 `#今日热点#`），正文中混杂的孤立无意义 `#` 全量无损清洗；\n4. **多端排版引擎自适应兼容**：微信公众号、今日头条、知乎等渲染器全面原生兼容方头括号与自然序号小节，自动赋予高颜值主题样式并精准配对小节插图，正文源码彻底告别 `###` 原始符号。\n",
         "is_latest": True
     }
 ]

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>审计日志 · 一幕 YIMU</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0f1220;color:#e8ecf8;font-family:PingFang SC,Microsoft YaHei,sans-serif}
+ .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+ h1{font-size:22px;margin:0 0 4px}
+ .sub{color:#8b93ad;font-size:13px;margin-bottom:20px}
+ .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+ input,select{background:#0d1117;border:1px solid #2c3446;color:#e8ecf8;
+              border-radius:8px;padding:8px 11px;font-size:13px}
+ button{background:#f0883e;color:#fff;border:0;border-radius:8px;padding:8px 16px;
+        font-size:13px;font-weight:700;cursor:pointer}
+ button.ghost{background:#0d1117;border:1px solid #2c3446;color:#c8cee0}
+ table{width:100%;border-collapse:collapse;font-size:12.5px}
+ th,td{padding:8px 10px;border-bottom:1px solid #262d3d;text-align:left;vertical-align:top}
+ th{color:#8b93ad;font-weight:600}
+ td.detail{font-family:ui-monospace,Menlo,monospace;color:#9aa3bd;font-size:12px;
+           max-width:420px;word-break:break-all}
+ .act{color:#f0883e;font-weight:600;white-space:nowrap}
+ .empty{color:#8b93ad;padding:16px 0;font-size:13px}
+ .pager{margin-top:14px;display:flex;gap:10px;align-items:center;font-size:13px;color:#8b93ad}
+</style></head><body>
+<div class="wrap">
+  <h1>🗂️ 审计日志</h1>
+  <div class="sub">记录发放额度、退款、封禁、下单等敏感操作。日志只增不改，不可删除。</div>
+  <div class="bar">
+    <select id="act"><option value="">全部动作</option></select>
+    <input id="actor" placeholder="操作人 user_id" style="width:200px">
+    <input id="kw" placeholder="搜索动作 / 对象" style="width:200px">
+    <button onclick="load(0)">查询</button>
+  </div>
+  <div id="tb"><div class="empty">加载中…</div></div>
+  <div class="pager">
+    <button class="ghost" onclick="load(Math.max(0,off-50))">上一页</button>
+    <span id="info"></span>
+    <button class="ghost" onclick="load(off+50)">下一页</button>
+  </div>
+</div>
+<script>
+var off = 0;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+async function loadActions(){
+  const r = await fetch('/api/admin/audit_actions');
+  const d = await r.json();
+  if(d.ok && d.actions){
+    document.getElementById('act').innerHTML = '<option value="">全部动作</option>' +
+      d.actions.map(function(a){return '<option value="' + esc(a) + '">' + esc(a) + '</option>';}).join('');
+  }
+}
+async function load(o){
+  off = o || 0;
+  const p = new URLSearchParams({offset:String(off), limit:'50',
+    action:document.getElementById('act').value,
+    actor:document.getElementById('actor').value.trim(),
+    keyword:document.getElementById('kw').value.trim()});
+  const r = await fetch('/api/admin/audit_logs?' + p.toString());
+  const d = await r.json();
+  if(!r.ok || !d.ok){document.getElementById('tb').innerHTML =
+    '<div class="empty">' + esc((d.detail&&d.detail.message)||'加载失败') + '</div>'; return;}
+  if(!d.items.length){document.getElementById('tb').innerHTML =
+    '<div class="empty">没有符合条件的审计记录</div>';
+    document.getElementById('info').textContent=''; return;}
+  document.getElementById('tb').innerHTML = '<table><tr><th>时间</th><th>操作人</th>' +
+    '<th>动作</th><th>对象</th><th>详情</th></tr>' + d.items.map(function(x){
+      return '<tr><td>' + esc((x.created_at||'').slice(0,19).replace('T',' ')) + '</td><td>' +
+        esc(x.actor) + '</td><td class="act">' + esc(x.action) + '</td><td>' + esc(x.target) +
+        '</td><td class="detail">' + esc(JSON.stringify(x.detail)) + '</td></tr>';}).join('') +
+    '</table>';
+  document.getElementById('info').textContent = '共 ' + d.total + ' 条，当前第 ' + (off/50+1) + ' 页';
+}
+loadActions(); load(0);
+</script></body></html>

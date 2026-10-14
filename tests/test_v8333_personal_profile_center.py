@@ -21,18 +21,18 @@ from web.admin import app
 
 
 def test_v8333_version_single_source_of_truth():
-    """验证单一真源版本号已升级至 9.4.5"""
-    assert version.__version__ == "9.4.5"
+    """验证单一真源版本号已升级至 10.0.0"""
+    assert version.__version__ == "10.0.0"
     index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
     mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
     readme_md = Path("README.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
-    assert "V9.4.5" in index_html
-    assert "9.4.5" in index_html
-    assert "V9.4.5" in mobile_html
-    assert "version-9.4.5" in readme_md
-    assert "V9.4.5" in license_txt
+    assert "V10.0.0" in index_html
+    assert "10.0.0" in index_html
+    assert "V10.0.0" in mobile_html
+    assert "version-10.0.0" in readme_md
+    assert "V10.0.0" in license_txt
 
 
 def test_v8333_sidebar_profile_and_fixed_version():
@@ -53,7 +53,7 @@ def test_v8333_sidebar_profile_and_fixed_version():
     assert 'id="side-version-badge"' in index_html or 'class="side-version-bar"' in index_html
     assert 'onclick="checkSystemUpdate(true)"' in index_html
     assert 'id="side-version-text"' in index_html
-    assert "V9.4.4" in index_html
+    assert "V10.0.0" in index_html
 
 
 def test_v8333_personal_center_billing_integration():

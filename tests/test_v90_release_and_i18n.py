@@ -14,8 +14,8 @@ import version
 
 
 def test_v90_version_single_source_of_truth():
-    """验证 9.4.5 版本单一真源（V9.4.5 · 澄音境 · 正文深度去噪与排版素简）"""
-    assert version.__version__ == "9.4.5"
+    """验证 10.0.0 版本单一真源（V10.0.0 · 鸿蒙始 · 正文深度去噪与排版素简）"""
+    assert version.__version__ == "10.0.0"
     assert version.__codename__ == "澄音境"
     assert "Pristine Rhythm" in version.__slogan_en__
 
@@ -26,12 +26,12 @@ def test_v90_version_single_source_of_truth():
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
-    assert "V9.4.5" in index_html
-    assert "9.4.5" in index_html
-    assert "V9.4.5" in mobile_html
-    assert "version-9.4.5" in readme_en
-    assert "version-9.4.5" in readme_zh
-    assert "V9.4.5" in license_txt
+    assert "V10.0.0" in index_html
+    assert "10.0.0" in index_html
+    assert "V10.0.0" in mobile_html
+    assert "version-10.0.0" in readme_en
+    assert "version-10.0.0" in readme_zh
+    assert "V10.0.0" in license_txt
     assert "Licensor:            yimu.hyipf.com" in license_txt
     assert "The Licensed Work is (c) 2026 yimu.hyipf.com" in license_txt
 
@@ -46,21 +46,21 @@ def test_v90_releases_showcase_page_and_api():
     # 1. /releases 页面
     r = client.get("/releases")
     assert r.status_code == 200
-    assert "V9.4.4" in r.text or "V9.3.1" in r.text
+    assert "V10.0.0" in r.text or "V9.3.1" in r.text
     assert "yimu.hyipf.com" in r.text
     assert "核心版本差异演进矩阵" in r.text
 
     # 2. /admin/releases 兼容页面
     r_admin = client.get("/admin/releases")
     assert r_admin.status_code == 200
-    assert "V9.4.4" in r_admin.text or "V9.3.1" in r_admin.text
+    assert "V10.0.0" in r_admin.text or "V9.3.1" in r_admin.text
 
     # 3. /api/releases 数据接口
     r_api = client.get("/api/releases")
     assert r_api.status_code == 200
     d = r_api.json()
     assert d.get("ok") is True
-    assert d.get("current_version") == "9.4.5"
+    assert d.get("current_version") == "10.0.0"
     assert d.get("licensor") == "yimu.hyipf.com"
     assert len(d.get("releases", [])) >= 4
 

@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>用户管理 · 一幕 YIMU</title>
+<style>
+ *{box-sizing:border-box}
+ body{margin:0;background:#0f1220;color:#e8ecf8;font-family:PingFang SC,Microsoft YaHei,sans-serif}
+ .wrap{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+ h1{font-size:22px;margin:0 0 4px}
+ .sub{color:#8b93ad;font-size:13px;margin-bottom:20px}
+ .bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+ input,select{background:#0d1117;border:1px solid #2c3446;color:#e8ecf8;
+              border-radius:8px;padding:8px 11px;font-size:13px}
+ button{background:#f0883e;color:#fff;border:0;border-radius:8px;padding:8px 16px;
+        font-size:13px;font-weight:700;cursor:pointer}
+ button.ghost{background:#0d1117;border:1px solid #2c3446;color:#c8cee0}
+ button.danger{background:#8b2b28}
+ table{width:100%;border-collapse:collapse;font-size:13px}
+ th,td{padding:9px 10px;border-bottom:1px solid #262d3d;text-align:left;white-space:nowrap}
+ th{color:#8b93ad;font-weight:600}
+ .banned{color:#ff7b72}
+ .ok{color:#7ee787}
+ .tag{font-size:12px;padding:2px 8px;border-radius:20px;background:#262d3d;color:#c8cee0}
+ .empty{color:#8b93ad;padding:16px 0;font-size:13px}
+ .pager{margin-top:14px;display:flex;gap:10px;align-items:center;font-size:13px;color:#8b93ad}
+</style></head><body>
+<div class="wrap">
+  <h1>👥 用户管理</h1>
+  <div class="sub">封禁后该用户无法调用任何 API（登录令牌立即失效）。所有封禁操作均记入审计日志。</div>
+  <div class="bar">
+    <input id="kw" placeholder="搜索用户名 / 邮箱" style="width:220px">
+    <select id="tier"><option value="">全部档位</option><option value="free">Free</option>
+      <option value="pro">Pro</option><option value="studio">Studio</option></select>
+    <select id="banned"><option value="">全部状态</option><option value="1">已封禁</option>
+      <option value="0">正常</option></select>
+    <button onclick="load(0)">查询</button>
+    <button class="ghost" onclick="grant()">发放额度</button>
+  </div>
+  <div id="tb"><div class="empty">加载中…</div></div>
+  <div class="pager">
+    <button class="ghost" onclick="load(Math.max(0,off-20))">上一页</button>
+    <span id="info"></span>
+    <button class="ghost" onclick="load(off+20)">下一页</button>
+  </div>
+</div>
+<script>
+var off = 0;
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function csrf(){var m=document.cookie.match(/(?:^|; )csrf_token=([^;]+)/);
+  return m?decodeURIComponent(m[1]):'';}
+async function load(o){
+  off = o || 0;
+  const p = new URLSearchParams({offset:String(off), limit:'20',
+    keyword:document.getElementById('kw').value.trim(),
+    tier:document.getElementById('tier').value,
+    banned:document.getElementById('banned').value});
+  const r = await fetch('/api/admin/users?' + p.toString());
+  const d = await r.json();
+  if(!r.ok || !d.ok){document.getElementById('tb').innerHTML =
+    '<div class="empty">' + esc((d.detail&&d.detail.message)||'加载失败') + '</div>'; return;}
+  if(!d.items.length){document.getElementById('tb').innerHTML =
+    '<div class="empty">没有符合条件的用户</div>';
+    document.getElementById('info').textContent = ''; return;}
+  document.getElementById('tb').innerHTML = '<table><tr><th>用户名</th><th>邮箱</th><th>角色</th>' +
+    '<th>档位</th><th>剩余额度</th><th>已用</th><th>状态</th><th>注册时间</th><th>操作</th></tr>' +
+    d.items.map(function(u){
+      return '<tr><td>' + esc(u.username) + '</td><td>' + esc(u.email||'—') + '</td><td>' +
+        '<span class="tag">' + esc(u.role) + '</span></td><td>' + esc(u.tier) + '</td><td>' +
+        Number(u.credits_left).toLocaleString() + '</td><td>' +
+        Number(u.credits_used).toLocaleString() + '</td><td class="' +
+        (u.banned?'banned':'ok') + '">' + (u.banned?'已封禁':'正常') + '</td><td>' +
+        esc((u.created_at||'').slice(0,10)) + '</td><td><button class="' +
+        (u.banned?'ghost':'danger') + '" onclick="ban(\\'' + u.user_id + '\\',' +
+        (u.banned?'false':'true') + ')">' + (u.banned?'解封':'封禁') + '</button></td></tr>';
+    }).join('') + '</table>';
+  document.getElementById('info').textContent =
+    '共 ' + d.total + ' 位用户，当前第 ' + (off/20+1) + ' 页';
+}
+async function ban(uid, banned){
+  if(banned === 'true' && !confirm('确定封禁该用户？封禁后其所有 API 调用都会失败。')) return;
+  const reason = banned === 'true' ? (prompt('封禁原因（记入审计）') || '违反使用规范') : '';
+  const r = await fetch('/api/admin/users/' + uid + '/ban', {method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+    body: JSON.stringify({banned: banned === 'true', reason: reason})});
+  const d = await r.json();
+  if(!r.ok || !d.ok){ alert((d.detail&&d.detail.message)||'操作失败'); return; }
+  load(off);
+}
+async function grant(){
+  const uid = prompt('要发放额度的 user_id（见上表，可用浏览器搜索定位）：');
+  if(!uid) return;
+  const amount = prompt('发放多少点额度？');
+  if(!amount) return;
+  const reason = prompt('发放原因（记入审计）：') || '管理员手动发放';
+  const r = await fetch('/api/admin/grant_credits', {method:'POST',
+    headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+    body: JSON.stringify({user_id: uid.trim(), amount: parseInt(amount,10), reason: reason})});
+  const d = await r.json();
+  if(!r.ok || !d.ok){ alert((d.detail&&d.detail.message)||'发放失败'); return; }
+  alert('发放成功：' + d.granted + ' 点\\n当前余额：' + Number(d.balance_after).toLocaleString() + ' 点');
+  load(off);
+}
+load(0);
+</script></body></html>

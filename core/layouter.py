@@ -58,3 +58,30 @@ def _materialize_images(html: str) -> str:
     return re.sub(r"\[(?:配图|图|image)[:：]\s*([^\]]+)\]", repl, html)
 
 
+
+
+def _dedupe_wechat_html_images(html: str) -> str:
+    """对最终公众号 HTML 中的 <img> 进行 URL 去重与连续相邻 <img> 防堆叠过滤。"""
+    if not html or "<img" not in html:
+        return html
+    seen_srcs = set()
+    img_pattern = re.compile(r"(<img\b[^>]*\bsrc=['\"]([^'\"]+)['\"][^>]*/?>)", re.I)
+    tokens = img_pattern.split(html)
+    out = [tokens[0]]
+    last_was_img = False
+    i = 1
+    while i < len(tokens):
+        full_img = tokens[i]
+        src = tokens[i + 1]
+        after_text = tokens[i + 2] if (i + 2) < len(tokens) else ""
+        norm_src = (src or "").split("?")[0].strip().rstrip("/")
+        if norm_src and norm_src not in seen_srcs and not last_was_img:
+            seen_srcs.add(norm_src)
+            out.append(full_img)
+            last_was_img = True
+        plain_after = re.sub(r"<[^>]+>", "", after_text).strip()
+        if len(plain_after) >= 6:
+            last_was_img = False
+        out.append(after_text)
+        i += 3
+    return "".join(out)

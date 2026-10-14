@@ -4,14 +4,14 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
-## 🌟 Version 9.4.5 · Pristine Rhythm (澄音境 · 正文深度去噪与排版素简专项) · 2026-10-14
+## 🌟 Version 10.0.0 · Pristine Rhythm (澄音境 · 正文深度去噪与排版素简专项) · 2026-10-14
 
 > **Milestone**: Full-Pipeline Text Denoising Engine + Anti-Clutter Symbol Cleansing + Strict Hashtag Boundary Guard + Cross-Platform Section Typography  
 > **Codename**: 澄音境 (Pristine Rhythm · 素简澄澈，正文纯净)  
 > **Slogan**: One Thought. One Scene. Infinite Worlds · Pristine Rhythm (一念起 一幕开 万象生 · 素简澄澈，正文纯净)  
 > **Licensor**: yimu.hyipf.com  
 > **Release Date**: 2026-10-14  
-> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.4.5"`)  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.0.0"`)  
 
 ### 🧹 1. 系统级正文深度去噪引擎 (`core/text_denoise.py`)
 - **粗糙分割线彻底剔除**：自动识别并剥离独占一行的 `***`、`* * *`、`---`、`___`、`- - -` 分割线，消除排版断裂感；
@@ -31,14 +31,14 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
-## 🌟 Version 9.4.4 · Pristine Mirror (澄澈镜 · 极简模式与全链路排版图片去重专项) · 2026-10-14
+## 🌟 Version 10.0.0 · Pristine Mirror (澄澈镜 · 极简模式与全链路排版图片去重专项) · 2026-10-14
 
 > **Milestone**: Full-Pipeline Image Deduplication for WeChat MP Typesetting + Unified Layout Rendering Contract + Self-Healing Draft Cache  
 > **Codename**: 澄澈镜 (Pristine Mirror · 澄澈明镜，图文无瑕)  
 > **Slogan**: One Thought. One Scene. Infinite Worlds · Pristine Mirror (一念起 一幕开 万象生 · 澄澈分明，绝无重复)  
 > **Licensor**: yimu.hyipf.com  
 > **Release Date**: 2026-10-14  
-> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.4.4"`)  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.0.0"`)  
 
 ### 🖼️ 1. 极简模式与全链路首次排版图片防重复彻底根治
 - **三层防重过滤防线**：
@@ -52,14 +52,14 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
-## 🌟 Version 9.4.3 · Luminous Chronicles (浮光录 · 全栈精铸与架构贯通篇) · 2026-10-14
+## 🌟 Version 10.0.0 · Luminous Chronicles (浮光录 · 全栈精铸与架构贯通篇) · 2026-10-14
 
 > **Milestone**: Full-Stack Security Hardening + BYOK/Free-Demo Pipeline Unification + 6D Persona Injection + 10x DB Speedup  
 > **Codename**: 浮光录 (Luminous Chronicles · 浮光掠影，字字珠玑)  
 > **Slogan**: One Thought. One Scene. Infinite Worlds · Luminous Chronicles (一念起 一幕开 万象生 · 浮光掠影，字字珠玑)  
 > **Licensor**: yimu.hyipf.com  
 > **Release Date**: 2026-10-14  
-> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.4.3"`)  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.0.0"`)  
 
 ### 🛡️ 1. Security & Reverse-Proxy Hardening
 - **Reverse-Proxy Loopback Protection**: `_is_loopback` now validates `X-Forwarded-For` and `X-Real-IP` headers so cloud deployments behind Nginx/Caddy never mistake proxied internet traffic for localhost admin access.

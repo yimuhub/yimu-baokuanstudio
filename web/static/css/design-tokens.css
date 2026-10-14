@@ -1,0 +1,16 @@
+/* 一幕·YIMU V10.0.0 (鸿蒙始 · Primordial Dawn) 大厂级设计系统 Design Tokens */
+:root {
+  --yimu-bg-base: #0b0e14;
+  --yimu-bg-panel: #121722;
+  --yimu-bg-card: #161c28;
+  --yimu-border: #262d3d;
+  --yimu-text-primary: #e8ecf8;
+  --yimu-text-muted: #8b93ad;
+  --yimu-brand-primary: #f0883e;
+  --yimu-brand-success: #3fb950;
+  --yimu-brand-info: #58a6ff;
+  --yimu-brand-purple: #a855f7;
+  --yimu-brand-danger: #f85149;
+  --yimu-sidebar-width: 230px;
+  --yimu-header-height: 58px;
+}

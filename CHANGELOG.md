@@ -44,7 +44,7 @@ YIMU Studio maintains strict version discipline:
 
 ---
 
-## [9.4.3] - 2026-10-14 · 浮光录 (Luminous Chronicles)
+## [10.0.0] - 2026-10-14 · 浮光录 (Luminous Chronicles)
 
 ### Added & Upgraded
 - **Full-Stack `user_id` & BYOK Pipeline Unification**: Automatic context `user_id` propagation across `core/agents.py` (`chat_for`) and `core/llm.py` (`resolve_llm_endpoint`, `chat`), ensuring user-configured API Vault keys (BYOK) and free-demo metering work across all creation, rewriting, and short-drama stages. When an active BYOK key is present, `require_credits` automatically waives platform credit deductions.

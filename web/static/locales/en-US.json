@@ -1,0 +1,15 @@
+{
+  "version": "10.0.0",
+  "codename": "Primordial Dawn",
+  "brand_title": "🎬 YIMU Studio",
+  "brand_badge": "Viral Studio",
+  "nav_dashboard": "Dashboard",
+  "nav_lite": "Lite Mode",
+  "nav_inspire": "Inspirations",
+  "nav_drafts": "Workbench",
+  "nav_studio": "Media Studio",
+  "nav_console": "Control Center",
+  "nav_pricing": "Plans & Pricing",
+  "nav_pricing_sub": "Subscriptions · Credits",
+  "nav_profile": "Profile Center"
+}

@@ -3,7 +3,7 @@
 功能：
 1. 访问 GitHub 仓库检测最新版本与提交（结合 Git 原生网络协议与 GitHub API 双通道，彻底免除未登录 Rate Limit 限制）；
 2. 比对本地当前版本（version.__version__）与远程最新提交；
-3. 支持一键拉取（git pull）代码热更新；
+3. 支持一键拉取（git pull）代码热更新（自动暂存并恢复用户本地 config.yaml 配置，杜绝合并冲突）；
 4. 全程带有超时保护与安全防穿透，支持配置 GITHUB_TOKEN（读取私有仓库）或公开仓库检测。
 """
 from __future__ import annotations
@@ -64,7 +64,6 @@ def _get_github_token() -> str:
     ).strip()
     if token:
         return token
-    # 尝试从系统 git credential helper 获取已保存的 GitHub Token
     try:
         auth_out = subprocess.check_output(
             ["git", "credential", "fill"],
@@ -81,12 +80,7 @@ def _get_github_token() -> str:
 
 
 def check_for_updates(force: bool = False) -> dict[str, Any]:
-    """检测 GitHub 仓库是否存在最新版本。
-
-    采用双通道策略：
-    - 通道 A：Git 原生网络链路（git ls-remote，不消耗 GitHub REST API 配额，响应极速且对私有/公开仓库均有效）；
-    - 通道 B：GitHub REST API（获取详细 Release Notes 与 Tag 信息）。
-    """
+    """检测 GitHub 仓库是否存在最新版本。"""
     global _cache_check_result, _cache_check_time
     now = time.time()
     if not force and _cache_check_result and (now - _cache_check_time < _CACHE_TIMEOUT_SECONDS):
@@ -123,13 +117,11 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
         "error": None,
     }
 
-    # 1. 优先使用 Git 原生协议探测远端 HEAD 与 Tags（零 Rate Limit 风险）
     remote_target = "origin"
     if token:
         remote_target = f"https://oauth2:{token}@github.com/{repo}.git"
 
     try:
-        # 探测最新 HEAD commit
         ls_out = subprocess.check_output(
             ["git", "ls-remote", remote_target, "HEAD"],
             cwd=str(REPO_ROOT),
@@ -142,7 +134,6 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
                 res["latest_commit"] = parts[0][:7]
                 break
 
-        # 探测最新 Tags (提取如 9.3.0)
         ls_tags = subprocess.check_output(
             ["git", "ls-remote", "--tags", remote_target],
             cwd=str(REPO_ROOT),
@@ -158,13 +149,11 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
                 if v_clean and any(c.isdigit() for c in v_clean):
                     found_tags.append(v_clean)
         if found_tags:
-            # 语义化版本降序排列，取最新
             found_tags.sort(key=lambda x: [int(n) for n in re.findall(r"\d+", x) or [0]])
             res["latest_version"] = found_tags[-1]
     except Exception as exc:
         log.debug("[updater] git ls-remote 探测略过: %s", exc)
 
-    # 2. 如果配置了 Token 或未超限，尝试通过 GitHub API 补充 Release / 提交说明
     headers = {"User-Agent": _DEFAULT_UA, "Accept": "application/vnd.github.v3+json"}
     if token:
         headers["Authorization"] = f"token {token}"
@@ -181,7 +170,6 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
                     rel_data = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as he:
             if he.code == 404:
-                # 兼容未标记 latest 的 release 列表
                 list_req = urllib.request.Request(
                     f"https://api.github.com/repos/{repo}/releases?per_page=1",
                     headers=headers,
@@ -205,7 +193,6 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
     except Exception as exc:
         log.debug("[updater] GitHub Release API 获取略过: %s", exc)
 
-    # 尝试获取最新 Commit Message
     try:
         cmt_req = urllib.request.Request(
             f"https://api.github.com/repos/{repo}/commits?per_page=1",
@@ -227,7 +214,6 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
     except Exception:
         pass
 
-    # 3. 比对更新状态
     has_update = False
     if _compare_versions(res["latest_version"], cur_ver) > 0:
         has_update = True
@@ -245,7 +231,7 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
 
 
 def perform_upgrade() -> dict[str, Any]:
-    """执行在线代码更新同步（使用 git pull 或回退策略）。"""
+    """执行在线代码更新同步（自动暂存并恢复用户本地 config.yaml 修改，避免 git pull 冲突）。"""
     token = _get_github_token()
     repo = _get_github_repo()
 
@@ -264,6 +250,25 @@ def perform_upgrade() -> dict[str, Any]:
     if token:
         pull_url = f"https://oauth2:{token}@github.com/{repo}.git"
 
+    # 若 config.yaml 有本地改动，先备份内容以免阻断 git pull
+    cfg_path = REPO_ROOT / "config.yaml"
+    cfg_backup: str | None = None
+    try:
+        diff_proc = subprocess.run(
+            ["git", "diff", "--quiet", "--", "config.yaml"],
+            cwd=str(REPO_ROOT),
+            timeout=3,
+        )
+        if diff_proc.returncode != 0 and cfg_path.exists():
+            cfg_backup = cfg_path.read_text(encoding="utf-8")
+            subprocess.run(
+                ["git", "checkout", "--", "config.yaml"],
+                cwd=str(REPO_ROOT),
+                timeout=3,
+            )
+    except Exception:
+        pass
+
     cmd = ["git", "pull", pull_url, "main"]
     try:
         proc = subprocess.run(
@@ -273,6 +278,13 @@ def perform_upgrade() -> dict[str, Any]:
             text=True,
             timeout=40,
         )
+        # 无论拉取成功与否，恢复用户的本地 config.yaml
+        if cfg_backup is not None:
+            try:
+                cfg_path.write_text(cfg_backup, encoding="utf-8")
+            except Exception:
+                pass
+
         output = (proc.stdout + "\n" + proc.stderr).strip()
         if token:
             output = output.replace(token, "******")
@@ -291,7 +303,6 @@ def perform_upgrade() -> dict[str, Any]:
         if proc.returncode == 0:
             global _cache_check_result
             _cache_check_result = None
-            # 自动对齐数据库结构
             try:
                 from studio.db import get_engine, init_db
                 db_url = os.environ.get("YIMU_DB_URL", "sqlite:///./data/mediaflow.db")
@@ -299,14 +310,13 @@ def perform_upgrade() -> dict[str, Any]:
             except Exception as e:
                 log.warning("[updater] 自动对齐数据库结构提示: %s", e)
 
-            # 重新加载单一真源版本模块
             import importlib
             importlib.reload(version)
             upgraded_version = getattr(version, "__version__", cur_commit)
 
             return {
                 "ok": True,
-                "message": f"🎉 升级成功！系统已同步至最新版本 (V{upgraded_version})。",
+                "message": f"🎉 升级成功！系统已同步至最新版本 (V{upgraded_version})，建议重启服务使全部模块生效。",
                 "output": output,
                 "previous_commit": prev_commit,
                 "current_commit": cur_commit,
@@ -321,6 +331,11 @@ def perform_upgrade() -> dict[str, Any]:
                 "current_commit": cur_commit,
             }
     except Exception as exc:
+        if cfg_backup is not None:
+            try:
+                cfg_path.write_text(cfg_backup, encoding="utf-8")
+            except Exception:
+                pass
         log.error("[updater] 执行升级异常: %s", exc)
         return {
             "ok": False,

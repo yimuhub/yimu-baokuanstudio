@@ -4,14 +4,14 @@
 - 密码散列：pbkdf2_hmac-sha256，21 万轮，新哈希自带算法标识；
   老版本 10 万轮哈希仍可验证（平滑迁移），新注册一律用新格式。
 - Token 机制：无依赖轻量级签名令牌（自包含 exp、user_id、role，有效期30天）
-- API Key Vault：密钥混淆加密存储，用户自填 API Key 入库前加密
-- ⭐ 签名密钥只走环境变量 YIMU_SECRET_KEY，无默认值；缺失直接抛错，绝不静默降级。
+- API Key Vault：带随机 Nonce + HMAC 校验的流加密存储（v2 格式），向后兼容旧版解密
 """
 import base64
 import hashlib
 import hmac
 import json
 import os
+import secrets
 import sqlite3
 import time
 import uuid
@@ -26,6 +26,7 @@ DB_PATH = DATA / "mediaflow.db"
 
 _PBKDF2_ITERATIONS = 210_000  # OWASP 对 HMAC-SHA-256 的建议量级（新哈希）
 _LEGACY_ITERATIONS = 100_000  # 老版本哈希轮数（仅用于验证存量口令）
+_PROCESS_FALLBACK_SECRET = secrets.token_hex(32)
 
 
 def _free_quota() -> int:
@@ -34,38 +35,22 @@ def _free_quota() -> int:
 
 
 def _iso_now() -> str:
-    """当前 UTC 时间的 ISO-8601 字符串。
-
-    ⭐ V8/P0-A：users 表被 V6（本模块，裸 sqlite3）与 V7（studio ORM，
-       DateTime(timezone=True)）双层共用。历史上 V6 写 time.time() 的
-       float、V7 写 ISO 字符串，混合编码导致 ORM 按 created_at 排序时
-       fromisoformat 崩溃（/api/admin/users 500）。统一写入 ISO 字符串，
-       与 ORM 侧 FlexibleDateTime 的读兼容配合（见 studio/flex_datetime.py）。
-    """
+    """当前 UTC 时间的 ISO-8601 字符串。"""
     from datetime import datetime, timezone
 
     return datetime.now(timezone.utc).isoformat()
 
 
 def _secret_key() -> str:
-    """⭐ 签名密钥：优先取环境变量 YIMU_SECRET_KEY，单机未显式注入时安全自动回退。"""
-    key = os.environ.get("YIMU_SECRET_KEY", "")
-    if not key:
-        # 单机免密或默认环境下的稳定兜底派生
-        key = hashlib.sha256(b"yimu-default-standalone-secret-key").hexdigest()
-        os.environ["YIMU_SECRET_KEY"] = key
-    return key
+    """⭐ 签名密钥：优先取环境变量 YIMU_SECRET_KEY；未配置时使用进程级高熵随机密钥，绝不使用固定公开常量，也不污染 os.environ。"""
+    key = os.environ.get("YIMU_SECRET_KEY", "").strip()
+    if key:
+        return key
+    return _PROCESS_FALLBACK_SECRET
 
 
 def _db():
-    """打开 auth 专用连接。
-
-    ⭐ R3-9：这里也补齐 users 列。``core.db`` 与 ``studio.db_models`` 共用同一张
-    ``users`` 表但列集不同，谁先建表另一方就会缺列——新装机器若studio 先
-    init_db，``get_user_by_id`` 会抛 ``no such column: plan``，
-    表现为**所有需要鉴权的接口全部 500**。
-    在此补列可让两条建连路径都自愈（core.db.conn 与本函数）。
-    """
+    """打开 auth 专用连接。"""
     from core.db import _connect_sqlite, ensure_users_columns
     c = _connect_sqlite(DB_PATH)
     c.row_factory = sqlite3.Row
@@ -74,11 +59,7 @@ def _db():
 
 
 def hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
-    """生成盐值和哈希密码（新格式自带算法标识，可独立验证）。
-
-    返回 (password_hash, salt)，password_hash 形如
-    ``pbkdf2_sha256$210000$<salt>$<hex>``。调用方原有入库逻辑不变。
-    """
+    """生成盐值和哈希密码（新格式自带算法标识，可独立验证）。"""
     if not salt:
         salt = uuid.uuid4().hex[:16]
     dk = hashlib.pbkdf2_hmac(
@@ -113,36 +94,44 @@ def verify_password(password: str, hashed: str, salt: str) -> bool:
             return hmac.compare_digest(expected, hashed)
     except (ValueError, AttributeError):
         pass
-    # 回退：老版本哈希（salt 独立存列）
     return _verify_legacy(password, hashed, salt)
 
 
 def make_token(payload: dict) -> str:
-    """生成带有签名的会话 Token（30天有效）"""
+    """生成带有签名的会话 Token（30天有效，同时携带 uid/tenant_id 兼容 studio.auth）"""
     p = dict(payload)
-    p["exp"] = time.time() + 30 * 86400
-    p["iat"] = time.time()
+    if "user_id" in p and "uid" not in p:
+        p["uid"] = p["user_id"]
+    p.setdefault("tenant_id", "default")
+    p["exp"] = int(time.time()) + 30 * 86400
+    p["iat"] = int(time.time())
     p_b64 = base64.urlsafe_b64encode(json.dumps(p, separators=(',', ':')).encode()).decode().rstrip("=")
     sig = hmac.new(_secret_key().encode(), p_b64.encode(), hashlib.sha256).hexdigest()
     return f"{p_b64}.{sig}"
 
 
 def verify_token(token: str) -> dict | None:
-    """验证并解码 Token"""
+    """验证并解码 Token（同时兼容 core.auth make_token 与 studio.auth create_session_token）"""
     if not token or not isinstance(token, str):
         return None
     try:
-        parts = token.split(".")
+        parts = token.split(".", 1)
         if len(parts) != 2:
             return None
         p_b64, sig = parts
-        exp_sig = hmac.new(_secret_key().encode(), p_b64.encode(), hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(sig, exp_sig):
-            return None
         padded = p_b64 + "=" * ((4 - len(p_b64) % 4) % 4)
-        p = json.loads(base64.urlsafe_b64decode(padded.encode()).decode())
+        raw_bytes = base64.urlsafe_b64decode(padded.encode())
+        # 兼容1：core.auth 签名在 p_b64 上
+        exp_sig_b64 = hmac.new(_secret_key().encode(), p_b64.encode(), hashlib.sha256).hexdigest()
+        # 兼容2：studio.auth 签名在解码后的 raw_bytes 上
+        exp_sig_raw = hmac.new(_secret_key().encode(), raw_bytes, hashlib.sha256).hexdigest()
+        if not (hmac.compare_digest(sig, exp_sig_b64) or hmac.compare_digest(sig, exp_sig_raw)):
+            return None
+        p = json.loads(raw_bytes.decode("utf-8"))
         if p.get("exp", 0) < time.time():
             return None
+        if "uid" in p and "user_id" not in p:
+            p["user_id"] = p["uid"]
         return p
     except Exception:
         return None
@@ -150,24 +139,52 @@ def verify_token(token: str) -> dict | None:
 
 # ---------------- API Key 加密与解密 ----------------
 
+def _derive_keystream(secret: bytes, nonce: bytes, length: int) -> bytes:
+    """使用 HMAC-SHA256 Counter Mode 派生任意长度的伪随机密钥流（每个 Nonce 完全独立）。"""
+    out = bytearray()
+    counter = 0
+    while len(out) < length:
+        block = hmac.new(secret, nonce + counter.to_bytes(4, "big"), hashlib.sha256).digest()
+        out.extend(block)
+        counter += 1
+    return bytes(out[:length])
+
+
 def encrypt_key(plain_key: str) -> str:
-    """对用户 API Key 进行可逆轻量混淆加密"""
+    """对用户 API Key 进行带随机 Nonce 与 HMAC 认证的加密（v2 格式）。"""
     if not plain_key:
         return ""
     key_bytes = plain_key.encode("utf-8")
-    mask = hashlib.sha256(_secret_key().encode()).digest()
-    encrypted = bytes(b ^ mask[i % len(mask)] for i, b in enumerate(key_bytes))
-    return base64.urlsafe_b64encode(encrypted).decode()
+    secret = hashlib.sha256(_secret_key().encode("utf-8")).digest()
+    nonce = secrets.token_bytes(16)
+    stream = _derive_keystream(secret, nonce, len(key_bytes))
+    cipher = bytes(b ^ s for b, s in zip(key_bytes, stream))
+    mac = hmac.new(secret, b"v2|" + nonce + cipher, hashlib.sha256).hexdigest()[:32]
+    c_b64 = base64.urlsafe_b64encode(cipher).decode("ascii").rstrip("=")
+    return f"v2${nonce.hex()}${c_b64}${mac}"
 
 
 def decrypt_key(cipher_b64: str) -> str:
-    """解密用户 API Key"""
+    """解密用户 API Key（支持 v2 随机 Nonce 认证格式，并平滑兼容历史 v1 XOR 格式）。"""
     if not cipher_b64:
         return ""
     try:
-        encrypted = base64.urlsafe_b64decode(cipher_b64.encode())
-        mask = hashlib.sha256(_secret_key().encode()).digest()
-        decrypted = bytes(b ^ mask[i % len(mask)] for i, b in enumerate(encrypted))
+        secret = hashlib.sha256(_secret_key().encode("utf-8")).digest()
+        if cipher_b64.startswith("v2$"):
+            _, nonce_hex, c_b64, mac = cipher_b64.split("$", 3)
+            nonce = bytes.fromhex(nonce_hex)
+            pad = "=" * ((4 - len(c_b64) % 4) % 4)
+            cipher = base64.urlsafe_b64decode((c_b64 + pad).encode("ascii"))
+            expected_mac = hmac.new(secret, b"v2|" + nonce + cipher, hashlib.sha256).hexdigest()[:32]
+            if not hmac.compare_digest(mac, expected_mac):
+                return ""
+            stream = _derive_keystream(secret, nonce, len(cipher))
+            plain = bytes(b ^ s for b, s in zip(cipher, stream))
+            return plain.decode("utf-8")
+        # 兼容历史 v1 格式
+        pad = "=" * ((4 - len(cipher_b64) % 4) % 4)
+        encrypted = base64.urlsafe_b64decode((cipher_b64 + pad).encode())
+        decrypted = bytes(b ^ secret[i % len(secret)] for i, b in enumerate(encrypted))
         return decrypted.decode("utf-8")
     except Exception:
         return ""
@@ -176,14 +193,10 @@ def decrypt_key(cipher_b64: str) -> str:
 # ---------------- 用户管理操作 ----------------
 
 def ensure_default_admin(password: str | None = None) -> bool:
-    """初始化保证系统至少有一个管理员账户。
-
-    ⭐ 口令只从参数或环境变量 YIMU_ADMIN_PASSWORD 获取，不再内置弱口令；
-    未提供口令时跳过创建并返回 False（调用方自行提示）。
-    """
-    pwd = password or os.environ.get("YIMU_ADMIN_PASSWORD", "")
+    """初始化保证系统至少有一个管理员账户。"""
+    pwd = password or os.environ.get("YIMU_ADMIN_PASSWORD", "") or os.environ.get("ADMIN_PASSWORD", "")
     if not pwd:
-        print("⚠️ 未设置 YIMU_ADMIN_PASSWORD，跳过默认管理员创建。")
+        print("⚠️ 未设置 YIMU_ADMIN_PASSWORD / ADMIN_PASSWORD，跳过默认管理员创建。")
         return False
     if len(pwd) < 8:
         raise ValueError("管理员口令至少 8 个字符")
@@ -193,8 +206,6 @@ def ensure_default_admin(password: str | None = None) -> bool:
         uid = "u-admin"
         now_ts = _iso_now()
         pwd_hash, salt = hash_password(pwd)
-        #⭐ R2-1：管理员额度同样取自定价真源。历史硬编码 10,000,000 credits
-        #   按 0.01 元/credit 折算≈ 100 万元，属同类漏钱口子，一并收敛。
         c.execute(
             "INSERT OR REPLACE INTO users (id, username, email, password_hash, salt, role, plan, quota_used, quota_max, created_at, last_login, is_active) "
             "VALUES (?,?,?,?,?,?,?,0,?,?,?,1)",
@@ -206,8 +217,8 @@ def ensure_default_admin(password: str | None = None) -> bool:
     return True
 
 
-def register_user(username: str, password: str, email: str = "") -> dict:
-    """注册新用户"""
+def register_user(username: str, password: str, email: str = "", invite_code: str = "") -> dict:
+    """注册新用户（同步记 signup 漏斗埋点，并支持可选邀请码裂变核销）。"""
     username = username.strip()
     if len(username) < 2:
         raise ValueError("用户名至少2个字符")
@@ -224,9 +235,6 @@ def register_user(username: str, password: str, email: str = "") -> dict:
     now_ts = _iso_now()
     pwd_hash, salt = hash_password(password)
 
-    #⭐ R2-1：新用户初始体验额度取自定价真源（studio/pricing.TIER_CREDITS），
-    #   不再硬编码 500000。历史硬编码值按 0.05 元/篇折算≈ 25000 元白送，
-    #   是比卡密后门更隐蔽的漏钱口子。免费档现为 3000 credits（=30 元）。
     free_quota = TIER_CREDITS["free"]
     c.execute(
         "INSERT INTO users (id, username, email, password_hash, salt, role, plan, quota_used, quota_max, created_at, last_login, is_active) "
@@ -236,7 +244,26 @@ def register_user(username: str, password: str, email: str = "") -> dict:
     c.commit()
     c.close()
 
-    token = make_token({"user_id": uid, "username": username, "role": "user"})
+    # 若携带了邀请码，尝试通过裂变模块或卡密模块兑付奖励（绝不阻断主注册）
+    bonus_credits = 0
+    clean_code = (invite_code or "").strip()
+    if clean_code:
+        try:
+            from core import fission
+            ref_res = fission.accept_referral(clean_code, uid)
+            if ref_res.get("ok"):
+                bonus_credits = int(ref_res.get("invitee_bonus", 0) or 0)
+        except Exception:
+            pass
+
+    # 埋点：记录注册漏斗首步 signup
+    try:
+        from core import analytics
+        analytics.track("signup", uid, {"username": username, "invite_code": clean_code})
+    except Exception:
+        pass
+
+    token = make_token({"user_id": uid, "uid": uid, "tenant_id": "default", "username": username, "role": "user"})
     return {
         "ok": True,
         "token": token,
@@ -246,7 +273,7 @@ def register_user(username: str, password: str, email: str = "") -> dict:
             "email": email,
             "role": "user",
             "plan": "free",
-            "quota_max": free_quota,
+            "quota_max": free_quota + bonus_credits,
             "quota_used": 0
         }
     }
@@ -275,7 +302,14 @@ def login_user(username: str, password: str) -> dict:
     c.commit()
     c.close()
 
-    token = make_token({"user_id": user_dict["id"], "username": user_dict["username"], "role": user_dict["role"]})
+    tenant_id = user_dict.get("tenant_id") or "default"
+    token = make_token({
+        "user_id": user_dict["id"],
+        "uid": user_dict["id"],
+        "tenant_id": tenant_id,
+        "username": user_dict["username"],
+        "role": user_dict["role"],
+    })
     return {
         "ok": True,
         "token": token,
@@ -294,8 +328,6 @@ def login_user(username: str, password: str) -> dict:
 def get_user_by_id(user_id: str) -> dict | None:
     """根据 user_id 查询用户画像"""
     c = _db()
-    # ⭐ R2-3：必须带上 tenant_id —— 计费按 (tenant_id, user_id) 定位memberships 行，
-    #   拿不到租户就只能退化到 "default"，多租户下会扣错账。
     r = c.execute("SELECT id, username, email, role, plan, quota_used, quota_max, created_at, last_login, is_active, tenant_id FROM users WHERE id=?", (user_id,)).fetchone()
     c.close()
     return dict(r) if r else None
@@ -441,7 +473,6 @@ def save_user_api_key(user_id: str, provider: str, api_key: str, base_url: str =
     enc_key = encrypt_key(api_key.strip())
     now_ts = _iso_now()
 
-    # 将此用户同 provider 的其它 key 设为非默认（或者直接替换）
     c.execute(
         "INSERT INTO user_api_keys (id, user_id, provider, api_key, base_url, model_id, is_active, label, created_at) "
         "VALUES (?,?,?,?,?,?,1,?,?)",

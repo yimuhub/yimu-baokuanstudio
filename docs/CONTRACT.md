@@ -132,6 +132,7 @@
 - `POST /api/system/upgrade` → api_system_upgrade：GitHub 仓库代码在线一键同步升级【V8.3.31 / V8.3.32】[新增]
 - `GET /api/workspace/profile` / `PUT /api/workspace/profile` → 创作者 6 维数字画像与个人中心数据契约【V8.3.32】
 - `GET /favicon.ico` → get_favicon：官方 Favicon 专属图标【V9.1.1】[NEW]
+- `POST /api/onboarding/done` → onboarding_done：首次引导完成/跳过标记（持久化 data/user_onboarding_done.json，防反复打扰）【V9.3.2】[NEW]
 
 ### 5.2 认证 / 用户保险箱【V7.0，C-1 重写实现】
 - `POST /api/auth/register` → api_register：用户自助注册（launch_mode=invite-only 时需邀请码）【V7.0】[B→重写]

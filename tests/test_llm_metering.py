@@ -1,4 +1,4 @@
-"""LLM 双轨制计量测试：官方通道扣费 + 全供应商统计。"""
+"""LLM 双轨制计量测试：官方通道扣费 + 全供应商统计 + V9.3.2 免费体验额度。"""
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -49,9 +49,13 @@ def test_official_deducts_credits(tmp_usage):
     """
     from studio import pricing
 
+    # ⭐ V9.3.2：consume_free_demo_call 的档位判定需 mock，
+    #   否则真连 DB 判 tier 会异常/误判。统一 patch 为 unknown → 不享受免费体验。
+    _caps = "studio.membership.capabilities"
     fake_db = MagicMock()
-    with patch("studio.membership.capabilities.get_db_session", return_value=fake_db), \
-         patch("studio.membership.capabilities.get_user_tier", return_value="pro"), \
+    fake_tier = "unknown-tier-paid"  # 非 free，走正常扣费
+    with patch(f"{_caps}.get_db_session", return_value=fake_db), \
+         patch(f"{_caps}.get_user_tier", return_value=fake_tier), \
          patch("studio.membership.service.deduct_credits", return_value=(True, 29998)) as mock_deduct:
         r = llm_metering.record_llm_call("yimu_official", "yimu-chat", 100, 50, 150, user_id="u-pro")
     in_c, out_c = pricing.credits_for_call("yimu-chat", 100, 50)
@@ -68,12 +72,26 @@ def test_official_deducts_credits(tmp_usage):
     assert usage["yimu_official"]["deducted_total"] == expected
 
 
-def test_official_insufficient_credits_raises(tmp_usage):
-    """官方通道额度不足：抛 InsufficientCreditsError（402 风格）。"""
+def test_official_insufficient_credits_raises(tmp_usage, tmp_demo, monkeypatch):
+    """官方通道额度不足：抛 InsufficientCreditsError（402 风格）。
+
+    ⭐ 该测试用 free 档 + 免费体验额度已耗尽的前置状态，
+       验证"耗尽后回落正常扣费 → 额度不足抛错"的完整链路。"""
+    # 前置：先把今日免费体验额度用尽（3 次）
+    _patch_tier_free(monkeypatch)
+    _caps = "studio.membership.capabilities"
+    _svc = "studio.membership.service"
+    with patch(f"{_caps}.get_db_session", return_value=MagicMock()), \
+         patch(f"{_caps}.get_user_tier", return_value="free"), \
+         patch(f"{_svc}.deduct_credits", return_value=(True, 10)):
+        for _ in range(llm_metering.pricing.FREE_DEMO_DAILY_CALLS):
+            llm_metering.record_llm_call("yimu_official", "yimu-chat", 10, 5, 15, user_id="u-free")
+    assert llm_metering.free_demo_left_today("u-free") == 0
+    # 第 N+1 次：已耗免费体验额度 → 回落正常扣费 → 额度不足 → 抛错
     fake_db = MagicMock()
-    with patch("studio.membership.capabilities.get_db_session", return_value=fake_db), \
-         patch("studio.membership.capabilities.get_user_tier", return_value="free"), \
-         patch("studio.membership.service.deduct_credits", return_value=(False, 10)):
+    with patch(f"{_caps}.get_db_session", return_value=fake_db), \
+         patch(f"{_caps}.get_user_tier", return_value="free"), \
+         patch(f"{_svc}.deduct_credits", return_value=(False, 10)):
         with pytest.raises(llm_metering.InsufficientCreditsError) as exc_info:
             llm_metering.record_llm_call("yimu_official", "yimu-chat", 100, 50, 150, user_id="u-free")
     assert "额度不足" in str(exc_info.value)
@@ -84,6 +102,8 @@ def test_official_no_user_id_skips_deduction(tmp_usage):
     r = llm_metering.record_llm_call("yimu_official", "yimu-chat", 10, 5, 15, user_id=None)
     assert r["metered"] is True
     assert r["deducted"] == 0
+    # 无 user_id 时不享受免费体验（免费额度以用户为粒度）
+    assert r["free_demo"] is False
     usage = llm_metering.get_provider_usage()
     assert usage["yimu_official"]["calls"] == 1
 
@@ -135,3 +155,85 @@ def test_record_falls_back_to_estimation(tmp_usage):
     assert r["estimated"] is True
     usage = llm_metering.get_provider_usage()
     assert usage["yimu_official"]["total_tokens"] > 0
+
+
+# ---------------------------------------------------------------------------
+# ⭐ V9.3.2 免费体验额度（官方通道免费降级 · 审查报告 P0-1 修复）
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def tmp_demo(tmp_path, monkeypatch):
+    p = tmp_path / "free_demo_calls.json"
+    monkeypatch.setattr(llm_metering, "_DEMO_PATH", p)
+    return p
+
+
+def _patch_tier_free(monkeypatch, tier="free"):
+    """让 consume_free_demo_call 的档位判定走 free 档。"""
+    monkeypatch.setattr(
+        "studio.membership.capabilities.get_user_tier",
+        lambda db, tenant_id, user_id: tier,
+    )
+    monkeypatch.setattr(
+        "studio.membership.capabilities.get_db_session",
+        lambda: MagicMock(),
+    )
+
+
+def test_free_demo_first_call_no_deduction(tmp_usage, tmp_demo, monkeypatch):
+    """free 档官方通道第一次：免扣费（free_demo=True），deducted=0。"""
+    _patch_tier_free(monkeypatch)
+    with patch("studio.membership.service.deduct_credits") as mock_deduct:
+        r = llm_metering.record_llm_call(
+            "yimu_official", "yimu-chat", 100, 50, 150, user_id="u-free-demo")
+    assert r["free_demo"] is True
+    assert r["deducted"] == 0
+    assert r["free_demo_left"] == llm_metering.pricing.FREE_DEMO_DAILY_CALLS - 1
+    mock_deduct.assert_not_called()
+
+
+def test_free_demo_exhausted_falls_back_to_billing(tmp_usage, tmp_demo, monkeypatch):
+    """免费体验次数耗尽 → 自动回落正常扣费。"""
+    _patch_tier_free(monkeypatch)
+    with patch("studio.membership.service.deduct_credits", return_value=(True, 2998)) as mock_deduct:
+        for i in range(llm_metering.pricing.FREE_DEMO_DAILY_CALLS):
+            r = llm_metering.record_llm_call(
+                "yimu_official", "yimu-chat", 100, 50, 150, user_id="u-free-demo2")
+            assert r["free_demo"] is (i < llm_metering.pricing.FREE_DEMO_DAILY_CALLS - 1 or True)
+        # 第 N+1 次：超出免费额度，必须走扣费
+        r = llm_metering.record_llm_call(
+            "yimu_official", "yimu-chat", 100, 50, 150, user_id="u-free-demo2")
+    assert r["free_demo"] is False
+    assert r["deducted"] > 0
+    mock_deduct.assert_called_once()
+
+
+def test_free_demo_long_output_not_eligible(tmp_usage, tmp_demo, monkeypatch):
+    """单次输出超 FREE_DEMO_MAX_OUTPUT_TOKENS → 不享受免费体验，正常扣费。"""
+    _patch_tier_free(monkeypatch)
+    with patch("studio.membership.service.deduct_credits", return_value=(True, 20000)) as mock_deduct:
+        r = llm_metering.record_llm_call(
+            "yimu_official", "yimu-chat", 100,
+            llm_metering.pricing.FREE_DEMO_MAX_OUTPUT_TOKENS + 1,
+            9999, user_id="u-long-out")
+    assert r["free_demo"] is False
+    assert r["deducted"] > 0
+    mock_deduct.assert_called_once()
+
+
+def test_free_demo_paid_tier_not_eligible(tmp_usage, tmp_demo, monkeypatch):
+    """pro 档不占用免费体验额度（付费档直接正常扣费）。"""
+    _patch_tier_free(monkeypatch, tier="pro")
+    with patch("studio.membership.service.deduct_credits", return_value=(True, 29980)):
+        r = llm_metering.record_llm_call(
+            "yimu_official", "yimu-chat", 100, 50, 150, user_id="u-pro")
+    assert r["free_demo"] is False
+    assert r["deducted"] > 0
+
+
+def test_free_demo_left_today_reflects_usage(tmp_usage, tmp_demo, monkeypatch):
+    """free_demo_left_today：用掉 1 次后剩 2。"""
+    _patch_tier_free(monkeypatch)
+    assert llm_metering.free_demo_left_today("u-check") == llm_metering.pricing.FREE_DEMO_DAILY_CALLS
+    llm_metering.record_llm_call("yimu_official", "yimu-chat", 100, 50, 150, user_id="u-check")
+    assert llm_metering.free_demo_left_today("u-check") == llm_metering.pricing.FREE_DEMO_DAILY_CALLS - 1

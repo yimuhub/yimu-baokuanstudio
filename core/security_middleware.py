@@ -21,7 +21,7 @@
 
 - 安全方法（GET/HEAD/OPTIONS）
 - 请求带 ``Authorization`` 头 → 视为 API 客户端
-- 请求无会话 Cookie → 无 Cookie 鉴权可滥用，交给下游 ``guard()`` 拒绝
+- 请求无会话 Cookie（且无跨站 Origin/Referer）→ 无 Cookie 鉴权可滥用，交给下游 ``guard()`` 拒绝
 - 环境变量 ``CSRF_PROTECTION_ENABLED=0`` 可整体关闭（应急回滚）
 
 其余情况一律要求：Cookie ``csrf_token`` 与请求头 ``X-CSRF-Token`` 一致，
@@ -69,9 +69,8 @@ CSP_CONNECT_SRC = [
 # 若用 nonce/hash 严格化需重写整个前端（工程量与回归风险都不可接受）。
 # 因此 script-src / style-src 保留 'unsafe-inline'，
 # CSP 在此主要提供 object-src/frame-ancestors/base-uri/form-action 等
-# 注入面收敛 + 强制 HTTPS 升级，**不等于**完整 XSS 防护。
-# 要彻底去掉 unsafe-inline 需配合前端改造（把内联脚本抽成 .js、事件改绑定）。
-CSP = "; ".join([
+# 注入面收敛 + 按需 HTTPS 升级，**不等于**完整 XSS 防护。
+CSP_BASE_DIRECTIVES = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
@@ -83,8 +82,18 @@ CSP = "; ".join([
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests",
-])
+]
+
+CSP = "; ".join([*CSP_BASE_DIRECTIVES, "upgrade-insecure-requests"])
+
+
+def _csp_for_request(request) -> str:
+    """根据请求协议生成 CSP：仅在 HTTPS 下启用 upgrade-insecure-requests，防止公网纯 HTTP 部署静态资源加载报错。"""
+    scheme = getattr(getattr(request, "url", None), "scheme", "http")
+    forwarded_proto = (request.headers.get("x-forwarded-proto") or "").split(",")[0].strip().lower()
+    if scheme == "https" or forwarded_proto == "https":
+        return CSP
+    return "; ".join(CSP_BASE_DIRECTIVES)
 
 
 def csrf_enabled() -> bool:
@@ -94,9 +103,13 @@ def csrf_enabled() -> bool:
     }
 
 
-def ensure_csrf_cookie(response: Response) -> str:
-    """确保响应带 csrf_token Cookie，返回其值（无则新建）。"""
+def ensure_csrf_cookie(response: Response, request=None) -> str:
+    """确保响应带 csrf_token Cookie，返回其值（若请求已有合法 token 则复用，防止多标签页/预览 iframe 互相覆盖）。"""
     token = response.headers.get("X-CSRF-Token-Issued")
+    if not token and request is not None:
+        existing = (request.cookies.get(CSRF_COOKIE) or "").strip()
+        if len(existing) >= 16:
+            token = existing
     if not token:
         token = secrets.token_urlsafe(32)
     response.set_cookie(
@@ -128,11 +141,11 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         response.headers.setdefault(
             "Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-        response.headers.setdefault("Content-Security-Policy", CSP)
+        response.headers.setdefault("Content-Security-Policy", _csp_for_request(request))
         # 页面 HTML 下发 CSRF Cookie，前端 JS 读取后放入 X-CSRF-Token 头
         ctype = response.headers.get("content-type", "")
         if "text/html" in ctype:
-            ensure_csrf_cookie(response)
+            ensure_csrf_cookie(response, request=request)
         return response
 
 
@@ -168,8 +181,15 @@ def _needs_csrf(request) -> bool:
     # ① 显式 Bearer 凭据 = API 客户端（SDK/curl），不会被浏览器跨站自动附带
     if request.headers.get("authorization", "").strip():
         return False
-    # ② 无会话 Cookie = 没有可被 CSRF 滥用的登录态，交给 guard() 判 401
-    if not (request.cookies.get("mf_v6_token") or request.cookies.get("mf_token")):
+    # ② 若携带跨站 Origin/Referer，即使无 Cookie（如本机 loopback 免密场景）也强制要求 CSRF 校验，防止 Drive-by Localhost CSRF
+    if (request.headers.get("origin") or request.headers.get("referer")) and not _same_origin(request):
+        return True
+    # ③ 无会话 Cookie（含 V6 mf_v6_token/mf_token 与 V7 yimu_session）= 交给下游 guard() 判 401
+    if not (
+        request.cookies.get("mf_v6_token")
+        or request.cookies.get("mf_token")
+        or request.cookies.get("yimu_session")
+    ):
         return False
-    # ③ 其余（浏览器页面 Cookie 鉴权）一律要求 token
+    # ④ 其余（浏览器页面 Cookie 鉴权）一律要求 token
     return True

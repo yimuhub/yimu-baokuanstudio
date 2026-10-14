@@ -98,11 +98,28 @@ class Tenant(Base):
     )
 
 
+# ---------------------------------------------------------------------------
+# 用户与用户级 API Key Vault
+# ---------------------------------------------------------------------------
+#
+# ⭐ V9.3.2 P0-2：双层数据访问合并（审查报告"合并双层数据访问"建议）
+#    core/auth.py（V6 裸 sqlite3）与 studio（V7 SQLAlchemy）历史上共用同一张
+#    users 表但列集不同，靠 core/db.py:ensure_users_columns 自愈补列维持。
+#    本版本把 core.auth 需要的全部列（plan / quota_used / quota_max /
+#    last_login）与租户列（tenant_id，由 HasTenant 混入）补齐到 ORM 真源，
+#    从此 studio.init_db(engine) 先建表也不会再缺 core.auth 依赖的列；
+#    core 侧 ALTER TABLE 自愈保留作兜底（幂等），两条路径不再互斥。
+
+
 class User(Base, HasTenant):
     """用户：归属单个租户。
 
     安全红线：``password_hash`` / ``salt`` 永不返回给前端，
     API 序列化时必须显式剔除。密码永不明文存储。
+
+    V9.3.2 补充（core/auth.py 兼容列）：plan / quota_used / quota_max /
+    last_login —— core.auth 的注册 / 登录 / CRUD 直接读这些列，
+    缺失时表现为全鉴权接口 500（历史事故见 core/db.py:ensure_users_columns）。
     """
 
     __tablename__ = "users"
@@ -130,9 +147,63 @@ class User(Base, HasTenant):
         FlexibleDateTime(), nullable=True
     )
 
+    # ---- ⭐ V9.3.2 P0-2：core.auth 兼容列（双层数据访问合并）----
+    # 套餐档位（free / pro / studio / enterprise）：core.auth.register_user 写入
+    #   TIER_CREDITS 对应的档位；studio 侧此前从不写，列由 core.db 自愈补齐。
+    plan: Mapped[str] = mapped_column(String(16), nullable=False, default="free")
+    # 已用算力点数（credits）：core.auth 注册即设 0，套餐升级 / 卡密核销改写
+    quota_used: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # 算力额度上限（credits）：注册默认 = studio.pricing.TIER_CREDITS['free']
+    #   （单一真源，与 core/db.py:_CORE_USER_COLUMNS 保持一致，禁止硬编码数字）
+    quota_max: Mapped[int] = mapped_column(Integer, nullable=False, default=3000)
+    # 最近登录时间（⭐ V9.3.2 双层数据访问合并：统一为 FlexibleDateTime，
+    #   与 core.auth._iso_now 的写入格式及 core/db.py 的 users.last_login TEXT 一致。
+    #   存量 epoch 浮点值由 FlexibleDateTime 的读兼容层解析；
+    #   新写入一律 ISO，从此 users 表两条写入路径不再有编码分歧）
+    last_login: Mapped[datetime | None] = mapped_column(
+        FlexibleDateTime(), nullable=True
+    )
+
     __table_args__ = (
         UniqueConstraint("tenant_id", "username", name="uq_users_tenant_username"),
         CheckConstraint("role IN ('owner','admin','user')", name="ck_users_role"),
+    )
+
+
+class UserApiKey(Base, HasTenant):
+    """用户级 API Key Vault（core/auth.py:save_user_api_key 的 ORM 真源）。
+
+    密钥可逆混淆加密后落库（core.auth.encrypt_key）；
+    ``api_key`` 列【永不返回给前端】，API 只回显 masked_key。
+    """
+
+    __tablename__ = "user_api_keys"
+
+    # 主键（key-<hex8>，与 core.auth 现有生成规则对齐）
+    id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
+    # 归属用户
+    user_id: Mapped[str] = mapped_column(
+        String(32), ForeignKey("users.id"), nullable=False, index=True
+    )
+    # 模型服务类型（deepseek / openai / claude / ... 小写）
+    provider: Mapped[str] = mapped_column(String(32), nullable=False, default="custom")
+    # 混淆加密后的 API Key【永不返回给前端】
+    api_key: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    # 可选：自定义 Base URL（聚合网关 / 自建推理服务）
+    base_url: Mapped[str] = mapped_column(String(512), nullable=False, default="")
+    # 可选：默认模型 id
+    model_id: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    # 是否当前生效（同 provider 多条时取最新创建且 is_active=1）
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # 备注名称（用户自填，便于多 Key 区分）
+    label: Mapped[str] = mapped_column(String(128), nullable=False, default="")
+    # 创建时间
+    created_at: Mapped[datetime] = mapped_column(
+        FlexibleDateTime(), nullable=False, default=utcnow
+    )
+
+    __table_args__ = (
+        Index("ix_user_api_keys_user_active", "user_id", "is_active"),
     )
 
 

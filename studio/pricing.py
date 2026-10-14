@@ -73,6 +73,8 @@ __all__ = [
     "plan_capacity",
     "plan_catalog",
     "upsell_options",
+    "FREE_DEMO_DAILY_CALLS",
+    "FREE_DEMO_MAX_OUTPUT_TOKENS",
 ]
 
 # ---------------------------------------------------------------------------
@@ -262,6 +264,32 @@ def tier_credits(tier: str) -> int:
 def tier_period_days(tier: str) -> int:
     """取某档位的周期天数；未知档位按 free 处理。"""
     return TIER_PERIOD_DAYS.get((tier or "free").lower(), TIER_PERIOD_DAYS["free"])
+
+
+# ---------------------------------------------------------------------------
+# 4b) 免费体验额度（官方通道免费体验模式 · V9.3.2）
+# ---------------------------------------------------------------------------
+#
+# ⭐ 为什么需要这一层：
+#   新用户注册自带 free 档 3000 credits（≈30 元），但官方通道的上游真实 Key
+#   掌握在运营侧（.env），首次使用「一句话生成」如果 401/502，
+#   新用户的"第一次成功"就被卡死（V9.3.1 审查报告 P0 问题）。
+#   现建立每日免费体验额度：
+#   - 每自然日（本地时区 0 点重置）每个用户 free 档官方通道免费 N 次调用，
+#     上限 FREE_DEMO_MAX_OUTPUT_TOKENS output tokens，仅走轻量聊天模型；
+#   - 免费体验只记使用统计，不扣会员额度（deducted=0）；
+#   - 耗尽后自动回落正常扣费路径，额度不足则照常抛
+#     InsufficientCreditsError，行为与既有契约完全一致；
+#   - 仅 yimu_official + free 档享受；pro/studio 与企业管理员（studio 档）不
+#     占用也不影响（付费档额度本就充足，且企业用户有专属通道）。
+#   - 这是"让第一次成功先于第一次付费"的产品铁律落地，禁止删改：
+#     任何把免费体验挪到付费档、或让官方通道直接 401 的"优化"都是漏人。
+
+#: 每自然日免费体验调用次数（官方通道 · free 档）
+FREE_DEMO_DAILY_CALLS = 3
+
+#: 单次免费体验 output tokens 上限（轻量模型，控制单次成本 ≈ 0.01~0.05 元）
+FREE_DEMO_MAX_OUTPUT_TOKENS = 512
 
 
 #: ⭐ 一条完整 8 步短剧的真实消耗（credits）：

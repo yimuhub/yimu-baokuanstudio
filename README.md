@@ -6,7 +6,7 @@
 
 **The Full-Lifecycle Viral Content Creation Engine & LLM Commercial Gateway for Digital Creators, Short Drama Studios, and MCN Agencies**
 
-[![Version](https://img.shields.io/badge/version-9.3.1-orange.svg?style=flat-square)](version.py)
+[![Version](https://img.shields.io/badge/version-9.4.0-orange.svg?style=flat-square)](version.py)
 [![Release](https://img.shields.io/badge/release-v9.3.1%20(Server%20Deploy)-blueviolet.svg?style=flat-square)](RELEASES.md)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Licensor](https://img.shields.io/badge/Licensor-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
@@ -212,17 +212,16 @@ bash ci.sh
 
 ---
 
-## 📦 Latest Release: V9.3.1 (万象融 · Server One-Click Deploy & Cross-Platform)
+## 📦 Latest Release: V9.4.0 (扶风翼 · Gale Wings: Free First, Pay Later)
 
 YIMU Studio strictly implements Semantic Versioning (`SemVer`). To ensure maximum clarity and a pure presentation, the project homepage focuses exclusively on the **latest active release**:
 
-### 🌟 V9.3.1 Feature Highlights
-- 🖥️ **Production Server One-Click Deployment**: Introduced `服务器一键部署.sh` (symlinked as `一键部署.sh` / `deploy.sh`), offering automated multi-distro dependency provisioning (Ubuntu/Debian/CentOS/Rocky/Alpine), isolated virtualenv setup, cryptographic secret generation, database schema migration, and Systemd daemon service auto-start.
-- 🐧 **Native Linux & Clean Versionless Launchers**: Windows (`一键启动.bat`), macOS (`一键启动.command`), and Linux (`一键启动_linux.sh`) launchers completely decoupled from version numbers.
-- 🚀 **Automated GitHub Releases Workflow**: Automated continuous integration and instantaneous GitHub Releases synchronization on every release tag, ensuring update-checking seamlessly connects to the latest release.
-- 🌐 **100% Zero-Residue Bilingual Engine**: Complete 1,800+ UI dictionary terms covering desktop & mobile topbars, all 15 system modals, form controls, and attributes with zero Chinese residue in English mode.
-- 🎬 **2K Native Cinematic Storyboarding**: 2K resolution default canvas (`2048x1152`, `1152x2048`, `2048x2048`) with AI zero-haze defogging prompt pipeline.
-- ⚖️ **Single Source of Truth**: All components across the system strictly unified to **V9.3.1**.
+### 🌟 V9.4.0 Feature Highlights
+- 🎁 **Official-Channel Free Trial Quota (First Success Before First Paywall)**: New users now get **3 free lightweight AI generations per day** via the official channel — no API Key required. Free trials auto-revert to normal compute-credit billing when exhausted, so a brand-new creator's first viral post is never blocked by a 401/502.
+- 🚀 **First-Run Onboarding Wizard**: A 3-step, 30-second setup guide on first login — explains the free trial quota, lets users either start instantly on the official channel or drop in their own API Key. Dismissal is persisted so it never nags again.
+- 🏛️ **Dual Data-Access Unification (P0 Debt Paydown)**: The `users` / `user_api_keys` tables are now declared in the single SQLAlchemy source of truth (`studio/db_models.py`) with all V6-era columns; raw-sqlite self-healing (`ensure_users_columns`) is demoted to a guarded fallback. Time columns unified to ISO-8601 via `FlexibleDateTime` — no more mixed float/ISO encoding.
+- 🌐 **100% Zero-Residue Bilingual Engine**: 1,835+ UI dictionary terms covering desktop & mobile topbars, all 16 system modals (incl. the new wizard), form controls, and attributes — zero Chinese residue in English mode.
+- ⚖️ **Single Source of Truth**: All components across the system strictly unified to **V9.4.0**.
 
 > For historical version archives and detailed milestone changelogs, please visit the official [Releases Documentation (RELEASES.md)](RELEASES.md) and [GitHub Releases Page](https://github.com/yimuhub/yimu-baokuanstudio/releases).
 

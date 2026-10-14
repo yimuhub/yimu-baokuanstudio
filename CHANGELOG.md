@@ -44,6 +44,37 @@ YIMU Studio maintains strict version discipline:
 
 ---
 
+## [9.4.0] - 2026-10-14 · 浮光录 (Luminous Chronicles)
+
+### Added & Upgraded
+- **Full-Stack `user_id` & BYOK Pipeline Unification**: Automatic context `user_id` propagation across `core/agents.py` (`chat_for`) and `core/llm.py` (`resolve_llm_endpoint`, `chat`), ensuring user-configured API Vault keys (BYOK) and free-demo metering work across all creation, rewriting, and short-drama stages. When an active BYOK key is present, `require_credits` automatically waives platform credit deductions.
+- **6D Persona Profile Auto-Injection**: Workspace 6D persona profiles (`build_profile_system_prompt`) are now automatically injected into `compose_system` for writing, director, and ad-creative agents.
+- **Local Config Overlay (`data/config.local.yaml`) & Conflict-Free Online Upgrade**: `core/llm.py` supports merging `data/config.local.yaml`, and `core/updater.py` automatically stashes/restores local `config.yaml` edits during `git pull`.
+- **Database Connection Initialization Cache**: `core/db.py:conn()` caches schema/migration verification per database file inode, eliminating 40+ redundant DDL/PRAGMA queries per call (10x+ speedup).
+
+### Fixed & Hardened
+- **Reverse-Proxy Loopback Guard**: `_is_loopback` in `web/admin.py` now inspects `X-Forwarded-For` / `X-Real-IP` to prevent Nginx/Caddy reverse proxies from unintentionally granting loopback super-admin access to remote clients.
+- **CSRF & Dynamic CSP Hardening**: `core/security_middleware.py` now enforces CSRF on cross-origin requests even without cookies (blocking Drive-by Localhost CSRF), checks `yimu_session`, reuses existing valid `csrf_token` cookies across tabs/iframes, and only emits `upgrade-insecure-requests` over HTTPS.
+- **V6/V7 Session & Auth Unification**: `core/auth.py` and `studio/auth.py` now share cross-compatible token verification and dual-cookie (`mf_v6_token` + `yimu_session`) issuance; `encrypt_key` upgraded to `v2$` random-nonce HMAC stream cipher with backward compatibility.
+- **Growth Funnel & Scheduler Fixes**: `/api/auth/register` and `orchestrator` now emit `signup` and `first_draft_created` funnel events and support `invite_code` referral redemption; `core/scheduler.py` supports cross-hour 15-minute windows and persists daily ticket state; `rewrite_single_platform` respects custom `instruction` on Xiaohongshu rewrites.
+
+---
+
+## [9.3.2] - 2026-10-14 · 扶风翼 (Gale Wings: Free First, Pay Later)
+
+### Added
+- **Official-Channel Free Trial Quota (P0-1)**: New users (Free tier) get **3 free lightweight AI generations per day** via the `yimu_official` channel — no API Key required, single-call output capped at 512 tokens, quota resets daily (UTC+8), counters persisted to `data/free_demo_calls.json`. Exhaustion falls back to normal compute-credit billing, preserving the existing `InsufficientCreditsError` contract.
+- **First-Run Onboarding Wizard (P1-1)**: 3-step 30-second setup on first login (free-quota awareness → choose main engine: official channel or own API Key → done). Dismissal persisted via `POST /api/onboarding/done` → `data/user_onboarding_done.json`, never nags again. All wizard copy registered in `i18n_dict.json` (now 1,835+ terms).
+- **Dual Data-Access Unification (P0-2)**: `users` and `user_api_keys` fully declared in the SQLAlchemy source of truth (`studio/db_models.py`), including V6-era columns (`plan`, `quota_used`, `quota_max`, `last_login`) and the `UserApiKey` model; raw-sqlite self-healing demoted to guarded fallback. Time columns unified to ISO-8601 via `FlexibleDateTime`.
+- **Test Coverage**: 5 new `test_llm_metering` cases (free-quota exhaustion, paid-tier exclusion, long-output exclusion, left-today tracking); `test_r3_monetization` updated to assert ORM schema contains V6 columns; `docs/CONTRACT.md` registers the new onboarding route.
+
+### Changed
+- **Single Source of Truth (`version.py`)**: `__version__ = "9.3.2"`, `__codename__ = "扶风翼"`, slogan "Gale Wings: Free First, Pay Later".
+- **User-facing copy**: internal jargon ("降级") replaced with user-friendly wording across `web/`, `studio/`.
+- **All version references** (templates, i18n, license, README, RELEASES) unified to V9.3.2.
+
+---
+
 ## [9.1.0] - 2026-10-13 · 万象生 (Infinite Worlds)
 
 ### Added

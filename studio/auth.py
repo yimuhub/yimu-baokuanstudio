@@ -76,18 +76,31 @@ def create_session_token(user: User) -> str:
 
 
 def parse_session_token(token: str) -> dict | None:
-    """验签并解析会话 token；签名不对 / 格式不对 / 过期 → 返回 None。"""
+    """验签并解析会话 token；签名不对 / 格式不对 / 过期 → 返回 None。
+
+    兼容 studio.auth (yimu_session) 与 core.auth (mf_v6_token) 两种签名载荷。
+    """
     try:
         payload_b64, sig = token.split(".", 1)
         raw = _b64d(payload_b64)
-        expected = hmac.new(_SIGNING_KEY, raw, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(expected, sig):
+        expected_raw = hmac.new(_SIGNING_KEY, raw, hashlib.sha256).hexdigest()
+        expected_b64 = hmac.new(_SIGNING_KEY, payload_b64.encode("utf-8"), hashlib.sha256).hexdigest()
+        live_secret = os.environ.get("YIMU_SECRET_KEY", "").encode("utf-8")
+        expected_live_b64 = hmac.new(live_secret, payload_b64.encode("utf-8"), hashlib.sha256).hexdigest() if live_secret else ""
+        sig_ok = (
+            hmac.compare_digest(expected_raw, sig)
+            or hmac.compare_digest(expected_b64, sig)
+            or (bool(expected_live_b64) and hmac.compare_digest(expected_live_b64, sig))
+        )
+        if not sig_ok:
             return None
         payload = json.loads(raw.decode("utf-8"))
         if not isinstance(payload, dict):
             return None
-        if int(payload.get("exp", 0)) < int(time.time()):
+        if float(payload.get("exp", 0)) < time.time():
             return None
+        if not payload.get("uid") and payload.get("user_id"):
+            payload["uid"] = payload["user_id"]
         if not payload.get("uid") or not payload.get("tenant_id"):
             return None
         return payload
@@ -123,8 +136,8 @@ def get_db():
 # 鉴权依赖
 # ---------------------------------------------------------------------------
 def _token_from_request(request: Request) -> str | None:
-    """先读 Cookie yimu_session；没有再看 Authorization: Bearer（供 CLI/API）。"""
-    token = request.cookies.get(SESSION_COOKIE)
+    """先读 Cookie yimu_session / mf_v6_token；没有再看 Authorization: Bearer（供 CLI/API）。"""
+    token = request.cookies.get(SESSION_COOKIE) or request.cookies.get("mf_v6_token")
     if token:
         return token
     auth = request.headers.get("Authorization", "")
@@ -233,18 +246,10 @@ def register_user(
 ) -> User:
     """注册用户：用户名同租户唯一 → 邀请码核销（invite-only 必填）→
     建 user + free 会员档 → 写审计日志。
-
-    ⭐ invite-only 模式下无可用邀请码直接 400 拒绝；
-       邀请码占用是原子 UPDATE，超 max_uses / 过期 / 非 active 都不会建出用户。
-
-    首个注册用户自动成为租户 owner（解决冷启动无人可管的问题），
-    之后注册的均为普通 user。
     """
     username, password = _validate_register_input(username, password)
     email = (email or "").strip()
 
-    # 1) 用户名同租户唯一（先查：重复用户名直接 409，不烧掉邀请码名额；
-    #    并发下的竞态由 uq_users_tenant_username 唯一约束兜底，见下 IntegrityError）
     exists = (
         db.query(User)
         .filter(User.tenant_id == tenant.id, User.username == username)
@@ -253,9 +258,6 @@ def register_user(
     if exists is not None:
         errors.raise_err("CONFLICT", "用户名已被使用，请换一个")
 
-    # 2) 邀请码原子占用（invite-only 必填；public 下填了也认）
-    #    ⭐ 占用与有效性校验在同一条 UPDATE 里完成：超 max_uses / 过期 /
-    #       非 active 时影响 0 行 → 直接 400，且不会建出用户。
     invite = None
     invite_code = (invite_code or "").strip()
     if tenant.launch_mode == "invite-only" and not invite_code:
@@ -267,7 +269,6 @@ def register_user(
     if invite_code:
         invite = membership_service._redeem_invite_atomic(db, tenant, invite_code)
 
-    # 3) 建用户：首个用户为 owner
     user_count = (
         db.query(User).filter(User.tenant_id == tenant.id).count()
     )
@@ -286,11 +287,9 @@ def register_user(
     try:
         db.flush()
     except IntegrityError:
-        # 并发注册同名：唯一约束兜底，回滚已占用的邀请码名额
         db.rollback()
         errors.raise_err("CONFLICT", "用户名已被使用，请换一个")
 
-    # 4) 建 free 会员档；邀请码带额度则加上
     membership = Membership(
         id=new_id(),
         tenant_id=tenant.id,
@@ -308,7 +307,6 @@ def register_user(
         )
     db.add(membership)
 
-    # 5) 审计（只增不改）
     db.add(
         AuditLog(
             id=new_id(),
@@ -329,11 +327,7 @@ def register_user(
 
 
 def authenticate(db: Session, tenant: Tenant, username: str, password: str) -> User | None:
-    """校验用户名密码；成功返回 User（并更新 last_login_at），失败返回 None。
-
-    调用方负责 db.commit()。失败原因不区分（防枚举），
-    路由层统一返回 401「用户名或密码不正确」。
-    """
+    """校验用户名密码；成功返回 User（并更新 last_login_at），失败返回 None。"""
     username = (username or "").strip()
     if not username or not password:
         return None

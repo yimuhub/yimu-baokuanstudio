@@ -458,9 +458,18 @@ def _token() -> str:
 
 
 def _is_loopback(request: Request) -> bool:
-    """请求是否来自本机回环地址。"""
+    """请求是否来自本机回环地址（若带反向代理转发头 X-Forwarded-For / X-Real-IP 且非回环，拒绝免密）。"""
     client_ip = request.client.host if request.client else ""
-    return client_ip in _LOOPBACK_HOSTS
+    if client_ip not in _LOOPBACK_HOSTS:
+        return False
+    headers = getattr(request, "headers", None) or {}
+    xff = (headers.get("x-forwarded-for") or headers.get("X-Forwarded-For") or "").split(",")[0].strip()
+    xri = (headers.get("x-real-ip") or headers.get("X-Real-Ip") or "").strip()
+    if xff and xff not in _LOOPBACK_HOSTS:
+        return False
+    if xri and xri not in _LOOPBACK_HOSTS:
+        return False
+    return True
 
 
 def _auto_admin_cookie(request: Request) -> dict:
@@ -579,6 +588,16 @@ def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
 
     user = _CURRENT_USER.get() or {}
     user_id = str(user.get("id") or "")
+
+    # ⭐ V9.4.0：当用户已配置并启用自备 API Key（BYOK）时，兑现「自备 Key 不扣会员额度」承诺
+    if user_id:
+        try:
+            from core import auth as _core_auth
+            _u_cfg = _core_auth.get_active_user_llm_config(user_id)
+            if _u_cfg and _u_cfg.get("plain_api_key"):
+                return True
+        except Exception:
+            pass
 
     ok = False
     balance = 0
@@ -767,16 +786,18 @@ def write_env(key: str, value: str):
 
 @app.post("/api/auth/register")
 async def api_register(request: Request):
-    """V6 用户自助注册新账号"""
+    """V6/V7 用户自助注册新账号（同步记录 signup 漏斗、支持邀请码核销并双写 yimu_session）"""
     body = await request.json()
     username = (body.get("username") or "").strip()
     password = (body.get("password") or "").strip()
     email = (body.get("email") or "").strip()
+    invite_code = (body.get("invite_code") or "").strip()
     try:
         from core import auth
-        res = auth.register_user(username, password, email)
+        res = auth.register_user(username, password, email, invite_code=invite_code)
         resp = JSONResponse(res)
         resp.set_cookie("mf_v6_token", res["token"], httponly=True, samesite="lax", max_age=30*86400, path="/")
+        resp.set_cookie("yimu_session", res["token"], httponly=True, samesite="lax", max_age=30*86400, path="/")
         return resp
     except Exception as e:
         raise HTTPException(400, str(e))
@@ -815,6 +836,7 @@ async def api_login(request: Request):
         res = auth.login_user(username, password)
         resp = JSONResponse(res)
         resp.set_cookie("mf_v6_token", res["token"], httponly=True, samesite="lax", max_age=30*86400, path="/")
+        resp.set_cookie("yimu_session", res["token"], httponly=True, samesite="lax", max_age=30*86400, path="/")
         return resp
     except Exception as e:
         raise HTTPException(400, str(e))
@@ -958,11 +980,63 @@ async def login(request: Request):
 @app.get("/api/auth/status")
 def auth_status(request: Request):
     u = get_current_user(request)
+    # ⭐ V9.3.2 首次引导数据（审查报告 P1-1 修复）：
+    #   wizard 只在"用户尚未做过任何主链路配置"时展示，
+    #   用 localStorage 标记避免反复打扰已配置用户。
+    from studio import llm_metering
+    u_id = str((u or {}).get("id") or (u or {}).get("user_id") or "")
+    try:
+        from core import auth
+        has_own_key = auth.get_active_user_llm_config(u.get("id")) is not None
+    except Exception:  # noqa: BLE001
+        has_own_key = False
     return {
         "authed": u is not None,
         "user": u,
-        "is_default": load_env().get("ADMIN_PASSWORD", "local-admin") == "local-admin"
+        "is_default": load_env().get("ADMIN_PASSWORD", "local-admin") == "local-admin",
+        "wizard": {
+            # ⭐ 已登录 且 未跳过/完成 且 尚未配置任何自备 API Key 时才引导，
+            #   避免对已配置用户反复打扰（审查报告 P1-1"防反复打扰"原则）
+            "show": bool(u and u_id and not _wiz_done(u_id) and not has_own_key),
+            "daily_free_calls": llm_metering.pricing.FREE_DEMO_DAILY_CALLS,
+            "free_left_today": llm_metering.free_demo_left_today(u_id),
+        },
     }
+
+
+def _wiz_done(user_id: str) -> bool:
+    """检查某用户是否已跳过/完成首次引导（持久化在 user_onboarding_done.json）。"""
+    if not user_id:
+        return False
+    p = ENV_PATH.parent / "data" / "user_onboarding_done.json"
+    try:
+        import json as _json
+        data = _json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+        return bool(data.get(user_id, {}).get("done", False))
+    except Exception:  # noqa: BLE001
+        return False
+
+
+@app.post("/api/onboarding/done")
+def onboarding_done(request: Request):
+    """首次引导完成/跳过标记（防反复打扰）。"""
+    u = get_current_user(request)
+    if not u:
+        raise HTTPException(401, "请先登录")
+    p = ENV_PATH.parent / "data" / "user_onboarding_done.json"
+    import json as _json
+    data = {}
+    try:
+        data = _json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+        if not isinstance(data, dict):
+            data = {}
+    except Exception:  # noqa: BLE001
+        data = {}
+    uid = str(u.get("id") or u.get("user_id") or "")
+    data[uid] = {"done": True, "ts": time.time()}
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(_json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"ok": True}
 
 
 @app.post("/api/auth/logout")
@@ -5475,6 +5549,12 @@ def get_model_providers(request: Request):
     }
 
     from core import video_rules
+    # ⭐ V9.3.2 免费体验额度（官方通道免费体验模式）：
+    #   让 UI 感知"新用户今日还剩几次免费官方通道调用"，
+    #   配合首次登录 wizard 实现"第一次成功先于第一次付费"。
+    from studio import llm_metering
+    u_for_demo = get_current_user(request)
+    user_id_demo = str(u_for_demo.get("id") or u_for_demo.get("user_id") or "") if u_for_demo else ""
     return {
         "providers": all_providers,
         "all_presets": all_presets,
@@ -5484,6 +5564,11 @@ def get_model_providers(request: Request):
         "cross_models": cross_models,
         "env_key_set": has_active_key,
         "video_rules": video_rules.load_rules().get("rules", []),
+        "free_demo": {
+            "daily_calls": llm_metering.pricing.FREE_DEMO_DAILY_CALLS,
+            "max_output_tokens": llm_metering.pricing.FREE_DEMO_MAX_OUTPUT_TOKENS,
+            "left_today": llm_metering.free_demo_left_today(user_id_demo),
+        },
     }
 
 

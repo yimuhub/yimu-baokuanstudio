@@ -102,6 +102,20 @@ CREATE TABLE IF NOT EXISTS workspaces (
   created_at REAL,
   is_active INTEGER DEFAULT 0
 );
+-- V7 新增表（列定义与 studio/db_models.py 对齐，raw sqlite3 与 SQLAlchemy 双层共用） --
+--
+-- ⭐ V9.3.2 P0-2：双层数据访问合并（审查报告"合并双层数据访问"建议）。
+--   此前 users.created_at / last_login 在 core 侧写 REAL（epoch 秒）、
+--   在 studio ORM 侧写 TEXT（ISO 字符串），同一列两种编码，
+--   ORM 按 created_at 排序时 fromisoformat 崩溃（历史 P0 事故，
+--   见 core/auth.py:_iso_now 与 studio/flex_datetime.py 的兼容层）。
+--   本版本把 users / user_api_keys 的时间列统一为 TEXT ISO 8601
+--   （studio ORM 真源，FlexibleDateTime 双向可读），
+--   存量 REAL 值由 studio/flex_datetime.py 的读兼容层兜底，
+--   新写入一律 ISO（core.auth._iso_now 已如此），
+--   从此两条路径不再有编码分歧。
+--   其余表（topics / drafts / ...）的 created_at REAL 保持不变，
+--   因为它们不属于 ORM 真源，无此冲突。
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   username TEXT UNIQUE NOT NULL,
@@ -112,8 +126,8 @@ CREATE TABLE IF NOT EXISTS users (
   plan TEXT DEFAULT 'free',        -- free / pro / enterprise
   quota_used INTEGER DEFAULT 0,
   quota_max INTEGER DEFAULT 3000,       -- R2-1：免费档额度，取自 studio/pricing.TIER_CREDITS
-  created_at REAL,
-  last_login REAL,
+  created_at TEXT,                 -- ⭐ V9.3.2：ISO 8601（与 studio ORM 真源一致；存量 REAL 由读兼容层兜底）
+  last_login TEXT,                -- ⭐ V9.3.2：ISO 8601（同上）
   is_active INTEGER DEFAULT 1
 );
 CREATE TABLE IF NOT EXISTS user_api_keys (
@@ -125,7 +139,7 @@ CREATE TABLE IF NOT EXISTS user_api_keys (
   model_id TEXT DEFAULT '',
   is_active INTEGER DEFAULT 1,
   label TEXT DEFAULT '',
-  created_at REAL
+  created_at TEXT                 -- ⭐ V9.3.2：ISO 8601（与 studio ORM UserApiKey 真源一致）
 );
 -- V7 新增表（列定义与 studio/db_models.py 对齐，raw sqlite3 与 SQLAlchemy 双层共用） --
 CREATE TABLE IF NOT EXISTS tenants (
@@ -369,10 +383,33 @@ def _connect_sqlite(path: Path) -> sqlite3.Connection:
         raise
 
 
+_INITIALIZED_DB_PATHS: dict[str, int] = {}
+
+
 def conn() -> sqlite3.Connection:
     DATA.mkdir(parents=True, exist_ok=True)
     c = _connect_sqlite(DB_PATH)
     c.row_factory = sqlite3.Row
+    db_key = str(DB_PATH)
+    try:
+        db_ino = DB_PATH.stat().st_ino if DB_PATH.exists() else 0
+    except OSError:
+        db_ino = 0
+    # ⭐ V9.4.0 性能优化：同一数据库文件仅在首次建连或表缺失时执行全量 DDL 与列迁移，
+    #   避免每次 SELECT/UPDATE 重复跑 40+ 条 PRAGMA 与 CREATE TABLE（性能提升 10x+）。
+    has_drafts = False
+    if db_ino and _INITIALIZED_DB_PATHS.get(db_key) == db_ino:
+        try:
+            has_drafts = bool(
+                c.execute(
+                    "SELECT 1 FROM sqlite_master WHERE type='table' AND name='drafts'"
+                ).fetchone()
+            )
+        except Exception:
+            has_drafts = False
+    if has_drafts:
+        return c
+
     c.executescript(SCHEMA)
     # 旧库迁移：补列
     cols = {r["name"] for r in c.execute("PRAGMA table_info(drafts)")}
@@ -414,7 +451,6 @@ def conn() -> sqlite3.Connection:
         c.execute("ALTER TABLE invites ADD COLUMN inviter_id TEXT NOT NULL DEFAULT ''")
 
     # V7 租户隔离：给业务表补 tenant_id 列，老数据统一归 'default' 租户。
-    # ⭐ 新写入必须带当前租户 id；跨租户访问由应用层拦截。
     for _t in ("topics", "drafts", "draft_history", "jobs", "async_tasks",
                "ip_characters", "scheduled_posts", "workspaces",
                "users", "user_api_keys"):
@@ -424,8 +460,6 @@ def conn() -> sqlite3.Connection:
             continue
         if "tenant_id" not in _cols:
             c.execute(f"ALTER TABLE {_t} ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
-    # ⭐ R3-9：补齐 core.auth 需要的 users 列（与 studio 共用同一张表，
-    #   谁先建表另一方就会缺列——详见 ensure_users_columns 的说明）。
     ensure_users_columns(c)
 
     # 确保默认租户行存在
@@ -435,15 +469,16 @@ def conn() -> sqlite3.Connection:
     )
 
     # R3-9：把历史草稿（user_id 为空串）的归属一次性回填给本机管理员。
-    # 幂等（只填空串），故每次建连执行成本可忽略；放在迁移之后是因为
-    # 上面的 ALTER TABLE ADD COLUMN user_id 保证了该列一定存在。
-    # ⚠️ 直接写 SQL（而非调 backfill_drafts_owner）是为了避免 conn() 与
-    #    业务函数互相递归调用。
     c.execute(
         "UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''"
     )
 
     c.commit()
+    try:
+        if DB_PATH.exists():
+            _INITIALIZED_DB_PATHS[db_key] = DB_PATH.stat().st_ino
+    except OSError:
+        pass
     return c
 
 

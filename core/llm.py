@@ -300,10 +300,24 @@ def fetch_remote_models(base_url: str, api_key: str = "", provider_id: str = "")
 
 def load_config() -> dict:
     cfg_file = BASE / "config.yaml"
+    cfg = {}
     if cfg_file.exists():
         with open(cfg_file, encoding="utf-8") as f:
-            return yaml.safe_load(f) or {}
-    return {}
+            cfg = yaml.safe_load(f) or {}
+    local_cfg_file = BASE / "data" / "config.local.yaml"
+    if local_cfg_file.exists():
+        try:
+            with open(local_cfg_file, encoding="utf-8") as lf:
+                local_cfg = yaml.safe_load(lf) or {}
+            if isinstance(local_cfg, dict):
+                for k, v in local_cfg.items():
+                    if isinstance(v, dict) and isinstance(cfg.get(k), dict):
+                        cfg[k].update(v)
+                    else:
+                        cfg[k] = v
+        except Exception:
+            pass
+    return cfg
 
 
 def load_env() -> dict:
@@ -666,6 +680,15 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
        - 若未匹配，检索其他已配置并具有 API Key 的供应商池（实现跨运营商多 Agent 协作）；
        - 若全网无匹配：自动平滑安全回退至当前活动供应商的主模型。
     """
+    # V9.4.0：若未显式传入 user_id，自动从当前请求上下文提取
+    if not user_id:
+        try:
+            from web import admin as _web_admin
+            _u = _web_admin._CURRENT_USER.get()
+            if isinstance(_u, dict) and _u.get("id"):
+                user_id = str(_u["id"])
+        except Exception:
+            pass
     # V6 用户专属 API Key 优先
     if user_id:
         try:
@@ -779,6 +802,14 @@ def _get_fallback_candidates(exclude_pid: str) -> list[tuple[str, str, str, str]
 def chat(messages: list[dict], *, model: str | None = None,
          temperature: float = 0.8, timeout_s: float | None = None, stage: str | None = None, user_id: str | None = None) -> str:
     """大模型通用对话调用，全自动跨运营商路由与多通道自动熔断降级。支持 V6 独立用户 API 隔离。"""
+    if not user_id:
+        try:
+            from web import admin as _web_admin
+            _u = _web_admin._CURRENT_USER.get()
+            if isinstance(_u, dict) and _u.get("id"):
+                user_id = str(_u["id"])
+        except Exception:
+            pass
     base, key, target_model, provider_id = resolve_llm_endpoint(model, stage=stage, user_id=user_id)
 
     # 针对本地 Ollama 允许无 key 调用

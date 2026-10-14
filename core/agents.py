@@ -49,8 +49,8 @@ STAGE_DEFAULT_SKILLS = {
 
 
 def load_config() -> dict:
-    with open(BASE / "config.yaml", encoding="utf-8") as f:
-        return yaml.safe_load(f) or {}
+    from core.llm import load_config as _llm_load_config
+    return _llm_load_config()
 
 
 def agents_cfg() -> dict:
@@ -80,7 +80,6 @@ def list_skills() -> dict:
     try:
         if SKILLS_DIR.exists():
             files = list(SKILLS_DIR.glob("*.md"))
-            # 目录 mtime 只反映增删，文件 mtime 反映内容修改，两者都要
             dir_mtime = SKILLS_DIR.stat().st_mtime
             max_file_mtime = max((f.stat().st_mtime for f in files), default=0)
             cache_key = (dir_mtime, len(files), max_file_mtime)
@@ -133,13 +132,7 @@ def _read_skills_from_disk() -> dict:
 
 
 def get_catalog_skills() -> list[dict]:
-    """返回规范化的技能库目录列表，供工作区绑定。
-    
-    scope:
-      "writing" — 写作/内容提升专用，显示在 AI 改写弹框和工作室写作技能区
-      "video"   — 影音/短剧专用，只显示在影音工坊相关面板
-      "both"    — 写作与影音双用途，两处均可显示
-    """
+    """返回规范化的技能库目录列表，供工作区绑定。"""
     raw = list_skills()
     icons = {
         "title-forge": "✍️",
@@ -212,7 +205,6 @@ def get_catalog_skills() -> list[dict]:
     }
     result = []
     for k, v in raw.items():
-        # 优先读取 frontmatter，未定义则降级至预设字典
         cat = v.get("category") if v.get("category") != "通用技能" else categories.get(k, "通用技能")
         sc = v.get("scope") if v.get("scope") else scopes.get(k, "writing")
         ic = v.get("icon") if v.get("icon") != "⚡" else icons.get(k, "⚡")
@@ -225,7 +217,6 @@ def get_catalog_skills() -> list[dict]:
             "scope": sc,
         })
     return result
-
 
 
 def skills_for(stage: str) -> list[str]:
@@ -247,13 +238,7 @@ ROUTING_STAGE_MAP = {
 
 
 def model_for(stage: str, default: str = "") -> str:
-    """获取指定阶段生效的模型ID。
-    优先级：
-    1. agents.{stage}.model 显式指定的值（非空）
-    2. gateway.agent_routing 中该阶段对应的分工路由模型（非空）
-    3. default 参数（若非空）
-    4. gateway.model 全局活动主模型
-    """
+    """获取指定阶段生效的模型ID。"""
     cfg = load_config()
     a_model = cfg.get("agents", {}).get(stage, {}).get("model", "").strip()
     if a_model:
@@ -276,9 +261,9 @@ def model_for(stage: str, default: str = "") -> str:
 
 
 def compose_system(stage: str, base_prompt: str) -> str:
-    """base + 已分配技能文本 + 阶段自定义指令。"""
+    """base + 已分配技能文本 + 阶段自定义指令 + 工作区6维数字人设画像。"""
     skill_lib = list_skills()
-    parts = [base_prompt]
+    parts = [base_prompt] if base_prompt else []
     for name in skills_for(stage):
         sk = skill_lib.get(name)
         if sk:
@@ -286,12 +271,37 @@ def compose_system(stage: str, base_prompt: str) -> str:
     inst = agents_cfg().get(stage, {}).get("instruction", "")
     if inst:
         parts.append(f"【本阶段特别要求】{inst}")
+    # ⭐ V9.4.0：在核心内容生成与剧本创作阶段自动贯通当前工作区 6 维数字画像
+    if stage in ("write", "director", "ad_creative"):
+        try:
+            from core import workspace
+            prof_prompt = workspace.build_profile_system_prompt()
+            if prof_prompt:
+                parts.append(prof_prompt.strip())
+        except Exception:
+            pass
     return "\n\n".join(parts)
 
 
+def _resolve_context_user_id() -> str | None:
+    """从当前请求上下文自动提取 user_id，防止调用点漏传导致 BYOK 与免费额度失效。"""
+    try:
+        from web import admin as _web_admin
+        u = _web_admin._CURRENT_USER.get()
+        if isinstance(u, dict) and u.get("id"):
+            return str(u["id"])
+    except Exception:
+        pass
+    return None
+
+
 def chat_for(stage: str, messages: list[dict], fallback_model: str = "", **kw) -> str:
-    """按阶段的模型与技能调用 LLM，自动感知跨供应商与平滑回退。"""
+    """按阶段的模型与技能调用 LLM，自动感知跨供应商与平滑回退，并自动透传 user_id。"""
     from core import llm
+    if not kw.get("user_id"):
+        ctx_uid = _resolve_context_user_id()
+        if ctx_uid:
+            kw["user_id"] = ctx_uid
     sys = compose_system(stage, "")
     msgs = list(messages)
     if sys:
@@ -301,4 +311,3 @@ def chat_for(stage: str, messages: list[dict], fallback_model: str = "", **kw) -
             msgs = [{"role": "system", "content": sys}] + msgs
     target_m = model_for(stage, fallback_model)
     return llm.chat(msgs, model=target_m, stage=stage, **kw)
-

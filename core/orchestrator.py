@@ -376,7 +376,8 @@ def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆
                         f"【特别铁律】：严格围绕上述创作选题展开，以抓取到的 3~5 篇真实网页素材为事实蓝本深度扩写，绝不允许凭空捏造或偏向不相关的非遗/其他领域！")
             raw = agents.chat_for("write", [{"role": "system", "content": SYS_PROMPT},
                                             {"role": "user", "content": user_msg}],
-                                  fallback_model=llm.load_config().get("gateway", {}).get("model", ""))
+                                  fallback_model=llm.load_config().get("gateway", {}).get("model", ""),
+                                  user_id=user_id or None)
             title, body = _split_llm_output(raw)
         except Exception:
             traceback.print_exc()
@@ -388,6 +389,11 @@ def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆
     cand_titles = generate_candidate_titles(title, body)
     draft = db.add_draft(topic_id, title, body, selected_platforms,
                          candidate_titles=cand_titles, user_id=user_id)
+    try:
+        from core import analytics
+        analytics.track("first_draft_created", str(user_id or ""), {"draft_id": draft["id"], "source": "topic"})
+    except Exception:
+        pass
     parsed = {"TITLE_WX": title, "BODY_WX": body,
               "TITLE_XHS": title, "BODY_XHS": body,
               "TITLE_TT": title, "BODY_TT": body}
@@ -535,7 +541,7 @@ def benchmark_and_rewrite(source_platform: str, source_title: str, source_url: s
             f"网页真实正文/长文详情：\n{(detail or source_title)[:4500]}\n"
             f"{multi_refs_text}"
             f"【创作用途与主题约束】：{theme or '严格跟随对标爆款的领域，绝不擅自偏离或捏造其他无关领域'}\n"
-            f"【特别要求】：以抓取的网页真实长文和参考素材为蓝本，保留原爆款的核心论据与干货深度，全面升华重写！"}], temperature=0.85)
+            f"【特别要求】：以抓取的网页真实长文和参考素材为蓝本，保留原爆款的核心论据与干货深度，全面升华重写！"}], temperature=0.85, user_id=user_id or None)
     parsed = _parse_rewrite(raw)
     title = (parsed.get("TITLE_WX") or source_title)[:40]
     body = parsed.get("BODY_WX") or f"（成稿解析失败，原始输出）\n{raw[:600]}"
@@ -546,6 +552,11 @@ def benchmark_and_rewrite(source_platform: str, source_title: str, source_url: s
                      source_title=source_title, analysis=parsed.get("ANALYSIS", ""),
                      candidate_titles=cand_titles, source_stats=source_stats,
                      user_id=user_id)
+    try:
+        from core import analytics
+        analytics.track("first_draft_created", str(user_id or ""), {"draft_id": d["id"], "source": "rewrite"})
+    except Exception:
+        pass
     _refresh_artifacts(d["id"], parsed, title, body)
     result = {"draft": db.get_draft(d["id"]), "analysis": parsed.get("ANALYSIS", "")}
     if llm.available():
@@ -662,13 +673,18 @@ def rewrite_single_platform(draft_id: str, platform: str, instruction: str = "")
     db.add_history(draft_id, d["title"], d["body_md"],
                    (judge.get_score(draft_id) or {}).get("total"))
     
+    ddir = db.draft_dir(draft_id)
+    updated = {}
+    if platform == "xhs" and not (instruction or "").strip():
+        _, card_style = _cfg_theme()
+        res = ai_xhs_upgrade_pipeline(draft_id, style=card_style or "ai_visual_dark", emit=None)
+        updated = {"xhs_title": res.get("title", d["title"]), "xhs_body": res.get("text", "")}
+        return {"ok": True, "platform": platform, "updated": updated, "draft": db.get_draft(draft_id)}
+
     raw = agents.chat_for("write", [
         {"role": "system", "content": prompt},
         {"role": "user", "content": user_content}],
         temperature=0.85)
-    
-    ddir = db.draft_dir(draft_id)
-    updated = {}
     
     # 解析并写入对应平台文件
     if platform == "wechat_mp":
@@ -688,9 +704,16 @@ def rewrite_single_platform(draft_id: str, platform: str, instruction: str = "")
             updated = {"title": title, "body": body}
     
     elif platform == "xhs":
-        _, card_style = _cfg_theme()
-        res = ai_xhs_upgrade_pipeline(draft_id, style=card_style or "ai_visual_dark", emit=None)
-        updated = {"xhs_title": res.get("title", d["title"]), "xhs_body": res.get("text", "")}
+        parsed = _parse_rewrite(raw)
+        xhs_title = (parsed.get("TITLE_XHS") or d["title"])[:24]
+        xhs_body = parsed.get("BODY_XHS") or raw.strip()
+        if xhs_body:
+            (ddir / "xhs.md").write_text(f"# {xhs_title}\n\n{xhs_body}", encoding="utf-8")
+            updated = {"xhs_title": xhs_title, "xhs_body": xhs_body}
+        else:
+            _, card_style = _cfg_theme()
+            res = ai_xhs_upgrade_pipeline(draft_id, style=card_style or "ai_visual_dark", emit=None)
+            updated = {"xhs_title": res.get("title", d["title"]), "xhs_body": res.get("text", "")}
     
     elif platform == "toutiao":
         parsed = _parse_rewrite(raw)

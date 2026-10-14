@@ -4,6 +4,69 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌟 Version 9.4.0 · Luminous Chronicles (浮光录 · 全栈精铸与架构贯通篇) · 2026-10-14
+
+> **Milestone**: Full-Stack Security Hardening + BYOK/Free-Demo Pipeline Unification + 6D Persona Injection + 10x DB Speedup  
+> **Codename**: 浮光录 (Luminous Chronicles · 浮光掠影，字字珠玑)  
+> **Slogan**: One Thought. One Scene. Infinite Worlds · Luminous Chronicles (一念起 一幕开 万象生 · 浮光掠影，字字珠玑)  
+> **Licensor**: yimu.hyipf.com  
+> **Release Date**: 2026-10-14  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.4.0"`)  
+
+### 🛡️ 1. Security & Reverse-Proxy Hardening
+- **Reverse-Proxy Loopback Protection**: `_is_loopback` now validates `X-Forwarded-For` and `X-Real-IP` headers so cloud deployments behind Nginx/Caddy never mistake proxied internet traffic for localhost admin access.
+- **Drive-by CSRF & Multi-Tab Cookie Stability**: `CSRFMiddleware` blocks cross-origin mutations even without session cookies, checks `yimu_session`, and reuses valid `csrf_token` cookies across tabs and preview iframes.
+- **HTTP-Friendly CSP**: `upgrade-insecure-requests` is now emitted only on HTTPS requests, fixing asset loading on plain HTTP server deployments.
+- **Nonce-Authenticated API Key Vault (`v2$`)**: `core/auth.py` encrypts user API keys with a 16-byte random nonce + HMAC-SHA256 keystream while retaining backward-compatible decryption for legacy keys.
+
+### 🔗 2. Auth, Metering & BYOK Pipeline Unification
+- **End-to-End `user_id` Propagation**: `core/agents.py` and `core/llm.py` automatically resolve `user_id` from request context, connecting personal API Vault keys and daily free-demo quotas to all creation workflows.
+- **Zero-Deduction BYOK**: `require_credits` automatically waives platform credit deductions when the user has an active BYOK API key configured.
+- **Unified V6/V7 Session Cookies**: Login and registration now issue both `mf_v6_token` and `yimu_session` cookies with cross-compatible HMAC verification, unlocking `/api/membership/me`, `/api/admin/launch_mode`, and `/api/admin/invites` from the Web UI.
+- **Thread-Safe Metering**: `studio/llm_metering.py` protects JSON state with a re-entrant lock and prunes historical date keys automatically.
+
+### ⚡ 3. Product, Performance & Operations Upgrades
+- **6D Persona Auto-Injection**: Workspace 6D persona & voiceprint rules are automatically injected into writing, director, and ad-creative agents.
+- **10x SQLite Connection Speedup**: `core/db.py:conn()` caches schema initialization per database file inode instead of running 40+ DDL/PRAGMA checks on every query.
+- **Funnel & Scheduler Completeness**: Main registration and drafting flows now record `signup` and `first_draft_created` events and redeem `invite_code`; `core/scheduler.py` supports cross-hour 15-minute windows and persists daily execution state; `core/updater.py` preserves local `config.yaml` edits across `git pull`.
+
+---
+
+## 🌟 Version 9.3.2 · Free First, Pay Later (扶风翼 · Gale Wings) · 2026-10-14
+
+> **Milestone**: Official-Channel Free Trial Quota + First-Run Onboarding Wizard + Dual Data-Access Unification  
+> **Codename**: 扶风翼 (Gale Wings · 好风借力，振翅高飞，免费先行)  
+> **Slogan**: One Thought. One Scene. Infinite Worlds · Gale Wings: Free First, Pay Later (一念起 一幕开 万象生 · 扶风振翅，免费先行)  
+> **Licensor**: yimu.hyipf.com  
+> **Release Date**: 2026-10-14  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.3.2"`)  
+> **Release Policy**: Previous releases remain permanently frozen via Git tags. New releases upload directly with clear upgrade paths and comparative changelogs.
+
+### 🎁 1. Official-Channel Free Trial Quota — First Success Before First Paywall
+- **Daily Free Quota**: Every new user (Free tier) gets **3 free lightweight AI generations per day** via the `yimu_official` channel — **no API Key required**. Single-call output capped at `FREE_DEMO_MAX_OUTPUT_TOKENS` (512) to control cost; the quota resets at midnight local time (UTC+8).
+- **Seamless Fallback to Billing**: Once the daily free quota is exhausted, calls automatically fall back to the standard compute-credit deduction path — identical behavior to the existing billing contract, including `InsufficientCreditsError` semantics.
+- **Persistence**: Daily counters are persisted to `data/free_demo_calls.json` (git-ignored, billing state), so restarts do not reset the quota.
+- **UI Visibility**: `GET /api/models/providers` and the official-channel summary now expose `free_demo.left_today` so the dashboard can show how many free calls remain today.
+
+### 🚀 2. First-Run Onboarding Wizard (3-Step, 30 Seconds)
+- **Show Condition**: Logged in AND onboarding not yet marked done AND no user-owned API Key configured (checked server-side in `GET /api/auth/status`).
+- **Step 1 — Free Quota Awareness**: Explains the daily free trial and the 3,000-credit signup grant.
+- **Step 2 — Choose Your Main Engine**: Either start on the official channel instantly (recommended, no Key) or add your own API Key (DeepSeek / OpenAI / Claude / 通义千问 / 硅基流动 / custom) via the existing encrypted Vault endpoint.
+- **Step 3 — Done**: CTA to the Inspiration Generator. Closes the wizard at any time via `POST /api/onboarding/done`, which persists the dismissal to `data/user_onboarding_done.json` so it never nags again.
+- **i18n**: All wizard copy registered in `i18n_dict.json` (1,835+ terms), zero Chinese residue in English mode.
+
+### 🏛️ 3. Dual Data-Access Unification (P0 Debt Paydown)
+- **Single ORM Source of Truth**: `users` and `user_api_keys` are now fully declared in `studio/db_models.py` (SQLAlchemy) with all V6-era columns (`plan`, `quota_used`, `quota_max`, `last_login`) and the `UserApiKey` model.
+- **Raw-sqlite Self-Healing Demoted to Fallback**: `core/db.py:ensure_users_columns` is retained as an idempotent safety net; studio `init_db` no longer risks "no such column" crashes on fresh installs.
+- **Time-Column Encoding Unified**: `users.created_at` / `users.last_login` / `user_api_keys.created_at` are now TEXT ISO-8601 columns via `FlexibleDateTime`; legacy float/epoch values are read-compatibly parsed, new writes are always ISO. No more mixed-encoding `fromisoformat` crashes.
+- **Tests Updated**: `test_r3_monetization` now asserts the ORM schema *contains* the V6 columns (the bug is gone at the schema level, not just patched at runtime); `test_llm_metering` gains 5 new cases covering free-quota exhaustion, paid-tier exclusion, long-output exclusion, and left-today tracking.
+
+### ⚖️ 4. Contract & Terminology Hygiene
+- `POST /api/onboarding/done` registered in `docs/CONTRACT.md` route list (contract lock test passes).
+- All new user-facing copy avoids internal jargon (术语检查门禁全绿).
+
+---
+
 ## 🌟 Version 9.3.1 · Server One-Click Deploy & Production Daemon (万象融) · 2026-10-14
 
 > **Milestone**: Full Production Server One-Click Deployer (`服务器一键部署.sh`), Systemd Daemon & Automated Releases  

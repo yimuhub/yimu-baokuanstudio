@@ -1,5 +1,5 @@
 /**
- * 一幕·YIMU Studio (V9.3.1) 全局国际化多语言引擎 (i18n Engine)
+ * 一幕·YIMU Studio (V9.4.0) 全局国际化多语言引擎 (i18n Engine)
  * 支持中英文全站 100% 绝对统一切换、各级菜单各级页面深度遍历与实时 DOM 翻译。
  * 杜绝半中半英状态：英文模式下各级菜单各级页面纯英文，中文模式下各级菜单各级页面纯中文。
  */
@@ -37,6 +37,17 @@
       btn_lite_drafts: "极简草稿箱",
       copilot_input_ph: "输入你想创作的爆款主题、一句话灵感或文章改写要求… (Enter 发送，Shift+Enter 换行)",
       btn_send: "发送",
+      wizard_title: "🚀 一步上手 · 让第一次成功先于第一次付费",
+      wizard_sub: "30 秒完成引导，即可开始生成你的第一条爆款内容",
+      wizard_step1: "1 · 免费额度",
+      wizard_step2: "2 · 选主链路",
+      wizard_step3: "3 · 完成",
+      wizard_next: "下一步 →",
+      wizard_prev: "← 上一步",
+      wizard_finish: "完成引导 ➔",
+      wizard_done_title: "引导完成",
+      wizard_done_cta1: "去写第一条爆款 ➔",
+      wizard_done_cta2: "留在当前页",
       current_lang_label: "🌐 English",
       lang_name: "简体中文"
     },
@@ -72,6 +83,17 @@
       btn_lite_drafts: "Lite Drafts",
       copilot_input_ph: "Enter your viral topic, inspiration, or rewriting instruction... (Enter to send, Shift+Enter for newline)",
       btn_send: "Send",
+      wizard_title: "🚀 Get Started · First Success Before First Paywall",
+      wizard_sub: "30-second setup to generate your first viral content",
+      wizard_step1: "1 · Free Quota",
+      wizard_step2: "2 · Choose Engine",
+      wizard_step3: "3 · Done",
+      wizard_next: "Next →",
+      wizard_prev: "← Back",
+      wizard_finish: "Finish Setup ➔",
+      wizard_done_title: "Setup Complete",
+      wizard_done_cta1: "Write Your First Viral Post ➔",
+      wizard_done_cta2: "Stay Here",
       current_lang_label: "🌐 中文",
       lang_name: "English"
     }
@@ -1871,14 +1893,14 @@
   "密码": "Password",
   "1天": "1 Day",
   "影音": "A/V",
-  "一幕·YIMU 爆款工作室 V9.3.1 · 全媒体超级创作引擎": "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine",
-  "一幕·YIMU 移动工作室 V9.3.1": "YIMU Mobile Studio V9.3.1",
-  "一幕·YIMU 爆款工作室 V9.3.0 · 全媒体超级创作引擎": "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine",
-  "一幕·YIMU 移动工作室 V9.3.0": "YIMU Mobile Studio V9.3.1",
-  "一幕·YIMU 爆款工作室 V9.2.0 · 全媒体超级创作引擎": "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine",
-  "一幕·YIMU 移动工作室 V9.2.0": "YIMU Mobile Studio V9.3.1",
-  "一幕·YIMU 爆款工作室 V9.1.1 · 全媒体超级创作引擎": "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine",
-  "一幕·YIMU 移动工作室 V9.1.1": "YIMU Mobile Studio V9.3.1",
+  "一幕·YIMU 爆款工作室 V9.4.0 · 全媒体超级创作引擎": "YIMU Studio V9.4.0 · Omni-Media Super Creation Engine",
+  "一幕·YIMU 移动工作室 V9.4.0": "YIMU Mobile Studio V9.4.0",
+  "一幕·YIMU 爆款工作室 V9.3.0 · 全媒体超级创作引擎": "YIMU Studio V9.4.0 · Omni-Media Super Creation Engine",
+  "一幕·YIMU 移动工作室 V9.3.0": "YIMU Mobile Studio V9.4.0",
+  "一幕·YIMU 爆款工作室 V9.2.0 · 全媒体超级创作引擎": "YIMU Studio V9.4.0 · Omni-Media Super Creation Engine",
+  "一幕·YIMU 移动工作室 V9.2.0": "YIMU Mobile Studio V9.4.0",
+  "一幕·YIMU 爆款工作室 V9.1.1 · 全媒体超级创作引擎": "YIMU Studio V9.4.0 · Omni-Media Super Creation Engine",
+  "一幕·YIMU 移动工作室 V9.1.1": "YIMU Mobile Studio V9.4.0",
   "一幕·YIMU": "一幕·YIMU",
   "全媒体超级创作引擎": "Omni-Media Super Creation Engine"
 };
@@ -2052,9 +2074,9 @@
 
       // 3. 更新页面标题 <title>
       if (currentLang === 'en') {
-        document.title = "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine";
+        document.title = "YIMU Studio V9.4.0 · Omni-Media Super Creation Engine";
       } else {
-        document.title = "一幕·YIMU 爆款工作室 V9.3.1 · 全媒体超级创作引擎";
+        document.title = "一幕·YIMU 爆款工作室 V9.4.0 · 全媒体超级创作引擎";
       }
 
       // 4. 更新顶栏与移动端语言切换指示器

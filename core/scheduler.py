@@ -10,10 +10,12 @@ R4 合规修正
 现已改为 ``manual_pending`` 状态 +「该平台暂不支持自动发布，已生成内容请手动复制」
 的诚实文案。
 """
+import json
 import logging
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Dict, List, Optional
 from core import db
 
@@ -22,11 +24,33 @@ logger = logging.getLogger(__name__)
 _daemon_running = False
 _daemon_lock = threading.Lock()
 
-#: 每日工单当日是否已执行过（防同一天重复跑）。
-#: ⭐ 进程重启后该标记会丢失，因此这里刻意**不持久化**：
-#:    宁可重启后多跑一次（幂等：选题会重新抓），也不要出现
-#:    「标记还在但今天没跑」的静默漏跑。
+#: 每日工单当日是否已执行过（防同一天重复跑，同时支持状态落盘防重启重复扣费）。
 _ticket_ran_on: str = ""
+_TICKET_STATE_FILE = Path(__file__).resolve().parent.parent / "data" / "daily_ticket_state.json"
+
+
+def _load_ticket_ran_on() -> str:
+    global _ticket_ran_on
+    if _ticket_ran_on:
+        return _ticket_ran_on
+    try:
+        if _TICKET_STATE_FILE.exists():
+            data = json.loads(_TICKET_STATE_FILE.read_text(encoding="utf-8"))
+            if isinstance(data, dict) and data.get("ran_on"):
+                _ticket_ran_on = str(data["ran_on"])
+    except Exception:
+        pass
+    return _ticket_ran_on
+
+
+def _save_ticket_ran_on(day: str) -> None:
+    global _ticket_ran_on
+    _ticket_ran_on = day
+    try:
+        _TICKET_STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+        _TICKET_STATE_FILE.write_text(json.dumps({"ran_on": day}), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def schedule_post(draft_id: str, platform: str, target_time: float) -> str:
@@ -71,9 +95,6 @@ def _run_scheduled_job(item: dict):
             else:
                 db.update_scheduled_post_status(pid, "failed", f"小红书发布未成功: {res.get('detail')}")
         else:
-            # R4 合规修正：此前这里标 published +「模拟分发成功完成」，是**假成功**——
-            # DB 显示已发布但内容根本没发出去，用户据此以为已分发，会造成漏发事故。
-            # 现在改为诚实的状态：内容已备好等待人工粘贴，**不标 published**。
             d = db.get_draft(draft_id)
             title = (d or {}).get("title", "")
             db.update_scheduled_post_status(
@@ -95,7 +116,8 @@ def _scheduler_loop():
             current_ts = time.time()
             for item in pending_posts:
                 if item["target_time"] <= current_ts:
-                    # 触发执行
+                    # 派发线程前先置为 running，防止下一轮轮询重复启动线程
+                    db.update_scheduled_post_status(item["id"], "running", "已进入发布队列...")
                     threading.Thread(target=_run_scheduled_job, args=(item,), daemon=True).start()
         except Exception as e:
             logger.debug(f"[Scheduler] 调度轮询轻微异常: {e}")
@@ -105,25 +127,6 @@ def _scheduler_loop():
             logger.debug(f"[Scheduler] 每日工单检查异常: {e}")
         time.sleep(15)
 
-
-# ---------------------------------------------------------------------------
-# R5-2 每日工单：应用内定时（替代 macOS launchd）
-# ---------------------------------------------------------------------------
-#
-# 为什么改
-# --------
-# 原实现在 web/admin.py 里写``~/Library/LaunchAgents/*.plist`` +
-# ``launchctl load``，这是**纯 macOS 本机机制**：云端容器里既没有
-# launchctl 也没有 LaunchAgents 目录，定时工单在云端**全线失效**
-# （表现为「功能正常但每天不出稿」，且无任何报错）。
-#
-# 现在改为应用内守护线程，与排期发布共用同一个调度循环和同一个
-# ``start_scheduler_daemon()`` 生命周期入口——进程一起、进程一起停，
-# 不会出现「排期在跑但工单没起」的割裂。
-#
-# ⭐ 重启恢复：判断依据是「当天是否已跑过」，标记存在**进程内存**，
-#    重启即失效→ 当天会重跑一次。工单本身幂等（重新抓热榜、重新成稿），
-#    宁可多跑一次也不能静默漏跑一整天。
 
 #: 工单线程锁（防止轮询重入导致同一天并发跑两次）
 _ticket_lock = threading.Lock()
@@ -144,7 +147,7 @@ def _ticket_settings() -> tuple[bool, int, int]:
 
 
 def _maybe_run_daily_ticket() -> None:
-    """若已到设定时间且当天未跑过，则后台线程触发工单。"""
+    """若已到设定时间且当天未跑过，则后台线程触发工单（支持跨整点 15 分钟窗口，如 07:50~08:04）。"""
     global _ticket_ran_on
     enabled, hh, mm = _ticket_settings()
     if not enabled:
@@ -153,13 +156,13 @@ def _maybe_run_daily_ticket() -> None:
     today = now.strftime("%Y-%m-%d")
     if _ticket_ran_on == today:
         return
-    # 只在设定分钟的窗口内触发（如 07:30 → 07:30:00~07:44:59），
-    # 这样进程在 07:31 重启也能补跑，而不是必须恰好在 07:30:00 启动。
-    if not (now.hour == hh and mm <= now.minute < mm + 15):
+    sched_dt = now.replace(hour=hh, minute=mm, second=0, microsecond=0)
+    diff_sec = (now - sched_dt).total_seconds()
+    if not (0 <= diff_sec < 15 * 60):
         return
     if not _ticket_lock.acquire(blocking=False):
         return
-    _ticket_ran_on = today
+    _save_ticket_ran_on(today)
 
     def _run():
         try:
@@ -176,7 +179,7 @@ def _maybe_run_daily_ticket() -> None:
 
 
 def ticket_status() -> dict:
-    """工单定时状态（供设置页展示，替代原来「看launchd 有没有加载」的黑盒）。"""
+    """工单定时状态（供设置页展示）。"""
     enabled, hh, mm = _ticket_settings()
     return {
         "enabled": enabled,

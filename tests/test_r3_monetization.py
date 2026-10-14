@@ -948,9 +948,13 @@ class TestSharedUsersSchema:
         s.commit()
         s.close()
 
-        # 2) 此刻 core.auth 需要的列确实缺失（证明前提成立）
+        # 2) ⭐ V9.3.2 P0-2：ORM 真源已补齐 plan/quota_* 列（双层数据访问合并），
+        #    「studio 先建表 → 缺列 → 鉴权 500」的事故前提不复存在；
+        #    此断言保留是为了锁定真源列完整性：studio 侧建表即含全部鉴权依赖列。
         cols = {r[1] for r in sqlite3.connect(dbp).execute("PRAGMA table_info(users)")}
-        assert "plan" not in cols, "前提失效：studio 建表已含 plan 列"
+        assert {"plan", "quota_used", "quota_max", "last_login"} <= cols, (
+            f"studio ORM 真源缺少 core.auth 依赖列（{sorted(cols)}）——双层数据访问未合并"
+        )
 
         # 3) 但鉴权仍必须成功（core.auth._db 会自愈补列）
         u = core_auth.get_user_by_id("u-fresh")

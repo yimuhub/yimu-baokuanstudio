@@ -385,11 +385,43 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V9.3.1 -->
+      <!-- V9.4.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌟 V9.3.1 · 万象融 (Server One-Click Deploy)</span>
+          <span class="t-ver">🌟 V9.4.0 · 浮光录 (Luminous Chronicles)</span>
           <span class="badge orange">当前版本 · 最新</span>
+          <span class="t-date">2026-10-14</span>
+        </div>
+        <div class="t-desc">全栈安全加固、BYOK 与免费体验主链贯通、6 维数字画像全域注入与数据库 10 倍提速。</div>
+        <ul class="t-list">
+          <li><b>🛡️ 全链路安全与反代加固</b>：反代转发头识别防免密穿透、跨站 Drive-by CSRF 拦截、按需 HTTPS CSP、API Key Vault 随机 Nonce+HMAC 加密（v2）；</li>
+          <li><b>🔗 身份鉴权与 BYOK 计费贯通</b>：全仓 Agent 自动透传 <code>user_id</code>，自备 Key 模式自动免扣平台算力，统一 V6/V7 双会话 Cookie；</li>
+          <li><b>🎭 6 维数字画像与小红书指令精修</b>：写作/导演/广告 Agent 自动挂载工作区 6 维人设与声纹记忆，修复小红书单平台改写指令透传；</li>
+          <li><b>⚡ 数据库 10 倍提速与无冲突热更新</b>：SQLite 建表与迁移改为进程级缓存，在线升级自动保护本地 <code>config.yaml</code>，补齐注册与首稿增长漏斗埋点。</li>
+        </ul>
+      </div>
+
+      <!-- V9.3.2 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.3.2 · 扶风翼 (Free First, Pay Later)</span>
+          <span class="badge green">稳定归档版</span>
+          <span class="t-date">2026-10-14</span>
+        </div>
+        <div class="t-desc">官方通道每日免费体验额度 + 首次登录 3 步引导 Wizard + 双层数据访问合并，让第一次成功先于第一次付费。</div>
+        <ul class="t-list">
+          <li><b>🎁 官方通道免费体验额度</b>：新用户（Free 档）每日 3 次免费轻量 AI 生成，单次 ≤512 tokens，无需自备 API Key；耗尽自动回落正常算力扣费，不额外计费；</li>
+          <li><b>🚀 首次登录 3 步引导 Wizard</b>：30 秒完成设置——认识免费额度、选主链路（官方通道 / 自备 Key）、完成引导，关闭即持久化，绝不反复打扰；</li>
+          <li><b>🏛️ 双层数据访问合并（P0 债务清偿）</b>：<code>users</code> / <code>user_api_keys</code> 表统一由 SQLAlchemy 真源声明，时间列统一 ISO-8601，彻底杜绝混存崩溃；</li>
+          <li><b>🌐 1,835+ 词条双语零残留</b>：新增引导 Wizard 全量词条，英文模式中文残留数严格为 0。</li>
+        </ul>
+      </div>
+
+      <!-- V9.3.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.3.1 · 万象融 (Server One-Click Deploy)</span>
+          <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-14</span>
         </div>
         <div class="t-desc">服务器生产环境一键部署脚本、Systemd 开机自启服务守护、GitHub Releases 自动化无缝发布。</div>

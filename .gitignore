@@ -17,6 +17,10 @@ venv/
 data/*
 # ⭐ 例外：视频模型能力表是代码资产（core/video_rules.py 运行时读取），必须随仓库走
 !data/video_model_rules.json
+# ⭐ V9.3.2：官方通道免费体验额度计数（计费状态，含用户 id + 自然日，禁入库）
+data/free_demo_calls.json
+# ⭐ V9.3.2：首次引导完成标记（用户级状态，禁入库）
+data/user_onboarding_done.json
 *.db
 *.sqlite*
 logs/

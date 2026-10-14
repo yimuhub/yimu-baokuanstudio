@@ -7,7 +7,8 @@
 # ============================================================
 set -u
 cd "$(dirname "$0")"
-PORT=8790
+PORT="${PORT:-8790}"
+HOST="${HOST:-127.0.0.1}"
 
 trap 'echo ""; echo "按回车关闭窗口..."; read -r _' EXIT
 
@@ -45,14 +46,15 @@ if ! .venv/bin/python -c "import fastapi, uvicorn" &>/dev/null; then
   .venv/bin/pip install -r requirements.txt || { echo "  ❌ 依赖安装失败"; exit 1; }
 fi
 
-# 4. 环境变量与安全配置
+# 4. 环境变量与安全配置（自动生成随机高强度口令，杜绝写死弱口令）
 if [ -f ".env" ]; then
   set -a; source .env; set +a
 else
   echo "  🔑 自动生成安全密钥配置 (.env)..."
   SECRET=$(.venv/bin/python -c "import secrets; print(secrets.token_hex(32))")
-  APASS="yimu-888888"
+  APASS="yimu-$(.venv/bin/python -c "import secrets; print(secrets.token_hex(4))")"
   printf 'YIMU_SECRET_KEY=%s\nADMIN_PASSWORD=%s\n' "$SECRET" "$APASS" > .env
+  chmod 600 .env 2>/dev/null || true
   set -a; source .env; set +a
 fi
 
@@ -69,17 +71,17 @@ if [ -n "$OLD_PID" ]; then
   kill -9 $OLD_PID 2>/dev/null; sleep 1
 fi
 
-# 8. 启动服务并在前台/后台就绪
+# 8. 启动服务并在前台/后台就绪（默认仅绑定本机 127.0.0.1，防公共 Wi-Fi/局域网暴露）
 export PYTHONUNBUFFERED=1
 echo "  🚀 正在启动后台服务并打开浏览器..."
-nohup .venv/bin/python -m uvicorn web.admin:app --host 0.0.0.0 --port $PORT > logs/web.out 2>&1 &
+nohup .venv/bin/python -m uvicorn web.admin:app --host "$HOST" --port "$PORT" > logs/web.out 2>&1 &
 SERVER_PID=$!
 
 sleep 2
 if ps -p $SERVER_PID > /dev/null; then
   echo "  ✅ 服务已成功在后台启动 (PID: $SERVER_PID)"
   echo "  🌐 本地地址: http://127.0.0.1:${PORT}"
-  echo "  🔑 默认口令: yimu-888888"
+  echo "  🔑 管理口令: ${ADMIN_PASSWORD:-请查看 .env}"
   open "http://127.0.0.1:${PORT}"
   echo ""
   echo "  💡 提示：按 Ctrl+C 可停止日志查看，后台服务仍将安全运行；如需关闭服务可运行: kill $SERVER_PID"

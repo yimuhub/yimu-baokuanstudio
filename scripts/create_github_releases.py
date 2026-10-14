@@ -475,6 +475,56 @@ git pull origin main
 
 > **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
 """,
+        "is_latest": False
+    },
+    {
+        "tag": "v9.3.1",
+        "name": "v9.3.1 - 万象融 · Server One-Click Deploy (Production Stack & Auto Releases)",
+        "body": """# 🎬 一幕 · 爆款工坊 (YIMU Studio) V9.3.1
+
+> **版本代号 / Codename**: 万象融 · Cross-Platform Unified  
+> **发布日期 / Release Date**: 2026-10-14  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 服务器生产级一键部署、Systemd 守护进程与全自动化发布核心里程碑
+
+---
+
+### 🌟 版本概述 (Overview)
+V9.3.1 推出生产级服务器一键部署套件，支持裸服务器单行命令直接执行（`curl | bash`），全自动完成操作系统依赖自愈、隔离虚拟环境搭建、高强度随机密钥初始化、数据库无损迁移与 Systemd 开机自启常驻守护；同时加固系统在线更新中枢，确保 Releases 列表第一时间无缝检测与同步最新稳定版。
+
+---
+
+### 🆕 新增功能 (New Features)
+1. **服务器生产级一键部署套件 (Server Auto-Deployer)**:
+   - 新增 `服务器一键部署.sh`（软链 `一键部署.sh`、`deploy.sh`）；
+   - 支持单行 curl 命令极速自动化部署：`curl -fsSL https://raw.githubusercontent.com/yimuhub/yimu-baokuanstudio/main/服务器一键部署.sh | bash`；
+   - 跨发行版包管理器智能适配（Ubuntu/Debian `apt`、CentOS/Rocky/RHEL `dnf`/`yum`、Arch `pacman`、Alpine `apk`）；
+   - 自动检测并安装 Python 3.10+、Git、Curl、FFmpeg 与 SQLite 底层依赖；
+   - 自动生成高强度安全凭证与随机管理员口令；
+   - 自动无损初始化迁移数据库结构；
+   - 自动创建并启用 Systemd 开机自启服务 (`yimu.service`)，提供高可靠进程守护与自动重启。
+2. **在线更新中枢语义版本防回退加固**:
+   - 升级 `core/updater.py` 语义化版本算法，杜绝因旧 Release 元数据导致的版本误降级；
+   - 确保系统点击检查更新时精准拉取最新 `9.3.1` 稳定版。
+3. **版本单一真源全域统一至 V9.3.1**:
+   - 全栈模块、接口契约、多语言字典与前后端页面版本统一步进为 **9.3.1**。
+
+---
+
+### 📦 获取与使用 (How to Access)
+```bash
+# 全新服务器单行极速全自动部署：
+curl -fsSL https://raw.githubusercontent.com/yimuhub/yimu-baokuanstudio/main/服务器一键部署.sh | bash
+
+# 本地仓库一键更新：
+git pull origin main
+git checkout v9.3.1
+```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
+""",
         "is_latest": True
     }
 ]

@@ -385,11 +385,27 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V9.3.0 -->
+      <!-- V9.3.1 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌟 V9.3.0 · 万象融 (Cross-Platform Unified)</span>
+          <span class="t-ver">🌟 V9.3.1 · 万象融 (Server One-Click Deploy)</span>
           <span class="badge orange">当前版本 · 最新</span>
+          <span class="t-date">2026-10-14</span>
+        </div>
+        <div class="t-desc">服务器生产环境一键部署脚本、Systemd 开机自启服务守护、GitHub Releases 自动化无缝发布。</div>
+        <ul class="t-list">
+          <li><b>🖥️ 服务器生产级一键部署</b>：全新推出 <code>服务器一键部署.sh</code>（软链 <code>一键部署.sh</code> / <code>deploy.sh</code>），支持一键 curl 管道直接执行，覆盖多主流 Linux 发行版底层依赖自愈与 Systemd 开机自启；</li>
+          <li><b>🐧 原生 Linux 跨端与无版本号脚本</b>：macOS (<code>一键启动.command</code>)、Windows (<code>一键启动.bat</code>) 与 Linux (<code>一键启动_linux.sh</code>) 全端统一规范；</li>
+          <li><b>🚀 GitHub Releases 自动化实时同步</b>：代码推送与版本更新全自动化同步至 GitHub Release 列表页，保证最新稳定版随时可检测与同步升级；</li>
+          <li><b>🛡️ 版本更新中枢防回退加固</b>：完善语义化版本比对引擎，彻底杜绝历史版本覆盖最新版本的异常。</li>
+        </ul>
+      </div>
+
+      <!-- V9.3.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V9.3.0 · 万象融 (Cross-Platform Unified)</span>
+          <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-13</span>
         </div>
         <div class="t-desc">原生 Linux 生产环境就绪、全端一键脚本无版本化规范、GitHub Releases 自动化流水线。</div>

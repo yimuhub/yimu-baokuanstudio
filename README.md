@@ -6,8 +6,8 @@
 
 **The Full-Lifecycle Viral Content Creation Engine & LLM Commercial Gateway for Digital Creators, Short Drama Studios, and MCN Agencies**
 
-[![Version](https://img.shields.io/badge/version-9.3.0-orange.svg?style=flat-square)](version.py)
-[![Release](https://img.shields.io/badge/release-v9.3.0%20(Cross--Platform)-blueviolet.svg?style=flat-square)](RELEASES.md)
+[![Version](https://img.shields.io/badge/version-9.3.1-orange.svg?style=flat-square)](version.py)
+[![Release](https://img.shields.io/badge/release-v9.3.1%20(Server%20Deploy)-blueviolet.svg?style=flat-square)](RELEASES.md)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Licensor](https://img.shields.io/badge/Licensor-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
 [![Copyright](https://img.shields.io/badge/Copyright-%C2%A9%202026%20yimu.hyipf.com-orange.svg?style=flat-square)](https://yimu.hyipf.com)
@@ -165,9 +165,25 @@ cp .env.example .env
 python -m uvicorn web.admin:app --host 127.0.0.1 --port 8790
 ```
 
-> **One-Click Launchers**:
-> - **macOS**: Double-click `启动一幕V8.command` in the project root.
-> - **Windows**: Double-click `启动一幕V8.bat` in the project root.
+### 🖥️ Cross-Platform Launch Suites (Zero Version Suffix)
+
+- **macOS**: Double-click `一键启动.command` in the project root (`一键升级.command` for updates).
+- **Windows**: Double-click `一键启动.bat` in the project root (`一键升级.bat` for updates).
+- **Linux (Desktop / Server)**: Run `./一键启动_linux.sh` in terminal (`./一键升级_linux.sh` for updates).
+
+---
+
+### 🌐 Linux Production Server One-Click Deployment (Single Command)
+
+For public cloud instances (Ubuntu / Debian / CentOS / Rocky / Alpine, etc.), deploy the complete production stack with automatic dependency provisioning, virtual environment isolation, cryptographic token generation, database migration, and Systemd daemon setup:
+
+```bash
+# Single-line full automated deployment for fresh cloud servers
+curl -fsSL https://raw.githubusercontent.com/yimuhub/yimu-baokuanstudio/main/服务器一键部署.sh | bash
+
+# Or run directly inside cloned repository:
+chmod +x 服务器一键部署.sh && ./服务器一键部署.sh
+```
 
 Once started, open your browser and navigate to: **`http://127.0.0.1:8790/`** (Log in with your configured admin password).
 
@@ -196,17 +212,17 @@ bash ci.sh
 
 ---
 
-## 📦 Latest Release: V9.3.0 (万象融 · Cross-Platform Unified)
+## 📦 Latest Release: V9.3.1 (万象融 · Server One-Click Deploy & Cross-Platform)
 
 YIMU Studio strictly implements Semantic Versioning (`SemVer`). To ensure maximum clarity and a pure presentation, the project homepage focuses exclusively on the **latest active release**:
 
-### 🌟 V9.3.0 Feature Highlights
-- 🐧 **Native Linux Production Engine & Cloud Daemon**: Added native Linux launcher (`一键启动_linux.sh`) and upgrade suite (`一键升级_linux.sh`) with daemon process supervisor, automatic external IP detection, and health status inspection.
-- ⚡ **Versionless Cross-Platform Launch Suites**: Unified Windows (`一键启动.bat`), macOS (`一键启动.command`), and Linux into clean, versionless launcher scripts with zero legacy version suffixes.
-- 🚀 **Automated GitHub Releases Workflow**: Automated continuous integration and instantaneous GitHub Releases synchronization on every commit and version release.
+### 🌟 V9.3.1 Feature Highlights
+- 🖥️ **Production Server One-Click Deployment**: Introduced `服务器一键部署.sh` (symlinked as `一键部署.sh` / `deploy.sh`), offering automated multi-distro dependency provisioning (Ubuntu/Debian/CentOS/Rocky/Alpine), isolated virtualenv setup, cryptographic secret generation, database schema migration, and Systemd daemon service auto-start.
+- 🐧 **Native Linux & Clean Versionless Launchers**: Windows (`一键启动.bat`), macOS (`一键启动.command`), and Linux (`一键启动_linux.sh`) launchers completely decoupled from version numbers.
+- 🚀 **Automated GitHub Releases Workflow**: Automated continuous integration and instantaneous GitHub Releases synchronization on every release tag, ensuring update-checking seamlessly connects to the latest release.
 - 🌐 **100% Zero-Residue Bilingual Engine**: Complete 1,800+ UI dictionary terms covering desktop & mobile topbars, all 15 system modals, form controls, and attributes with zero Chinese residue in English mode.
 - 🎬 **2K Native Cinematic Storyboarding**: 2K resolution default canvas (`2048x1152`, `1152x2048`, `2048x2048`) with AI zero-haze defogging prompt pipeline.
-- ⚖️ **Single Source of Truth**: All components across the system strictly unified to **V9.3.0**.
+- ⚖️ **Single Source of Truth**: All components across the system strictly unified to **V9.3.1**.
 
 > For historical version archives and detailed milestone changelogs, please visit the official [Releases Documentation (RELEASES.md)](RELEASES.md) and [GitHub Releases Page](https://github.com/yimuhub/yimu-baokuanstudio/releases).
 

@@ -1,5 +1,5 @@
 /**
- * 一幕·YIMU Studio (V9.3.0) 全局国际化多语言引擎 (i18n Engine)
+ * 一幕·YIMU Studio (V9.3.1) 全局国际化多语言引擎 (i18n Engine)
  * 支持中英文全站 100% 绝对统一切换、各级菜单各级页面深度遍历与实时 DOM 翻译。
  * 杜绝半中半英状态：英文模式下各级菜单各级页面纯英文，中文模式下各级菜单各级页面纯中文。
  */
@@ -1871,12 +1871,14 @@
   "密码": "Password",
   "1天": "1 Day",
   "影音": "A/V",
-  "一幕·YIMU 爆款工作室 V9.3.0 · 全媒体超级创作引擎": "YIMU Studio V9.3.0 · Omni-Media Super Creation Engine",
-  "一幕·YIMU 移动工作室 V9.3.0": "YIMU Mobile Studio V9.3.0",
-  "一幕·YIMU 爆款工作室 V9.2.0 · 全媒体超级创作引擎": "YIMU Studio V9.3.0 · Omni-Media Super Creation Engine",
-  "一幕·YIMU 移动工作室 V9.2.0": "YIMU Mobile Studio V9.3.0",
-  "一幕·YIMU 爆款工作室 V9.1.1 · 全媒体超级创作引擎": "YIMU Studio V9.3.0 · Omni-Media Super Creation Engine",
-  "一幕·YIMU 移动工作室 V9.1.1": "YIMU Mobile Studio V9.3.0",
+  "一幕·YIMU 爆款工作室 V9.3.1 · 全媒体超级创作引擎": "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine",
+  "一幕·YIMU 移动工作室 V9.3.1": "YIMU Mobile Studio V9.3.1",
+  "一幕·YIMU 爆款工作室 V9.3.0 · 全媒体超级创作引擎": "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine",
+  "一幕·YIMU 移动工作室 V9.3.0": "YIMU Mobile Studio V9.3.1",
+  "一幕·YIMU 爆款工作室 V9.2.0 · 全媒体超级创作引擎": "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine",
+  "一幕·YIMU 移动工作室 V9.2.0": "YIMU Mobile Studio V9.3.1",
+  "一幕·YIMU 爆款工作室 V9.1.1 · 全媒体超级创作引擎": "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine",
+  "一幕·YIMU 移动工作室 V9.1.1": "YIMU Mobile Studio V9.3.1",
   "一幕·YIMU": "一幕·YIMU",
   "全媒体超级创作引擎": "Omni-Media Super Creation Engine"
 };
@@ -2050,9 +2052,9 @@
 
       // 3. 更新页面标题 <title>
       if (currentLang === 'en') {
-        document.title = "YIMU Studio V9.3.0 · Omni-Media Super Creation Engine";
+        document.title = "YIMU Studio V9.3.1 · Omni-Media Super Creation Engine";
       } else {
-        document.title = "一幕·YIMU 爆款工作室 V9.3.0 · 全媒体超级创作引擎";
+        document.title = "一幕·YIMU 爆款工作室 V9.3.1 · 全媒体超级创作引擎";
       }
 
       // 4. 更新顶栏与移动端语言切换指示器

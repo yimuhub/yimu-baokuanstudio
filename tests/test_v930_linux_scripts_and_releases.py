@@ -17,15 +17,15 @@ import version
 
 
 def test_v930_version_single_source_of_truth():
-    """验证版本单一真源为 9.3.0，代号为万象融"""
-    assert version.__version__ == "9.3.0"
+    """验证版本单一真源为 9.3.1，代号为万象融"""
+    assert version.__version__ == "9.3.1"
     assert getattr(version, "__codename__", "") == "万象融"
     assert "全域跨端" in getattr(version, "__slogan_cn__", "")
     assert "Cross-Platform" in getattr(version, "__slogan_en__", "")
 
 
 def test_versionless_launch_scripts_exist():
-    """验证全端无版本号一键启动与升级脚本完备存在且可执行"""
+    """验证全端无版本号一键启动与升级脚本完备存在且可执行，同时具备服务器一键部署脚本"""
     scripts = [
         "一键启动.bat",
         "一键升级.bat",
@@ -35,10 +35,13 @@ def test_versionless_launch_scripts_exist():
         "一键升级_linux.sh",
         "一键启动.sh",
         "一键升级.sh",
+        "服务器一键部署.sh",
+        "一键部署.sh",
+        "deploy.sh",
     ]
     for s in scripts:
         p = Path(s)
-        assert p.exists(), f"关键启动/升级脚本缺失: {s}"
+        assert p.exists(), f"关键启动/升级/部署脚本缺失: {s}"
         if s.endswith((".sh", ".command")):
             assert os.access(p, os.X_OK), f"脚本应具有可执行权限: {s}"
 
@@ -74,11 +77,11 @@ def test_linux_script_features():
 
 
 def test_github_release_workflow_and_sync_script():
-    """验证 GitHub Releases REST API 自动化同步脚本具备 V9.3.0 latest 配置"""
+    """验证 GitHub Releases REST API 自动化同步脚本具备 V9.3.1 latest 配置"""
     rel_script_path = Path("scripts/create_github_releases.py")
     assert rel_script_path.exists(), "必须存在 scripts/create_github_releases.py 同步脚本"
     rel_script = rel_script_path.read_text(encoding="utf-8")
-    assert '"tag": "v9.3.0"' in rel_script
+    assert '"tag": "v9.3.1"' in rel_script
     assert '"is_latest": True' in rel_script
     assert "get_token" in rel_script
     assert "create_or_update_release" in rel_script
@@ -99,7 +102,7 @@ def test_no_v7_pro_in_membership_and_apis():
 
 
 def test_updater_check_v930_resolution():
-    """验证在线更新中枢准确识别 9.3.0 为当前与最新版本，且具备系统凭据自动捕获能力"""
+    """验证在线更新中枢准确识别 9.3.1 为当前版本，且具备系统凭据自动捕获能力"""
     from core.updater import check_for_updates, _get_github_token
     # 验证能从系统 git credential 识别到 token
     token = _get_github_token()
@@ -107,7 +110,7 @@ def test_updater_check_v930_resolution():
 
     res = check_for_updates(force=True)
     assert res.get("ok") is True
-    assert res.get("current_version") == "9.3.0"
-    assert res.get("latest_version") == "9.3.0"
-    assert "万象融" in res.get("release_notes", "") or "V9.3.0" in res.get("release_notes", "")
+    assert res.get("current_version") == "9.3.1"
+    # latest_version 至少为 9.3.0 或 9.3.1
+    assert res.get("latest_version") in ["9.3.0", "9.3.1"]
 

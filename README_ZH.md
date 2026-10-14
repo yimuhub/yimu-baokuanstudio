@@ -6,7 +6,7 @@
 
 **面向自媒体创作者、短剧团队与 MCN 机构的全链路爆款生产引擎 + 大模型商业网关**
 
-[![Version](https://img.shields.io/badge/version-9.3.0-orange.svg?style=flat-square)](version.py)
+[![Version](https://img.shields.io/badge/version-9.3.1-orange.svg?style=flat-square)](version.py)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Licensor](https://img.shields.io/badge/%E8%AE%B8%E5%8F%AF%E6%96%B9-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
 [![Copyright](https://img.shields.io/badge/%E7%89%88%E6%9D%83%E5%BD%92%E5%B1%9E-%C2%A9%202026%20yimu.hyipf.com-orange.svg?style=flat-square)](https://yimu.hyipf.com)
@@ -154,9 +154,25 @@ cp .env.example .env
 python -m uvicorn web.admin:app --host 127.0.0.1 --port 8790
 ```
 
-> **快捷脚本**：
-> - **macOS 用户**：直接双击运行根目录下的 `启动一幕V8.command` 即可一键启动！
-> - **Windows 用户**：直接双击运行根目录下的 `启动一幕V8.bat` 即可！
+### 🖥️ 多端跨平台一键运行脚本 (免版本号)
+
+- **macOS 用户**：直接双击运行根目录下的 `一键启动.command`（一键升级运行 `一键升级.command`）；
+- **Windows 用户**：直接双击运行根目录下的 `一键启动.bat`（一键升级运行 `一键升级.bat`）；
+- **Linux 桌面/服务器用户**：终端运行 `./一键启动_linux.sh`（一键升级运行 `./一键升级_linux.sh`）。
+
+---
+
+### 🌐 Linux 服务器生产级一键部署 (全新单行命令)
+
+针对公网云服务器（Ubuntu / Debian / CentOS / Rocky / Alpine 等），支持通过一行命令全自动完成底层依赖安装、源码拉取、独立虚拟环境配置、随机高强度密钥生成、数据库迁移与 Systemd 开机自启：
+
+```bash
+# 全新裸服务器单行极速全自动部署
+curl -fsSL https://raw.githubusercontent.com/yimuhub/yimu-baokuanstudio/main/服务器一键部署.sh | bash
+
+# 或在已检出仓库内直接运行：
+chmod +x 服务器一键部署.sh && ./服务器一键部署.sh
+```
 
 启动完成后，打开浏览器访问：**`http://127.0.0.1:8790/`**（默认管理员密码见 `.env` 设置）。
 
@@ -185,18 +201,18 @@ bash ci.sh
 
 ---
 
-## 📦 当前最新版本：V9.3.0（万象融 · 全域跨端篇）
+## 📦 当前最新版本：V9.3.1（万象融 · 服务器一键部署与全域跨端篇）
 
 一幕·YIMU 团队实行纯净发布规范，每次首页仅聚焦展示**当前最新旗舰版本**的完整能力：
 
-### 🌟 V9.3.0 核心特性一览
-- 🐧 **原生 Linux 生产环境就绪**：全新推出 Linux 专属生产脚本 `一键启动_linux.sh` 与 `一键升级_linux.sh`，支持进程后台守护、实时日志追踪、外网与本地访问 IP 自动探测及健康检查；
-- ⚡ **启动与升级脚本全域规范化**：彻底剥离启动与升级脚本的历史版本号后缀（Windows `一键启动.bat` / `一键升级.bat`；macOS `一键启动.command` / `一键升级.command`；Linux `./一键启动_linux.sh`），开箱即用，升级免换；
-- 🚀 **GitHub Releases 全自动化同步**：配置 GitHub Actions 流水线，代码提交与版本发布第一时间无缝同步至 GitHub Release List；
+### 🌟 V9.3.1 核心特性一览
+- 🖥️ **服务器生产级一键部署**：全新推出 `服务器一键部署.sh`（软链 `一键部署.sh` / `deploy.sh`），支持主流 Linux 发行版（Ubuntu/Debian/CentOS/Rocky/Alpine 等）底层依赖自愈、Python 虚拟环境搭建、生产秘钥安全生成、数据库自动迁移与 Systemd 守护进程常驻开机自启；
+- 🐧 **原生 Linux 跨端与无版本号脚本**：macOS (`一键启动.command`)、Windows (`一键启动.bat`)、Linux (`一键启动_linux.sh`) 全域启动与升级脚本彻底脱离历史版本号羁绊，开箱即用，升级免换；
+- 🚀 **GitHub Releases 全自动化同步**：配置 GitHub Releases 自动化发布与同步流水线，代码提交与版本发布第一时间无缝同步至 GitHub Release List，点击更新无缝对齐最新稳定版；
 - 🌐 **全域 1,800+ 词条双语零残留**：全面收录覆盖桌面端、移动端顶栏、15 个交互功能弹窗、表单占位符及属性，英文模式下中文残留数严格为 0；
 - 🔄 **双向可逆无损还原**：基于长短语降序算法与智能状态缓存，中英文双向切换瞬间即达且文字 100% 原汁原味无损复原；
 - 🎬 **原生 2K 影视级视觉分镜**：正文配图默认提升至原生 2K（`2048x1152`、`1152x2048`、`2048x2048`），配合去雾通透画质过滤管线，画风鲜艳锐利；
-- ⚖️ **版本单一真源全域统一**：全栈模块、接口契约与页面全量统一为 **V9.3.0**。
+- ⚖️ **版本单一真源全域统一**：全栈模块、接口契约与页面全量统一为 **V9.3.1**。
 
 > 想要了解历史版本归档与完整里程碑演进记录，请参阅：📘 **[版本发布日志 (RELEASES.md)](RELEASES.md)** 与 🏷️ **[GitHub Releases 官方发布页](https://github.com/yimuhub/yimu-baokuanstudio/releases)**。
 

@@ -197,7 +197,8 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
         if rel_data:
             tag_name = (rel_data.get("tag_name") or "").lstrip("vV").strip()
             if tag_name:
-                res["latest_version"] = tag_name
+                if _compare_versions(tag_name, res.get("latest_version", cur_ver)) >= 0:
+                    res["latest_version"] = tag_name
                 res["release_notes"] = rel_data.get("body") or ""
                 res["published_at"] = rel_data.get("published_at") or ""
                 res["channel"] = "release"
@@ -334,13 +335,12 @@ def _compare_versions(v1: str, v2: str) -> int:
     """比较两个语义版本号。v1 > v2 返回 1；v1 < v2 返回 -1；相等返回 0。"""
     p1 = [int(x) for x in re.findall(r"\d+", v1 or "0")]
     p2 = [int(x) for x in re.findall(r"\d+", v2 or "0")]
+    max_len = max(len(p1), len(p2))
+    p1.extend([0] * (max_len - len(p1)))
+    p2.extend([0] * (max_len - len(p2)))
     for a, b in zip(p1, p2):
         if a > b:
             return 1
         if a < b:
             return -1
-    if len(p1) > len(p2):
-        return 1
-    if len(p1) < len(p2):
-        return -1
     return 0

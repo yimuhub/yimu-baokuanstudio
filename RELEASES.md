@@ -4,6 +4,30 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌟 Version 9.3.1 · Server One-Click Deploy & Production Daemon (万象融) · 2026-10-14
+
+> **Milestone**: Full Production Server One-Click Deployer (`服务器一键部署.sh`), Systemd Daemon & Automated Releases  
+> **Codename**: 万象融 (Cross-Platform Unified · 全域跨端，融通万象)  
+> **Slogan**: One Thought. One Scene. Infinite Worlds · Cross-Platform Unified (一念起 一幕开 万象生 · 全域跨端)  
+> **Licensor**: yimu.hyipf.com  
+> **Release Date**: 2026-10-14  
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "9.3.1"`)  
+> **Release Policy**: Previous releases remain permanently frozen via Git tags. New releases upload directly with clear upgrade paths and comparative changelogs.
+
+### 🖥️ 1. Production Server One-Click Deployer (`服务器一键部署.sh`)
+- **Single-Line Remote Curl Execution**: Support immediate turn-key deployment on brand new bare-metal or cloud servers via `curl -fsSL https://raw.githubusercontent.com/yimuhub/yimu-baokuanstudio/main/服务器一键部署.sh | bash`.
+- **Symlink Aliases**: Provided convenience symlinks `一键部署.sh` and `deploy.sh` pointing directly to `服务器一键部署.sh`.
+- **Multi-Distribution Package Manager Auto-Detection**: Full auto-healing and installation of essential system packages (`git`, `curl`, `wget`, `python3`, `python3-venv`, `pip`, `ffmpeg`, `sqlite3`, `lsof`) on Debian/Ubuntu (`apt`), CentOS/RHEL/Rocky/Fedora (`dnf`/`yum`), Arch Linux (`pacman`), and Alpine Linux (`apk`).
+- **Automated Virtualenv Isolation & Mirror Fallback**: Creates dedicated `.venv`, upgrades pip, and attempts ultra-fast PyPI mirror with automatic PyPI fallback.
+- **Production Secrets Initialization & Auto-Migration**: Automatically generates cryptographically strong `YIMU_SECRET_KEY` (64-char hex) and random admin credentials, while preserving existing `.env` files and executing non-destructive SQLite/Postgres schema initialization.
+- **Systemd Daemon Service Integration**: Creates and enables `/etc/systemd/system/yimu.service` for automatic boot-up startup, process restart supervision, and log streaming into `logs/web.out`.
+
+### 🔄 2. Upstream Update Check & Tag Synchronization Hardening
+- **Semver Regression Guard**: Hardened `core/updater.py` to prevent stale GitHub Release metadata from masking newer tags or local versions.
+- **Immediate GitHub Release Synchronization**: Streamlined GitHub Releases creation pipeline to push V9.3.1 to the GitHub Release list immediately.
+
+---
+
 ## 🌟 Version 9.3.0 · Cross-Platform Unified (万象融) · 2026-10-13
 
 > **Milestone**: Native Linux Production Engine, Versionless Cross-Platform Launch Suites & Automated GitHub Releases  

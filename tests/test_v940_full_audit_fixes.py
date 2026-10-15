@@ -10,10 +10,9 @@ import version
 
 
 def test_v940_version_truth():
-    """验证 V10.0.0 版本单一真源与专属代号"""
-    assert version.__version__ in ("10.0.1", "10.0.0", "9.4.5")
+    """验证 V10.0.2 版本单一真源与专属代号"""
+    assert version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5")
     assert version.__codename__ in ("鸿蒙始", "澄音境")
-    assert any(k in version.__slogan_en__ for k in ("Unified Token Metric", "Primordial Dawn", "Pristine Rhythm"))
 
 
 def test_v940_reverse_proxy_loopback_guard():

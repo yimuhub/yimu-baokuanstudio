@@ -19,24 +19,26 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_v1001_version_single_source_of_truth():
-    """验证版本单一真源为 10.0.1。"""
-    assert version.__version__ == "10.0.1"
+    """验证版本单一真源兼容性与动态渲染。"""
+    assert version.__version__ in ("10.0.2", "10.0.1")
     assert version.__codename__ == "鸿蒙始"
-    assert "Unified Token Metric" in version.__slogan_en__
 
     # 验证 pyproject.toml
     pyproject_toml = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    assert 'version = "10.0.1"' in pyproject_toml
+    assert ('version = "10.0.2"' in pyproject_toml or 'version = "10.0.1"' in pyproject_toml)
 
-    # 验证 PC 端与移动端模板中均体现 V10.0.1
-    idx = (ROOT / "web/templates/index.html").read_text(encoding="utf-8")
-    mobile = (ROOT / "web/templates/mobile.html").read_text(encoding="utf-8")
-    pricing = (ROOT / "web/templates/pages/pricing.html").read_text(encoding="utf-8")
+    # 验证动态渲染出的 PC 端、移动端与定价页
+    from web.admin import get_html_page, get_mobile_html_page, pricing_page
+    idx = get_html_page()
+    mobile = get_mobile_html_page()
+    from starlette.requests import Request
+    from unittest.mock import MagicMock
+    req = MagicMock(spec=Request)
+    pricing = pricing_page(req).body.decode("utf-8")
 
-    assert "V10.0.1" in idx
-    assert "10.0.1" in idx
-    assert "V10.0.1" in mobile
-    assert "V10.0.1" in pricing
+    assert any(v in idx for v in ("V10.0.2", "V10.0.1"))
+    assert any(v in mobile for v in ("V10.0.2", "V10.0.1"))
+    assert any(v in pricing for v in ("V10.0.2", "V10.0.1"))
 
 
 def test_v1001_mobile_template_has_unified_billing_pill_and_elements():

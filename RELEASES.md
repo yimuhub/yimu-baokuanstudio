@@ -4,6 +4,17 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 10.0.2 · Dynamic Versions Across All Pages (鸿蒙始 · 全端动态版本单一真源) · 2026-10-15
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.0.2"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+- **Dynamic Version Extraction Across All Pages (Single Source of Truth)**:
+  - Eliminated all hardcoded version badges, static headers/footers, and manual floor versions (`floorVer`) across PC dashboard (`index.html`), mobile app (`mobile.html`), pricing page (`pages/pricing.html`), and admin pages (`users_admin.html`, `audit_admin.html`, `metrics`).
+  - Introduced unified frontend dynamic version manager `web/static/js/version-sync.js` (`window.AppVersion`) that automatically synchronizes `document.title`, `.version-badge`, `[data-app-version]`, and ID containers from `/api/version` and `<meta name="app-version">`.
+  - Backend template rendering pipeline (`render_dynamic_html`) automatically injects current `version.py` single-source-of-truth into HTML templates and SSR meta tags, preventing version drift and screen flicker.
+
+---
+
 ## 🌌 Version 10.0.1 · Mobile & PC Unified Token Metric (鸿蒙始 · 双端统一度量) · 2026-10-15
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.0.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

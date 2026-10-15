@@ -1107,12 +1107,88 @@ def logout():
 try:
     from version import __version__ as APP_VERSION
 except Exception:
-    APP_VERSION = "9.1.1"
+    APP_VERSION = "10.0.2"
+
+
+def get_app_version() -> str:
+    """动态提取版本单一真源（version.py），热重载避免旧缓存。"""
+    global APP_VERSION
+    try:
+        import importlib
+        import version
+        importlib.reload(version)
+        APP_VERSION = version.__version__
+        return APP_VERSION
+    except Exception:
+        try:
+            from version import __version__
+            APP_VERSION = __version__
+            return APP_VERSION
+        except Exception:
+            return APP_VERSION or "10.0.2"
+
+
+def get_app_version_info() -> dict:
+    """提取版本元信息字典（单一真源）。"""
+    try:
+        import importlib
+        import version
+        importlib.reload(version)
+        if hasattr(version, "get_version_info"):
+            return version.get_version_info()
+        return {
+            "version": version.__version__,
+            "codename": getattr(version, "__codename__", "鸿蒙始"),
+            "codename_en": getattr(version, "__codename_en__", "Primordial Dawn"),
+            "slogan": getattr(version, "__slogan__", ""),
+            "slogan_cn": getattr(version, "__slogan_cn__", ""),
+            "slogan_en": getattr(version, "__slogan_en__", ""),
+        }
+    except Exception:
+        return {"version": get_app_version()}
+
+
+def render_dynamic_html(raw_html: str) -> str:
+    """全站页面动态版本注入器：
+    统一将模板中的版本动态变量与历史写死版本替换为当前单一真源，并注入版本同步组件。
+    """
+    if not raw_html:
+        return raw_html
+    cur_ver = get_app_version()
+    full_ver = f"V{cur_ver}"
+
+    rendered = raw_html
+    # 1. 动态变量替换
+    rendered = rendered.replace("{{ APP_VERSION }}", cur_ver)
+    rendered = rendered.replace("{{APP_VERSION}}", cur_ver)
+    rendered = rendered.replace("{{ APP_VERSION_FULL }}", full_ver)
+    rendered = rendered.replace("{{APP_VERSION_FULL}}", full_ver)
+    rendered = rendered.replace("{{ VERSION }}", cur_ver)
+    rendered = rendered.replace("{{VERSION}}", cur_ver)
+
+    # 2. 注入 <meta name="app-version">
+    meta_tag = f'<meta name="app-version" content="{cur_ver}">'
+    if '<meta name="app-version"' in rendered:
+        rendered = re.sub(r'<meta\s+name=["\']app-version["\']\s+content=["\'][^"\']*["\']>', meta_tag, rendered)
+    elif "<head>" in rendered:
+        rendered = rendered.replace("<head>", f"<head>\n<meta name=\"app-version\" content=\"{cur_ver}\">", 1)
+    elif "<HEAD>" in rendered:
+        rendered = rendered.replace("<HEAD>", f"<HEAD>\n<meta name=\"app-version\" content=\"{cur_ver}\">", 1)
+
+    # 3. 注入动态同步脚本 /static/js/version-sync.js
+    script_tag = '<script src="/static/js/version-sync.js"></script>'
+    if 'src="/static/js/version-sync.js"' not in rendered and "src='/static/js/version-sync.js'" not in rendered:
+        if "</head>" in rendered:
+            rendered = rendered.replace("</head>", f"  {script_tag}\n</head>", 1)
+        elif "</body>" in rendered:
+            rendered = rendered.replace("</body>", f"  {script_tag}\n</body>", 1)
+
+    return rendered
 
 
 @app.get("/health")
 def health():
-    return {"ok": True, "ts": time.time(), "version": APP_VERSION}
+    return {"ok": True, "ts": time.time(), "version": get_app_version()}
 
 
 @app.get("/api/health")  # V7 契约归一：/health 的规范别名（CONTRACT §4）
@@ -1122,7 +1198,8 @@ def api_health():
 
 @app.get("/api/version")
 def api_version():
-    return {"version": APP_VERSION}
+    info = get_app_version_info()
+    return {"version": info.get("version", get_app_version()), "details": info}
 
 
 @app.get("/api/system/check_update")
@@ -2587,7 +2664,7 @@ def admin_metrics(request: Request):
 def admin_metrics_page(request: Request):
     """运营漏斗看板页面（管理员）。纯前端拉接口，无构建步骤。"""
     guard_admin(request)
-    return HTMLResponse(_METRICS_PAGE_HTML)
+    return HTMLResponse(render_dynamic_html(_METRICS_PAGE_HTML))
 
 
 
@@ -3647,7 +3724,8 @@ def pricing_page(request: Request):
 
     与项目「无构建步骤」的现状一致：不引前端框架，双击即可用。
     """
-    return HTMLResponse((BASE / "web/templates/pages/pricing.html").read_text(encoding="utf-8") if (BASE / "web/templates/pages/pricing.html").exists() else _PRICING_PAGE_HTML)
+    raw_html = (BASE / "web/templates/pages/pricing.html").read_text(encoding="utf-8") if (BASE / "web/templates/pages/pricing.html").exists() else _PRICING_PAGE_HTML
+    return HTMLResponse(render_dynamic_html(raw_html))
 
 
 @app.get("/releases", response_class=HTMLResponse)
@@ -3666,22 +3744,32 @@ def admin_releases_page(request: Request):
 
 @app.get("/api/releases")
 def api_releases():
-    """获取版本更新与发布历史数据【V10.0.0】"""
-    try:
-        _importlib.reload(version)
-    except Exception:
-        pass
+    """获取版本更新与发布历史数据【V10.0.2】"""
+    cur_ver = get_app_version()
+    info = get_app_version_info()
     return {
         "ok": True,
-        "current_version": getattr(version, "__version__", "10.0.1"),
-        "codename": getattr(version, "__codename__", "鸿蒙始"),
+        "current_version": cur_ver,
+        "codename": info.get("codename", "鸿蒙始"),
         "licensor": "yimu.hyipf.com",
         "releases": [
+            {
+                "version": "10.0.2",
+                "codename": "鸿蒙始",
+                "date": "2026-10-15",
+                "status": "latest",
+                "highlights": [
+                    "全端全页面动态版本提取架构重构，彻底移除各页面写死旧版本号",
+                    "构建前端统一定义与自执行版本同步管理库 (web/static/js/version-sync.js)",
+                    "后端服务与模板渲染拦截器自动执行动态 SSR 注入与版本对齐，杜绝任何页面版本展示错误",
+                    "彻底移除前端硬编码 floorVer 地板下限保护，版本由单一真源 version.py 统一驱动",
+                ]
+            },
             {
                 "version": "10.0.1",
                 "codename": "鸿蒙始",
                 "date": "2026-10-15",
-                "status": "latest",
+                "status": "stable",
                 "highlights": [
                     "移动端与 PC 端算力 Token 统计全面拉齐，统一以 PC 端 memberships 算力账本为唯一真源",
                     "移动端顶部导航栏新增实时算力与会员等级胶囊组件，打通与个人中心即时同步",
@@ -4257,7 +4345,8 @@ async def admin_delete_user(user_id: str, request: Request):
 def admin_users_page(request: Request):
     """R3-7：用户管理页（管理员），含搜索/封禁操作。"""
     guard_admin(request)
-    return HTMLResponse(_USERS_PAGE_HTML)
+    raw_html = (BASE / "web/templates/pages/users_admin.html").read_text(encoding="utf-8") if (BASE / "web/templates/pages/users_admin.html").exists() else _USERS_PAGE_HTML
+    return HTMLResponse(render_dynamic_html(raw_html))
 
 
 # ---------------- R3-8 审计日志 ----------------
@@ -4302,7 +4391,8 @@ def admin_audit_actions(request: Request):
 def admin_audit_page(request: Request):
     """R3-8：审计日志查询页（管理员）。"""
     guard_admin(request)
-    return HTMLResponse(_AUDIT_PAGE_HTML)
+    raw_html = (BASE / "web/templates/pages/audit_admin.html").read_text(encoding="utf-8") if (BASE / "web/templates/pages/audit_admin.html").exists() else _AUDIT_PAGE_HTML
+    return HTMLResponse(render_dynamic_html(raw_html))
 
 
 # ---------------- 8大名家音色与深度蒸馏中台 ----------------
@@ -6818,13 +6908,13 @@ TEMPLATE_MOBILE_PATH = BASE / "web" / "templates" / "mobile.html"
 
 def get_html_page() -> str:
     if TEMPLATE_INDEX_PATH.exists():
-        return TEMPLATE_INDEX_PATH.read_text(encoding="utf-8")
+        return render_dynamic_html(TEMPLATE_INDEX_PATH.read_text(encoding="utf-8"))
     return "<h1>一幕·YIMU 页面模板文件缺失，请检查 web/templates/index.html</h1>"
 
 
 def get_mobile_html_page() -> str:
     if TEMPLATE_MOBILE_PATH.exists():
-        return TEMPLATE_MOBILE_PATH.read_text(encoding="utf-8")
+        return render_dynamic_html(TEMPLATE_MOBILE_PATH.read_text(encoding="utf-8"))
     return get_html_page()
 
 
@@ -6834,7 +6924,7 @@ _METRICS_PAGE_HTML = """<!doctype html>
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>运营看板 · 一幕 YIMU</title>
+<title>运营看板 · 一幕 YIMU V{{ APP_VERSION }}</title>
 <style>
  *{box-sizing:border-box}
  body{margin:0;background:#0f1220;color:#e8ecf8;

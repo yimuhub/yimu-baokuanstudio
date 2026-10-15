@@ -387,11 +387,27 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V10.0.1 -->
+      <!-- V10.0.2 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌌 V10.0.1 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="t-ver">🌌 V10.0.2 · 鸿蒙始 (Primordial Dawn)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-10-15</span>
+        </div>
+        <div class="t-desc">全页面动态版本提取架构重构、统一前端版本同步管理库 (version-sync.js)、彻底消除硬编码与静态版本漂移。</div>
+        <ul class="t-list">
+          <li><b>🚀 全端动态版本单一真源驱动</b>：所有页面（PC 端首页、移动端、独立定价页、运营看板、管理后台等）彻底移除静态写死版本号，统一从版本库（version.py / /api/version）动态提取并渲染；</li>
+          <li><b>📦 统一前端动态版本管理库（version-sync.js）</b>：引入轻量化纯原生动态版本中枢，自执行毫秒级同步 document.title、所有徽章、导航栏、侧边栏及自定义标注容器；</li>
+          <li><b>🛡️ 彻底废除硬编码地板保护（floorVer）</b>：以真实磁盘版本动态热加载为准，杜绝版本号滞后、回退或展示不一致；</li>
+          <li><b>⚡ 服务端与客户端双重动态保障</b>：服务端模板渲染拦截器自动执行 SSR 动态变量替换与 meta 注入，客户端异步强对齐，首屏零闪烁。</li>
+        </ul>
+      </div>
+
+      <!-- V10.0.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V10.0.1 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-15</span>
         </div>
         <div class="t-desc">移动端与 PC 端算力 Token 统计统一度量真源、移动端顶栏新增算力/会员药丸胶囊、个人中心商业化中枢升级。</div>

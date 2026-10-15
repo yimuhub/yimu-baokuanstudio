@@ -21,18 +21,19 @@ from web.admin import app
 
 
 def test_v8333_version_single_source_of_truth():
-    """验证单一真源版本号已升级至 10.0.1 / 10.0.0"""
-    assert version.__version__ in ("10.0.1", "10.0.0")
-    index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
-    mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
+    """验证单一真源版本号已升级至 10.0.2 / 10.0.1 / 10.0.0"""
+    assert version.__version__ in ("10.0.2", "10.0.1", "10.0.0")
+    from web.admin import get_html_page, get_mobile_html_page
+    index_html = get_html_page()
+    mobile_html = get_mobile_html_page()
     readme_md = Path("README.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
-    assert any(v in index_html for v in ("V10.0.1", "V10.0.0"))
-    assert any(v in index_html for v in ("10.0.1", "10.0.0"))
-    assert any(v in mobile_html for v in ("V10.0.1", "V10.0.0"))
-    assert any(v in readme_md for v in ("version-10.0.1", "version-10.0.0"))
-    assert any(v in license_txt for v in ("V10.0.1", "V10.0.0"))
+    assert any(v in index_html for v in ("V10.0.2", "V10.0.1", "V10.0.0"))
+    assert any(v in index_html for v in ("10.0.2", "10.0.1", "10.0.0"))
+    assert any(v in mobile_html for v in ("V10.0.2", "V10.0.1", "V10.0.0"))
+    assert any(v in readme_md for v in ("version-10.0.2", "version-10.0.1", "version-10.0.0"))
+    assert any(v in license_txt for v in ("V10.0.2", "V10.0.1", "V10.0.0"))
 
 
 def test_v8333_sidebar_profile_and_fixed_version():

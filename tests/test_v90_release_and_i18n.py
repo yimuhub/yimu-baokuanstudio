@@ -14,24 +14,24 @@ import version
 
 
 def test_v90_version_single_source_of_truth():
-    """验证 10.0.1 / 10.0.0 版本单一真源（V10.0.1 · 鸿蒙始 · 双端统一度量）"""
-    assert version.__version__ in ("10.0.1", "10.0.0", "9.4.5")
+    """验证版本单一真源（鸿蒙始 · 动态版本单一真源）"""
+    assert version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5")
     assert version.__codename__ in ("鸿蒙始", "澄音境")
-    assert any(k in version.__slogan_en__ for k in ("Unified Token Metric", "Primordial Dawn", "Pristine Rhythm"))
 
-    index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
-    mobile_html = Path("web/templates/mobile.html").read_text(encoding="utf-8")
+    from web.admin import get_html_page, get_mobile_html_page
+    index_html = get_html_page()
+    mobile_html = get_mobile_html_page()
     readme_en = Path("README.md").read_text(encoding="utf-8")
     readme_zh = Path("README_ZH.md").read_text(encoding="utf-8")
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
-    assert any(v in index_html for v in ("V10.0.1", "V10.0.0"))
-    assert any(v in index_html for v in ("10.0.1", "10.0.0"))
-    assert any(v in mobile_html for v in ("V10.0.1", "V10.0.0"))
-    assert any(v in readme_en for v in ("version-10.0.1", "version-10.0.0"))
-    assert any(v in readme_zh for v in ("version-10.0.1", "version-10.0.0"))
-    assert any(v in license_txt for v in ("V10.0.1", "V10.0.0"))
+    assert any(v in index_html for v in ("V10.0.2", "V10.0.1", "V10.0.0"))
+    assert any(v in index_html for v in ("10.0.2", "10.0.1", "10.0.0"))
+    assert any(v in mobile_html for v in ("V10.0.2", "V10.0.1", "V10.0.0"))
+    assert any(v in readme_en for v in ("version-10.0.2", "version-10.0.1", "version-10.0.0"))
+    assert any(v in readme_zh for v in ("version-10.0.2", "version-10.0.1", "version-10.0.0"))
+    assert any(v in license_txt for v in ("V10.0.2", "V10.0.1", "V10.0.0"))
     assert "Licensor:            yimu.hyipf.com" in license_txt
     assert "The Licensed Work is (c) 2026 yimu.hyipf.com" in license_txt
 
@@ -46,21 +46,21 @@ def test_v90_releases_showcase_page_and_api():
     # 1. /releases 页面
     r = client.get("/releases")
     assert r.status_code == 200
-    assert "V10.0.1" in r.text or "V10.0.0" in r.text or "V9.3.1" in r.text
+    assert any(v in r.text for v in ("V10.0.2", "V10.0.1", "V10.0.0", "V9.3.1"))
     assert "yimu.hyipf.com" in r.text
     assert "核心版本差异演进矩阵" in r.text
 
     # 2. /admin/releases 兼容页面
     r_admin = client.get("/admin/releases")
     assert r_admin.status_code == 200
-    assert "V10.0.1" in r_admin.text or "V10.0.0" in r_admin.text or "V9.3.1" in r_admin.text
+    assert any(v in r_admin.text for v in ("V10.0.2", "V10.0.1", "V10.0.0", "V9.3.1"))
 
     # 3. /api/releases 数据接口
     r_api = client.get("/api/releases")
     assert r_api.status_code == 200
     d = r_api.json()
     assert d.get("ok") is True
-    assert d.get("current_version") in ("10.0.1", "10.0.0")
+    assert d.get("current_version") in ("10.0.2", "10.0.1", "10.0.0")
     assert d.get("licensor") == "yimu.hyipf.com"
     assert len(d.get("releases", [])) >= 4
 

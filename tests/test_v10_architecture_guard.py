@@ -9,14 +9,15 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_v10_single_source_of_truth():
-    """验证全站版本单一真源已步进至 10.0.1 / 10.0.0（鸿蒙始 · Primordial Dawn）。"""
-    assert version.__version__ in ("10.0.1", "10.0.0")
+    """验证全站版本单一真源已步进至 10.0.2（鸿蒙始 · Primordial Dawn）。"""
+    assert version.__version__ in ("10.0.2", "10.0.1", "10.0.0")
     assert version.__codename__ == "鸿蒙始"
     assert version.__codename_en__ == "Primordial Dawn"
 
-    idx = (ROOT / "web/templates/index.html").read_text(encoding="utf-8")
-    assert any(v in idx for v in ("V10.0.1", "V10.0.0"))
-    assert any(v in idx for v in ("10.0.1", "10.0.0"))
+    from web.admin import get_html_page
+    idx = get_html_page()
+    assert any(v in idx for v in ("V10.0.2", "V10.0.1", "V10.0.0"))
+    assert any(v in idx for v in ("10.0.2", "10.0.1", "10.0.0"))
     assert "9.3.1" not in idx
 
 

@@ -67,11 +67,13 @@
 })();
 </script>
 <meta charset="utf-8">
-<title>一幕·YIMU 爆款工作室 V10.0.1 · 全媒体超级创作引擎</title>
+<meta name="app-version" content="{{ APP_VERSION }}">
+<title>一幕·YIMU 爆款工作室 {{ APP_VERSION_FULL }} · 全媒体超级创作引擎</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="icon" type="image/x-icon" href="/static/img/favicon.ico">
 <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon.png">
 <link rel="apple-touch-icon" href="/static/img/logo-icon.png">
+<script src="/static/js/version-sync.js"></script>
 <script src="/static/js/i18n.js"></script>
 <script>
 (function() {
@@ -3270,7 +3272,7 @@ input[type=text]:focus, textarea:focus, select:focus {
     </div>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-weight:700;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.3px" data-i18n="brand_badge">爆款工作室</span>
-      <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V10.0.1</span>
+      <span class="version-badge" data-app-version="prefix" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 6px;border-radius:4px;font-size:10.5px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">{{ APP_VERSION_FULL }}</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -3347,7 +3349,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:6px" onclick="checkSystemUpdate(true)" title="点击检查 GitHub 仓库最新版本更新">
         <span style="font-size:11px">🪐</span>
         <span style="color:var(--text-muted);font-weight:500">版本</span>
-        <code style="color:var(--primary);font-weight:700" id="side-version-text">V10.0.1</code>
+        <code style="color:var(--primary);font-weight:700" id="side-version-text" data-app-version="prefix">{{ APP_VERSION_FULL }}</code>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
         <a href="/releases" target="_blank" style="font-size:10px;padding:1px 6px;text-decoration:none;background:rgba(168,85,247,0.18);color:#d8b4fe;border:1px solid rgba(168,85,247,0.3);border-radius:4px;font-weight:700" title="打开版本更新与发布历史展示页">Releases ↗</a>
@@ -3459,7 +3461,7 @@ input[type=text]:focus, textarea:focus, select:focus {
         <span style="color:var(--primary);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:2px"><span data-i18n="billing_plans_pricing">套餐/价格</span> ▾</span>
       </div>
       <button class="btn btn-sm ghost" onclick="refresh()" data-i18n="top_refresh">↻ 刷新状态</button>
-      <span id="nav-ver-text" style="display:none">10.0.1</span>
+      <span id="nav-ver-text" data-app-version="raw" style="display:none">{{ APP_VERSION }}</span>
       <span id="header-extra"></span>
     </div>
   </header>
@@ -3470,7 +3472,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       <div style="display:flex;align-items:center;gap:12px">
         <span class="live-pulse"></span>
         <span style="font-weight:700;font-size:13.5px;color:#fff" data-i18n="radar_title">一幕·YIMU 爆款雷达实时巡航中</span>
-        <span class="version-badge" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">V10.0.1</span>
+        <span class="version-badge" data-app-version="prefix" style="background:linear-gradient(135deg,#f0883e,#d9701a);color:#fff;font-weight:800;padding:2px 7px;border-radius:4px;font-size:11px;letter-spacing:0.5px;box-shadow:0 2px 6px rgba(240,136,62,0.3)">{{ APP_VERSION_FULL }}</span>
       </div>
       <div style="display:flex;gap:18px;align-items:center;font-size:12.5px;flex-wrap:wrap">
         <div><span style="color:var(--text-muted)">今日爆款全网捕获:</span> <strong style="color:var(--primary)" id="stat-captured-count">—</strong></div>
@@ -5912,7 +5914,7 @@ input[type=text]:focus, textarea:focus, select:focus {
             <div>
               <div style="font-weight:700;font-size:14px;color:#38bdf8;display:flex;align-items:center;gap:6px"><span>🔄</span> GitHub 仓库在线升级与同步</div>
               <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="st-updater-status">
-                当前版本：<code style="color:var(--primary);font-weight:700">V10.0.1</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
+                当前版本：<code style="color:var(--primary);font-weight:700" data-app-version="prefix">{{ APP_VERSION_FULL }}</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center">
@@ -6251,7 +6253,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <div style="font-size:12.5px;color:var(--text-muted);margin-top:6px;display:flex;gap:16px;flex-wrap:wrap">
                 <span>媒体名称: <b style="color:var(--text)" id="profile-media-name-text">一幕·YIMU 爆款工作室</b></span>
                 <span>当前算力: <b style="color:var(--primary)" id="profile-token-bal-text">— Token</b></span>
-                <span>当前版本: <code style="color:#38bdf8;font-weight:700">V10.0.1</code></span>
+                <span>当前版本: <code style="color:#38bdf8;font-weight:700" data-app-version="prefix">{{ APP_VERSION_FULL }}</code></span>
               </div>
             </div>
           </div>
@@ -10354,41 +10356,28 @@ function csrfHeaders() {
   };
 })();
 
-/* 顶栏版本号读接口真实版本（单一真源 10.0.1，带版本地板保护防旧进程缓存回退） */
+/* 顶栏版本号由单一真源库 version-sync.js 统一管理驱动 */
 function _normalizeLatestVersion(rawVer) {
-  const floorVer = '10.0.1';
-  const v = String(rawVer || '').replace(/^[vV]/, '').trim();
-  if (!v) return floorVer;
-  const p1 = v.split('.').map(n => parseInt(n, 10) || 0);
-  const p2 = floorVer.split('.').map(n => parseInt(n, 10) || 0);
-  for (let i = 0; i < 3; i++) {
-    if ((p1[i] || 0) > (p2[i] || 0)) return v;
-    if ((p1[i] || 0) < (p2[i] || 0)) return floorVer;
+  if (window.AppVersion && typeof window.AppVersion.normalize === 'function') {
+    return window.AppVersion.normalize(rawVer) || window.AppVersion.get();
   }
-  return v;
+  return String(rawVer || '').replace(/^[vV]/, '').trim();
 }
-(function syncVersionBadge(){
+function syncVersionBadge() {
   try {
     fetch('/api/version', {credentials:'same-origin'})
       .then(r => r.ok ? r.json() : null)
       .then(d => {
-        const fullVer = _normalizeLatestVersion(d && d.version ? d.version : '10.0.1');
-        const _short = String(fullVer).split('.').slice(0, 2).join('.');
-        const el = document.getElementById('nav-ver-text');
-        if (el) el.textContent = fullVer;
-        const sideVer = document.getElementById('side-version-text');
-        if (sideVer) sideVer.textContent = 'V' + fullVer;
-        document.querySelectorAll('.version-badge').forEach(b => {
-          b.textContent = 'V' + fullVer;
-        });
-        const title = document.title;
-        if (title && /V\d+(\.\d+)*/.test(title)) {
-          document.title = title.replace(/V\d+(\.\d+)*/g, 'V' + fullVer);
+        if (d && d.version) {
+          const _short = String(d.version).split('.').slice(0, 2).join('.');
+          if (window.AppVersion) window.AppVersion.apply(d.version);
         }
-      })
-      .catch(() => {});
+      }).catch(() => {});
   } catch(e) {}
-})();
+  if (window.AppVersion && typeof window.AppVersion.sync === 'function') {
+    return window.AppVersion.sync();
+  }
+}
 
 async function checkSystemUpdate(manual = false) {
   const statusEl = document.getElementById('st-updater-status');
@@ -10409,7 +10398,7 @@ async function checkSystemUpdate(manual = false) {
     const res = await api('/api/system/check_update?force=' + (manual ? 'true' : 'false'));
     if (res && res.ok) {
       if (sideVerText) {
-        const normV = (typeof _normalizeLatestVersion === 'function') ? _normalizeLatestVersion(res.current_version) : '10.0.1';
+        const normV = (typeof _normalizeLatestVersion === 'function') ? _normalizeLatestVersion(res.current_version) : ((window.AppVersion && window.AppVersion.get()) || res.current_version);
         res.current_version = normV;
         sideVerText.textContent = 'V' + normV;
       }
@@ -22014,9 +22003,13 @@ async function resetHabitSkill() {
 /* ==================== 会员分级：动态版本与权益徽章 ==================== */
 let yimuUserTier = 'free';
 function getAppVersionShort() {
-  const raw = document.getElementById('nav-ver-text')?.textContent || '10.0.1';
-  const norm = (typeof _normalizeLatestVersion === 'function') ? _normalizeLatestVersion(raw) : '10.0.1';
-  return norm.startsWith('V') ? norm : 'V' + norm;
+  if (window.AppVersion && typeof window.AppVersion.getFull === 'function') {
+    const full = window.AppVersion.getFull();
+    if (full) return full;
+  }
+  const raw = document.getElementById('nav-ver-text')?.textContent || '';
+  const norm = (typeof _normalizeLatestVersion === 'function') ? _normalizeLatestVersion(raw) : raw;
+  return norm ? (norm.startsWith('V') ? norm : 'V' + norm) : 'V10.0.2';
 }
 const TIER_LABEL_MAP = {free: 'Free', pro: 'Pro', studio: 'Studio'};
 
@@ -22905,7 +22898,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px" id="agent-task-subtitle">全能微创改写与生成引擎调度中…</div>
         </div>
       </div>
-      <span class="badge version-badge" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">V10.0.1</span>
+      <span class="badge version-badge" data-app-version="prefix" style="background:rgba(240,136,62,0.2);color:#f5b06e;border:1px solid rgba(240,136,62,0.3);font-size:11px;padding:3px 8px">{{ APP_VERSION_FULL }}</span>
     </div>
     
     <!-- 当前动态进行中的工作步骤展示卡 -->

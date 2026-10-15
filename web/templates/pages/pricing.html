@@ -2,7 +2,9 @@
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>套餐与价格 · 一幕·YIMU 爆款工作室 V10.0.1</title>
+<meta name="app-version" content="{{ APP_VERSION }}">
+<title>套餐与价格 · 一幕·YIMU 爆款工作室 {{ APP_VERSION_FULL }}</title>
+<script src="/static/js/version-sync.js"></script>
 <style>
  :root {
    --bg: #0b0e14;
@@ -118,7 +120,7 @@
     </a>
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       <span class="logo-badge">爆款工作室</span>
-      <span class="version-badge">V10.0.1</span>
+      <span class="version-badge" data-app-version="prefix">{{ APP_VERSION_FULL }}</span>
     </div>
   </div>
   <nav class="nav-group">
@@ -165,7 +167,7 @@
       <span class="badge ok" id="side-auth-status">在线</span>
     </a>
     <div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-muted);padding:4px 2px">
-      <span>🪐 版本 <code style="color:var(--primary);font-weight:700">V10.0.1</code></span>
+      <span>🪐 版本 <code style="color:var(--primary);font-weight:700" data-app-version="prefix">{{ APP_VERSION_FULL }}</code></span>
       <a href="/releases" style="color:#d8b4fe;text-decoration:none;font-weight:700">Releases ↗</a>
     </div>
   </div>

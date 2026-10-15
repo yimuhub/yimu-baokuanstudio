@@ -1,0 +1,346 @@
+{
+  "current_version": "10.1.1",
+  "current_codename_zh": "曦光序",
+  "current_codename_en": "Dawnlight Overture",
+  "next_index": 1,
+  "sequence": [
+    {
+      "zh": "曦光序",
+      "en": "Dawnlight Overture"
+    },
+    {
+      "zh": "云汉章",
+      "en": "Milky Way Verse"
+    },
+    {
+      "zh": "星河纪",
+      "en": "Starfall Chronicle"
+    },
+    {
+      "zh": "长风谣",
+      "en": "Longwind Ballad"
+    },
+    {
+      "zh": "沧海吟",
+      "en": "Oceanic Ode"
+    },
+    {
+      "zh": "山岳赋",
+      "en": "Mountain Hymn"
+    },
+    {
+      "zh": "江河曲",
+      "en": "River Rhapsody"
+    },
+    {
+      "zh": "松涛境",
+      "en": "Pinewave Realm"
+    },
+    {
+      "zh": "竹韵篇",
+      "en": "Bamboo Rhythm"
+    },
+    {
+      "zh": "梅雪镜",
+      "en": "Plum-Snow Mirror"
+    },
+    {
+      "zh": "兰心曲",
+      "en": "Orchid Melody"
+    },
+    {
+      "zh": "荷风吟",
+      "en": "Lotus Breeze Chant"
+    },
+    {
+      "zh": "菊秋赋",
+      "en": "Autumn Chrysanthemum Ode"
+    },
+    {
+      "zh": "霜林传",
+      "en": "Frostwood Tale"
+    },
+    {
+      "zh": "雪原纪",
+      "en": "Snowfield Record"
+    },
+    {
+      "zh": "雷火令",
+      "en": "Thunderfire Edict"
+    },
+    {
+      "zh": "虹霓桥",
+      "en": "Rainbow Span"
+    },
+    {
+      "zh": "月华章",
+      "en": "Moonlit Verse"
+    },
+    {
+      "zh": "日曜篇",
+      "en": "Sunblaze Scroll"
+    },
+    {
+      "zh": "乾坤颂",
+      "en": "Cosmos Anthem"
+    },
+    {
+      "zh": "云阙吟",
+      "en": "Cloud Palace Chant"
+    },
+    {
+      "zh": "琼楼赋",
+      "en": "Jade Tower Ode"
+    },
+    {
+      "zh": "碧霄曲",
+      "en": "Azure Sky Melody"
+    },
+    {
+      "zh": "紫微章",
+      "en": "Ziwei Palace Verse"
+    },
+    {
+      "zh": "太微纪",
+      "en": "Supreme Palace Record"
+    },
+    {
+      "zh": "天市谣",
+      "en": "Celestial Market Ballad"
+    },
+    {
+      "zh": "金乌纪",
+      "en": "Golden Crow Chronicle"
+    },
+    {
+      "zh": "玉兔谣",
+      "en": "Jade Rabbit Ballad"
+    },
+    {
+      "zh": "繁星赋",
+      "en": "Myriad Stars Ode"
+    },
+    {
+      "zh": "晓星吟",
+      "en": "Morning Star Chant"
+    },
+    {
+      "zh": "岱宗篇",
+      "en": "Mount Tai Chapter"
+    },
+    {
+      "zh": "华岳章",
+      "en": "Mount Hua Verse"
+    },
+    {
+      "zh": "衡岳纪",
+      "en": "Southern Peak Record"
+    },
+    {
+      "zh": "嵩岳吟",
+      "en": "Mount Song Chant"
+    },
+    {
+      "zh": "瀚海曲",
+      "en": "Vast Expanse Melody"
+    },
+    {
+      "zh": "漓江赋",
+      "en": "Li River Ode"
+    },
+    {
+      "zh": "洞庭镜",
+      "en": "Dongting Lake Mirror"
+    },
+    {
+      "zh": "云梦泽",
+      "en": "Cloud-Dream Marsh"
+    },
+    {
+      "zh": "桃源境",
+      "en": "Peach Blossom Realm"
+    },
+    {
+      "zh": "杏林传",
+      "en": "Apricot Forest Tale"
+    },
+    {
+      "zh": "桂魄章",
+      "en": "Osmanthus Moon Verse"
+    },
+    {
+      "zh": "芙蓉曲",
+      "en": "Hibiscus Melody"
+    },
+    {
+      "zh": "芦荻吟",
+      "en": "Reed Chant"
+    },
+    {
+      "zh": "苔痕篇",
+      "en": "Moss Trace Chapter"
+    },
+    {
+      "zh": "藤萝境",
+      "en": "Wisteria Realm"
+    },
+    {
+      "zh": "霖雨赋",
+      "en": "Timely Rain Ode"
+    },
+    {
+      "zh": "甘露篇",
+      "en": "Sweet Dew Chapter"
+    },
+    {
+      "zh": "霜钟纪",
+      "en": "Frost Bell Record"
+    },
+    {
+      "zh": "雪霁章",
+      "en": "Snow-Clearing Verse"
+    },
+    {
+      "zh": "风雷引",
+      "en": "Wind-Thunder Prelude"
+    },
+    {
+      "zh": "青铜铭",
+      "en": "Bronze Inscription"
+    },
+    {
+      "zh": "瑶琴曲",
+      "en": "Jade Zither Melody"
+    },
+    {
+      "zh": "羌笛吟",
+      "en": "Qiang Flute Chant"
+    },
+    {
+      "zh": "云锦章",
+      "en": "Cloud Brocade Verse"
+    },
+    {
+      "zh": "霓裳序",
+      "en": "Rainbow Skirt Overture"
+    },
+    {
+      "zh": "广陵散",
+      "en": "Guangling Verses"
+    },
+    {
+      "zh": "高山曲",
+      "en": "High Mountain Melody"
+    },
+    {
+      "zh": "阳关谣",
+      "en": "Yangguan Ballad"
+    },
+    {
+      "zh": "梅花引",
+      "en": "Plum Blossom Prelude"
+    },
+    {
+      "zh": "汉宫秋",
+      "en": "Autumn in Han Palace"
+    },
+    {
+      "zh": "龙腾纪",
+      "en": "Dragon Soaring Record"
+    },
+    {
+      "zh": "凤仪章",
+      "en": "Phoenix Bearing Verse"
+    },
+    {
+      "zh": "麟凤篇",
+      "en": "Qilin-Phoenix Chapter"
+    },
+    {
+      "zh": "河清篇",
+      "en": "River Clearing Chapter"
+    },
+    {
+      "zh": "海晏图",
+      "en": "Calm Sea Scroll"
+    },
+    {
+      "zh": "太平令",
+      "en": "Great Peace Edict"
+    }
+  ],
+  "history": [
+    {
+      "version": "v9.4.0",
+      "zh": "破阵子",
+      "en": "Storm Breaker",
+      "date": "2026-10-14"
+    },
+    {
+      "version": "v9.4.1",
+      "zh": "沉影吟",
+      "en": "Shadow Rhythm",
+      "date": "2026-10-14"
+    },
+    {
+      "version": "v9.4.2",
+      "zh": "回响曲",
+      "en": "Echo Melody",
+      "date": "2026-10-14"
+    },
+    {
+      "version": "v9.4.3",
+      "zh": "流云赋",
+      "en": "Flowing Clouds",
+      "date": "2026-10-14"
+    },
+    {
+      "version": "v9.4.4",
+      "zh": "澄澈镜",
+      "en": "Pristine Mirror",
+      "date": "2026-10-14"
+    },
+    {
+      "version": "v9.4.5",
+      "zh": "澄音境",
+      "en": "Pristine Rhythm",
+      "date": "2026-10-14"
+    },
+    {
+      "version": "v10",
+      "zh": "鸿蒙始",
+      "en": "Primordial Dawn",
+      "date": "2026-10-14"
+    },
+    {
+      "version": "v10.0.0",
+      "zh": "鸿蒙始",
+      "en": "Primordial Dawn",
+      "date": "2026-10-14"
+    },
+    {
+      "version": "v10.0.1",
+      "zh": "鸿蒙始",
+      "en": "Primordial Dawn",
+      "date": "2026-10-15"
+    },
+    {
+      "version": "v10.0.2",
+      "zh": "鸿蒙始",
+      "en": "Primordial Dawn",
+      "date": "2026-10-15"
+    },
+    {
+      "version": "v10.1",
+      "zh": "鸿蒙始",
+      "en": "Primordial Dawn",
+      "date": "2026-10-15"
+    },
+    {
+      "version": "v10.1.1",
+      "zh": "曦光序",
+      "en": "Dawnlight Overture",
+      "date": "2026-10-15"
+    }
+  ]
+}

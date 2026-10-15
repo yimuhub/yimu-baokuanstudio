@@ -740,6 +740,66 @@ git checkout v10.0.1
 
 > **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
 """,
+        "is_latest": False
+    },
+    {
+        "tag": "v10.0.2",
+        "name": "v10.0.2 - 鸿蒙始 · 全端全页面动态版本单一真源驱动与统一版本库",
+        "body": """# 🎬 一幕·YIMU 爆款工作室 (YIMU Studio) V10.0.2
+
+> **版本代号 / Codename**: 鸿蒙始 · 全端动态版本单一真源 (Primordial Dawn · Dynamic Versions Across All Pages)  
+> **发布日期 / Release Date**: 2026-10-15  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 全端动态版本架构重塑与版本同步中枢升级
+
+---
+
+### 🌟 版本概述 (Overview)
+**V10.0.2（鸿蒙始 · Primordial Dawn · 全端全页面动态版本单一真源）** 彻底解决了系统各页面因硬编码静态版本号导致的版本回退、展示滞后与版本不一致问题。全站所有页面（PC 端首页、移动端、独立定价页、运营看板、用户管理、审计日志等）全部改造为动态从后端版本库（`version.py` / `/api/version`）单一真源提取，并构建了独立统一的前端动态版本管理库（`web/static/js/version-sync.js`），实现首屏零闪烁动态注入与毫秒级全端自动同步。
+
+---
+
+### 🆕 核心新增与重构特性 (Key Updates & Enhancements)
+
+1. **全端全页面动态版本单一真源驱动**:
+   - 彻底消灭前端所有页面（`index.html`、`mobile.html`、`pages/pricing.html`、`users_admin.html`、`audit_admin.html` 等）中写死的旧版本号文本；
+   - 移除 `const floorVer = '10.0.1'` 等静态硬编码防回退机制，版本变更 100% 由 `version.py` 单一真源驱动；
+   - 服务端模板渲染拦截器自动执行 SSR 动态变量替换与 `<meta name="app-version">` 元信息注入，保障首屏展示即为最新版本。
+
+2. **前端统一动态版本管理库 (`web/static/js/version-sync.js`)**:
+   - 打造轻量级纯原生全局单例 `window.AppVersion`，提供标准 `get()`、`getFull()`、`apply(ver)`、`sync()` 接口；
+   - 毫秒级自执行动态扫描并更新：
+     - `document.title` 中的版本号；
+     - 所有标注了 `[data-app-version]` 的 DOM 节点；
+     - 所有 `.version-badge` 徽章元素；
+     - 系统特定 ID 容器（`#nav-ver-text`, `#side-version-text`, `#mobile-ver-badge`, `#pricing-ver-text` 等）；
+   - 派发全局 `yimu:version-changed` 自定义事件，便于组件间即时响应。
+
+3. **后端接口与动态渲染强契约保障**:
+   - `/api/version` 与 `/health` 全量动态热加载 `version.py`，支持无缝热生效；
+   - `/api/releases` 与发布历史时间轴 (`studio/releases_page.py`) 同步升级至 10.0.2，记录完备演进历史；
+   - 模板加载函数 `get_html_page()` 与 `get_mobile_html_page()` 统一经过动态渲染管线，杜绝任何漏改与脱节。
+
+4. **全链路工程规范与门禁 100% 全绿**:
+   - 新增 `tests/test_v1002_dynamic_versions.py` 专项架构防腐化测试；
+   - 518 项全量单元测试、产物存在性探针、文案术语禁用词检查与密钥合规扫描 4 道 CI 门禁全绿通过。
+
+---
+
+### 📦 获取与部署 (How to Access & Deploy)
+```bash
+# 服务器生产环境单行极速全自动部署：
+curl -fsSL https://raw.githubusercontent.com/yimuhub/yimu-baokuanstudio/main/服务器一键部署.sh | bash
+
+# 本地仓库检出最新 V10.0.2 稳定版：
+git pull origin main
+git checkout v10.0.2
+```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
+""",
         "is_latest": True
     }
 ]

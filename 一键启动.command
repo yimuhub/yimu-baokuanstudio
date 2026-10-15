@@ -65,10 +65,10 @@ mkdir -p data/topics data/drafts data/cards data/cookies logs runs
 .venv/bin/python -c "from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)" 2>/dev/null
 
 # 7. 释放旧端口
-OLD_PID=$(lsof -ti:$PORT 2>/dev/null)
-if [ -n "$OLD_PID" ]; then
+OLD_PID="$(lsof -ti:$PORT 2>/dev/null || true)"
+if [ -n "${OLD_PID:-}" ]; then
   echo "  🔄 发现旧进程 PID: $OLD_PID，正在重启释放端口..."
-  kill -9 $OLD_PID 2>/dev/null; sleep 1
+  kill -9 $OLD_PID 2>/dev/null || true; sleep 1
 fi
 
 # 8. 启动服务并在前台/后台就绪（默认仅绑定本机 127.0.0.1，防公共 Wi-Fi/局域网暴露）

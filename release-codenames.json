@@ -1,8 +1,8 @@
 {
-  "current_version": "10.1.1",
-  "current_codename_zh": "曦光序",
-  "current_codename_en": "Dawnlight Overture",
-  "next_index": 1,
+  "current_version": "10.1.2",
+  "current_codename_zh": "云汉章",
+  "current_codename_en": "Milky Way Verse",
+  "next_index": 2,
   "sequence": [
     {
       "zh": "曦光序",
@@ -341,6 +341,12 @@
       "zh": "曦光序",
       "en": "Dawnlight Overture",
       "date": "2026-10-15"
+    },
+    {
+      "version": "v10.1.2",
+      "zh": "云汉章",
+      "en": "Milky Way Verse",
+      "date": "2026-10-16"
     }
   ]
 }

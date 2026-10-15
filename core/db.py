@@ -417,7 +417,8 @@ def conn() -> sqlite3.Connection:
     # 旧库迁移：补列
     cols = {r["name"] for r in c.execute("PRAGMA table_info(drafts)")}
     for col in ("source_platform", "source_url", "source_title", "analysis",
-                "score", "score_detail", "score_round", "candidate_titles", "source_stats", "workspace_id", "user_id"):
+                "score", "score_detail", "score_round", "candidate_titles", "source_stats", "workspace_id", "user_id",
+                "topic_id", "platforms"):
         if col not in cols:
             t = {"score": "REAL", "score_detail": "TEXT", "score_round": "INTEGER DEFAULT 0"}.get(col, "TEXT DEFAULT ''")
             c.execute(f"ALTER TABLE drafts ADD COLUMN {col} {t}")

@@ -208,8 +208,8 @@ def ensure_default_admin(password: str | None = None) -> bool:
         now_ts = _iso_now()
         pwd_hash, salt = hash_password(pwd)
         c.execute(
-            "INSERT OR REPLACE INTO users (id, username, email, password_hash, salt, role, plan, quota_used, quota_max, created_at, last_login, is_active) "
-            "VALUES (?,?,?,?,?,?,?,0,?,?,?,1)",
+            "INSERT OR REPLACE INTO users (id, username, email, password_hash, salt, role, plan, quota_used, quota_max, created_at, last_login, is_active, tenant_id) "
+            "VALUES (?,?,?,?,?,?,?,0,?,?,?,1,'default')",
             (uid, "admin", "admin@localhost", pwd_hash, salt, "admin", "enterprise",
              TIER_CREDITS["studio"], now_ts, now_ts)
         )

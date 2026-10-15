@@ -2107,9 +2107,9 @@
 
       // 3. 更新页面标题 <title>
       if (currentLang === 'en') {
-        document.title = "YIMU Studio V10.0.0 · Omni-Media Super Creation Engine";
+        document.title = "YIMU Studio V10.0.1 · Omni-Media Super Creation Engine";
       } else {
-        document.title = "一幕·YIMU 爆款工作室 V10.0.0 · 全媒体超级创作引擎";
+        document.title = "一幕·YIMU 爆款工作室 V10.0.1 · 全媒体超级创作引擎";
       }
 
       // 4. 更新顶栏与移动端语言切换指示器

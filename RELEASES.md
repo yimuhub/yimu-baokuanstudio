@@ -4,6 +4,18 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 10.0.1 · Mobile & PC Unified Token Metric (鸿蒙始 · 双端统一度量) · 2026-10-15
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.0.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+- **Full-End Token Metric Unification (All Aligned to PC Single Source of Truth)**:
+  - Mobile client (`web/templates/mobile.html`) now pulls tokens, credits consumed, total authorized credits, and tier display directly from `/api/billing/ui/me` and `/api/auth/me`.
+  - Added real-time token & tier pill widget (`💎 算力: X Token | 档位`) to the mobile app header, matching PC's top navigation bar.
+  - Eliminated legacy hardcoded static token numbers (e.g., `500,000 Token` and fallback `3000`) in mobile UI and user profiles.
+  - Unified `/api/auth/me` payload to include `credits_left`, `credits_total`, `credits_used`, `tier_display`, and dynamic progress bar.
+
+---
+
 ## 🌌 Version 10.0.0 · Big-Tech Clean Architecture & Full-Stack Unification (鸿蒙始 · Primordial Dawn) · 2026-10-15
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.0.0"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

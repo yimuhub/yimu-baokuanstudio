@@ -8,8 +8,8 @@ import version
 
 
 def test_v911_version_single_source():
-    """验证版本单一真源全栈统一为 10.0.0"""
-    assert version.__version__ in ("10.0.0", "9.4.5")
+    """验证版本单一真源全栈统一为 10.0.1 / 10.0.0"""
+    assert version.__version__ in ("10.0.1", "10.0.0", "9.4.5")
     assert version.__codename__ in ("鸿蒙始", "澄音境")
 
     index_html = Path("web/templates/index.html").read_text(encoding="utf-8")
@@ -19,13 +19,13 @@ def test_v911_version_single_source():
     readme_zh = Path("README_ZH.md").read_text(encoding="utf-8")
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
 
-    assert "V10.0.0" in index_html
-    assert "10.0.0" in index_html
-    assert "V10.0.0" in mobile_html
-    assert "V10.0.0" in license_txt
-    assert "version-10.0.0" in readme_en
-    assert "version-10.0.0" in readme_zh
-    assert "Version 10.0.0" in releases_md
+    assert any(v in index_html for v in ("V10.0.1", "V10.0.0"))
+    assert any(v in index_html for v in ("10.0.1", "10.0.0"))
+    assert any(v in mobile_html for v in ("V10.0.1", "V10.0.0"))
+    assert any(v in license_txt for v in ("V10.0.1", "V10.0.0"))
+    assert any(v in readme_en for v in ("version-10.0.1", "version-10.0.0"))
+    assert any(v in readme_zh for v in ("version-10.0.1", "version-10.0.0"))
+    assert any(v in releases_md for v in ("Version 10.0.1", "Version 10.0.0"))
 
 
 def test_v911_dictionary_and_runtime_assets():

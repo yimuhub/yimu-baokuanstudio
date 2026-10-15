@@ -143,10 +143,16 @@ def _session_factory():
                 s = fac()
                 try:
                     if s.get(Tenant, TENANT_ID) is None:
+                        dup = s.query(Tenant).filter(Tenant.name == "default").first()
+                        if dup is not None:
+                            dup.name = f"tenant_{dup.id}"
+                            s.flush()
                         s.add(Tenant(id=TENANT_ID, name="default", plan="free",
                                      launch_mode="invite-only", is_active=True,
                                      created_at=utcnow()))
                         s.commit()
+                except Exception:
+                    s.rollback()
                 finally:
                     s.close()
                 _factory = fac
@@ -245,12 +251,16 @@ def _require_admin(request: Request) -> dict:
 
 
 def _studio_user(db, user: dict) -> User | None:
-    """按 web user_id 查 studio 用户行（租户隔离）。"""
-    return (
+    """按 web user_id 查 studio 用户行（租户隔离，主键兜底）。"""
+    uid = user.get("id") or user.get("user_id")
+    su = (
         db.query(User)
-        .filter(User.id == user["user_id"], User.tenant_id == TENANT_ID)
+        .filter(User.id == uid, User.tenant_id == TENANT_ID)
         .first()
     )
+    if su is None and uid:
+        su = db.get(User, uid)
+    return su
 
 
 def _dt_str(dt) -> str:
@@ -1126,7 +1136,8 @@ async def ui_me(request: Request):
             )
             db.add(su)
             db.flush()
-        m = ensure_membership(db, TENANT_ID, su.id)
+        target_tenant = getattr(su, "tenant_id", None) or TENANT_ID
+        m = ensure_membership(db, target_tenant, su.id)
         # ⭐ 管理员默认 studio 档（最高权限，基础额度至少 600 万）
         if su.id == "u-admin":
             if not m.tier:
@@ -1164,7 +1175,8 @@ async def ui_init_membership(request: Request):
             )
             db.add(su)
             db.flush()
-        m = ensure_membership(db, TENANT_ID, su.id)
+        target_tenant = getattr(su, "tenant_id", None) or TENANT_ID
+        m = ensure_membership(db, target_tenant, su.id)
         # 支持更选/切换至 free 体验档
         body = {}
         try:

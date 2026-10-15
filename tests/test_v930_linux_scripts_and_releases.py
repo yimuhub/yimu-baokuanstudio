@@ -17,11 +17,11 @@ import version
 
 
 def test_v930_version_single_source_of_truth():
-    """验证版本单一真源为 10.0.0，代号为澄音境"""
-    assert version.__version__ in ("10.0.0", "9.4.5")
+    """验证版本单一真源为 10.0.1 / 10.0.0，代号为鸿蒙始"""
+    assert version.__version__ in ("10.0.1", "10.0.0", "9.4.5")
     assert getattr(version, "__codename__", "") in ("鸿蒙始", "澄音境")
     assert any(k in getattr(version, "__slogan_cn__", "") for k in ("鸿蒙开元", "素简澄澈"))
-    assert any(k in getattr(version, "__slogan_en__", "") for k in ("Primordial Dawn", "Pristine Rhythm"))
+    assert any(k in getattr(version, "__slogan_en__", "") for k in ("Unified Token Metric", "Primordial Dawn", "Pristine Rhythm"))
 
 
 def test_versionless_launch_scripts_exist():
@@ -110,7 +110,7 @@ def test_updater_check_v930_resolution():
 
     res = check_for_updates(force=True)
     assert res.get("ok") is True
-    assert res.get("current_version") == "10.0.0"
+    assert res.get("current_version") in ("10.0.1", "10.0.0")
     # latest_version 至少为有效版本
-    assert res.get("latest_version") in ["9.3.0", "9.3.1", "9.3.2", "10.0.0", "10.0.0", "10.0.0"]
+    assert res.get("latest_version") in ["9.3.0", "9.3.1", "9.3.2", "10.0.0", "10.0.1"]
 

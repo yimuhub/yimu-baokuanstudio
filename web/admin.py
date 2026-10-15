@@ -847,11 +847,64 @@ async def api_login(request: Request):
 
 @app.get("/api/auth/me")
 def api_auth_me(request: Request):
-    """获取当前登录用户的资料与额度"""
+    """获取当前登录用户的资料与额度（与 PC 端 /api/billing/ui/me 统一度量真源）"""
     u = guard(request)
     if isinstance(u, dict):
         u["avatar_url"] = u.get("avatar_url") or "/static/img/default-avatar.png"
+        try:
+            from web.gateway_ui import _db, _studio_user, _membership_summary, TENANT_ID, ADMIN_ROLES
+            from studio.membership.service import ensure_membership
+            from studio.db_models import User as StudioUser, utcnow
+            db = _db()
+            try:
+                user_ctx = {
+                    "user_id": str(u.get("id", "") or u.get("user_id", "")),
+                    "username": str(u.get("username", "")),
+                    "role": str(u.get("role", "user")),
+                }
+                su = _studio_user(db, user_ctx)
+                if su is None and user_ctx["user_id"]:
+                    role = "admin" if user_ctx["role"] in ADMIN_ROLES else "user"
+                    su = StudioUser(
+                        id=user_ctx["user_id"],
+                        tenant_id=TENANT_ID,
+                        username=user_ctx["username"] or user_ctx["user_id"],
+                        email="",
+                        password_hash="!",
+                        salt="",
+                        role=role,
+                        is_active=True,
+                        created_at=utcnow(),
+                    )
+                    db.add(su)
+                    db.flush()
+                if su:
+                    target_tenant = getattr(su, "tenant_id", None) or TENANT_ID
+                    m = ensure_membership(db, target_tenant, su.id)
+                    if su.id == "u-admin":
+                        if not m.tier:
+                            m.tier = "studio"
+                        if m.credits_total < 6000000:
+                            m.credits_total = 6000000
+                        if int(m.credits_used or 0) > int(m.credits_total or 0):
+                            m.credits_used = 0
+                    db.commit()
+                    summ = _membership_summary(m)
+                    u["credits_left"] = summ["credits_left"]
+                    u["credits_total"] = summ["credits_total"]
+                    u["credits_used"] = summ["credits_used"]
+                    u["tier"] = summ["tier"]
+                    u["tier_name"] = summ["tier_name"]
+                    u["tier_display"] = summ["tier_display"]
+                    u["plan"] = summ["tier"]
+                    u["quota_max"] = summ["credits_left"]
+                    u["membership"] = summ
+            finally:
+                db.close()
+        except Exception:
+            pass
     return {"ok": True, "user": u}
+
 
 
 @app.post("/api/auth/change_password")
@@ -3620,15 +3673,26 @@ def api_releases():
         pass
     return {
         "ok": True,
-        "current_version": getattr(version, "__version__", "10.0.0"),
+        "current_version": getattr(version, "__version__", "10.0.1"),
         "codename": getattr(version, "__codename__", "鸿蒙始"),
         "licensor": "yimu.hyipf.com",
         "releases": [
             {
-                "version": "10.0.0",
+                "version": "10.0.1",
                 "codename": "鸿蒙始",
                 "date": "2026-10-15",
                 "status": "latest",
+                "highlights": [
+                    "移动端与 PC 端算力 Token 统计全面拉齐，统一以 PC 端 memberships 算力账本为唯一真源",
+                    "移动端顶部导航栏新增实时算力与会员等级胶囊组件，打通与个人中心即时同步",
+                    "升级 /api/auth/me 与 /api/billing/ui/me 契约对齐，消灭移动端静态假额度与统计口径偏差",
+                ]
+            },
+            {
+                "version": "10.0.0",
+                "codename": "鸿蒙始",
+                "date": "2026-10-15",
+                "status": "stable",
                 "highlights": [
                     "大厂级 Clean Architecture 四层工程架构重塑（app / domain / infra / web）",
                     "/pricing 页面深度融入系统左侧固定菜单栏，打通下单、确认收款、一步核销到账与退款全流程",

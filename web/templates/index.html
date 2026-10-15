@@ -74,6 +74,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="/static/img/favicon.png">
 <link rel="apple-touch-icon" href="/static/img/logo-icon.png">
 <script src="/static/js/version-sync.js"></script>
+<script src="/static/js/pricing-sync.js"></script>
 <script src="/static/js/i18n.js"></script>
 <script>
 (function() {
@@ -6509,27 +6510,27 @@ input[type=text]:focus, textarea:focus, select:focus {
               <h4 style="margin:0;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px">🎯 会员档位选择与专属权益</h4>
               <span class="badge blue" style="font-size:11px">点击卡片可直接选择</span>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px;margin-bottom:10px">
+            <div id="profile-billing-plan-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px;margin-bottom:10px">
               <div class="billing-plan-card" data-plan="free" onclick="selectBillingPlan(this, 'free')" style="background:#121824;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
-                <div style="font-weight:700;color:#fff;margin-bottom:4px">新人体验官 (Free)</div>
-                <div style="font-size:18px;font-weight:800;color:var(--primary)">¥0</div>
-                <div style="color:var(--text-muted);margin:6px 0;line-height:1.5">
-                  • 10,000 Token<br>• 基础爆款仿写<br>• 短视频带水印
+                <div data-plan-name="free" style="font-weight:700;color:#fff;margin-bottom:4px">新人体验官 Free</div>
+                <div data-plan-price="free" style="font-size:18px;font-weight:800;color:var(--primary)">¥0</div>
+                <div data-plan-feats="free" style="color:var(--text-muted);margin:6px 0;line-height:1.5">
+                  • 3,000 点算力额度<br>• 基础爆款仿写与评分<br>• 单镜头短剧体验
                 </div>
               </div>
               <div class="billing-plan-card selected" data-plan="pro" onclick="selectBillingPlan(this, 'pro')" style="background:rgba(240,136,62,0.08);padding:12px;border-radius:8px;border:2px solid var(--primary);box-shadow:0 0 12px rgba(240,136,62,0.25);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
                 <span class="badge ok" style="position:absolute;top:-8px;right:6px;font-size:10px">推荐</span>
-                <div style="font-weight:700;color:#fff;margin-bottom:4px">超级创作者 (Pro)</div>
-                <div style="font-size:18px;font-weight:800;color:var(--primary)">¥99 <span style="font-size:11px;font-weight:normal;color:var(--text-muted)">/月</span></div>
-                <div style="color:var(--text);margin:6px 0;line-height:1.5">
-                  • 500,000 Token<br>• 解锁12套小红书<br>• 8大名家音色挂载<br>• 导出剪映工程
+                <div data-plan-name="pro" style="font-weight:700;color:#fff;margin-bottom:4px">超级创作者 Pro</div>
+                <div data-plan-price="pro" style="font-size:18px;font-weight:800;color:var(--primary)">实时加载中…</div>
+                <div data-plan-feats="pro" style="color:var(--text);margin:6px 0;line-height:1.5">
+                  • 30,000 点算力额度<br>• 短剧流水线与卡片排版<br>• 8大名家音色与剪映导出
                 </div>
               </div>
               <div class="billing-plan-card" data-plan="studio" onclick="selectBillingPlan(this, 'studio')" style="background:#121824;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
-                <div style="font-weight:700;color:#fff;margin-bottom:4px">MCN 机构矩阵 (Studio)</div>
-                <div style="font-size:18px;font-weight:800;color:var(--purple)">¥899 <span style="font-size:11px;font-weight:normal;color:var(--text-muted)">/年</span></div>
-                <div style="color:var(--text-muted);margin:6px 0;line-height:1.5">
-                  • 6,000,000 Token<br>• 全自动矩阵直发<br>• 全自动AI 短视频<br>• 任意博主深度蒸馏
+                <div data-plan-name="studio" style="font-weight:700;color:#fff;margin-bottom:4px">MCN 机构矩阵版 Studio</div>
+                <div data-plan-price="studio" style="font-size:18px;font-weight:800;color:var(--purple)">实时加载中…</div>
+                <div data-plan-feats="studio" style="color:var(--text-muted);margin:6px 0;line-height:1.5">
+                  • 200,000 点算力额度<br>• 全自动矩阵直发<br>• 深度博主音色/排版蒸馏
                 </div>
               </div>
             </div>
@@ -9023,22 +9024,22 @@ async function deleteUserAccount(uid, username) {
         <div style="font-weight:700;color:#fff;margin-bottom:4px">新人体验官 (Free)</div>
         <div style="font-size:18px;font-weight:800;color:var(--primary)">¥0</div>
         <div style="color:var(--text-muted);margin:6px 0;line-height:1.5">
-          • 10,000 Token<br>• 基础爆款仿写<br>• 短视频带水印
+          • 3,000 点算力额度<br>• 基础爆款仿写<br>• 短视频带水印
         </div>
       </div>
       <div class="billing-plan-card selected" data-plan="pro" onclick="selectBillingPlan(this, 'pro')" style="background:rgba(240,136,62,0.08);padding:12px;border-radius:8px;border:2px solid var(--primary);box-shadow:0 0 12px rgba(240,136,62,0.25);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
         <span class="badge ok" style="position:absolute;top:-8px;right:6px;font-size:10px">推荐</span>
         <div style="font-weight:700;color:#fff;margin-bottom:4px">超级创作者 (Pro)</div>
-        <div style="font-size:18px;font-weight:800;color:var(--primary)">¥99 <span style="font-size:11px;font-weight:normal;color:var(--text-muted)">/月</span></div>
+        <div style="font-size:18px;font-weight:800;color:var(--primary)">实时同步价格</div>
         <div style="color:var(--text);margin:6px 0;line-height:1.5">
-          • 500,000 Token<br>• 解锁12套小红书<br>• 8大名家音色挂载<br>• 导出剪映工程
+          • 30,000 点算力额度<br>• 解锁12套小红书<br>• 8大名家音色挂载<br>• 导出剪映工程
         </div>
       </div>
       <div class="billing-plan-card" data-plan="studio" onclick="selectBillingPlan(this, 'studio')" style="background:#121824;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
         <div style="font-weight:700;color:#fff;margin-bottom:4px">MCN 机构矩阵 (Studio)</div>
-        <div style="font-size:18px;font-weight:800;color:var(--purple)">¥899 <span style="font-size:11px;font-weight:normal;color:var(--text-muted)">/年</span></div>
+        <div style="font-size:18px;font-weight:800;color:var(--purple)">实时同步价格</div>
         <div style="color:var(--text-muted);margin:6px 0;line-height:1.5">
-          • 6,000,000 Token<br>• 全自动矩阵直发<br>• 全自动AI 短视频<br>• 任意博主深度蒸馏
+          • 200,000 点算力额度<br>• 全自动矩阵直发<br>• 全自动AI 短视频<br>• 任意博主深度蒸馏
         </div>
       </div>
     </div>
@@ -9046,7 +9047,7 @@ async function deleteUserAccount(uid, username) {
     <!-- 选中套餐快速操作动作条 -->
     <div id="billing-action-bar" style="background:rgba(240,136,62,0.06);border:1px solid rgba(240,136,62,0.25);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
       <div style="font-size:12px;color:var(--text)" id="billing-action-desc">
-        已选中 <b>超级创作者 (Pro)</b> · ¥99/月 · 享 500,000 Token 及全部高级创作特权
+        已选中 <b>超级创作者 (Pro)</b> · 价格与额度从定价中心实时同步
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-sm ok" id="btn-subscribe-plan" onclick="quickApplySelectedPlan()">🚀 立即升级此套餐</button>
@@ -17443,8 +17444,8 @@ let currentSelectedPlan = 'pro';
 
 const BILLING_PLAN_META = {
   free: { name: '新人体验官 (Free)', price: '¥0', desc: '已选中 新人体验官 (Free) · ¥0 · 享 10,000 Token 及基础创作体验' },
-  pro: { name: '超级创作者 (Pro)', price: '¥99/月', desc: '已选中 超级创作者 (Pro) · ¥99/月 · 享 500,000 Token 及全部高级创作特权' },
-  studio: { name: 'MCN 机构矩阵 (Studio)', price: '¥899/年', desc: '已选中 MCN 机构矩阵 (Studio) · ¥899/年 · 享 6,000,000 Token 及矩阵直发特权' }
+  pro: { name: '超级创作者 (Pro)', price: '¥99/月', desc: '已选中 超级创作者 (Pro) · 价格与额度从定价中心实时同步' },
+  studio: { name: 'MCN 机构矩阵 (Studio)', price: '实时同步', desc: '已选中 MCN 机构矩阵 (Studio) · 价格与额度从定价中心实时同步' }
 };
 
 function selectBillingPlan(el, planKey) {
@@ -22009,7 +22010,7 @@ function getAppVersionShort() {
   }
   const raw = document.getElementById('nav-ver-text')?.textContent || '';
   const norm = (typeof _normalizeLatestVersion === 'function') ? _normalizeLatestVersion(raw) : raw;
-  return norm ? (norm.startsWith('V') ? norm : 'V' + norm) : 'V10.0.2';
+  return norm ? (norm.startsWith('V') ? norm : 'V' + norm) : 'V10.1';
 }
 const TIER_LABEL_MAP = {free: 'Free', pro: 'Pro', studio: 'Studio'};
 

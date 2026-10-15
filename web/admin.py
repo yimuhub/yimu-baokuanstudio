@@ -1107,7 +1107,7 @@ def logout():
 try:
     from version import __version__ as APP_VERSION
 except Exception:
-    APP_VERSION = "10.0.2"
+    APP_VERSION = "10.1"
 
 
 def get_app_version() -> str:
@@ -1125,7 +1125,7 @@ def get_app_version() -> str:
             APP_VERSION = __version__
             return APP_VERSION
         except Exception:
-            return APP_VERSION or "10.0.2"
+            return APP_VERSION or "10.1"
 
 
 def get_app_version_info() -> dict:
@@ -3718,6 +3718,105 @@ def pricing_plans(request: Request):
     return payload
 
 
+@app.get("/api/admin/pricing")
+def admin_get_pricing(request: Request):
+    """超级管理员查询当前套餐价格与配额配置。"""
+    guard_admin(request)
+    from studio import pricing as _pricing
+
+    cfg = _pricing.get_pricing_config()
+    return {"ok": True, **cfg, "catalog": _pricing.plan_catalog()}
+
+
+@app.put("/api/admin/pricing")
+@app.post("/api/admin/pricing")
+async def admin_update_pricing(request: Request):
+    """超级管理员在后台自主设定 Pro / Studio / Free 套餐价格、算力额度与有效期，并记录审计日志。"""
+    admin = guard_admin(request)
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    from studio import pricing as _pricing
+
+    try:
+        updated = _pricing.update_pricing_config(body if isinstance(body, dict) else {})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        raise HTTPException(400, f"价格配置保存失败: {e}")
+
+    # 写入审计日志
+    db = _r3_session()
+    try:
+        from studio.db_models import AuditLog, new_id, utcnow
+        tenant_id = _web_tenant_id(db, _current_user_id(admin))
+        db.add(
+            AuditLog(
+                id=new_id(),
+                tenant_id=str(tenant_id),
+                actor=_current_user_id(admin) or "u-admin",
+                action="pricing.update",
+                target="pricing:plans",
+                detail={
+                    "pro_price_yuan": updated["plans"]["pro"]["price_yuan"],
+                    "pro_credits": updated["plans"]["pro"]["credits"],
+                    "studio_price_yuan": updated["plans"]["studio"]["price_yuan"],
+                    "studio_credits": updated["plans"]["studio"]["credits"],
+                    "free_credits": updated["plans"]["free"]["credits"],
+                },
+                created_at=utcnow(),
+            )
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+
+    return {
+        "ok": True,
+        "msg": "套餐价格与配额配置已更新并全局生效",
+        **updated,
+        "catalog": _pricing.plan_catalog(),
+    }
+
+
+@app.post("/api/admin/pricing/reset")
+def admin_reset_pricing(request: Request):
+    """超级管理员一键恢复默认套餐价格配置。"""
+    admin = guard_admin(request)
+    from studio import pricing as _pricing
+
+    updated = _pricing.reset_pricing_config()
+    db = _r3_session()
+    try:
+        from studio.db_models import AuditLog, new_id, utcnow
+        tenant_id = _web_tenant_id(db, _current_user_id(admin))
+        db.add(
+            AuditLog(
+                id=new_id(),
+                tenant_id=str(tenant_id),
+                actor=_current_user_id(admin) or "u-admin",
+                action="pricing.reset",
+                target="pricing:plans",
+                detail={"reset": True},
+                created_at=utcnow(),
+            )
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
+    return {
+        "ok": True,
+        "msg": "已恢复默认套餐价格配置",
+        **updated,
+        "catalog": _pricing.plan_catalog(),
+    }
+
+
 @app.get("/pricing", response_class=HTMLResponse)
 def pricing_page(request: Request):
     """R3-1：价格页（自包含 HTML，前端拉 /api/pricing 渲染）。
@@ -3744,7 +3843,7 @@ def admin_releases_page(request: Request):
 
 @app.get("/api/releases")
 def api_releases():
-    """获取版本更新与发布历史数据【V10.0.2】"""
+    """获取版本更新与发布历史数据【V10.1】"""
     cur_ver = get_app_version()
     info = get_app_version_info()
     return {
@@ -3754,7 +3853,7 @@ def api_releases():
         "licensor": "yimu.hyipf.com",
         "releases": [
             {
-                "version": "10.0.2",
+                "version": "10.1",
                 "codename": "鸿蒙始",
                 "date": "2026-10-15",
                 "status": "latest",

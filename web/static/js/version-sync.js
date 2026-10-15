@@ -163,7 +163,7 @@
   // 兼容老代码的全局辅助方法（杜绝硬编码）
   window._normalizeLatestVersion = function(rawVer) {
     var v = AppVersion.normalize(rawVer);
-    return v || AppVersion.get() || '10.0.2';
+    return v || AppVersion.get() || '10.1';
   };
   window.syncVersionBadge = function() {
     return AppVersion.sync();

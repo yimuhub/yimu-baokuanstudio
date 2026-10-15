@@ -126,6 +126,8 @@ def create_order(
        「预支额度」，运营核销时务必先确认是否已收到款）。
        这是手工核销方案的固有取舍，已在价格页与下单页明示。
     """
+    from ..pricing import _sync_from_disk
+    _sync_from_disk()
     plan_code = (plan or "").strip().lower()
     if plan_code not in PLANS:
         errors.raise_err(

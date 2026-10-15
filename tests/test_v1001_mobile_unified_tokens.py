@@ -20,12 +20,12 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_v1001_version_single_source_of_truth():
     """验证版本单一真源兼容性与动态渲染。"""
-    assert version.__version__ in ("10.0.2", "10.0.1")
+    assert version.__version__ in ("10.1", "10.0.1")
     assert version.__codename__ == "鸿蒙始"
 
     # 验证 pyproject.toml
     pyproject_toml = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    assert ('version = "10.0.2"' in pyproject_toml or 'version = "10.0.1"' in pyproject_toml)
+    assert ('version = "10.1"' in pyproject_toml or 'version = "10.0.1"' in pyproject_toml)
 
     # 验证动态渲染出的 PC 端、移动端与定价页
     from web.admin import get_html_page, get_mobile_html_page, pricing_page
@@ -36,9 +36,9 @@ def test_v1001_version_single_source_of_truth():
     req = MagicMock(spec=Request)
     pricing = pricing_page(req).body.decode("utf-8")
 
-    assert any(v in idx for v in ("V10.0.2", "V10.0.1"))
-    assert any(v in mobile for v in ("V10.0.2", "V10.0.1"))
-    assert any(v in pricing for v in ("V10.0.2", "V10.0.1"))
+    assert any(v in idx for v in ("V10.1", "V10.0.1"))
+    assert any(v in mobile for v in ("V10.1", "V10.0.1"))
+    assert any(v in pricing for v in ("V10.1", "V10.0.1"))
 
 
 def test_v1001_mobile_template_has_unified_billing_pill_and_elements():

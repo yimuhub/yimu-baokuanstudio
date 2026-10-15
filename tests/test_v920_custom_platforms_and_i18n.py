@@ -33,8 +33,8 @@ from web.admin import app
 
 
 def test_v920_version_single_source_of_truth():
-    """验证版本单一真源为 10.0.2 / 10.0.1 / 10.0.0"""
-    assert version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5")
+    """验证版本单一真源为 10.1 / 10.0.1 / 10.0.0"""
+    assert version.__version__ in ("10.1", "10.0.1", "10.0.0", "9.4.5")
     assert getattr(version, "__codename__", "") in ("鸿蒙始", "澄音境")
 
 

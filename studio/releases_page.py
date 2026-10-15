@@ -387,10 +387,10 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V10.0.2 -->
+      <!-- V10.1 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌌 V10.0.2 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="t-ver">🌌 V10.1 · 鸿蒙始 (Primordial Dawn)</span>
           <span class="badge orange">当前最新版 · Latest</span>
           <span class="t-date">2026-10-15</span>
         </div>

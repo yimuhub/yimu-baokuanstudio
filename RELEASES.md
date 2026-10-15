@@ -4,9 +4,9 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
-## 🌌 Version 10.0.2 · Dynamic Versions Across All Pages (鸿蒙始 · 全端动态版本单一真源) · 2026-10-15
+## 🌌 Version 10.1 · Dynamic Versions Across All Pages (鸿蒙始 · 全端动态版本单一真源) · 2026-10-15
 
-> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.0.2"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
 
 - **Dynamic Version Extraction Across All Pages (Single Source of Truth)**:
   - Eliminated all hardcoded version badges, static headers/footers, and manual floor versions (`floorVer`) across PC dashboard (`index.html`), mobile app (`mobile.html`), pricing page (`pages/pricing.html`), and admin pages (`users_admin.html`, `audit_admin.html`, `metrics`).

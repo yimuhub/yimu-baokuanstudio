@@ -3,8 +3,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="app-version" content="{{ APP_VERSION }}">
-<title>用户管理 · 一幕 YIMU V{{ APP_VERSION }}</title>
+<title>用户与价格管理 · 一幕 YIMU V{{ APP_VERSION }}</title>
 <script src="/static/js/version-sync.js"></script>
+<script src="/static/js/pricing-sync.js"></script>
 <style>
  *{box-sizing:border-box}
  body{margin:0;background:#0f1220;color:#e8ecf8;font-family:PingFang SC,Microsoft YaHei,sans-serif}
@@ -18,6 +19,7 @@
         font-size:13px;font-weight:700;cursor:pointer}
  button.ghost{background:#0d1117;border:1px solid #2c3446;color:#c8cee0}
  button.danger{background:#8b2b28}
+ button.ok{background:#238636}
  table{width:100%;border-collapse:collapse;font-size:13px}
  th,td{padding:9px 10px;border-bottom:1px solid #262d3d;text-align:left;white-space:nowrap}
  th{color:#8b93ad;font-weight:600}
@@ -26,10 +28,49 @@
  .tag{font-size:12px;padding:2px 8px;border-radius:20px;background:#262d3d;color:#c8cee0}
  .empty{color:#8b93ad;padding:16px 0;font-size:13px}
  .pager{margin-top:14px;display:flex;gap:10px;align-items:center;font-size:13px;color:#8b93ad}
+ .card{background:#161c28;border:1px solid #262d3d;border-radius:12px;padding:18px;margin-bottom:20px}
 </style></head><body>
 <div class="wrap">
-  <h1>👥 用户管理</h1>
-  <div class="sub">封禁后该用户无法调用任何 API（登录令牌立即失效）。所有封禁操作均记入审计日志。</div>
+  <h1>👥 超级管理员后台 · 用户与套餐价格管理</h1>
+  <div class="sub">统一管理全平台用户账号、算力发放与 Pro / Studio 会员套餐价格设定，所有变更均自动记录审计日志。</div>
+
+  <!-- 💰 会员套餐与价格后台自主设定 -->
+  <div class="card" style="border-color:rgba(240,136,62,0.45)">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+      <div>
+        <h3 style="margin:0 0 4px;font-size:16px;color:#fff">💰 会员套餐与充值价格自主设定（单一价格真源）</h3>
+        <div style="font-size:12.5px;color:#8b93ad">设定 Pro 与 Studio 售价（如 99 元或 300 元）、授信算力与周期天数，保存后全站实时同步生效。</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="ghost" onclick="window.loadAdminPricingConfig()">↻ 刷新配置</button>
+        <button class="ghost" onclick="window.resetAdminPricingConfig()">↺ 恢复默认</button>
+        <button class="ok" onclick="window.saveAdminPricingConfig()">💾 保存价格配置</button>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px">
+      <div style="background:#0d1117;border:1px solid #262d3d;border-radius:10px;padding:14px">
+        <div style="font-weight:700;color:#fff;margin-bottom:8px">🌱 Free 免费体验档</div>
+        <label style="font-size:12px;color:#8b93ad;display:block;margin-bottom:6px">套餐名称<input id="adm-price-free-name" type="text" value="新人体验官 Free" style="width:100%;margin-top:4px"></label>
+        <label style="font-size:12px;color:#8b93ad;display:block;margin-bottom:6px">周期赠送算力（点）<input id="adm-price-free-credits" type="number" min="0" step="100" value="3000" style="width:100%;margin-top:4px"></label>
+        <label style="font-size:12px;color:#8b93ad;display:block">刷新周期（天）<input id="adm-price-free-days" type="number" min="1" value="30" style="width:100%;margin-top:4px"></label>
+      </div>
+      <div style="background:rgba(240,136,62,0.06);border:1px solid rgba(240,136,62,0.35);border-radius:10px;padding:14px">
+        <div style="font-weight:700;color:#f0883e;margin-bottom:8px">🔥 Pro 超级创作者档</div>
+        <label style="font-size:12px;color:#8b93ad;display:block;margin-bottom:6px">套餐名称<input id="adm-price-pro-name" type="text" value="超级创作者 Pro" style="width:100%;margin-top:4px"></label>
+        <label style="font-size:12px;color:#8b93ad;display:block;margin-bottom:6px">充值价格（人民币 ¥）<input id="adm-price-pro-yuan" type="number" min="0.01" step="1" placeholder="如 99 或 300" style="width:100%;margin-top:4px"></label>
+        <label style="font-size:12px;color:#8b93ad;display:block;margin-bottom:6px">包含算力额度（点）<input id="adm-price-pro-credits" type="number" min="100" step="1000" value="30000" style="width:100%;margin-top:4px"></label>
+        <label style="font-size:12px;color:#8b93ad;display:block">有效周期（天）<input id="adm-price-pro-days" type="number" min="1" value="30" style="width:100%;margin-top:4px"></label>
+      </div>
+      <div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.35);border-radius:10px;padding:14px">
+        <div style="font-weight:700;color:#d8b4fe;margin-bottom:8px">🏢 Studio 机构矩阵档</div>
+        <label style="font-size:12px;color:#8b93ad;display:block;margin-bottom:6px">套餐名称<input id="adm-price-studio-name" type="text" value="MCN 机构矩阵版 Studio" style="width:100%;margin-top:4px"></label>
+        <label style="font-size:12px;color:#8b93ad;display:block;margin-bottom:6px">充值价格（人民币 ¥）<input id="adm-price-studio-yuan" type="number" min="0.01" step="1" placeholder="自主设定 Studio 价格" style="width:100%;margin-top:4px"></label>
+        <label style="font-size:12px;color:#8b93ad;display:block;margin-bottom:6px">包含算力额度（点）<input id="adm-price-studio-credits" type="number" min="100" step="1000" value="200000" style="width:100%;margin-top:4px"></label>
+        <label style="font-size:12px;color:#8b93ad;display:block">有效周期（天）<input id="adm-price-studio-days" type="number" min="1" value="365" style="width:100%;margin-top:4px"></label>
+      </div>
+    </div>
+  </div>
+
   <div class="bar">
     <input id="kw" placeholder="搜索用户名 / 邮箱" style="width:220px">
     <select id="tier"><option value="">全部档位</option><option value="free">Free</option>
@@ -74,7 +115,7 @@ async function load(o){
         Number(u.credits_used).toLocaleString() + '</td><td class="' +
         (u.banned?'banned':'ok') + '">' + (u.banned?'已封禁':'正常') + '</td><td>' +
         esc((u.created_at||'').slice(0,10)) + '</td><td><button class="' +
-        (u.banned?'ghost':'danger') + '" onclick="ban(\\'' + u.user_id + '\\',' +
+        (u.banned?'ghost':'danger') + '" onclick="ban(\'' + u.user_id + '\',' +
         (u.banned?'false':'true') + ')">' + (u.banned?'解封':'封禁') + '</button></td></tr>';
     }).join('') + '</table>';
   document.getElementById('info').textContent =
@@ -101,8 +142,9 @@ async function grant(){
     body: JSON.stringify({user_id: uid.trim(), amount: parseInt(amount,10), reason: reason})});
   const d = await r.json();
   if(!r.ok || !d.ok){ alert((d.detail&&d.detail.message)||'发放失败'); return; }
-  alert('发放成功：' + d.granted + ' 点\\n当前余额：' + Number(d.balance_after).toLocaleString() + ' 点');
+  alert('发放成功：' + d.granted + ' 点\n当前余额：' + Number(d.balance_after).toLocaleString() + ' 点');
   load(off);
 }
 load(0);
+if (typeof window.loadAdminPricingConfig === 'function') window.loadAdminPricingConfig();
 </script></body></html>

@@ -387,11 +387,27 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V10.0.0 -->
+      <!-- V10.0.1 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌌 V10.0.0 · 鸿蒙始 (Primordial Dawn)</span>
-          <span class="badge orange">当前跨代旗舰版 · 最新</span>
+          <span class="t-ver">🌌 V10.0.1 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-10-15</span>
+        </div>
+        <div class="t-desc">移动端与 PC 端算力 Token 统计统一度量真源、移动端顶栏新增算力/会员药丸胶囊、个人中心商业化中枢升级。</div>
+        <ul class="t-list">
+          <li><b>💎 双端统一度量真源（全部以 PC 端为主）</b>：移动端全面拉齐至 PC 端 <code>memberships</code> 会员账本可用额度 <code>credits_left</code> 真源，消灭移动端老旧 <code>users.quota_max</code> 与写死 500,000 Token 假额度；</li>
+          <li><b>📱 移动端顶栏新增算力药丸组件</b>：移动端 Header 新增 <code>💎 算力: X Token | 档位</code> 药丸胶囊，点击直达个人中心；</li>
+          <li><b>💳 个人中心商业化算力中枢升级</b>：实时展示可用额度、累计消耗、总授信及动态百分比进度条，打通与套餐充值联动；</li>
+          <li><b>🛡️ 接口强契约与架构加固</b>：<code>/api/auth/me</code> 与 <code>/api/billing/ui/me</code> 深度对齐，强化多租户主键防腐化保护。</li>
+        </ul>
+      </div>
+
+      <!-- V10.0.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏷️ V10.0.0 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="badge green">稳定归档版</span>
           <span class="t-date">2026-10-15</span>
         </div>
         <div class="t-desc">大厂级 Clean Architecture 四层工程架构重塑、模板与双语词典解耦、/pricing 固定侧栏深度融合与全流程购买闭环。</div>

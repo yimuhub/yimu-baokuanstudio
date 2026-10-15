@@ -26,18 +26,26 @@ def get_token():
 
 def get_existing_releases(token):
     req = urllib.request.Request(
-        'https://api.github.com/repos/yimuhub/yimu-baokuanstudio/releases',
+        'https://api.github.com/repos/yimuhub/yimu-baokuanstudio/releases?per_page=100',
         headers={
             'Authorization': f'token {token}',
             'Accept': 'application/vnd.github.v3+json',
             'User-Agent': 'YimuStudio-Release-Manager'
         }
     )
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read().decode())
+    for attempt in range(5):
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.loads(resp.read().decode())
+        except Exception:
+            if attempt == 4:
+                raise
+            import time
+            time.sleep(2)
 
-def create_or_update_release(token, tag, name, body, is_latest=False):
-    existing = get_existing_releases(token)
+def create_or_update_release(token, tag, name, body, is_latest=False, existing=None):
+    if existing is None:
+        existing = get_existing_releases(token)
     found_id = None
     for r in existing:
         if r.get('tag_name') == tag:
@@ -674,6 +682,64 @@ git checkout v10.0.0
 
 > **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
 """,
+        "is_latest": False
+    },
+    {
+        "tag": "v10.0.1",
+        "name": "v10.0.1 - 鸿蒙始 · Primordial Dawn (Mobile & PC Unified Token Metric)",
+        "body": """# 🌌 一幕 · 爆款工坊 (YIMU Studio) V10.0.1 [最新发布版 / Latest]
+
+> **版本代号 / Codename**: 鸿蒙始 · Primordial Dawn  
+> **发布日期 / Release Date**: 2026-10-15  
+> **版权主体 / Licensor**: [yimu.hyipf.com](https://yimu.hyipf.com) | BUSL-1.1  
+> **发布类型 / Release Type**: 移动端与 PC 端算力 Token 统一度量真源、顶栏实时算力胶囊与个人中心商业化中枢专项升级
+
+---
+
+### 🌟 版本概述 (Overview)
+**V10.0.1（鸿蒙始 · Primordial Dawn · 双端统一度量）** 彻底解决了移动端与 PC 端展示的算力 Token 量不一致的历史问题。全系统统一以 PC 端会员账本（`memberships` 表）中的实时可用额度 `credits_left` 为唯一基准，打通移动端顶部状态栏实时算力药丸与个人中心商业化中枢，实现了移动端与 PC 端完全相同的数据真源、计量规则与展示精度。
+
+---
+
+### 🆕 核心新增与修复特性 (Key Updates & Fixes)
+1. **移动端与 PC 端算力 Token 统计统一度量真源（全部以 PC 端为主）**:
+   - 彻底废除移动端直接读取旧 `users.quota_max` 字段的缺陷逻辑；
+   - 移除移动端模板中写死的 `500,000 Token` 静态假额度；
+   - 移动端无论是在启动加载、Tab 切换还是操作刷新时，均统一从会员账本真源（`/api/billing/ui/me`）计算并同步实时可用算力。
+
+2. **移动端顶栏新增实时算力与会员等级药丸组件**:
+   - 移动端顶部 Header 增加与 PC 端对齐的 `💎 算力: X Token | 档位` 药丸胶囊（`#m-nav-token-bal`, `#m-nav-tier-badge`）；
+   - 轻触即可直接平滑切换至「我的」个人中心商业化算力中枢。
+
+3. **个人中心商业化算力中枢全面升级**:
+   - 个人中心算力卡片重构为具备大厂质感的商业化算力中枢；
+   - 清晰量化展示 **当前可用算力**、**累计消耗**、**总授信额度** 及动态百分比消耗进度条；
+   - 深度集成 **「💎 选套餐 / 充值算力」** 直达通道与 **「↻ 刷新」** 实时账本同步能力。
+
+4. **后端接口严密契约对齐与架构防腐化加固**:
+   - 升级 `/api/auth/me` 接口，在返回的 user 字典中完整注入 `credits_left`、`credits_total`、`credits_used`、`tier`、`tier_display`、`tier_name` 等账本字段，并将 `quota_max` 实时校准对齐为 `credits_left`；
+   - 强化 `_studio_user` 多租户隔离与主键兜底机制，杜绝租户冲突与唯一约束异常。
+
+5. **全链路工程规范与四步 CI 门禁 100% 全绿**:
+   - 新增 `tests/test_v1001_mobile_unified_tokens.py` 专项自动化测试；
+   - 全量通过单元测试、真活探针、文案术语检查与密钥合规扫描。
+
+---
+
+### 📦 获取与部署 (How to Access & Deploy)
+```bash
+# 服务器生产环境单行极速全自动部署：
+curl -fsSL https://raw.githubusercontent.com/yimuhub/yimu-baokuanstudio/main/服务器一键部署.sh | bash
+
+# 本地仓库检出最新 V10.0.1 稳定版：
+git pull origin main
+git checkout v10.0.1
+```
+
+---
+
+> **版权声明**: Copyright © 2026 [yimu.hyipf.com](https://yimu.hyipf.com). All rights reserved.
+""",
         "is_latest": True
     }
 ]
@@ -681,12 +747,17 @@ git checkout v10.0.0
 if __name__ == '__main__':
     token = get_token()
     print("Fetched GitHub Token successfully.")
+    existing = get_existing_releases(token)
+    filter_tags = set(sys.argv[1:]) if len(sys.argv) > 1 else None
     for rel in RELEASES_DATA:
+        if filter_tags and rel["tag"] not in filter_tags:
+            continue
         create_or_update_release(
             token=token,
             tag=rel["tag"],
             name=rel["name"],
             body=rel["body"],
-            is_latest=rel.get("is_latest", False)
+            is_latest=rel.get("is_latest", False),
+            existing=existing
         )
-    print("All GitHub Releases created / updated successfully!")
+    print("GitHub Releases created / updated successfully!")

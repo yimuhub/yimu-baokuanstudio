@@ -144,3 +144,73 @@ def test_studio_init_db_auto_heals_legacy_sqlite(tmp_path: Path):
     row = c.execute("SELECT status FROM drafts WHERE id='d-studio-test'").fetchone()
     assert row[0] == "preview"
     c.close()
+
+
+def test_legacy_db_without_tenant_id_column_auto_heals(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """验证历史极简表（缺失 tenant_id、platform 等列）也能完美无损自愈。"""
+    db_file = tmp_path / "mediaflow_no_tenant.db"
+    c = sqlite3.connect(db_file)
+    # 创建极度精简的老表（完全没有 tenant_id、platform 等列）
+    c.execute("""
+    CREATE TABLE drafts (
+        id TEXT PRIMARY KEY,
+        title TEXT,
+        body_md TEXT,
+        status TEXT DEFAULT 'draft',
+        CONSTRAINT ck_drafts_status CHECK (status IN ('draft', 'pending_review', 'published'))
+    );
+    """)
+    c.execute("INSERT INTO drafts VALUES ('legacy-bare-1', '极简老草稿', '老正文', 'draft');")
+    c.commit()
+    c.close()
+
+    monkeypatch.setattr(core_db, "DB_PATH", db_file)
+    monkeypatch.setattr(core_db, "_INITIALIZED_DB_PATHS", {})
+
+    # 通过 conn() 建连与 add_draft 写入 preview
+    draft = core_db.add_draft(
+        topic_id="",
+        title="无 tenant_id 老库自愈后新稿",
+        body_md="正文内容",
+        platforms=["wechat_mp"],
+        user_id="u-admin",
+    )
+    assert draft["status"] == "preview"
+
+    # 验证老数据完整保留
+    c = sqlite3.connect(db_file)
+    c.row_factory = sqlite3.Row
+    row = c.execute("SELECT * FROM drafts WHERE id='legacy-bare-1'").fetchone()
+    assert row is not None
+    assert row["title"] == "极简老草稿"
+    assert row["status"] == "draft"
+
+    # 验证新字段均已补齐
+    assert "tenant_id" in row.keys()
+    assert row["tenant_id"] == "default"
+    assert "platform" in row.keys()
+    c.close()
+
+
+def test_auto_heal_all_sqlite_databases(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """验证 auto_heal_all_sqlite_databases 会批量扫描并自愈目录下所有 SQLite 库。"""
+    data_dir = tmp_path / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(core_db, "DATA", data_dir)
+
+    db1 = data_dir / "mediaflow.db"
+    db2 = data_dir / "yimu.db"
+    _create_legacy_db_with_ck_constraint(db1)
+    _create_legacy_db_with_ck_constraint(db2)
+
+    # 执行全局自愈
+    core_db.auto_heal_all_sqlite_databases()
+
+    # 验证两个库均已去除 ck_drafts_status
+    for db in (db1, db2):
+        c = sqlite3.connect(db)
+        sql = c.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='drafts'").fetchone()[0]
+        assert "ck_drafts_status" not in sql
+        c.execute("INSERT INTO drafts (id, status) VALUES ('test-p', 'preview')")
+        c.commit()
+        c.close()

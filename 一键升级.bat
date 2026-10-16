@@ -51,9 +51,21 @@ if exist ".git" (
     if not errorlevel 1 (
         set UPDATE_SUCCESS=1
     ) else (
-        echo [提示] 直连 GitHub 出现网络波动，正在切换至高速加速源重试...
+        echo [提示] 直连 GitHub 出现网络波动，正在切换至高速加速源 (ghfast) 重试...
         git pull https://ghfast.top/https://github.com/yimuhub/yimu-baokuanstudio.git main
-        if not errorlevel 1 set UPDATE_SUCCESS=1
+        if not errorlevel 1 (
+            set UPDATE_SUCCESS=1
+        ) else (
+            echo [提示] 正在切换至备用加速源 (ghproxy) 重试...
+            git pull https://ghproxy.net/https://github.com/yimuhub/yimu-baokuanstudio.git main
+            if not errorlevel 1 (
+                set UPDATE_SUCCESS=1
+            ) else (
+                echo [提示] Git 链路均受本地网络阻断，自动切换为 Release 归档极速在线覆盖模式...
+                %VENV_PY% -m core.updater --upgrade
+                if not errorlevel 1 set UPDATE_SUCCESS=1
+            )
+        )
     )
     git stash pop >nul 2>nul
 ) else (
@@ -84,13 +96,13 @@ if errorlevel 1 (
 )
 
 echo.
-echo [3/5] 正在自动备份并对齐数据库架构...
+echo [3/5] 正在自动备份并对齐数据库架构与约束自愈...
 if exist "data\mediaflow.db" (
     copy /Y "data\mediaflow.db" "data\mediaflow.db.bak" >nul
     echo 已安全备份数据库到: data\mediaflow.db.bak
 )
 
-%VENV_PY% -c "from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine); print('数据库架构表结构自动对齐完毕。')"
+%VENV_PY% -c "from core.db import auto_heal_all_sqlite_databases; auto_heal_all_sqlite_databases(); from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine); print('数据库架构表结构自动对齐与无损自愈完毕。')"
 if errorlevel 1 (
     echo [错误] 数据库初始化迁移失败，请检查文件锁定或权限。
     pause

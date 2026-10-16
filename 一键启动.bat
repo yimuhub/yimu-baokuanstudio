@@ -83,8 +83,8 @@ if not exist "data\cards" mkdir data\cards
 if not exist "logs" mkdir logs
 if not exist "runs" mkdir runs
 
-rem 自动检查并对齐数据库架构
-%PY_BIN% -c "from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)" >nul 2>nul
+rem 自动检查并深度自愈数据库表结构约束与字段
+%PY_BIN% -c "from core.db import auto_heal_all_sqlite_databases; auto_heal_all_sqlite_databases(); from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)" >nul 2>nul
 
 echo.
 echo ============================================================

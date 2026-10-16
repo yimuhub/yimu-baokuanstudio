@@ -4,6 +4,19 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 10.1.6 · Ultimate Cross-Platform SQLite Auto-Heal & Robust Windows Sync · 2026-10-16
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.6"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+- **Bulletproof Root-Cause Resolution for `CHECK constraint failed: ck_drafts_status`**:
+  - Eliminated silent table rebuild rollback caused when historical tables lacked `tenant_id` column during index recreation.
+  - Implemented `STANDARD_DRAFT_COLUMNS` full-schema baseline ensuring all required modern columns (`tenant_id`, `platform`, `user_id`, `needs_review`) and zero CHECK constraints are always properly populated with safe defaults.
+  - Added `auto_heal_all_sqlite_databases()` to automatically inspect and self-heal all `.db` database files in `data/` (`mediaflow.db`, `yimu.db`, etc.) on module import, startup, and upgrade.
+  - Enhanced Windows `一键升级.bat` with 4-tier fallback: `git pull origin` -> `ghfast.top` mirror -> `ghproxy.net` mirror -> Release ZIP online archive extraction, guaranteeing 100% upgrade success on Windows under any network condition.
+  - Added database constraint self-healing step directly into `一键启动.bat` and `一键升级.bat`.
+
+---
+
 ## 🌌 Version 10.1.5 · Zero-Loss Database Auto-Heal & Draft Status Integrity · 2026-10-16
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.5"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

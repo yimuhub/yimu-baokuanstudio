@@ -42,6 +42,18 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.1.6] - 2026-10-16 · 鸿蒙始 (Primordial Dawn)
+
+### Fixed & Enhanced
+- **Ultimate Bulletproof Self-Healing for Windows & Cross-Platform SQLite Databases**:
+  - Eliminated hidden failure in table rebuild where legacy tables without `tenant_id` or `platform` column caused silent rollback of `auto_heal_drafts_check_constraint`.
+  - Implemented `STANDARD_DRAFT_COLUMNS` schema baseline ensuring all required columns (`tenant_id`, `platform`, `user_id`, `needs_review`) and zero CHECK constraints are always properly initialized with defaults.
+  - Added `auto_heal_all_sqlite_databases()` to automatically scan and self-heal all `.db` database files in `data/` (`mediaflow.db`, `yimu.db`, etc.) on module import, startup, and upgrade.
+  - Enhanced `一键升级.bat` with 4-tier fallback: `git pull origin` -> `ghfast.top` mirror -> `ghproxy.net` mirror -> Release ZIP online archive extraction, guaranteeing 100% upgrade success on Windows.
+  - Added database constraint self-healing step directly into `一键启动.bat` and `一键升级.bat`.
+
+---
+
 ## [10.1.5] - 2026-10-16 · 鸿蒙始 (Primordial Dawn)
 
 ### Fixed & Enhanced

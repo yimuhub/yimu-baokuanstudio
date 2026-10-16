@@ -346,6 +346,34 @@ def ensure_users_columns(c: sqlite3.Connection) -> None:
         pass
 
 
+# 标准全量草稿表列定义（确保迁移后具备全部必要字段与安全默认值，绝无 CHECK 约束）
+STANDARD_DRAFT_COLUMNS: dict[str, str] = {
+    "id": "TEXT PRIMARY KEY",
+    "topic_id": "TEXT DEFAULT ''",
+    "created_at": "REAL DEFAULT 0",
+    "title": "TEXT DEFAULT ''",
+    "body_md": "TEXT DEFAULT ''",
+    "platforms": "TEXT DEFAULT '[]'",
+    "status": "TEXT DEFAULT 'preview'",
+    "source_platform": "TEXT DEFAULT ''",
+    "source_url": "TEXT DEFAULT ''",
+    "source_title": "TEXT DEFAULT ''",
+    "analysis": "TEXT DEFAULT ''",
+    "platform": "TEXT NOT NULL DEFAULT 'wechat_mp'",
+    "tenant_id": "TEXT NOT NULL DEFAULT 'default'",
+    "needs_review": "INTEGER NOT NULL DEFAULT 0",
+    "guard_reason": "TEXT DEFAULT ''",
+    "updated_at": "TEXT DEFAULT ''",
+    "score": "REAL",
+    "score_detail": "TEXT DEFAULT ''",
+    "score_round": "INTEGER DEFAULT 0",
+    "candidate_titles": "TEXT DEFAULT '[]'",
+    "source_stats": "TEXT DEFAULT '{}'",
+    "workspace_id": "TEXT DEFAULT ''",
+    "user_id": "TEXT DEFAULT 'u-admin'",
+}
+
+
 def auto_heal_drafts_check_constraint(c: sqlite3.Connection) -> bool:
     """自动无损自愈 drafts 表的 CHECK 约束。
 
@@ -354,11 +382,11 @@ def auto_heal_drafts_check_constraint(c: sqlite3.Connection) -> bool:
     在写入 'preview' / 'approved' / 'failed' 等新状态时会直接触发
     IntegrityError: CHECK constraint failed: ck_drafts_status。
 
-    本函数自动检测并执行 SQLite 官方标准的表重构无损迁移：
+    本函数执行 SQLite 官方标准的 12 步表重构无损迁移：
     1. 检查 sqlite_master 中 drafts 的 DDL 是否含有 ck_drafts_status 或状态 CHECK；
     2. 若有，关闭外键，获取当前所有列名与类型；
-    3. 创建无限制性 CHECK 约束的 drafts_new 临时表；
-    4. 迁移全量数据并校验行数一致；
+    3. 创建无限制性 CHECK 约束的 drafts_new 临时表（包含标准全量字段与存量自定义字段）；
+    4. 迁移存量全量数据并校验行数一致；
     5. 替换 drafts 表并重建索引；
     6. 恢复外键并提交。
     """
@@ -384,15 +412,19 @@ def auto_heal_drafts_check_constraint(c: sqlite3.Connection) -> bool:
             return False
 
         col_defs = []
+        for name, ddl in STANDARD_DRAFT_COLUMNS.items():
+            col_defs.append(f'"{name}" {ddl}')
+
+        existing_names = {r[1] for r in cols_info}
         for col in cols_info:
-            cid, name, col_type, notnull, dflt_value, pk = col[0], col[1], col[2], col[3], col[4], col[5]
-            t = col_type if col_type else "TEXT"
-            parts = [f'"{name}" {t}']
-            if pk:
-                parts.append("PRIMARY KEY")
-            elif dflt_value is not None:
-                parts.append(f"DEFAULT {dflt_value}")
-            col_defs.append(" ".join(parts))
+            name = col[1]
+            if name not in STANDARD_DRAFT_COLUMNS:
+                col_type = col[2] or "TEXT"
+                dflt = col[4]
+                part = f'"{name}" {col_type}'
+                if dflt is not None:
+                    part += f" DEFAULT {dflt}"
+                col_defs.append(part)
 
         indexes = c.execute(
             "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='drafts' AND sql IS NOT NULL"
@@ -401,7 +433,8 @@ def auto_heal_drafts_check_constraint(c: sqlite3.Connection) -> bool:
         c.execute("DROP TABLE IF EXISTS drafts_new")
         c.execute(f"CREATE TABLE drafts_new (\n  " + ",\n  ".join(col_defs) + "\n)")
 
-        col_names = ", ".join([f'"{col[1]}"' for col in cols_info])
+        common = [f'"{r[1]}"' for r in cols_info]
+        col_names = ", ".join(common)
         c.execute(f"INSERT INTO drafts_new ({col_names}) SELECT {col_names} FROM drafts")
 
         new_count = c.execute("SELECT COUNT(*) FROM drafts_new").fetchone()[0]
@@ -417,10 +450,22 @@ def auto_heal_drafts_check_constraint(c: sqlite3.Connection) -> bool:
                     c.execute(idx[0])
                 except Exception:
                     pass
-        c.execute("CREATE INDEX IF NOT EXISTS ix_drafts_tenant_status ON drafts (tenant_id, status)")
+        try:
+            c.execute("CREATE INDEX IF NOT EXISTS ix_drafts_tenant_status ON drafts (tenant_id, status)")
+        except Exception:
+            pass
+
+        try:
+            c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
+            c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
+            c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
+        except Exception:
+            pass
+
         c.commit()
         return True
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ [SQLite自愈] 重构 drafts 表异常: {e}")
         try:
             c.rollback()
         except Exception:
@@ -431,6 +476,23 @@ def auto_heal_drafts_check_constraint(c: sqlite3.Connection) -> bool:
             c.execute("PRAGMA foreign_keys=ON;")
         except Exception:
             pass
+
+
+def auto_heal_all_sqlite_databases() -> None:
+    """自愈 data 目录下所有 SQLite 数据库（包括 mediaflow.db、yimu.db 等）。"""
+    try:
+        DATA.mkdir(parents=True, exist_ok=True)
+        for db_file in DATA.glob("*.db"):
+            if ".corrupt." in db_file.name or db_file.name.endswith(".bak"):
+                continue
+            try:
+                conn_temp = sqlite3.connect(str(db_file), timeout=10.0)
+                auto_heal_drafts_check_constraint(conn_temp)
+                conn_temp.close()
+            except Exception:
+                pass
+    except Exception:
+        pass
 
 
 def _recover_corrupt_database(path: Path, err_msg: str) -> None:
@@ -1534,5 +1596,12 @@ def delete_workspace(wid: str) -> dict:
     if was_active:
         set_active_workspace("ws-default")
     return {"deleted_id": wid, "active": get_active_workspace()}
+
+
+# 模块初始化时主动扫描自愈所有本地 SQLite 数据库中的 drafts CHECK 约束
+try:
+    auto_heal_all_sqlite_databases()
+except Exception:
+    pass
 
 

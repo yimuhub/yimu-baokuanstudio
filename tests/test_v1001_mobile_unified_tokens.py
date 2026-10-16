@@ -20,12 +20,12 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_v1001_version_single_source_of_truth():
     """验证版本单一真源兼容性与动态渲染。"""
-    assert version.__version__ in ("10.1", "10.0.1")
+    assert version.__version__.startswith("10.")
     assert version.__codename__ == "鸿蒙始"
 
     # 验证 pyproject.toml
     pyproject_toml = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    assert ('version = "10.1"' in pyproject_toml or 'version = "10.0.1"' in pyproject_toml)
+    assert f'version = "{version.__version__}"' in pyproject_toml
 
     # 验证动态渲染出的 PC 端、移动端与定价页
     from web.admin import get_html_page, get_mobile_html_page, pricing_page

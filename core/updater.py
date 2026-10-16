@@ -230,66 +230,150 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
     return res
 
 
+def is_git_repo() -> bool:
+    """判断当前运行目录是否为包含 .git 目录的有效 Git 仓库。"""
+    return (REPO_ROOT / ".git").is_dir()
+
+
+def _upgrade_from_archive(repo: str, token: str) -> tuple[bool, str]:
+    """针对无 .git 的 Release ZIP 用户，通过官方/镜像源下载最新代码归档并安全覆盖。"""
+    import io
+    import shutil
+    import zipfile
+
+    headers = {"User-Agent": _DEFAULT_UA}
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    download_urls = [
+        f"https://github.com/{repo}/archive/refs/heads/main.zip",
+        f"https://ghfast.top/https://github.com/{repo}/archive/refs/heads/main.zip",
+        f"https://ghproxy.net/https://github.com/{repo}/archive/refs/heads/main.zip",
+    ]
+
+    last_err = ""
+    for url in download_urls:
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                if resp.status == 200:
+                    zip_bytes = resp.read()
+                    with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
+                        # 查找根目录前缀（通常为 yimu-baokuanstudio-main/）
+                        namelist = zf.namelist()
+                        root_prefix = namelist[0].split("/")[0] + "/" if namelist and "/" in namelist[0] else ""
+                        
+                        # 保护私有数据目录清单（严禁覆盖丢失）
+                        protected_prefixes = ("data/", "runs/", "logs/", ".venv/", ".env")
+                        
+                        for member in zf.infolist():
+                            rel_name = member.filename
+                            if root_prefix and rel_name.startswith(root_prefix):
+                                rel_name = rel_name[len(root_prefix):]
+                            if not rel_name or rel_name.endswith("/"):
+                                continue
+                            
+                            # 严格跳过保护的数据文件与用户私有密钥配置
+                            if any(rel_name.startswith(p) or rel_name == p for p in protected_prefixes):
+                                continue
+
+                            target_file = REPO_ROOT / rel_name
+                            target_file.parent.mkdir(parents=True, exist_ok=True)
+                            with zf.open(member) as src, open(target_file, "wb") as dst:
+                                shutil.copyfileobj(src, dst)
+
+                    return True, f"已通过 Release 归档包 ({url.split('/')[2]}) 成功热解压并覆盖更新。"
+        except Exception as e:
+            last_err = str(e)
+            log.warning("[updater] 尝试通过 %s 下载更新包失败: %s", url, e)
+
+    return False, f"所有发布包下载通道均连接超时: {last_err}"
+
+
 def perform_upgrade() -> dict[str, Any]:
-    """执行在线代码更新同步（自动暂存并恢复用户本地 config.yaml 修改，避免 git pull 冲突）。"""
+    """执行在线代码更新同步（智能适配 Git 仓库模式与 Release ZIP 压缩包模式）。"""
     token = _get_github_token()
     repo = _get_github_repo()
+    prev_ver = getattr(version, "__version__", "unknown")
 
     prev_commit = ""
-    try:
-        prev_commit = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"],
-            cwd=str(REPO_ROOT),
-            text=True,
-            timeout=3,
-        ).strip()[:7]
-    except Exception:
-        pass
+    if is_git_repo():
+        try:
+            prev_commit = subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=str(REPO_ROOT),
+                text=True,
+                timeout=3,
+            ).strip()[:7]
+        except Exception:
+            pass
 
-    pull_url = f"https://github.com/{repo}.git"
-    if token:
-        pull_url = f"https://oauth2:{token}@github.com/{repo}.git"
+    upgrade_ok = False
+    output_log = ""
 
-    # 若 config.yaml 有本地改动，先备份内容以免阻断 git pull
-    cfg_path = REPO_ROOT / "config.yaml"
-    cfg_backup: str | None = None
-    try:
-        diff_proc = subprocess.run(
-            ["git", "diff", "--quiet", "--", "config.yaml"],
-            cwd=str(REPO_ROOT),
-            timeout=3,
-        )
-        if diff_proc.returncode != 0 and cfg_path.exists():
-            cfg_backup = cfg_path.read_text(encoding="utf-8")
-            subprocess.run(
-                ["git", "checkout", "--", "config.yaml"],
+    if is_git_repo():
+        # Git 仓库模式
+        cfg_path = REPO_ROOT / "config.yaml"
+        cfg_backup: str | None = None
+        try:
+            diff_proc = subprocess.run(
+                ["git", "diff", "--quiet", "--", "config.yaml"],
                 cwd=str(REPO_ROOT),
                 timeout=3,
             )
-    except Exception:
-        pass
+            if diff_proc.returncode != 0 and cfg_path.exists():
+                cfg_backup = cfg_path.read_text(encoding="utf-8")
+                subprocess.run(
+                    ["git", "checkout", "--", "config.yaml"],
+                    cwd=str(REPO_ROOT),
+                    timeout=3,
+                )
+        except Exception:
+            pass
 
-    cmd = ["git", "pull", pull_url, "main"]
-    try:
-        proc = subprocess.run(
-            cmd,
-            cwd=str(REPO_ROOT),
-            capture_output=True,
-            text=True,
-            timeout=40,
-        )
-        # 无论拉取成功与否，恢复用户的本地 config.yaml
+        # 尝试使用原生 origin 或镜像拉取
+        pull_targets = [
+            f"https://github.com/{repo}.git" if not token else f"https://oauth2:{token}@github.com/{repo}.git",
+            f"https://ghfast.top/https://github.com/{repo}.git",
+            f"https://ghproxy.net/https://github.com/{repo}.git",
+        ]
+
+        last_git_output = ""
+        for p_target in pull_targets:
+            cmd = ["git", "pull", p_target, "main"]
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    cwd=str(REPO_ROOT),
+                    capture_output=True,
+                    text=True,
+                    timeout=45,
+                )
+                last_git_output = (proc.stdout + "\n" + proc.stderr).strip()
+                if token:
+                    last_git_output = last_git_output.replace(token, "******")
+
+                if proc.returncode == 0:
+                    upgrade_ok = True
+                    output_log = last_git_output
+                    break
+            except Exception as e:
+                last_git_output = f"Git 命令执行异常: {e}"
+
         if cfg_backup is not None:
             try:
                 cfg_path.write_text(cfg_backup, encoding="utf-8")
             except Exception:
                 pass
 
-        output = (proc.stdout + "\n" + proc.stderr).strip()
-        if token:
-            output = output.replace(token, "******")
+        if not upgrade_ok:
+            output_log = last_git_output
+    else:
+        # 非 Git 仓库（Release ZIP 发行版用户）
+        upgrade_ok, output_log = _upgrade_from_archive(repo, token)
 
-        cur_commit = prev_commit
+    cur_commit = prev_commit
+    if is_git_repo():
         try:
             cur_commit = subprocess.check_output(
                 ["git", "rev-parse", "HEAD"],
@@ -300,49 +384,43 @@ def perform_upgrade() -> dict[str, Any]:
         except Exception:
             pass
 
-        if proc.returncode == 0:
-            global _cache_check_result
-            _cache_check_result = None
-            try:
-                from studio.db import get_engine, init_db
-                db_url = os.environ.get("YIMU_DB_URL", "sqlite:///./data/mediaflow.db")
-                init_db(get_engine(db_url))
-            except Exception as e:
-                log.warning("[updater] 自动对齐数据库结构提示: %s", e)
+    if upgrade_ok:
+        global _cache_check_result
+        _cache_check_result = None
+        try:
+            from studio.db import get_engine, init_db
+            db_url = os.environ.get("YIMU_DB_URL", "sqlite:///./data/mediaflow.db")
+            init_db(get_engine(db_url))
+        except Exception as e:
+            log.warning("[updater] 自动对齐数据库结构提示: %s", e)
 
-            import importlib
-            importlib.reload(version)
-            upgraded_version = getattr(version, "__version__", cur_commit)
+        import importlib
+        importlib.reload(version)
+        upgraded_version = getattr(version, "__version__", cur_commit)
 
-            return {
-                "ok": True,
-                "message": f"🎉 升级成功！系统已同步至最新版本 (V{upgraded_version})，建议重启服务使全部模块生效。",
-                "output": output,
-                "previous_commit": prev_commit,
-                "current_commit": cur_commit,
-                "version": upgraded_version,
-            }
-        else:
-            return {
-                "ok": False,
-                "message": f"Git 拉取更新失败 (退出码 {proc.returncode})",
-                "output": output,
-                "previous_commit": prev_commit,
-                "current_commit": cur_commit,
-            }
-    except Exception as exc:
-        if cfg_backup is not None:
-            try:
-                cfg_path.write_text(cfg_backup, encoding="utf-8")
-            except Exception:
-                pass
-        log.error("[updater] 执行升级异常: %s", exc)
+        # 同步刷新 web.admin 全局变量
+        try:
+            import web.admin as web_admin
+            web_admin.APP_VERSION = upgraded_version
+        except Exception:
+            pass
+
+        return {
+            "ok": True,
+            "message": f"🎉 升级成功！系统已从 V{prev_ver} 升级至最新版本 (V{upgraded_version})。请重启服务使全部核心模块完全生效。",
+            "output": output_log,
+            "previous_commit": prev_commit,
+            "current_commit": cur_commit,
+            "version": upgraded_version,
+        }
+    else:
         return {
             "ok": False,
-            "message": f"执行升级过程出现异常: {exc}",
-            "output": str(exc),
+            "message": f"拉取更新失败。请检查网络是否能访问 GitHub，或稍后重试。",
+            "output": output_log,
             "previous_commit": prev_commit,
-            "current_commit": prev_commit,
+            "current_commit": cur_commit,
+            "version": prev_ver,
         }
 
 
@@ -359,3 +437,29 @@ def _compare_versions(v1: str, v2: str) -> int:
         if a < b:
             return -1
     return 0
+
+
+if __name__ == "__main__":
+    import sys
+    print("=" * 60)
+    print("一幕·YIMU 爆款工作室 - 在线更新引擎 (CLI)")
+    print("=" * 60)
+    if "--upgrade" in sys.argv or "-u" in sys.argv:
+        print("[执行] 开始执行在线升级...")
+        res = perform_upgrade()
+        if res.get("ok"):
+            print("✅", res.get("message"))
+            sys.exit(0)
+        else:
+            print("❌", res.get("message"))
+            if res.get("output"):
+                print("详情:\n", res.get("output"))
+            sys.exit(1)
+    else:
+        chk = check_for_updates(force=True)
+        print("当前版本:", chk.get("current_version"))
+        print("最新版本:", chk.get("latest_version"))
+        print("存在更新:", chk.get("has_update"))
+        if chk.get("has_update"):
+            print("💡 运行 `python -m core.updater --upgrade` 可直接执行升级")
+

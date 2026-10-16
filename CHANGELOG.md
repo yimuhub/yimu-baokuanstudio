@@ -42,6 +42,19 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.1.4] - 2026-10-16 · 鸿蒙始 (Primordial Dawn)
+
+### Fixed & Enhanced
+- **Windows & Cross-Platform Auto-Updater Overhaul**:
+  - Implemented dual-mode auto-updater: supports standard Git repository workflow and automated Release ZIP archive extraction for users who deployed without `.git`.
+  - Added multi-mirror fallback (`ghfast.top`, `ghproxy.net`) ensuring reliable updates in mainland China network environments.
+  - Added service process inspection and termination for port 8790 before update, preventing Windows file locking and stale memory persistence.
+  - Eliminated misleading success logs: upgrade scripts strictly check pull return codes and dynamically print the true upgraded version.
+- **Drafts `platform` NOT NULL Integrity Fix**:
+  - Resolved `NOT NULL constraint failed: drafts.platform` during fresh Windows installations.
+  - Injected database `server_default=""` and explicit parameters in `core.db.add_draft`.
+  - Added auto-healing migration for existing databases in `core.db.conn()`.
+
 ---
 
 ## [10.0.0] - 2026-10-14 · 浮光录 (Luminous Chronicles)

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BUSL-1.1
 """全局版本号定义（单一真源）。"""
 
-__version__ = "10.1"
+__version__ = "10.1.4"
 __codename__ = "鸿蒙始"
 __codename_en__ = "Primordial Dawn"
 __slogan__ = "一念起 一幕开 万象生 · 鸿蒙开元，全端动态版本与定价单一真源"

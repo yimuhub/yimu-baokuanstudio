@@ -10,11 +10,11 @@ echo.
 cd /d "%~dp0"
 
 echo 本升级工具将自动执行以下操作：
-echo  1. 从官方 GitHub 仓库拉取最新代码 (git pull)
-echo  2. 自动升级 Python 运行依赖库 (pip install -r requirements.txt --upgrade)
+echo  1. 从官方 GitHub 仓库同步最新代码 (支持 Git 仓库模式与 Release ZIP 压缩包模式)
+echo  2. 自动关闭当前运行的一幕服务进程，释放文件锁与端口占用
 echo  3. 自动备份本地核心数据库 (data\mediaflow.db.bak)
-echo  4. 自动执行数据库兼容性迁移与结构无损对齐
-echo  5. 保留所有草稿箱、素材库、自定义平台与 API 密钥完整不丢失
+echo  4. 自动升级 Python 运行依赖库并无损对齐数据库结构
+echo  5. 保留所有草稿箱、素材资产、自定义平台规则与 API 密钥完整不丢失
 echo.
 
 set /p CONFIRM="是否立即开始执行一键升级？(Y/N): "
@@ -25,14 +25,13 @@ if /i not "%CONFIRM%"=="Y" (
 )
 
 echo.
-echo [1/5] 正在从 Git 远端拉取最新代码...
-git pull origin main
-if errorlevel 1 (
-    echo [警告] git pull 遇到冲突或网络波动，将继续执行本地依赖与数据库迁移...
+echo [准备] 检查并关闭后台可能正在运行的一幕服务...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8790" ^| findstr "LISTENING"') do (
+    echo 正在关闭旧的一幕后台服务进程 (PID: %%a)...
+    taskkill /F /PID %%a >nul 2>nul
 )
+timeout /t 1 /nobreak >nul
 
-echo.
-echo [2/5] 检查 Python 运行环境...
 set VENV_PY=.venv\Scripts\python.exe
 set VENV_PIP=.venv\Scripts\pip.exe
 
@@ -42,14 +41,50 @@ if not exist "%VENV_PY%" (
 )
 
 echo.
-echo [3/5] 正在升级并同步最新依赖包...
-%VENV_PIP% install -r requirements.txt --upgrade -i https://pypi.tuna.tsinghua.edu.cn/simple
+echo [1/5] 正在同步拉取最新系统代码...
+set UPDATE_SUCCESS=0
+
+if exist ".git" (
+    echo 检测到当前为 Git 仓库环境，正在拉取最新代码...
+    git stash >nul 2>nul
+    git pull origin main
+    if not errorlevel 1 (
+        set UPDATE_SUCCESS=1
+    ) else (
+        echo [提示] 直连 GitHub 出现网络波动，正在切换至高速加速源重试...
+        git pull https://ghfast.top/https://github.com/yimuhub/yimu-baokuanstudio.git main
+        if not errorlevel 1 set UPDATE_SUCCESS=1
+    )
+    git stash pop >nul 2>nul
+) else (
+    echo 检测到当前为 Release 压缩包发行版，正在通过在线中枢下载最新代码...
+    %VENV_PY% -m core.updater --upgrade
+    if not errorlevel 1 set UPDATE_SUCCESS=1
+)
+
+if "%UPDATE_SUCCESS%"=="0" (
+    echo.
+    echo ============================================================
+    echo [错误] 代码拉取失败！
+    echo 原因可能为：
+    echo   1. 本地网络无法连接 GitHub，或连接超时；
+    echo   2. 本地存在未解决的代码冲突。
+    echo 本次升级未完成，本地现有数据与程序未受任何损害。
+    echo 建议检查网络或配置代理后，重新运行 [一键升级.bat]。
+    echo ============================================================
+    pause
+    exit /b 1
+)
+
+echo.
+echo [2/5] 正在升级并同步最新依赖包...
+%VENV_PIP% install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 if errorlevel 1 (
     echo [警告] 依赖包安装存在异常，请检查网络连接。
 )
 
 echo.
-echo [4/5] 正在自动备份并对齐数据库架构...
+echo [3/5] 正在自动备份并对齐数据库架构...
 if exist "data\mediaflow.db" (
     copy /Y "data\mediaflow.db" "data\mediaflow.db.bak" >nul
     echo 已安全备份数据库到: data\mediaflow.db.bak
@@ -63,13 +98,17 @@ if errorlevel 1 (
 )
 
 echo.
-echo [5/5] 执行数据完整性自检...
-%VENV_PY% -c "import studio; print('系统核心模块加载成功。')"
+echo [4/5] 执行核心功能自检与版本核对...
+%VENV_PY% -c "import studio, version; print(f'系统核心模块加载成功，当前版本: V{version.__version__} ({version.__codename__})')"
+if errorlevel 1 (
+    echo [警告] 模块加载自检异常，请检查依赖是否完整。
+)
 
 echo.
-echo ============================================================
-echo   恭喜！一幕·YIMU 爆款工作室已成功升级至最新版本！
-echo   现在您可以双击运行 [一键启动.bat] 开启创作。
-echo ============================================================
+echo [5/5] 获取升级后最新系统版本信息：
+%VENV_PY% -c "import version; print('=' * 60); print(f'🎉 恭喜！一幕·YIMU 爆款工作室已成功升级至最新版本：V{version.__version__}'); print(f'📌 版本代号: {version.__codename__} ({version.__codename_en__})'); print(f'🏷️ 宣传标语: {version.__slogan__}'); print('=' * 60)"
+
+echo.
+echo 现在您可以双击运行 [一键启动.bat] 开启创作。
 echo.
 pause

@@ -38,8 +38,30 @@ if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
 fi
 
 echo ""
-echo -e "${CYAN}[1/5] 从 GitHub 拉取最新版本代码...${NC}"
-git pull origin main || echo -e "${YELLOW}[警告] git pull 提示有本地修改冲突或网络波动，将继续执行本地环境同步...${NC}"
+echo -e "${CYAN}[1/5] 同步拉取最新版本代码...${NC}"
+UPDATE_SUCCESS=0
+if [ -d ".git" ]; then
+  git stash >/dev/null 2>&1 || true
+  if git pull origin main; then
+    UPDATE_SUCCESS=1
+  else
+    echo -e "${YELLOW}[提示] 直连 GitHub 出现网络波动，正在切换至高速加速镜像重试...${NC}"
+    if git pull https://ghfast.top/https://github.com/yimuhub/yimu-baokuanstudio.git main; then
+      UPDATE_SUCCESS=1
+    fi
+  fi
+  git stash pop >/dev/null 2>&1 || true
+else
+  echo -e "${YELLOW}[检测] 当前为 Release 压缩包发行版，通过在线中枢安全同步最新代码...${NC}"
+  if python3 -m core.updater --upgrade; then
+    UPDATE_SUCCESS=1
+  fi
+fi
+
+if [ "$UPDATE_SUCCESS" -ne 1 ]; then
+  echo -e "${RED}[错误] 代码拉取失败！请检查您的网络连接或代理，本次升级已中断，未更改本地代码。${NC}"
+  exit 1
+fi
 
 echo ""
 echo -e "${CYAN}[2/5] 检查虚拟运行环境...${NC}"

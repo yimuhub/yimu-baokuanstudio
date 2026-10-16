@@ -4,6 +4,22 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 10.1.4 · Robust Dual-Mode Auto-Update & Draft Integrity Fix · 2026-10-16
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.4"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+- **Robust Windows & Cross-Platform Dual-Mode Auto-Updater**:
+  - Solved Windows failure to auto-update when installed from GitHub Release ZIP (non-Git repo) by adding archive hot-patch download and extraction engine (`core/updater.py`).
+  - Added multi-mirror fallback (`ghfast.top`, `ghproxy.net`) for domestic network acceleration, overcoming GitHub connection resets and timeouts.
+  - Added port 8790 running process cleanup before upgrading to prevent Windows file locking and stale memory persistence.
+  - Intercepted fake success messages: update scripts now strictly verify pull status and dynamically output actual upgraded version (`V10.1.4`).
+- **Complete Fix for Drafts `platform` NOT NULL Constraint Crash**:
+  - Added `server_default=""` and defaults across SQLAlchemy `Draft` model and SQLite schema.
+  - Enhanced `core.db.add_draft` to explicitly populate `platform`, `tenant_id`, `updated_at`, and `needs_review`.
+  - Added automatic column migration and empty default value healing in `core.db.conn()`.
+
+---
+
 ## 🌌 Version 10.1 · Dynamic Versions Across All Pages (鸿蒙始 · 全端动态版本单一真源) · 2026-10-15
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

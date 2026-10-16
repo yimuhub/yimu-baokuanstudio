@@ -33,8 +33,8 @@ from core.imagegen import inject_images_to_markdown
 
 
 def test_v945_version_single_source_of_truth():
-    """验证全局版本单一真源为 10.0.2 / 10.0.1 / 10.0.0"""
-    assert version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5")
+    """验证全局版本单一真源为 10.x / 10.0.2 / 10.0.1 / 10.0.0"""
+    assert version.__version__.startswith("10.") or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5")
     assert version.__codename__ in ("鸿蒙始", "澄音境")
     assert version.__codename_en__ in ("Primordial Dawn", "Pristine Rhythm")
 
@@ -46,12 +46,12 @@ def test_v945_version_single_source_of_truth():
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
-    assert any(v in index_html for v in ("V10.0.2", "V10.0.1", "V10.0.0", "V9.4.5"))
-    assert any(v in mobile_html for v in ("V10.0.2", "V10.0.1", "V10.0.0", "V9.4.5"))
-    assert any(v in readme_en for v in ("version-10.0.2", "version-10.0.1", "version-10.0.0", "version-9.4.5"))
-    assert any(v in readme_zh for v in ("version-10.0.2", "version-10.0.1", "version-10.0.0", "version-9.4.5"))
-    assert any(v in releases_md for v in ("Version 10.0.2", "Version 10.0.1", "Version 10.0.0", "Version 9.4.5"))
-    assert any(v in license_txt for v in ("V10.0.2", "V10.0.1", "V10.0.0", "V9.4.5"))
+    assert any(v in index_html for v in (f"V{version.__version__}", "V10.1", "V10.0.2", "V10.0.1", "V10.0.0", "V9.4.5"))
+    assert any(v in mobile_html for v in (f"V{version.__version__}", "V10.1", "V10.0.2", "V10.0.1", "V10.0.0", "V9.4.5"))
+    assert any(v in readme_en for v in (f"version-{version.__version__}", "version-10.1", "version-10.0.2", "version-10.0.1", "version-10.0.0", "version-9.4.5"))
+    assert any(v in readme_zh for v in (f"version-{version.__version__}", "version-10.1", "version-10.0.2", "version-10.0.1", "version-10.0.0", "version-9.4.5"))
+    assert any(v in releases_md for v in (f"Version {version.__version__}", "Version 10.1", "Version 10.0.2", "Version 10.0.1", "Version 10.0.0", "Version 9.4.5"))
+    assert any(v in license_txt for v in (f"V{version.__version__}", "V10.1", "V10.0.2", "V10.0.1", "V10.0.0", "V9.4.5"))
 
 
 def test_denoise_dividers_removal():

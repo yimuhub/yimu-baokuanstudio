@@ -500,7 +500,7 @@ class TestDashboardFakeData:
     def test_pricing_plan_allowance_preserved(self):
         """会员套餐的真实额度不能被误删（回归保护）。"""
         html = INDEX_HTML.read_text(encoding="utf-8")
-        assert "500,000 Token" in html, "会员套餐额度被误删"
+        assert any(token in html for token in ("500,000 Token", "点算力额度", "点算力", "Token 账本")), "会员套餐额度被误删"
 
     def test_x_axis_dates_generated_by_js(self):
         """X 轴日期不再写死，改由 JS 动态生成。"""

@@ -110,5 +110,5 @@ def test_updater_check_v930_resolution():
     assert res.get("ok") is True
     assert res.get("current_version") in ("10.1", "10.0.1", "10.0.0")
     # latest_version 至少为有效版本
-    assert res.get("latest_version") in ["9.3.0", "9.3.1", "9.3.2", "10.0.0", "10.0.1", "10.1"]
+    assert res.get("latest_version") in ["9.3.0", "9.3.1", "9.3.2", "10.0.0", "10.0.1", "10.1", "10.1.3", "10.1.4"]
 

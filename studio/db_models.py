@@ -29,6 +29,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -59,7 +60,7 @@ class HasTenant:
 
     # 所属租户 id（外键指向 tenants.id）
     tenant_id: Mapped[str] = mapped_column(
-        String(32), ForeignKey("tenants.id"), nullable=False, index=True
+        String(32), ForeignKey("tenants.id"), nullable=False, index=True, default="default", server_default="default"
     )
 
 
@@ -484,35 +485,35 @@ class Draft(Base, HasTenant):
     id: Mapped[str] = mapped_column(String(32), primary_key=True, default=new_id)
     # 创建人
     user_id: Mapped[str] = mapped_column(
-        String(32), ForeignKey("users.id"), nullable=False, index=True
+        String(32), ForeignKey("users.id"), nullable=False, index=True, default="", server_default=""
     )
     # 标题
-    title: Mapped[str] = mapped_column(String(256), nullable=False, default="")
+    title: Mapped[str] = mapped_column(String(256), nullable=False, default="", server_default="")
     # 正文（Markdown）
-    body_md: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    body_md: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     # 目标平台（如 wechat_mp / xhs / douyin）
-    platform: Mapped[str] = mapped_column(String(32), nullable=False, default="")
-    # 状态：draft（草稿）/ pending_review（待审）/ published（已发布）
-    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft")
+    platform: Mapped[str] = mapped_column(String(32), nullable=False, default="", server_default="")
+    # 状态：draft（草稿）/ pending_review（待审）/ published（已发布）/ preview / approved / failed
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="draft", server_default="draft")
     # 质检评分（0-100，NULL 表示未评分）
     score: Mapped[float | None] = mapped_column(Float, nullable=True)
     # R4 合规：内容安全前置闸判定「需人工复核」标记（1=待审，0=正常）。
     # ⚠️ 只标记不删除——用户草稿必须保留，由人工决定改写或放行。
-    needs_review: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    needs_review: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
     # R4 合规：命中的可读原因（面向小白用户的中文说明）
-    guard_reason: Mapped[str] = mapped_column(Text, nullable=False, default="")
+    guard_reason: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     # 创建时间
     created_at: Mapped[datetime] = mapped_column(
-        FlexibleDateTime(), nullable=False, default=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, server_default=text("CURRENT_TIMESTAMP")
     )
     # 更新时间
     updated_at: Mapped[datetime] = mapped_column(
-        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow
+        FlexibleDateTime(), nullable=False, default=utcnow, onupdate=utcnow, server_default=text("CURRENT_TIMESTAMP")
     )
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('draft','pending_review','published')",
+            "status IN ('draft','pending_review','published','preview','approved','failed')",
             name="ck_drafts_status",
         ),
         Index("ix_drafts_tenant_status", "tenant_id", "status"),

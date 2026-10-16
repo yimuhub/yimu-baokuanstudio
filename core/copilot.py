@@ -1020,6 +1020,13 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
         ref_analysis_lines = [f"• 《{r['title']}》（来源：{r['source']}）" for r in refs[:5]]
         analysis_text = "【全网高浏览量改写参考源】\n" + "\n".join(ref_analysis_lines) if ref_analysis_lines else ""
 
+        # 智能判定创作者目标平台偏向
+        detected_plat = "xhs" if any(k in message for k in ["小红书", "xhs", "种草", "图文笔记", "卡片"]) else (
+            "toutiao" if any(k in message for k in ["头条", "今日头条", "资讯"]) else (
+                "wechat_mp" if any(k in message for k in ["公众号", "微信", "长文"]) else (target_platform or "wechat_mp")
+            )
+        )
+
         # 存入数据库新建草稿
         new_draft = db.add_draft(
             topic_id="",
@@ -1032,13 +1039,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
             source_stats=source_stats,
             # ⭐ R3-9：标记草稿归属，否则本人登录后看不到自己刚生成的稿
             user_id=str(user_id or ""),
-        )
-        
-        # 智能判定创作者目标平台偏向
-        detected_plat = "xhs" if any(k in message for k in ["小红书", "xhs", "种草", "图文笔记", "卡片"]) else (
-            "toutiao" if any(k in message for k in ["头条", "今日头条", "资讯"]) else (
-                "wechat_mp" if any(k in message for k in ["公众号", "微信", "长文"]) else (target_platform or "wechat_mp")
-            )
+            platform=detected_plat,
         )
 
         ddir = db.draft_dir(new_draft["id"])

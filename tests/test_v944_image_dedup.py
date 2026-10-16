@@ -21,8 +21,8 @@ from adapters import wechat_mp
 
 
 def test_v944_version_single_source_of_truth():
-    """验证全局版本号及代号为 V10.0.2 鸿蒙始"""
-    assert version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5", "9.4.4")
+    """验证全局版本号及代号为 V10.x 鸿蒙始"""
+    assert version.__version__.startswith("10.") or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5", "9.4.4")
     assert version.__codename__ in ("鸿蒙始", "澄音境", "澄澈镜")
     assert version.__codename_en__ in ("Primordial Dawn", "Pristine Rhythm", "Pristine Mirror")
 

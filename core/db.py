@@ -36,7 +36,12 @@ CREATE TABLE IF NOT EXISTS drafts (
   source_platform TEXT DEFAULT '',
   source_url TEXT DEFAULT '',
   source_title TEXT DEFAULT '',
-  analysis TEXT DEFAULT ''
+  analysis TEXT DEFAULT '',
+  platform TEXT NOT NULL DEFAULT '',
+  tenant_id TEXT NOT NULL DEFAULT 'default',
+  needs_review INTEGER NOT NULL DEFAULT 0,
+  guard_reason TEXT DEFAULT '',
+  updated_at TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS draft_history (
   id TEXT PRIMARY KEY,
@@ -410,6 +415,8 @@ def conn() -> sqlite3.Connection:
             has_drafts = False
     if has_drafts:
         c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
+        c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
+        c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
         c.commit()
         return c
 
@@ -418,10 +425,16 @@ def conn() -> sqlite3.Connection:
     cols = {r["name"] for r in c.execute("PRAGMA table_info(drafts)")}
     for col in ("source_platform", "source_url", "source_title", "analysis",
                 "score", "score_detail", "score_round", "candidate_titles", "source_stats", "workspace_id", "user_id",
-                "topic_id", "platforms"):
+                "topic_id", "platforms", "platform", "tenant_id", "needs_review", "guard_reason", "updated_at"):
         if col not in cols:
-            t = {"score": "REAL", "score_detail": "TEXT", "score_round": "INTEGER DEFAULT 0"}.get(col, "TEXT DEFAULT ''")
+            t = {"score": "REAL", "score_detail": "TEXT", "score_round": "INTEGER DEFAULT 0",
+                 "needs_review": "INTEGER DEFAULT 0", "tenant_id": "TEXT DEFAULT 'default'"}.get(col, "TEXT DEFAULT ''")
             c.execute(f"ALTER TABLE drafts ADD COLUMN {col} {t}")
+    # 存量数据自愈：补齐历史数据中的空默认值
+    c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
+    c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
+    c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
+    c.commit()
     # 旧库迁移：topics 新字段
     tcols = {r["name"] for r in c.execute("PRAGMA table_info(topics)")}
     if "content" not in tcols:
@@ -684,33 +697,58 @@ def add_draft(topic_id: str, title: str, body_md: str, platforms: list[str], *,
               source_title: str = "", analysis: str = "",
               candidate_titles: list[dict] | None = None,
               source_stats: dict | None = None,
-              workspace_id: str = "", user_id: str = "") -> dict:
+              workspace_id: str = "", user_id: str = "",
+              platform: str = "") -> dict:
     """新建草稿。
 
     ⭐ R3-9：新增 ``user_id`` 参数并**真正落库**。
        此前 add_draft 从不写 user_id，而所有读取路径又不过滤归属，
        等于「任何登录用户可访问任意 did」。调用方（web 路由）必须传入
        当前登录用户 id；留空仅允许内部任务使用（归属为空 → 对外不可见）。
+    ⭐ V10.1.4 健壮性增强：显式写入 platform / tenant_id / updated_at / needs_review 等字段，
+       无论数据库由 studio ORM 先创建还是由 SQLite 原生 DDL 先创建，均 100% 满足约束并支持双层互访。
     """
     c = conn()
     cand_json = json.dumps(candidate_titles or [], ensure_ascii=False)
     stats_json = json.dumps(source_stats or {}, ensure_ascii=False)
     ws_id = workspace_id or get_active_workspace().get("id", "ws-default")
-    d = {"id": uid("dr"), "topic_id": topic_id, "created_at": now(), "title": title,
-         "body_md": body_md, "platforms": json.dumps(platforms), "status": "preview",
-         "source_platform": source_platform, "source_url": source_url,
-         "source_title": source_title, "analysis": analysis,
+    uid_str = str(user_id or "")
+
+    # 主平台识别
+    main_platform = (platform or "").strip()
+    if not main_platform:
+        if platforms and isinstance(platforms, (list, tuple)) and platforms[0]:
+            main_platform = str(platforms[0]).strip()
+        elif source_platform:
+            main_platform = str(source_platform).strip()
+        else:
+            main_platform = "wechat_mp"
+
+    created_time = now()
+    d = {"id": uid("dr"), "topic_id": str(topic_id or ""), "created_at": created_time, "title": title or "",
+         "body_md": body_md or "",
+         "platforms": json.dumps(platforms, ensure_ascii=False) if isinstance(platforms, (list, tuple)) else str(platforms or "[]"),
+         "status": "preview",
+         "source_platform": source_platform or "", "source_url": source_url or "",
+         "source_title": source_title or "", "analysis": analysis or "",
          "candidate_titles": cand_json, "source_stats": stats_json,
-         "workspace_id": ws_id, "user_id": str(user_id or "")}
+         "workspace_id": ws_id, "user_id": uid_str,
+         "platform": main_platform,
+         "tenant_id": "default",
+         "needs_review": 0,
+         "guard_reason": "",
+         "updated_at": str(created_time)}
+
     c.execute("INSERT INTO drafts (id,topic_id,created_at,title,body_md,platforms,status,"
               "source_platform,source_url,source_title,analysis,candidate_titles,source_stats,"
-              "workspace_id,user_id) "
-              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+              "workspace_id,user_id,platform,tenant_id,needs_review,guard_reason,updated_at) "
+              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
               tuple(d[k] for k in ("id", "topic_id", "created_at", "title", "body_md",
                                    "platforms", "status", "source_platform",
                                    "source_url", "source_title", "analysis",
                                    "candidate_titles", "source_stats",
-                                   "workspace_id", "user_id")))
+                                   "workspace_id", "user_id", "platform",
+                                   "tenant_id", "needs_review", "guard_reason", "updated_at")))
     c.commit()
     c.close()
     return d

@@ -59,6 +59,19 @@ def _migrate_missing_columns(engine: Engine) -> None:
     """旧库列迁移：为已有表补上模型中新增的列（幂等，仅 SQLite）。"""
     if engine.url.drivername != "sqlite":
         return
+    # 自动无损自愈 drafts 表的 CHECK 约束（杜绝 SQLite 存量库 ck_drafts_status 导致的崩溃）
+    try:
+        from core.db import auto_heal_drafts_check_constraint
+        raw_conn = engine.raw_connection()
+        try:
+            drv_conn = getattr(raw_conn, "driver_connection", None) or getattr(raw_conn, "connection", None)
+            if drv_conn:
+                auto_heal_drafts_check_constraint(drv_conn)
+        finally:
+            raw_conn.close()
+    except Exception:
+        pass
+
     from sqlalchemy import inspect as sa_inspect
     from sqlalchemy.schema import CreateColumn
 

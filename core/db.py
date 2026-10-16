@@ -346,6 +346,93 @@ def ensure_users_columns(c: sqlite3.Connection) -> None:
         pass
 
 
+def auto_heal_drafts_check_constraint(c: sqlite3.Connection) -> bool:
+    """自动无损自愈 drafts 表的 CHECK 约束。
+
+    SQLite 无法通过 ALTER TABLE 修改或删除已存在的 CHECK 约束。
+    若存量数据库中 drafts 表创建时带有限制 status 的 CHECK 约束（如 ck_drafts_status），
+    在写入 'preview' / 'approved' / 'failed' 等新状态时会直接触发
+    IntegrityError: CHECK constraint failed: ck_drafts_status。
+
+    本函数自动检测并执行 SQLite 官方标准的表重构无损迁移：
+    1. 检查 sqlite_master 中 drafts 的 DDL 是否含有 ck_drafts_status 或状态 CHECK；
+    2. 若有，关闭外键，获取当前所有列名与类型；
+    3. 创建无限制性 CHECK 约束的 drafts_new 临时表；
+    4. 迁移全量数据并校验行数一致；
+    5. 替换 drafts 表并重建索引；
+    6. 恢复外键并提交。
+    """
+    try:
+        row = c.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='drafts'").fetchone()
+    except Exception:
+        return False
+    if not row or not row[0]:
+        return False
+    sql = str(row[0])
+    needs_heal = (
+        "ck_drafts_status" in sql
+        or ("check" in sql.lower() and "status" in sql.lower())
+    )
+    if not needs_heal:
+        return False
+
+    c.execute("PRAGMA foreign_keys=OFF;")
+    try:
+        old_count = c.execute("SELECT COUNT(*) FROM drafts").fetchone()[0]
+        cols_info = c.execute("PRAGMA table_info(drafts)").fetchall()
+        if not cols_info:
+            return False
+
+        col_defs = []
+        for col in cols_info:
+            cid, name, col_type, notnull, dflt_value, pk = col[0], col[1], col[2], col[3], col[4], col[5]
+            t = col_type if col_type else "TEXT"
+            parts = [f'"{name}" {t}']
+            if pk:
+                parts.append("PRIMARY KEY")
+            elif dflt_value is not None:
+                parts.append(f"DEFAULT {dflt_value}")
+            col_defs.append(" ".join(parts))
+
+        indexes = c.execute(
+            "SELECT sql FROM sqlite_master WHERE type='index' AND tbl_name='drafts' AND sql IS NOT NULL"
+        ).fetchall()
+
+        c.execute("DROP TABLE IF EXISTS drafts_new")
+        c.execute(f"CREATE TABLE drafts_new (\n  " + ",\n  ".join(col_defs) + "\n)")
+
+        col_names = ", ".join([f'"{col[1]}"' for col in cols_info])
+        c.execute(f"INSERT INTO drafts_new ({col_names}) SELECT {col_names} FROM drafts")
+
+        new_count = c.execute("SELECT COUNT(*) FROM drafts_new").fetchone()[0]
+        if old_count != new_count:
+            raise RuntimeError(f"Drafts migration count mismatch: {old_count} vs {new_count}")
+
+        c.execute("DROP TABLE drafts")
+        c.execute("ALTER TABLE drafts_new RENAME TO drafts")
+
+        for idx in indexes:
+            if idx[0]:
+                try:
+                    c.execute(idx[0])
+                except Exception:
+                    pass
+        c.execute("CREATE INDEX IF NOT EXISTS ix_drafts_tenant_status ON drafts (tenant_id, status)")
+        c.commit()
+        return True
+    except Exception:
+        try:
+            c.rollback()
+        except Exception:
+            pass
+        return False
+    finally:
+        try:
+            c.execute("PRAGMA foreign_keys=ON;")
+        except Exception:
+            pass
+
+
 def _recover_corrupt_database(path: Path, err_msg: str) -> None:
     """自动清理并修复损坏的 SQLite 数据库文件及 WAL 临时日志。"""
     ts = int(time.time())
@@ -414,6 +501,7 @@ def conn() -> sqlite3.Connection:
         except Exception:
             has_drafts = False
     if has_drafts:
+        auto_heal_drafts_check_constraint(c)
         c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
         c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
         c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
@@ -421,6 +509,7 @@ def conn() -> sqlite3.Connection:
         return c
 
     c.executescript(SCHEMA)
+    auto_heal_drafts_check_constraint(c)
     # 旧库迁移：补列
     cols = {r["name"] for r in c.execute("PRAGMA table_info(drafts)")}
     for col in ("source_platform", "source_url", "source_title", "analysis",
@@ -739,16 +828,31 @@ def add_draft(topic_id: str, title: str, body_md: str, platforms: list[str], *,
          "guard_reason": "",
          "updated_at": str(created_time)}
 
-    c.execute("INSERT INTO drafts (id,topic_id,created_at,title,body_md,platforms,status,"
-              "source_platform,source_url,source_title,analysis,candidate_titles,source_stats,"
-              "workspace_id,user_id,platform,tenant_id,needs_review,guard_reason,updated_at) "
-              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-              tuple(d[k] for k in ("id", "topic_id", "created_at", "title", "body_md",
-                                   "platforms", "status", "source_platform",
-                                   "source_url", "source_title", "analysis",
-                                   "candidate_titles", "source_stats",
-                                   "workspace_id", "user_id", "platform",
-                                   "tenant_id", "needs_review", "guard_reason", "updated_at")))
+    insert_sql = (
+        "INSERT INTO drafts (id,topic_id,created_at,title,body_md,platforms,status,"
+        "source_platform,source_url,source_title,analysis,candidate_titles,source_stats,"
+        "workspace_id,user_id,platform,tenant_id,needs_review,guard_reason,updated_at) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+    )
+    insert_params = tuple(
+        d[k]
+        for k in (
+            "id", "topic_id", "created_at", "title", "body_md",
+            "platforms", "status", "source_platform",
+            "source_url", "source_title", "analysis",
+            "candidate_titles", "source_stats",
+            "workspace_id", "user_id", "platform",
+            "tenant_id", "needs_review", "guard_reason", "updated_at",
+        )
+    )
+    try:
+        c.execute(insert_sql, insert_params)
+    except sqlite3.IntegrityError as e:
+        if "ck_drafts_status" in str(e) or "drafts.status" in str(e) or "status" in str(e).lower():
+            auto_heal_drafts_check_constraint(c)
+            c.execute(insert_sql, insert_params)
+        else:
+            raise
     c.commit()
     c.close()
     return d

@@ -512,10 +512,6 @@ class Draft(Base, HasTenant):
     )
 
     __table_args__ = (
-        CheckConstraint(
-            "status IN ('draft','pending_review','published','preview','approved','failed')",
-            name="ck_drafts_status",
-        ),
         Index("ix_drafts_tenant_status", "tenant_id", "status"),
     )
 

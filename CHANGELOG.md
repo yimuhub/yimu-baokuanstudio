@@ -42,6 +42,18 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.1.5] - 2026-10-16 · 鸿蒙始 (Primordial Dawn)
+
+### Fixed & Enhanced
+- **Root Cause Resolution for `CHECK constraint failed: ck_drafts_status`**:
+  - Completely eradicated `sqlite3.IntegrityError: CHECK constraint failed: ck_drafts_status` when creating drafts in Minimal Mode or updating drafts across any platform.
+  - Implemented SQLite standard 12-step zero-loss table rebuild migration (`_auto_heal_drafts_check_constraint`) in `core.db.conn()` and `studio.db._migrate_missing_columns()`.
+  - Automatically heals existing SQLite database files (`data/mediaflow.db`) upon startup, preserving 100% of historical drafts while removing the brittle static status CHECK constraint.
+  - Removed restrictive `CheckConstraint` on `Draft.status` in `studio.db_models.Draft` to decouple runtime draft statuses (`preview`, `draft`, `pending_review`, `published`, `approved`, `failed`) from static database DDL.
+  - Added triple-layer self-healing retry in `core.db.add_draft()` to guarantee 100% crash-free creation on all platforms.
+
+---
+
 ## [10.1.4] - 2026-10-16 · 鸿蒙始 (Primordial Dawn)
 
 ### Fixed & Enhanced

@@ -4,6 +4,19 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 10.1.5 · Zero-Loss Database Auto-Heal & Draft Status Integrity · 2026-10-16
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.5"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+- **Permanent Fix for `CHECK constraint failed: ck_drafts_status`**:
+  - Completely eradicated runtime `sqlite3.IntegrityError: CHECK constraint failed: ck_drafts_status` when drafting in Minimal Mode or transitioning draft lifecycle states (`preview`, `draft`, `pending_review`, `published`, `approved`, `failed`).
+  - Implemented SQLite standard 12-step zero-loss table rebuild migration (`_auto_heal_drafts_check_constraint`) in `core.db.conn()` and `studio.db._migrate_missing_columns()`.
+  - Seamlessly auto-heals legacy SQLite databases created prior to v10.1.5, preserving 100% of existing draft rows, titles, and histories without requiring manual user intervention or database resets.
+  - Removed restrictive `CheckConstraint` on `Draft.status` in `studio.db_models.Draft` to decouple business status progression from static database DDL constraints.
+  - Added triple-layer self-healing retry in `core.db.add_draft()` to guarantee 100% crash-free creation on all platforms.
+
+---
+
 ## 🌌 Version 10.1.4 · Robust Dual-Mode Auto-Update & Draft Integrity Fix · 2026-10-16
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.4"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

@@ -249,6 +249,11 @@ except Exception as _gw_exc:  # pragma: no cover
 @app.on_event("startup")
 async def on_startup():
     try:
+        from core.db import auto_heal_all_sqlite_databases
+        auto_heal_all_sqlite_databases()
+    except Exception as e:
+        print(f"[Startup] SQLite数据库自愈轻微提示: {e}")
+    try:
         cnt = db.recover_interrupted_tasks()
         if cnt > 0:
             print(f"[Startup] 已自动识别并标记 {cnt} 个中断任务为 interrupted 状态，支持断点续跑")
@@ -6194,6 +6199,14 @@ async def copilot_chat_stream_endpoint(request: Request):
 
     def _worker():
         try:
+            try:
+                from core.db import auto_heal_drafts_check_constraint, conn as _db_conn
+                _c = _db_conn()
+                auto_heal_drafts_check_constraint(_c)
+                _c.close()
+            except Exception:
+                pass
+
             def _emit(step_txt, prog):
                 q.put({"type": "step", "step": step_txt, "progress": prog})
 

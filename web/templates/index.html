@@ -13788,7 +13788,7 @@ function renderDraftList() {
   if(!L) return;
   L.innerHTML = '';
   const drafts = S.drafts || [];
-  const pendingCount = drafts.filter(d => d.status === 'preview').length;
+  const pendingCount = drafts.filter(d => d.status === 'preview' || d.status === 'draft').length;
   $('nav-draft-stat').textContent = `草稿箱 · ${pendingCount}篇待审`;
 
   if(!drafts.length) {

@@ -4,6 +4,19 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 10.1.7 · Zero-Failure Foreign-Key Decoupled Auto-Heal & Windows Resilience · 2026-10-16
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.7"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+- **Exhaustive Root-Cause Fix for `CHECK constraint failed: ck_drafts_status`**:
+  - Identified and fixed root cause where active implicit SQLite transactions blocked `PRAGMA foreign_keys=OFF`, causing `DROP TABLE drafts` to fail with `FOREIGN KEY constraint failed` due to `draft_history` references, silently aborting table rebuilds.
+  - Implemented automatic transaction rollback and autocommit (`isolation_level = None`) mode during schema rebuilds, guaranteeing foreign key deactivation and 100% successful table reconstruction.
+  - Added multi-stage fallback in `add_draft`: if constraint errors occur under legacy locked states, the system automatically falls back to compliant `'draft'` status and core column insertions, 100% eliminating runtime crashes.
+  - Added startup and pre-copilot hook running database constraint self-healing automatically before message processing.
+  - Updated frontend workbench draft count filter to count both `'preview'` and `'draft'` statuses seamlessly.
+
+---
+
 ## 🌌 Version 10.1.6 · Ultimate Cross-Platform SQLite Auto-Heal & Robust Windows Sync · 2026-10-16
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.6"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

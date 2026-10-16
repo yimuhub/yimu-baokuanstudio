@@ -394,6 +394,12 @@ def perform_upgrade() -> dict[str, Any]:
         except Exception as e:
             log.warning("[updater] 自动对齐数据库结构提示: %s", e)
 
+        try:
+            from core.db import auto_heal_all_sqlite_databases
+            auto_heal_all_sqlite_databases()
+        except Exception as e:
+            log.warning("[updater] 升级后自动修复数据库约束提示: %s", e)
+
         import importlib
         importlib.reload(version)
         upgraded_version = getattr(version, "__version__", cur_commit)

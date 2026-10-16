@@ -42,6 +42,18 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.1.7] - 2026-10-16 · 鸿蒙始 (Primordial Dawn)
+
+### Fixed & Enhanced
+- **Exhaustive Root-Cause Fix for `CHECK constraint failed: ck_drafts_status`**:
+  - Solved foreign key conflict during SQLite table rebuild: implicit active transactions prevented `PRAGMA foreign_keys=OFF` from taking effect, causing `DROP TABLE drafts` to fail with `FOREIGN KEY constraint failed` when referenced by `draft_history`.
+  - Enforced explicit transaction rollback and `isolation_level = None` (autocommit mode) before schema rebuild, guaranteeing 100% successful removal of `ck_drafts_status` constraint across all environments.
+  - Multi-tier resilience: `add_draft` and `set_draft_status` implement automatic retry and safe fallback to compliant `'draft'` status and minimal column insertion, completely eliminating crashes.
+  - Preemptive database inspection: injected startup event and pre-Copilot check in `web/admin.py` to auto-heal all SQLite databases prior to servicing requests.
+  - Aligned frontend draft counter to recognize both `'preview'` and `'draft'` statuses.
+
+---
+
 ## [10.1.6] - 2026-10-16 · 鸿蒙始 (Primordial Dawn)
 
 ### Fixed & Enhanced

@@ -214,3 +214,77 @@ def test_auto_heal_all_sqlite_databases(tmp_path: Path, monkeypatch: pytest.Monk
         c.execute("INSERT INTO drafts (id, status) VALUES ('test-p', 'preview')")
         c.commit()
         c.close()
+
+
+def test_auto_heal_with_foreign_key_references_and_active_transaction(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    """验证即使在 PRAGMA foreign_keys=ON 且 draft_history 深度外键引用 drafts 表的情况下，也能无损自愈成功。"""
+    db_file = tmp_path / "mediaflow_fk_test.db"
+    c = sqlite3.connect(db_file)
+    c.execute("PRAGMA foreign_keys = ON;")
+    c.execute("CREATE TABLE users (id VARCHAR(32) PRIMARY KEY, username VARCHAR(64) NOT NULL);")
+    c.execute("INSERT INTO users VALUES ('u-admin', 'admin');")
+    c.execute("""
+    CREATE TABLE drafts (
+        id VARCHAR(32) PRIMARY KEY,
+        user_id VARCHAR(32) NOT NULL,
+        title VARCHAR(256) DEFAULT '' NOT NULL,
+        body_md TEXT DEFAULT '' NOT NULL,
+        platform VARCHAR(32) DEFAULT '' NOT NULL,
+        status VARCHAR(16) DEFAULT 'draft' NOT NULL,
+        score FLOAT,
+        needs_review INTEGER DEFAULT 0 NOT NULL,
+        guard_reason TEXT DEFAULT '' NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        tenant_id VARCHAR(32) DEFAULT 'default' NOT NULL,
+        CONSTRAINT ck_drafts_status CHECK (status IN ('draft', 'pending_review', 'published')),
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    );
+    """)
+    c.execute("""
+    CREATE TABLE draft_history (
+        id VARCHAR(32) PRIMARY KEY,
+        draft_id VARCHAR(32) NOT NULL,
+        version INTEGER NOT NULL,
+        body_md TEXT DEFAULT '' NOT NULL,
+        score FLOAT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        FOREIGN KEY(draft_id) REFERENCES drafts(id)
+    );
+    """)
+    c.execute("INSERT INTO drafts (id, user_id, title, status) VALUES ('dr-legacy-fk', 'u-admin', '带历史版本的老草稿', 'draft');")
+    c.execute("INSERT INTO draft_history (id, draft_id, version, body_md) VALUES ('h-1', 'dr-legacy-fk', 1, '第一版历史正文');")
+    c.commit()
+    c.close()
+
+    monkeypatch.setattr(core_db, "DB_PATH", db_file)
+    monkeypatch.setattr(core_db, "_INITIALIZED_DB_PATHS", {})
+
+    # 调用 add_draft（创作新草稿，初始为 preview 状态）
+    new_draft = core_db.add_draft(
+        topic_id="",
+        title="外键联动自愈测试草稿",
+        body_md="# 正文",
+        platforms=["wechat_mp"],
+        user_id="u-admin",
+    )
+
+    assert new_draft["status"] == "preview"
+
+    # 验证存量外键关联的草稿及历史记录 100% 完整保留
+    c = sqlite3.connect(db_file)
+    c.row_factory = sqlite3.Row
+    d_row = c.execute("SELECT * FROM drafts WHERE id='dr-legacy-fk'").fetchone()
+    assert d_row is not None
+    assert d_row["title"] == "带历史版本的老草稿"
+
+    h_row = c.execute("SELECT * FROM draft_history WHERE id='h-1'").fetchone()
+    assert h_row is not None
+    assert h_row["draft_id"] == "dr-legacy-fk"
+    assert h_row["body_md"] == "第一版历史正文"
+
+    # 验证约束已解除
+    table_sql = c.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='drafts'").fetchone()["sql"]
+    assert "ck_drafts_status" not in table_sql
+    c.close()
+

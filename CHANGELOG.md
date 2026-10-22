@@ -42,6 +42,19 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.1.9] - 2026-10-22 · 鸿蒙始 (Primordial Dawn)
+
+### Fixed & Enhanced
+- **Permanent Eradication of Windows Git Credential Manager Popups**:
+  - Removed obsolete `git credential fill` execution: since the repository is 100% public open-source, all read and update operations execute anonymously without prompting for GitHub credentials.
+  - Injected `_safe_git_env()` with `GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`, `GIT_ASKPASS=""`, strictly disabling all GUI and terminal credential dialogs across Windows, macOS, and Linux.
+- **Robust Multi-Tier Upgrade Fallback & Instant Synchronization**:
+  - Seamless auto-fallback: if `git pull` encounters network blocks, branch conflicts, or missing Git on Windows, `perform_upgrade()` automatically falls back to downloading the latest Release ZIP archive from high-speed mirror channels (`github.com` -> `ghfast.top` -> `ghproxy.net`).
+  - Safe data isolation: protected user configurations (`config.yaml`, `data/`, `.env`) from being overwritten during archive extractions.
+  - Aligned Windows `一键升级.bat` with non-interactive flags, ensuring zero popups in both web UI and desktop batch environments.
+
+---
+
 ## [10.1.8] - 2026-10-22 · 鸿蒙始 (Primordial Dawn)
 
 ### Fixed & Enhanced

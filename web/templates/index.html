@@ -10449,14 +10449,14 @@ async function checkSystemUpdate(manual = false) {
 }
 
 async function performSystemUpgrade() {
-  if (!confirm('确定从 GitHub 仓库拉取最新代码并同步升级吗？')) return;
+  if (!confirm('确定从 GitHub 仓库拉取最新代码并同步升级吗？\n\n💡 提示：系统将自动执行静默更新与依赖自愈，完全无需输入任何 GitHub 账号密码。')) return;
   const upBtn = document.getElementById('btn-do-upgrade');
   if (upBtn) { upBtn.disabled = true; upBtn.textContent = '⏳ 正在同步拉取…'; }
   try {
     const res = await api('/api/system/upgrade', { method: 'POST' });
     if (res && res.ok) {
-      toast('🎉 ' + (res.message || '升级成功！'));
-      setTimeout(() => location.reload(), 1500);
+      toast('🎉 ' + (res.message || '升级成功！') + ' 正在为您刷新页面…', 4000);
+      setTimeout(() => location.reload(), 2000);
     } else {
       toast('❌ 升级失败: ' + ((res && res.message) || '拉取异常'), 5000);
     }

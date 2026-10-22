@@ -33,6 +33,23 @@ _cache_check_result: dict[str, Any] | None = None
 _cache_check_time: float = 0.0
 
 
+def _safe_git_env() -> dict[str, str]:
+    """生成彻底禁止任何图形弹窗与命令行交互式凭据询问的安全环境变量。
+
+    无论在 Windows、macOS 还是 Linux 上运行，均彻底静默：
+    - 绝不唤起 Windows Git Credential Manager (GCM) 图形登录弹窗；
+    - 绝不挂起终端等待交互式用户名/口令输入；
+    - 遇到连接受阻立刻返回非 0 状态码以便平滑自动切换下一条加速镜像或 Release 归档覆盖链路。
+    """
+    env = dict(os.environ)
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GCM_INTERACTIVE"] = "never"
+    env["GIT_ASKPASS"] = "echo" if os.name != "nt" else ""
+    env["SSH_ASKPASS"] = "echo" if os.name != "nt" else ""
+    env["GIT_PAGER"] = "cat"
+    return env
+
+
 def _get_github_repo() -> str:
     env = load_env()
     repo = (env.get("GITHUB_REPO") or env.get("GITHUB_UPSTREAM_REPO") or "").strip()
@@ -44,6 +61,7 @@ def _get_github_repo() -> str:
             cwd=str(REPO_ROOT),
             text=True,
             timeout=3,
+            env=_safe_git_env(),
         ).strip()
         m = re.search(r"github\.com[:/]([^/]+/[^/.]+)(?:\.git)?", remote_url)
         if m:
@@ -54,6 +72,11 @@ def _get_github_repo() -> str:
 
 
 def _get_github_token() -> str:
+    """获取用户配置的 GitHub Token。
+
+    ⭐ 核心改进：针对已公开开源的仓库，绝不调用交互式 `git credential fill`！
+    杜绝在 Windows 等桌面系统上触发 Git Credential Manager 弹出 GitHub 登录框。
+    """
     env = load_env()
     token = (
         env.get("GITHUB_TOKEN")
@@ -62,21 +85,7 @@ def _get_github_token() -> str:
         or env.get("GITHUB_IMGBED_TOKEN")
         or ""
     ).strip()
-    if token:
-        return token
-    try:
-        auth_out = subprocess.check_output(
-            ["git", "credential", "fill"],
-            input=f"url=https://github.com/{_get_github_repo()}.git\n",
-            text=True,
-            timeout=3,
-        )
-        for line in auth_out.splitlines():
-            if line.startswith("password="):
-                return line.split("=", 1)[1].strip()
-    except Exception:
-        pass
-    return ""
+    return token
 
 
 def check_for_updates(force: bool = False) -> dict[str, Any]:
@@ -97,6 +106,7 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
             cwd=str(REPO_ROOT),
             text=True,
             timeout=3,
+            env=_safe_git_env(),
         ).strip()[:7]
     except Exception:
         pass
@@ -126,7 +136,8 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
             ["git", "ls-remote", remote_target, "HEAD"],
             cwd=str(REPO_ROOT),
             text=True,
-            timeout=8,
+            timeout=5,
+            env=_safe_git_env(),
         )
         for line in ls_out.splitlines():
             parts = line.strip().split()
@@ -138,7 +149,8 @@ def check_for_updates(force: bool = False) -> dict[str, Any]:
             ["git", "ls-remote", "--tags", remote_target],
             cwd=str(REPO_ROOT),
             text=True,
-            timeout=8,
+            timeout=5,
+            env=_safe_git_env(),
         )
         found_tags: list[str] = []
         for line in ls_tags.splitlines():
@@ -263,8 +275,8 @@ def _upgrade_from_archive(repo: str, token: str) -> tuple[bool, str]:
                         namelist = zf.namelist()
                         root_prefix = namelist[0].split("/")[0] + "/" if namelist and "/" in namelist[0] else ""
                         
-                        # 保护私有数据目录清单（严禁覆盖丢失）
-                        protected_prefixes = ("data/", "runs/", "logs/", ".venv/", ".env")
+                        # 保护私有数据目录清单（严禁覆盖丢失用户配置、草稿与密钥）
+                        protected_prefixes = ("data/", "runs/", "logs/", ".venv/", ".env", "config.yaml")
                         
                         for member in zf.infolist():
                             rel_name = member.filename
@@ -304,6 +316,7 @@ def perform_upgrade() -> dict[str, Any]:
                 cwd=str(REPO_ROOT),
                 text=True,
                 timeout=3,
+                env=_safe_git_env(),
             ).strip()[:7]
         except Exception:
             pass
@@ -320,6 +333,7 @@ def perform_upgrade() -> dict[str, Any]:
                 ["git", "diff", "--quiet", "--", "config.yaml"],
                 cwd=str(REPO_ROOT),
                 timeout=3,
+                env=_safe_git_env(),
             )
             if diff_proc.returncode != 0 and cfg_path.exists():
                 cfg_backup = cfg_path.read_text(encoding="utf-8")
@@ -327,6 +341,7 @@ def perform_upgrade() -> dict[str, Any]:
                     ["git", "checkout", "--", "config.yaml"],
                     cwd=str(REPO_ROOT),
                     timeout=3,
+                    env=_safe_git_env(),
                 )
         except Exception:
             pass
@@ -347,7 +362,8 @@ def perform_upgrade() -> dict[str, Any]:
                     cwd=str(REPO_ROOT),
                     capture_output=True,
                     text=True,
-                    timeout=45,
+                    timeout=15,
+                    env=_safe_git_env(),
                 )
                 last_git_output = (proc.stdout + "\n" + proc.stderr).strip()
                 if token:
@@ -366,8 +382,15 @@ def perform_upgrade() -> dict[str, Any]:
             except Exception:
                 pass
 
+        # ⭐ 核心韧性升级：若 Git pull 因网络波动或无凭证受阻，自动无缝降级为 Release ZIP 在线热解压覆盖模式
         if not upgrade_ok:
-            output_log = last_git_output
+            log.info("[updater] Git pull 链路未能成功，自动切换为 Release ZIP 在线覆盖模式...")
+            archive_ok, archive_log = _upgrade_from_archive(repo, token)
+            if archive_ok:
+                upgrade_ok = True
+                output_log = f"{archive_log}\n(Git 状态: {last_git_output[:200] if last_git_output else '已切换至归档热覆盖'})".strip()
+            else:
+                output_log = f"{last_git_output}\n\n[归档自愈重试] {archive_log}".strip()
     else:
         # 非 Git 仓库（Release ZIP 发行版用户）
         upgrade_ok, output_log = _upgrade_from_archive(repo, token)
@@ -380,6 +403,7 @@ def perform_upgrade() -> dict[str, Any]:
                 cwd=str(REPO_ROOT),
                 text=True,
                 timeout=3,
+                env=_safe_git_env(),
             ).strip()[:7]
         except Exception:
             pass

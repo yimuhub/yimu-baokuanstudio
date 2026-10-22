@@ -43,6 +43,9 @@ if not exist "%VENV_PY%" (
 echo.
 echo [1/5] 正在同步拉取最新系统代码...
 set UPDATE_SUCCESS=0
+set GIT_TERMINAL_PROMPT=0
+set GCM_INTERACTIVE=never
+set GIT_ASKPASS=
 
 if exist ".git" (
     echo 检测到当前为 Git 仓库环境，正在拉取最新代码...

@@ -4,6 +4,20 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 10.1.9 · Zero-Popup Silent Self-Healing Auto-Upgrade · 2026-10-22
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.9"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+- **Permanent Eradication of Windows Git Credential Manager Popups**:
+  - Removed obsolete `git credential fill` execution: since the repository is 100% public open-source, all read and update operations execute anonymously without prompting for GitHub credentials.
+  - Injected `_safe_git_env()` with `GIT_TERMINAL_PROMPT=0`, `GCM_INTERACTIVE=never`, `GIT_ASKPASS=""`, strictly disabling all GUI and terminal credential dialogs across Windows, macOS, and Linux.
+- **Robust Multi-Tier Upgrade Fallback & Instant Synchronization**:
+  - Seamless auto-fallback: if `git pull` encounters network blocks, branch conflicts, or missing Git on Windows, `perform_upgrade()` automatically falls back to downloading the latest Release ZIP archive from high-speed mirror channels (`github.com` -> `ghfast.top` -> `ghproxy.net`).
+  - Safe data isolation: protected user configurations (`config.yaml`, `data/`, `.env`) from being overwritten during archive extractions.
+  - Aligned Windows `一键升级.bat` with non-interactive flags, ensuring zero popups in both web UI and desktop batch environments.
+
+---
+
 ## 🌌 Version 10.1.8 · Self-Healing Rewrite & Resilient Auto-Scoring · 2026-10-22
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.8"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

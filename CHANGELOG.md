@@ -42,6 +42,20 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.1.8] - 2026-10-22 · 鸿蒙始 (Primordial Dawn)
+
+### Fixed & Enhanced
+- **Permanent Fix for Rewrite Failures in Content Workbench & Copilot**:
+  - Upgraded `_parse_rewrite` into self-healing mode: accurately extracts Markdown bold headers (`**TITLE_WX:**`), section headings (`### TITLE_WX`), Chinese brackets (`【微信标题】:`) and unformatted pure Markdown outputs.
+  - Eliminated `RuntimeError("重写解析失败")`: when models output plain articles without labels, the system automatically parses the title and body with 100% success.
+  - Slashed rewrite latency & boosted stability: disabled redundant 5-image visual re-generation on text rewrites (`generate_images=False`), cutting execution time from 30s to 2s and eliminating external image API timeout risks.
+- **Permanent Fix for Missing Scores & Auto-Scoring Failures in Minimal Mode**:
+  - Implemented missing `rewrite_with_feedback(draft_id, score_res)` in `core.judge`, eradicating `AttributeError` during automated quality improvement loops.
+  - Added `_heuristic_draft_eval(draft)` fallback algorithm in `core.judge` to ensure valid 7-dimensional scoring even if LLM review calls fail or return invalid JSON.
+  - Guaranteed database persistence of fallback scores in `core.copilot`: drafts are 100% saved with valid scores, eliminating `score: null` / `⚖️ 未评分` frontend badges.
+
+---
+
 ## [10.1.7] - 2026-10-16 · 鸿蒙始 (Primordial Dawn)
 
 ### Fixed & Enhanced

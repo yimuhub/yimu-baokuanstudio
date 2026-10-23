@@ -228,19 +228,46 @@ def build_unix_portable_bundle(platform_name: str) -> Path:
     return tar_path
 
 
+def try_build_native_installer(platform_name: str):
+    """尝试构建原生安装包 (.exe / .dmg / .deb)。"""
+    if platform_name == "macOS" and sys.platform == "darwin":
+        dmg_script = ROOT / "scripts" / "build_macos_dmg.sh"
+        if dmg_script.exists():
+            log("正在构建 macOS 原生应用安装包 (.dmg)...")
+            subprocess.run(["bash", str(dmg_script)], check=False)
+    elif platform_name == "Linux" and shutil.which("dpkg-deb"):
+        deb_script = ROOT / "scripts" / "build_linux_deb.sh"
+        if deb_script.exists():
+            log("正在构建 Linux 原生应用安装包 (.deb)...")
+            subprocess.run(["bash", str(deb_script)], check=False)
+    elif platform_name == "Windows" and sys.platform == "win32":
+        win_builder = ROOT / "scripts" / "build_windows_installer.py"
+        if win_builder.exists():
+            log("正在构建 Windows 原生应用安装程序 (.exe)...")
+            subprocess.run([sys.executable, str(win_builder)], check=False)
+
+
 def main():
     import argparse
+    import subprocess
     parser = argparse.ArgumentParser(description="一幕 Studio 全平台桌面客户端打包工具")
     parser.add_argument("--platform", choices=["win", "mac", "linux", "all"], default="all", help="目标操作系统")
     parser.add_argument("--with-runtime", action="store_true", help="是否下载并嵌入独立 Python 运行时环境 (100%% 零配置)")
+    parser.add_argument("--with-installers", action="store_true", help="是否同时生成原生安装包 (.exe / .dmg / .deb)")
     args = parser.parse_args()
 
     if args.platform in ("win", "all"):
         build_windows_portable_bundle(with_runtime=args.with_runtime)
+        if args.with_installers:
+            try_build_native_installer("Windows")
     if args.platform in ("mac", "all"):
         build_unix_portable_bundle("macOS")
+        if args.with_installers:
+            try_build_native_installer("macOS")
     if args.platform in ("linux", "all"):
         build_unix_portable_bundle("Linux")
+        if args.with_installers:
+            try_build_native_installer("Linux")
 
 
 if __name__ == "__main__":

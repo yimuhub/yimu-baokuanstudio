@@ -1,4 +1,4 @@
-name: Build Desktop Clients
+name: Build Native Desktop Installers
 
 on:
   push:
@@ -10,8 +10,73 @@ permissions:
   contents: write
 
 jobs:
-  build-clients:
-    name: Package Desktop Clients
+  build-windows:
+    name: Build Windows Setup (.exe)
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Windows Installer (.exe) & Portable Zip
+        run: |
+          python scripts/build_desktop_client.py --platform win
+          python scripts/build_windows_installer.py
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installers
+          path: |
+            dist/*.exe
+            dist/*.zip
+          if-no-files-found: ignore
+
+  build-macos:
+    name: Build macOS Disk Image (.dmg)
+    runs-on: macos-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build macOS DMG (.dmg)
+        run: |
+          python scripts/build_desktop_client.py --platform mac
+          bash scripts/build_macos_dmg.sh
+
+      - name: Upload macOS Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installers
+          path: |
+            dist/*.dmg
+            dist/*.tar.gz
+          if-no-files-found: ignore
+
+  build-linux:
+    name: Build Linux Package (.deb)
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -22,25 +87,44 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install build dependencies
+      - name: Install Linux build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg
+
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Build cross-platform desktop bundles
+      - name: Build Linux DEB (.deb)
         run: |
-          python scripts/build_desktop_client.py --platform all
+          python scripts/build_desktop_client.py --platform linux
+          bash scripts/build_linux_deb.sh
 
-      - name: Upload Desktop Artifacts
+      - name: Upload Linux Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: yimu-desktop-clients
-          path: dist/*
-          retention-days: 14
+          name: linux-installers
+          path: |
+            dist/*.deb
+            dist/*.tar.gz
+          if-no-files-found: ignore
+
+  publish-release:
+    name: Publish Installers to GitHub Releases
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all built artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
 
       - name: Release to GitHub Releases
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: release-assets/*
           generate_release_notes: true

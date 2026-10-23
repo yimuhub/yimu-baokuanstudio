@@ -42,6 +42,19 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.2.1] - 2026-10-23 · 鸿蒙始 (Primordial Dawn) · 原生应用安装包发布 (Native Application Installers)
+
+### Added
+- **Windows 原生安装程序 (.exe)**:
+  - 引入基于 Inno Setup 6 的专业标准现代化安装程序配置 (`installer/windows/yimu_installer.iss`) 与自动化编译脚本 (`scripts/build_windows_installer.py`)。
+  - 产出单文件安装包 `YIMU-Studio-Windows-Setup-v10.2.1.exe`，支持自定义安装路径、创建桌面图标、开始菜单快捷方式、卸载程序登记与安装完成自动运行。
+- **macOS 原生磁盘映像安装包 (.dmg)**:
+  - 打造原生 DMG 打包引擎 (`scripts/build_macos_dmg.sh`)，封装标准 `一幕·YIMU 爆款工作室.app` 应用程序包并内嵌 `/Applications` 替身链接，支持一键拖拽完成安装。
+- **Linux 原生系统安装包 (.deb)**:
+  - 打造标准 Debian/Ubuntu `.deb` 安装包生成器 (`scripts/build_linux_deb.sh`)，规范注册 `/usr/bin/yimu-studio` 系统命令与 `/usr/share/applications` 桌面菜单项。
+- **GitHub Actions 多平台安装包编译流水线**:
+  - 全新升级 `.github/workflows/build-desktop-client.yml` 为 Windows / macOS / Linux 三系统原生矩阵构建，全自动编译 `.exe`、`.dmg`、`.deb` 并挂载至 GitHub Releases。
+
 ## [10.2.0] - 2026-10-23 · 鸿蒙始 (Primordial Dawn) · 全平台独立桌面客户端 (Zero-Config Desktop Client)
 
 ### Added

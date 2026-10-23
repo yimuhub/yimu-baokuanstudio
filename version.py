@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: BUSL-1.1
 """全局版本号定义（单一真源）。"""
 
-__version__ = "10.2.0"
+__version__ = "10.2.1"
 __codename__ = "鸿蒙始"
 __codename_en__ = "Primordial Dawn"
-__slogan__ = "一念起 一幕开 万象生 · 全平台独立桌面客户端，零环境配置开箱即用"
-__slogan_cn__ = "一念起 一幕开 万象生 · 全平台独立桌面客户端，零环境配置开箱即用"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Zero-Config Standalone Desktop Client for Win, Mac & Linux"
+__slogan__ = "一念起 一幕开 万象生 · 原生安装包发布，Windows .exe / macOS .dmg / Linux .deb 开箱即用"
+__slogan_cn__ = "一念起 一幕开 万象生 · 原生安装包发布，Windows .exe / macOS .dmg / Linux .deb 开箱即用"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Native Installers for Win (.exe), Mac (.dmg) & Linux (.deb)"
 
 
 def get_version() -> str:

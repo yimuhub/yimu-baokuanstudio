@@ -4,6 +4,21 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🚀 Version 10.2.1 · Native Application Installers (.exe, .dmg, .deb) · 2026-10-23
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.2.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 📦 Native Installer Milestone (Windows .exe / macOS .dmg / Linux .deb)
+
+| # | Architecture Feature | Detail |
+|---|----------------------|--------|
+| 1 | **Windows Setup Installer (`.exe`)** | Professional Inno Setup 6 installer (`YIMU-Studio-Windows-Setup-v10.2.1.exe`). Wizard setup, installs to Programs, creates Desktop icon, Start Menu shortcuts, and uninstaller. |
+| 2 | **macOS Disk Image (`.dmg`)** | Native Apple DMG image (`YIMU-Studio-macOS-v10.2.1.dmg`). Standard drag-to-Applications layout with bundled `一幕·YIMU 爆款工作室.app`. |
+| 3 | **Linux System Package (`.deb`)** | Debian/Ubuntu package (`yimu-studio_10.2.1_amd64.deb`). Registers `/usr/bin/yimu-studio` and desktop application menu entry. |
+| 4 | **3-Platform Matrix CI/CD** | GitHub Actions `.github/workflows/build-desktop-client.yml` builds all 3 native installers in parallel on Windows, macOS, and Linux runners. |
+
+---
+
 ## 🎬 Version 10.2.0 · Zero-Config Standalone Desktop Client · 2026-10-23
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.2.0"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

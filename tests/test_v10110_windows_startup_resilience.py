@@ -61,3 +61,50 @@ def test_v10110_version_bumped():
     import version as v
     assert v.__version__ == "10.1.10", f"期望 10.1.10，实际 {v.__version__}"
     assert v.__codename__ == "鸿蒙始"
+
+
+def test_v10110_upgrade_bat_validates_python_and_traps_errors():
+    """一键升级.bat 同样具备真实 Python 执行检验与 Store 占位符排除能力。"""
+    bat = (ROOT / "一键升级.bat").read_text(encoding="utf-8", errors="replace")
+    assert "--version" in bat, "一键升级.bat 必须包含 --version 真实执行验证"
+    assert "errorlevel" in bat, "一键升级.bat 必须具备 errorlevel 错误捕获"
+    assert "Store" in bat or "别名" in bat, "一键升级.bat 必须具备 Store 占位符引导说明"
+
+
+def test_v10110_updater_zero_dependency_import():
+    """core.updater 必须是 100% 纯 Python 标准库实现，不依赖外部第三方库（如 httpx / yaml）。"""
+    import sys
+    sys_modules_backup = {k: sys.modules.get(k) for k in ("httpx", "yaml", "core.llm")}
+    try:
+        sys.modules["httpx"] = None
+        sys.modules["yaml"] = None
+        import importlib
+        import core.updater as up
+        importlib.reload(up)
+        assert hasattr(up, "perform_upgrade")
+        assert hasattr(up, "check_for_updates")
+    finally:
+        for k, v in sys_modules_backup.items():
+            if v is None:
+                sys.modules.pop(k, None)
+            else:
+                sys.modules[k] = v
+
+
+def test_v10110_all_platform_scripts_have_auto_heal():
+    """验证所有跨平台启动、升级与服务器部署脚本均接入 auto_heal_all_sqlite_databases。"""
+    scripts = [
+        "一键启动.bat",
+        "一键升级.bat",
+        "一键启动.command",
+        "一键升级.command",
+        "一键启动_linux.sh",
+        "一键升级_linux.sh",
+        "服务器一键部署.sh",
+    ]
+    for script_name in scripts:
+        content = (ROOT / script_name).read_text(encoding="utf-8", errors="replace")
+        assert "auto_heal_all_sqlite_databases" in content, (
+            f"脚本 {script_name} 必须包含 auto_heal_all_sqlite_databases 调用"
+        )
+

@@ -32,14 +32,93 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8790" ^| findstr "LISTENING
 )
 timeout /t 1 /nobreak >nul
 
-set VENV_PY=.venv\Scripts\python.exe
-set VENV_PIP=.venv\Scripts\pip.exe
+rem 确保数据与日志目录存在
+if not exist "data" mkdir data
+if not exist "logs" mkdir logs
+if not exist "runs" mkdir runs
 
-if not exist "%VENV_PY%" (
-    echo 未发现 .venv 虚拟环境，正在新建...
-    python -m venv .venv
+set "VENV_PY=.venv\Scripts\python.exe"
+set "VENV_PIP=.venv\Scripts\pip.exe"
+
+if exist "%VENV_PY%" goto HAVE_VENV
+
+echo.
+echo 未发现 .venv 虚拟环境，正在探测可用 Python 环境...
+set SYS_PY=
+
+rem --- 1. 尝试 PATH 中的 python（需通过真实执行验证，排除 Store 0 字节假占位符）---
+where python >nul 2>nul
+if %errorlevel% equ 0 (
+    python --version >nul 2>nul
+    if %errorlevel% equ 0 (
+        set "SYS_PY=python"
+        goto VALIDATE_SYS_PY
+    )
 )
 
+rem --- 2. 尝试 PATH 中的 py 启动器 ---
+where py >nul 2>nul
+if %errorlevel% equ 0 (
+    py -3 --version >nul 2>nul
+    if %errorlevel% equ 0 (
+        set "SYS_PY=py -3"
+        goto VALIDATE_SYS_PY
+    )
+)
+
+rem --- 3. 扫描常见安装路径（Python 3.12 / 3.11 / 3.10）---
+for %%P in (
+    "%LocalAppData%\Programs\Python\Python312\python.exe"
+    "%LocalAppData%\Programs\Python\Python311\python.exe"
+    "%LocalAppData%\Programs\Python\Python310\python.exe"
+    "C:\Python312\python.exe"
+    "C:\Python311\python.exe"
+    "C:\Python310\python.exe"
+    "%ProgramFiles%\Python312\python.exe"
+    "%ProgramFiles%\Python311\python.exe"
+    "%ProgramFiles%\Python310\python.exe"
+) do (
+    if exist %%P (
+        %%P --version >nul 2>nul
+        if %errorlevel% equ 0 (
+            set "SYS_PY=%%~P"
+            goto VALIDATE_SYS_PY
+        )
+    )
+)
+
+echo.
+echo [错误] 未在电脑上找到可用的 Python 3.10+，无法创建升级环境。
+echo.
+echo   可能原因：
+echo     1. 尚未安装 Python——请访问 https://www.python.org/downloads/windows/
+echo        下载 Python 3.11 或 3.12（推荐），安装时务必勾选：
+echo           [Add python.exe to PATH]
+echo     2. 已安装但 PATH 中只有 Microsoft Store 的 Python 占位符（0 字节假 python.exe）。
+echo        解决：Windows 设置 → 应用 → 高级应用设置 → 应用执行别名，
+echo             关闭 python.exe 和 python3.exe 两个别名。
+echo.
+pause
+exit /b 1
+
+:VALIDATE_SYS_PY
+%SYS_PY% -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" >nul 2>nul
+if %errorlevel% neq 0 (
+    echo [错误] 找到的 Python 版本低于 3.10，请安装 Python 3.11 或 3.12。
+    echo 下载地址：https://www.python.org/downloads/windows/
+    pause
+    exit /b 1
+)
+
+echo 正在准备虚拟运行环境 (.venv)...
+%SYS_PY% -m venv .venv
+if %errorlevel% neq 0 (
+    echo [错误] 虚拟运行环境创建失败，请检查 Python 安装是否完整或磁盘权限。
+    pause
+    exit /b 1
+)
+
+:HAVE_VENV
 echo.
 echo [1/5] 正在同步拉取最新系统代码...
 set UPDATE_SUCCESS=0

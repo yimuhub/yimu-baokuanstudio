@@ -19,12 +19,28 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from core.llm import load_env
 import version
 
 log = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
+
+
+def load_env() -> dict[str, str]:
+    """安全解析 .env 环境变量（纯 Python 标准库，确保 updater 绝对零依赖）。"""
+    vals = dict(os.environ)
+    env_path = REPO_ROOT / ".env"
+    if env_path.exists():
+        try:
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    vals.setdefault(k.strip(), v.strip())
+        except Exception:
+            pass
+    return vals
+
 DEFAULT_GITHUB_REPO = "yimuhub/yimu-baokuanstudio"
 _DEFAULT_UA = f"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) YimuStudio/{version.__version__}"
 _CACHE_TIMEOUT_SECONDS = 30  # 30 秒缓存，防频繁触发检测

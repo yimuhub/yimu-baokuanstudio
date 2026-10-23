@@ -53,7 +53,12 @@ if [ -d ".git" ]; then
   git stash pop >/dev/null 2>&1 || true
 else
   echo -e "${YELLOW}[检测] 当前为 Release 压缩包发行版，通过在线中枢安全同步最新代码...${NC}"
-  if python3 -m core.updater --upgrade; then
+  if [ -x ".venv/bin/python" ]; then
+    UPDATER_PY=".venv/bin/python"
+  else
+    UPDATER_PY="python3"
+  fi
+  if $UPDATER_PY -m core.updater --upgrade; then
     UPDATE_SUCCESS=1
   fi
 fi
@@ -84,7 +89,7 @@ if [ -f "data/mediaflow.db" ]; then
   echo -e "${GREEN}  ✅ 数据库已安全备份至: data/mediaflow.db.bak${NC}"
 fi
 
-.venv/bin/python -c "from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine); print('  ✅ 数据库架构表结构自动对齐完毕。')"
+.venv/bin/python -c "from core.db import auto_heal_all_sqlite_databases; auto_heal_all_sqlite_databases(); from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine); print('  ✅ 数据库架构表结构自动对齐与无损自愈完毕。')"
 
 echo ""
 echo -e "${CYAN}[5/5] 执行模块加载自检并平滑重启...${NC}"

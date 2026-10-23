@@ -200,9 +200,9 @@ EOF
     log_succ "已检测到现存 .env 生产配置文件，予以保留。"
   fi
 
-  log_succ "自动初始化并无损迁移数据库架构..."
-  .venv/bin/python -c "from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)"
-  log_succ "数据库结构对齐完毕。"
+  log_succ "自动初始化、约束自愈并无损迁移数据库架构..."
+  .venv/bin/python -c "from core.db import auto_heal_all_sqlite_databases; auto_heal_all_sqlite_databases(); from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)"
+  log_succ "数据库结构对齐与约束自愈完毕。"
 }
 
 # 6. 配置 Systemd 开机自启服务（仅 Linux 具备 systemd 时）

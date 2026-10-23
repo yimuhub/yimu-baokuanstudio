@@ -61,8 +61,8 @@ fi
 # 5. 准备目录
 mkdir -p data/topics data/drafts data/cards data/cookies logs runs
 
-# 6. 对齐数据库表结构
-.venv/bin/python -c "from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)" 2>/dev/null
+# 6. 对齐数据库表结构与约束自愈
+.venv/bin/python -c "from core.db import auto_heal_all_sqlite_databases; auto_heal_all_sqlite_databases(); from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)" 2>/dev/null
 
 # 7. 释放旧端口
 OLD_PID="$(lsof -ti:$PORT 2>/dev/null || true)"

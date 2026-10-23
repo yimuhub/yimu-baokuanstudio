@@ -93,8 +93,8 @@ ADMIN_PASSWORD=${apass}
 EOF
   fi
 
-  # 自动迁移数据库结构
-  .venv/bin/python -c "from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)" 2>/dev/null || true
+  # 自动自愈表约束与对齐数据库结构
+  .venv/bin/python -c "from core.db import auto_heal_all_sqlite_databases; auto_heal_all_sqlite_databases(); from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)" 2>/dev/null || true
 }
 
 get_server_ip() {

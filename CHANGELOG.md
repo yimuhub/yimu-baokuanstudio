@@ -44,7 +44,12 @@ YIMU Studio maintains strict version discipline:
 
 ## [10.1.10] - 2026-10-23 · 鸿蒙始 (Primordial Dawn)
 
-### 🔧 修复 (Fixed)
+### 🔧 全平台版本排查与修复 (Cross-Platform Resilient Fixes)
+- **`一键升级.bat` 防闪退加固**：全面同步与 `一键启动.bat` 相同等级的解释器探测机制，增加 `python --version` 真实执行测试（排除 Store 假解释器）、Python ≥ 3.10 版本底线校验、`venv` 创建异常捕获及目录预热。
+- **在线升级引擎 `core/updater.py` 彻底零依赖解耦**：移除旧版对 `core.llm` 的顶层导入，自包含轻量 `.env` 解析器，消除对 `httpx`、`yaml` 等第三方库的依赖。即使在依赖尚未安装或损坏的裸机环境下，也能 100% 独立稳定执行在线升级与归档覆盖。
+- **全平台脚本接入约束自愈中枢 (`auto_heal_all_sqlite_databases`)**：
+  - 同步加固：[`一键升级.bat`](一键升级.bat)、[`一键启动_linux.sh`](一键启动_linux.sh)、[`一键升级_linux.sh`](一键升级_linux.sh)、[`一键启动.command`](一键启动.command)、[`一键升级.command`](一键升级.command)、[`服务器一键部署.sh`](服务器一键部署.sh)。
+  - 彻底解决 Linux 与 macOS 用户在跨版本升级后可能因遗留数据库未自愈而出现 `ck_drafts_status` 或字段缺失报错的问题。
 - **`一键启动.bat` 致命闪退修复**：原脚本使用 `where python` 检测 Python 是否存在，在 Windows 11 中 Microsoft Store 的 `python.exe` 占位符（0 字节 ReparsePoint）会通过 `where` 检测但无法真正执行，导致脚本误以为 Python 已就绪，进入 `python -m venv` 时窗口直接闪退。新脚本在 `where python` 之后增加 `python --version` 真实执行验证，Store 占位符会返回非 0 错误码，从而被正确排除。
 - **Python 版本下限校验**：找到可执行 Python 后，追加 `sys.version_info >= (3,10)` 验证，低于 3.10 的解释器给出明确提示并退出。
 - **venv 创建失败不再静默闪退**：`python -m venv .venv` 后追加 `errorlevel` 检测；失败时打印可读错误并 `pause`，不再无声退出。

@@ -29,7 +29,19 @@ lsof -ti:8790 | xargs kill -9 2>/dev/null || true
 echo ""
 echo "  [1/5] 检查 Python 运行环境..."
 if [ ! -d ".venv" ]; then
-  python3 -m venv .venv || { echo "  ❌ 创建虚拟环境失败"; exit 1; }
+  PY=""
+  for cmd in python3.12 python3.11 python3.10 python3; do
+    if command -v "$cmd" &>/dev/null; then
+      if "$cmd" -c "import sys; exit(0 if sys.version_info[:2] >= (3,10) else 1)" 2>/dev/null; then
+        PY="$cmd"; break
+      fi
+    fi
+  done
+  if [ -z "$PY" ]; then
+    echo "  ❌ 未找到 Python 3.10+，请先安装 Python（推荐 brew install python@3.12 或官网下载）"
+    exit 1
+  fi
+  "$PY" -m venv .venv || { echo "  ❌ 创建虚拟环境失败"; exit 1; }
 fi
 
 echo ""
@@ -72,7 +84,7 @@ if [ -f "data/mediaflow.db" ]; then
   echo "  ✅ 数据库已安全备份至: data/mediaflow.db.bak"
 fi
 
-.venv/bin/python -c "from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine); print('  ✅ 数据库表结构自动对齐完毕。')"
+.venv/bin/python -c "from core.db import auto_heal_all_sqlite_databases; auto_heal_all_sqlite_databases(); from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine); print('  ✅ 数据库表结构自动对齐与无损自愈完毕。')"
 
 echo ""
 echo "  [5/5] 获取升级后最新系统版本信息："

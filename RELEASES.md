@@ -4,6 +4,29 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🛡️ Version 10.1.10 · Zero-Crash One-Click Start · 2026-10-23
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.10"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🔧 Patch Notes · 一键启动 Windows 11 闪退彻底修复
+
+**Root Cause Fixed** — Windows 11 machines without a real Python installation have a Microsoft Store `python.exe` placeholder (0-byte `ReparsePoint`) in `PATH`. The old `一键启动.bat` used `where python` which succeeds for this placeholder, then called `python -m venv` which triggered a Store redirect and silently crashed the CMD window with no error shown.
+
+**Fixes Applied**:
+| # | Fix | Detail |
+|---|-----|--------|
+| 1 | **Real-execution validation** | After `where python` succeeds, immediately run `python --version` — Store placeholders return non-zero, real Python returns 0 |
+| 2 | **Python ≥ 3.10 version gate** | Validates `sys.version_info >= (3,10)` after finding an interpreter; gives a clear message if too old |
+| 3 | **venv creation error trap** | Checks `errorlevel` after `python -m venv .venv`; on failure prints readable error + `pause` instead of silent exit |
+| 4 | **pip install error trap** | Dependency install failures now pause with a readable error instead of silently aborting |
+| 5 | **Auto `.env` creation** | If `.env` is missing, automatically copies from `.env.example` on startup |
+| 6 | **Store alias guidance** | Error message for "Python not found" now explains the Store alias issue and how to disable it |
+| 7 | **Expanded path scanning** | Also checks `%ProgramFiles%\Python3xx` directories |
+
+**Files Changed**: `一键启动.bat`
+
+---
+
 ## 🌌 Version 10.1.9 · Zero-Popup Silent Self-Healing Auto-Upgrade · 2026-10-22
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.9"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

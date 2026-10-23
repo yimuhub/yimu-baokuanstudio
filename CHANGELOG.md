@@ -42,6 +42,21 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.1.10] - 2026-10-23 · 鸿蒙始 (Primordial Dawn)
+
+### 🔧 修复 (Fixed)
+- **`一键启动.bat` 致命闪退修复**：原脚本使用 `where python` 检测 Python 是否存在，在 Windows 11 中 Microsoft Store 的 `python.exe` 占位符（0 字节 ReparsePoint）会通过 `where` 检测但无法真正执行，导致脚本误以为 Python 已就绪，进入 `python -m venv` 时窗口直接闪退。新脚本在 `where python` 之后增加 `python --version` 真实执行验证，Store 占位符会返回非 0 错误码，从而被正确排除。
+- **Python 版本下限校验**：找到可执行 Python 后，追加 `sys.version_info >= (3,10)` 验证，低于 3.10 的解释器给出明确提示并退出。
+- **venv 创建失败不再静默闪退**：`python -m venv .venv` 后追加 `errorlevel` 检测；失败时打印可读错误并 `pause`，不再无声退出。
+- **pip 安装失败兜底**：依赖安装失败时给出明确提示并 `pause`，而非静默中断。
+- **自动创建 `.env`**：若项目目录下无 `.env` 文件，启动时自动从 `.env.example` 复制，避免首次启动因缺少环境变量而报错。
+- **友好错误提示 Store 占位符问题**：在「未找到 Python」错误提示中，明确解释 Microsoft Store `python.exe` 占位符的识别方式及关闭方法（Windows 设置 → 应用 → 高级应用设置 → 应用执行别名）。
+- **扩展 Python 路径扫描**：新增对 `%ProgramFiles%\Python3xx` 等路径的扫描，覆盖更多安装场景。
+
+### 📋 次要隐患说明（本版本记录，待后续跟进）
+- 端口 8787（模型网关）未监听时，内容生成功能会连接失败，需另行配置 API Key 或启动配套网关。
+- `playwright` 内核首次需手动 `python -m playwright install chromium`（后续版本考虑自动化）。
+
 ## [10.1.9] - 2026-10-22 · 鸿蒙始 (Primordial Dawn)
 
 ### Fixed & Enhanced

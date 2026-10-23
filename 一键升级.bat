@@ -1,4 +1,5 @@
 @echo off
+setlocal enabledelayedexpansion
 chcp 65001 >nul
 title 一幕·YIMU 爆款工作室 - 一键升级
 echo ============================================================
@@ -40,85 +41,111 @@ if not exist "runs" mkdir runs
 set "VENV_PY=.venv\Scripts\python.exe"
 set "VENV_PIP=.venv\Scripts\pip.exe"
 
-if exist "%VENV_PY%" goto HAVE_VENV
+if exist "%VENV_PY%" (
+    "%VENV_PY%" --version >nul 2>nul
+    if not errorlevel 1 goto HAVE_VENV
+    echo [提示] 现存 .venv 损坏，正在自动重新创建...
+    rmdir /s /q .venv >nul 2>nul
+)
 
 echo.
-echo 未发现 .venv 虚拟环境，正在探测可用 Python 环境...
-set SYS_PY=
+echo 未发现可用 .venv 虚拟环境，正在探测系统可用 Python 环境...
+set "FOUND_PY="
 
-rem --- 1. 尝试 PATH 中的 python（需通过真实执行验证，排除 Store 0 字节假占位符）---
-where python >nul 2>nul
-if %errorlevel% equ 0 (
-    python --version >nul 2>nul
-    if %errorlevel% equ 0 (
-        set "SYS_PY=python"
-        goto VALIDATE_SYS_PY
-    )
-)
-
-rem --- 2. 尝试 PATH 中的 py 启动器 ---
-where py >nul 2>nul
-if %errorlevel% equ 0 (
-    py -3 --version >nul 2>nul
-    if %errorlevel% equ 0 (
-        set "SYS_PY=py -3"
-        goto VALIDATE_SYS_PY
-    )
-)
-
-rem --- 3. 扫描常见安装路径（Python 3.12 / 3.11 / 3.10）---
+rem --- 扫描常见官方 Python 安装目录（最安全，绝不触发 Store 占位符）---
 for %%P in (
     "%LocalAppData%\Programs\Python\Python312\python.exe"
     "%LocalAppData%\Programs\Python\Python311\python.exe"
     "%LocalAppData%\Programs\Python\Python310\python.exe"
-    "C:\Python312\python.exe"
-    "C:\Python311\python.exe"
-    "C:\Python310\python.exe"
     "%ProgramFiles%\Python312\python.exe"
     "%ProgramFiles%\Python311\python.exe"
     "%ProgramFiles%\Python310\python.exe"
+    "%ProgramFiles(x86)%\Python312\python.exe"
+    "%ProgramFiles(x86)%\Python311\python.exe"
+    "%ProgramFiles(x86)%\Python310\python.exe"
+    "C:\Python312\python.exe"
+    "C:\Python311\python.exe"
+    "C:\Python310\python.exe"
+    "D:\Python312\python.exe"
+    "D:\Python311\python.exe"
+    "D:\Python310\python.exe"
 ) do (
     if exist %%P (
-        %%P --version >nul 2>nul
-        if %errorlevel% equ 0 (
-            set "SYS_PY=%%~P"
-            goto VALIDATE_SYS_PY
+        for %%F in (%%P) do (
+            if %%~zF gtr 0 (
+                %%P -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" >nul 2>nul
+                if not errorlevel 1 (
+                    set "FOUND_PY=%%~fP"
+                    goto CREATE_UPGRADE_VENV
+                )
+            )
+        )
+    )
+)
+
+rem --- 探测 py 启动器 ---
+where py >nul 2>nul
+if not errorlevel 1 (
+    for /f "delims=" %%I in ('where py 2^>nul') do (
+        echo "%%~fI" | findstr /i "WindowsApps" >nul
+        if errorlevel 1 (
+            if %%~zI gtr 0 (
+                "%%~fI" -3 -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" >nul 2>nul
+                if not errorlevel 1 (
+                    set "FOUND_PY=%%~fI -3"
+                    goto CREATE_UPGRADE_VENV
+                )
+            )
+        )
+    )
+)
+
+rem --- 探测 PATH 中的 python（严格排除 WindowsApps 0 字节假占位符）---
+where python >nul 2>nul
+if not errorlevel 1 (
+    for /f "delims=" %%I in ('where python 2^>nul') do (
+        echo "%%~fI" | findstr /i "WindowsApps" >nul
+        if errorlevel 1 (
+            if %%~zI gtr 0 (
+                "%%~fI" -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" >nul 2>nul
+                if not errorlevel 1 (
+                    set "FOUND_PY=%%~fI"
+                    goto CREATE_UPGRADE_VENV
+                )
+            )
         )
     )
 )
 
 echo.
-echo [错误] 未在电脑上找到可用的 Python 3.10+，无法创建升级环境。
+echo ============================================================
+echo [错误] 升级终止：未在您的电脑上检测到可用的 Python 3.10+。
 echo.
-echo   可能原因：
-echo     1. 尚未安装 Python——请访问 https://www.python.org/downloads/windows/
-echo        下载 Python 3.11 或 3.12（推荐），安装时务必勾选：
-echo           [Add python.exe to PATH]
-echo     2. 已安装但 PATH 中只有 Microsoft Store 的 Python 占位符（0 字节假 python.exe）。
-echo        解决：Windows 设置 → 应用 → 高级应用设置 → 应用执行别名，
-echo             关闭 python.exe 和 python3.exe 两个别名。
+echo 原因分析：
+echo   电脑尚未安装 Python 解释器（PATH 中仅有 Windows 11 自带
+echo   的 Microsoft Store 0 字节别名占位符，无法用于运行程序）。
+echo.
+echo 解决方案：
+echo   请前往 Python 官方网站下载安装包：
+echo   https://www.python.org/downloads/windows/
+echo   安装时【务必勾选】[√] Add python.exe to PATH
+echo   安装完成后重新运行 [一键升级.bat]。
+echo ============================================================
 echo.
 pause
 exit /b 1
 
-:VALIDATE_SYS_PY
-%SYS_PY% -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" >nul 2>nul
-if %errorlevel% neq 0 (
-    echo [错误] 找到的 Python 版本低于 3.10，请安装 Python 3.11 或 3.12。
-    echo 下载地址：https://www.python.org/downloads/windows/
-    pause
-    exit /b 1
-)
-
+:CREATE_UPGRADE_VENV
+echo 已找到可用 Python 解释器: %FOUND_PY%
 echo 正在准备虚拟运行环境 (.venv)...
-%SYS_PY% -m venv .venv
-if %errorlevel% neq 0 (
-    echo [错误] 虚拟运行环境创建失败，请检查 Python 安装是否完整或磁盘权限。
-    pause
-    exit /b 1
-)
+%FOUND_PY% -m venv .venv
+if errorlevel 1 goto UPGRADE_VENV_ERROR
+if not exist ".venv\Scripts\python.exe" goto UPGRADE_VENV_ERROR
 
 :HAVE_VENV
+set "VENV_PY=.venv\Scripts\python.exe"
+set "VENV_PIP=.venv\Scripts\pip.exe"
+
 echo.
 echo [1/5] 正在同步拉取最新系统代码...
 set UPDATE_SUCCESS=0
@@ -206,3 +233,14 @@ echo.
 echo 现在您可以双击运行 [一键启动.bat] 开启创作。
 echo.
 pause
+exit /b 0
+
+:UPGRADE_VENV_ERROR
+echo.
+echo ============================================================
+echo [错误] 虚拟环境 (.venv) 创建失败！
+echo 请检查当前磁盘空间与项目目录写入权限后重试。
+echo ============================================================
+echo.
+pause
+exit /b 1

@@ -66,9 +66,18 @@ def test_v10110_version_bumped():
 def test_v10110_upgrade_bat_validates_python_and_traps_errors():
     """一键升级.bat 同样具备真实 Python 执行检验与 Store 占位符排除能力。"""
     bat = (ROOT / "一键升级.bat").read_text(encoding="utf-8", errors="replace")
-    assert "--version" in bat, "一键升级.bat 必须包含 --version 真实执行验证"
+    assert "--version" in bat or "sys.version_info" in bat, "一键升级.bat 必须包含真实执行验证"
     assert "errorlevel" in bat, "一键升级.bat 必须具备 errorlevel 错误捕获"
     assert "Store" in bat or "别名" in bat, "一键升级.bat 必须具备 Store 占位符引导说明"
+
+
+def test_v10111_bat_explicitly_filters_windowsapps():
+    """两个 bat 脚本必须显式过滤 WindowsApps 目录与 0 字节文件，坚决杜绝直接触发 Store 别名闪退。"""
+    for fname in ("一键启动.bat", "一键升级.bat"):
+        content = (ROOT / fname).read_text(encoding="utf-8", errors="replace")
+        assert "WindowsApps" in content, f"{fname} 必须显式过滤 WindowsApps 目录"
+        assert "gtr 0" in content, f"{fname} 必须检查文件大小大于 0 字节"
+
 
 
 def test_v10110_updater_zero_dependency_import():

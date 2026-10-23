@@ -42,6 +42,14 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.1.11] - 2026-10-23 · 鸿蒙始 (Primordial Dawn)
+
+### 🛡️ 全端全流程韧性加固 (Full-Stack Cross-Platform Resilience Release)
+- **Windows 一键启动与一键升级彻底杜绝假解释器闪退**：全面实装 `python --version` 真实执行动态验证，坚决破除 Windows 11 下 Microsoft Store 0 字节 `python.exe` 假占位符引起的秒闪退；
+- **全平台更新中枢 `core/updater.py` 100% 绝对零依赖解耦**：彻底消除对外部第三方库的任何强耦合，裸机/依赖损坏场景下均能稳定自主在线升级与归档无损热覆盖；
+- **跨平台启动与部署脚本全量接入数据库约束自愈中枢**：覆盖 Windows、macOS、Linux 原生桌面及 Linux Server 生产部署脚本，任何环境升级后均能全自动自愈数据库结构与 `ck_drafts_status` / `drafts.platform` 等历史约束；
+- **端到端防回归门禁验证**：新增自动化测试集覆盖全平台脚本健康、更新器零依赖与多环境自愈。
+
 ## [10.1.10] - 2026-10-23 · 鸿蒙始 (Primordial Dawn)
 
 ### 🔧 全平台版本排查与修复 (Cross-Platform Resilient Fixes)

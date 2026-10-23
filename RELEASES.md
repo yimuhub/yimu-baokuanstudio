@@ -4,6 +4,24 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🛡️ Version 10.1.11 · Cross-Platform Full-Chain Resilience · 2026-10-23
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.11"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🔧 Full Cross-Platform Startup & Upgrade Audit & Zero-Dependency Updater
+
+| # | Component | Enhancement Detail |
+|---|-----------|-------------------|
+| 1 | **`一键升级.bat`** | Aligned with `一键启动.bat`: added `python --version` dynamic execution check, discarded Microsoft Store 0-byte fake python, Python ≥ 3.10 verification, venv creation error trap with pause, and data/logs pre-warming. |
+| 2 | **`core/updater.py`** | Decoupled from `core.llm` / `httpx` / `yaml`. Built-in pure stdlib `.env` parser guarantees 100% zero-dependency updater execution even in bare or broken environments. |
+| 3 | **`一键启动_linux.sh`** | Injected `auto_heal_all_sqlite_databases()` prior to startup, ensuring database constraints and missing columns automatically self-heal. |
+| 4 | **`一键升级_linux.sh`** | Optimized execution order (preferred `.venv` python) and integrated database self-healing. |
+| 5 | **`一键启动.command`** | macOS startup script integrated with `auto_heal_all_sqlite_databases()`. |
+| 6 | **`一键升级.command`** | macOS upgrade script integrated with multi-candidate Python interpreter search and database self-healing. |
+| 7 | **`服务器一键部署.sh`** | Linux server production deployment integrated with `auto_heal_all_sqlite_databases()`. |
+
+---
+
 ## 🛡️ Version 10.1.10 · Zero-Crash One-Click Start · 2026-10-23
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.10"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

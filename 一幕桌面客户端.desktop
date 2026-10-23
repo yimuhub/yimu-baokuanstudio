@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=一幕·YIMU 爆款工作室
+GenericName=影视短剧与爆款图文创作平台
+Comment=全自主 Multi-Agent 全媒体内容与影视短剧创作系统桌面客户端
+Exec=bash -c "cd $(dirname %k) && ./一幕桌面客户端_linux.sh"
+Icon=utilities-terminal
+Terminal=false
+Categories=AudioVideo;Development;AudioVideoEditing;
+Keywords=YIMU;Video;Studio;MediaFlow;

@@ -48,6 +48,15 @@ if not exist "data" mkdir data
 if not exist "logs" mkdir logs
 if not exist "runs" mkdir runs
 
+if exist "runtime\python.exe" (
+    "runtime\python.exe" --version >nul 2>nul
+    if not errorlevel 1 (
+        set "VENV_PY=runtime\python.exe"
+        set "VENV_PIP=runtime\Scripts\pip.exe"
+        goto HAVE_VENV
+    )
+)
+
 set "VENV_PY=.venv\Scripts\python.exe"
 set "VENV_PIP=.venv\Scripts\pip.exe"
 
@@ -177,8 +186,8 @@ if errorlevel 1 goto UPGRADE_VENV_ERROR
 if not exist ".venv\Scripts\python.exe" goto UPGRADE_VENV_ERROR
 
 :HAVE_VENV
-set "VENV_PY=.venv\Scripts\python.exe"
-set "VENV_PIP=.venv\Scripts\pip.exe"
+if not defined VENV_PY set "VENV_PY=.venv\Scripts\python.exe"
+if not defined VENV_PIP set "VENV_PIP=.venv\Scripts\pip.exe"
 
 echo.
 echo [1/5] 正在同步拉取最新系统代码...

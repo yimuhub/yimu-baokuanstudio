@@ -20,6 +20,17 @@ echo ============================================================
 echo.
 
 rem ============================================================
+rem 步骤 0: 优先检查桌面客户端独立便携运行环境 (100% 免安装免配置)
+rem ============================================================
+if exist "runtime\python.exe" (
+    "runtime\python.exe" --version >nul 2>nul
+    if not errorlevel 1 (
+        set "PY_BIN=runtime\python.exe"
+        goto PREPARE_DATA
+    )
+)
+
+rem ============================================================
 rem 步骤 1: 优先检查已有 .venv 虚拟运行环境是否完好可用
 rem ============================================================
 if exist ".venv\Scripts\python.exe" (
@@ -199,7 +210,7 @@ rem ============================================================
 rem 步骤 7: 检查并安装同步运行依赖
 rem ============================================================
 :RUN_APP
-set "PY_BIN=.venv\Scripts\python.exe"
+if not defined PY_BIN set "PY_BIN=.venv\Scripts\python.exe"
 
 echo [3/4] 检查并同步运行依赖库...
 %PY_BIN% -c "import fastapi, uvicorn" >nul 2>nul
@@ -253,11 +264,16 @@ echo   一幕·YIMU 爆款工作室服务正在启动中...
 echo   本地访问地址: http://127.0.0.1:8790
 echo   局域网可访问: http://localhost:8790
 echo ============================================================
-echo 正在自动为您打开浏览器...
-start "" "http://127.0.0.1:8790"
-echo.
-
-%PY_BIN% -m uvicorn web.admin:app --host 0.0.0.0 --port 8790
+if exist "desktop.py" (
+    echo 正在启动一幕原生桌面客户端...
+    echo.
+    %PY_BIN% desktop.py
+) else (
+    echo 正在自动为您打开浏览器...
+    start "" "http://127.0.0.1:8790"
+    echo.
+    %PY_BIN% -m uvicorn web.admin:app --host 0.0.0.0 --port 8790
+)
 echo.
 echo ============================================================
 echo [提示] 一幕服务已正常停止。

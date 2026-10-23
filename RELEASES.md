@@ -4,6 +4,22 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🎬 Version 10.2.0 · Zero-Config Standalone Desktop Client · 2026-10-23
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.2.0"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🖥️ Cross-Platform Native Standalone Desktop Client Milestone (Win / Mac / Linux)
+
+| # | Architecture Feature | Detail |
+|---|----------------------|--------|
+| 1 | **Native Desktop App Runner (`desktop.py`)** | Dual-engine runner: utilizes `pywebview` for 100% frameless/native desktop window with zero browser bars; auto-falls back to Chromium/Edge `--app` mode or default browser. Auto-terminates backend daemon on window close. |
+| 2 | **Silent Windows Desktop Launcher (`一幕桌面客户端.vbs`)** | Launches directly into desktop window without any black console command prompt. Prioritizes bundled portable Python runtime (`runtime\pythonw.exe`). |
+| 3 | **macOS & Linux Desktop Suites** | `一幕桌面客户端.command` (macOS double-click launcher), `一幕桌面客户端_linux.sh`, and `一幕桌面客户端.desktop` (freedesktop menu entry). |
+| 4 | **Embedded Portable Runtime Architecture** | `一键启动.bat` and `一键升级.bat` Step 0 directly checks `runtime\python.exe`. Standalone desktop releases run completely self-contained with zero system Python installation or PATH configuration. |
+| 5 | **Automated Desktop Bundler & CI Pipeline** | `scripts/build_desktop_client.py` and `.github/workflows/build-desktop-client.yml` for zero-friction release packaging. |
+
+---
+
 ## 🛡️ Version 10.1.12 · Windows 7 to 11 Universal Architecture · 2026-10-23
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.12"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

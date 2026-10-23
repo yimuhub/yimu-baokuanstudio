@@ -36,9 +36,10 @@ def test_v1001_version_single_source_of_truth():
     req = MagicMock(spec=Request)
     pricing = pricing_page(req).body.decode("utf-8")
 
-    assert any(v in idx for v in ("V10.1", "V10.0.1"))
-    assert any(v in mobile for v in ("V10.1", "V10.0.1"))
-    assert any(v in pricing for v in ("V10.1", "V10.0.1"))
+    cur_v = f"V{version.__version__}"
+    assert any(v in idx for v in (cur_v, "V10.2", "V10.1", "V10.0.1"))
+    assert any(v in mobile for v in (cur_v, "V10.2", "V10.1", "V10.0.1"))
+    assert any(v in pricing for v in (cur_v, "V10.2", "V10.1", "V10.0.1"))
 
 
 def test_v1001_mobile_template_has_unified_billing_pill_and_elements():

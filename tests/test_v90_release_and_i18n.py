@@ -46,14 +46,14 @@ def test_v90_releases_showcase_page_and_api():
     # 1. /releases 页面
     r = client.get("/releases")
     assert r.status_code == 200
-    assert any(v in r.text for v in ("V10.1", "V10.0.1", "V10.0.0", "V9.3.1"))
+    assert any(v in r.text for v in (f"V{version.__version__}", "V10.2", "V10.1", "V10.0.1", "V10.0.0", "V9.3.1"))
     assert "yimu.hyipf.com" in r.text
     assert "核心版本差异演进矩阵" in r.text
 
     # 2. /admin/releases 兼容页面
     r_admin = client.get("/admin/releases")
     assert r_admin.status_code == 200
-    assert any(v in r_admin.text for v in ("V10.1", "V10.0.1", "V10.0.0", "V9.3.1"))
+    assert any(v in r_admin.text for v in (f"V{version.__version__}", "V10.2", "V10.1", "V10.0.1", "V10.0.0", "V9.3.1"))
 
     # 3. /api/releases 数据接口
     r_api = client.get("/api/releases")

@@ -42,6 +42,27 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.2.0] - 2026-10-23 · 鸿蒙始 (Primordial Dawn) · 全平台独立桌面客户端 (Zero-Config Desktop Client)
+
+### Added
+- **全新跨平台原生独立桌面客户端 (`desktop.py`)**:
+  - 后台静默守护拉起 FastAPI/Uvicorn 核心服务 (127.0.0.1:8790) 与端口健康自愈检测。
+  - 优先调用 `pywebview` 引擎呈现 100% 独立桌面窗体（无浏览器地址栏、独占原生软件体验）。
+  - 若环境未装载 webview，自适应平滑降级至 Chromium / Edge「独立应用模式 (`--app`)」，呈现极简桌面纯净视窗。
+  - 智能感知窗口关闭事件，窗体关闭时自动终止后台服务，实现无残留退出。
+- **Windows 原生静默启动引导 (`一幕桌面客户端.vbs`)**:
+  - 双击直接拉起桌面客户端，彻底消除黑色控制台 CMD 窗口。
+  - 自动优先检测内嵌独立便携 Python 运行时 (`runtime\pythonw.exe`) 与本地环境。
+- **macOS 与 Linux 原生桌面客户端套件**:
+  - `一幕桌面客户端.command`：macOS 双击直接以桌面独立客户端启动。
+  - `一幕桌面客户端_linux.sh` & `一幕桌面客户端.desktop`：Linux 桌面双击快捷启动与系统应用菜单集成。
+- **自动化桌面客户端打包与分发流水线 (`scripts/build_desktop_client.py`)**:
+  - 支持一键打包 Windows x64 便携桌面压缩包 (`.zip`)、macOS (`.tar.gz`) 和 Linux (`.tar.gz`) 客户端。
+  - 支持 `--with-runtime` 参数自动嵌入官方独立便携 Python 解释器并预装全量核心依赖，达成 100% 零环境配置、免 Python 安装开箱即用。
+  - 集成 `.github/workflows/build-desktop-client.yml` CI/CD，Tag 发布时全自动构建并挂载 Releases 资源。
+- **启动与升级脚本运行时架构升级**:
+  - `一键启动.bat` 与 `一键升级.bat` 注入步骤 0：优先嗅探 `runtime\python.exe` 独立运行时，彻底跳过系统 Store 伪占位符与环境检查，直接进入极速创作。
+
 ## [10.1.12] - 2026-10-23 · 鸿蒙始 (Primordial Dawn)
 
 ### 🛡️ Windows 全版本通用架构 (Windows 7 / 8 / 8.1 / 10 / 11 终极适配)

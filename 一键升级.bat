@@ -1,14 +1,23 @@
 @echo off
-setlocal enabledelayedexpansion
-chcp 65001 >nul
+rem ==============================================================================
+rem  一幕·YIMU 爆款工作室 (YIMU Studio) - Windows 全版本通用一键升级中枢
+rem  系统兼容: Windows 7 / Windows 8 / Windows 8.1 / Windows 10 / Windows 11 (x86/x64)
+rem  官方网站: https://yimu.hyipf.com
+rem ==============================================================================
+
+rem 尝试启用 UTF-8 编码支持（兼容 Win7/8/10/11，抑制旧版点阵字体切换告警）
+chcp 65001 >nul 2>nul
+
 title 一幕·YIMU 爆款工作室 - 一键升级
+
+rem 切换工作目录至当前脚本所在目录（带引号防路径空格与特殊符号）
+cd /d "%~dp0"
+
 echo ============================================================
 echo   一幕·YIMU 爆款工作室 (YIMU Studio) - Windows 一键升级助手
 echo   官方网站: https://yimu.hyipf.com
 echo ============================================================
 echo.
-
-cd /d "%~dp0"
 
 echo 本升级工具将自动执行以下操作：
 echo  1. 从官方 GitHub 仓库同步最新代码 (支持 Git 仓库模式与 Release ZIP 压缩包模式)
@@ -31,7 +40,8 @@ for /f "tokens=5" %%a in ('netstat -aon ^| findstr ":8790" ^| findstr "LISTENING
     echo 正在关闭旧的一幕后台服务进程 (PID: %%a)...
     taskkill /F /PID %%a >nul 2>nul
 )
-timeout /t 1 /nobreak >nul
+rem 延迟等待端口释放（兼容 Win7/8/10/11）
+timeout /t 1 /nobreak >nul 2>nul || ping -n 2 127.0.0.1 >nul 2>nul
 
 rem 确保数据与日志目录存在
 if not exist "data" mkdir data
@@ -49,7 +59,7 @@ if exist "%VENV_PY%" (
 )
 
 echo.
-echo 未发现可用 .venv 虚拟环境，正在探测系统可用 Python 环境...
+echo 未发现可用 .venv 虚拟环境，正在探测系统可用 Python 环境 (适配 Win7/8/10/11)...
 set "FOUND_PY="
 
 rem --- 扫描常见官方 Python 安装目录（最安全，绝不触发 Store 占位符）---
@@ -57,23 +67,36 @@ for %%P in (
     "%LocalAppData%\Programs\Python\Python312\python.exe"
     "%LocalAppData%\Programs\Python\Python311\python.exe"
     "%LocalAppData%\Programs\Python\Python310\python.exe"
+    "%LocalAppData%\Programs\Python\Python39\python.exe"
     "%ProgramFiles%\Python312\python.exe"
     "%ProgramFiles%\Python311\python.exe"
     "%ProgramFiles%\Python310\python.exe"
+    "%ProgramFiles%\Python39\python.exe"
     "%ProgramFiles(x86)%\Python312\python.exe"
     "%ProgramFiles(x86)%\Python311\python.exe"
     "%ProgramFiles(x86)%\Python310\python.exe"
+    "%ProgramFiles(x86)%\Python39\python.exe"
     "C:\Python312\python.exe"
     "C:\Python311\python.exe"
     "C:\Python310\python.exe"
+    "C:\Python39\python.exe"
     "D:\Python312\python.exe"
     "D:\Python311\python.exe"
     "D:\Python310\python.exe"
+    "D:\Python39\python.exe"
+    "E:\Python312\python.exe"
+    "E:\Python311\python.exe"
+    "E:\Python310\python.exe"
+    "E:\Python39\python.exe"
+    "%UserProfile%\anaconda3\python.exe"
+    "%UserProfile%\miniconda3\python.exe"
+    "C:\ProgramData\anaconda3\python.exe"
+    "C:\ProgramData\miniconda3\python.exe"
 ) do (
     if exist %%P (
         for %%F in (%%P) do (
             if %%~zF gtr 0 (
-                %%P -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" >nul 2>nul
+                %%P -c "import sys; exit(0 if sys.version_info >= (3,9) else 1)" >nul 2>nul
                 if not errorlevel 1 (
                     set "FOUND_PY=%%~fP"
                     goto CREATE_UPGRADE_VENV
@@ -90,7 +113,7 @@ if not errorlevel 1 (
         echo "%%~fI" | findstr /i "WindowsApps" >nul
         if errorlevel 1 (
             if %%~zI gtr 0 (
-                "%%~fI" -3 -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" >nul 2>nul
+                "%%~fI" -3 -c "import sys; exit(0 if sys.version_info >= (3,9) else 1)" >nul 2>nul
                 if not errorlevel 1 (
                     set "FOUND_PY=%%~fI -3"
                     goto CREATE_UPGRADE_VENV
@@ -107,7 +130,7 @@ if not errorlevel 1 (
         echo "%%~fI" | findstr /i "WindowsApps" >nul
         if errorlevel 1 (
             if %%~zI gtr 0 (
-                "%%~fI" -c "import sys; exit(0 if sys.version_info >= (3,10) else 1)" >nul 2>nul
+                "%%~fI" -c "import sys; exit(0 if sys.version_info >= (3,9) else 1)" >nul 2>nul
                 if not errorlevel 1 (
                     set "FOUND_PY=%%~fI"
                     goto CREATE_UPGRADE_VENV
@@ -119,17 +142,28 @@ if not errorlevel 1 (
 
 echo.
 echo ============================================================
-echo [错误] 升级终止：未在您的电脑上检测到可用的 Python 3.10+。
+echo [错误] 升级终止：未在您的电脑上检测到可用的 Python 3.9+。
 echo.
-echo 原因分析：
-echo   电脑尚未安装 Python 解释器（PATH 中仅有 Windows 11 自带
-echo   的 Microsoft Store 0 字节别名占位符，无法用于运行程序）。
-echo.
-echo 解决方案：
-echo   请前往 Python 官方网站下载安装包：
-echo   https://www.python.org/downloads/windows/
-echo   安装时【务必勾选】[√] Add python.exe to PATH
-echo   安装完成后重新运行 [一键升级.bat]。
+
+rem 智能检测 Windows 版本（6.1 为 Windows 7）
+set "IS_WIN7="
+ver | findstr /i "6.1." >nul 2>nul
+if not errorlevel 1 set "IS_WIN7=1"
+
+if defined IS_WIN7 (
+    echo 【Windows 7 专属解决方案】：
+    echo   请下载 Windows 7 专用 Python 安装包：
+    echo   下载地址: https://github.com/adang1345/PythonWin7/releases
+    echo   备用镜像: https://ghfast.top/https://github.com/adang1345/PythonWin7/releases
+    echo   安装时勾选 [Add Python to PATH]，完成后重新运行本升级脚本。
+) else (
+    echo 【Windows 10 / 11 解决方案】：
+    echo   请前往 Python 官方网站下载安装包：
+    echo   https://www.python.org/downloads/windows/
+    echo   安装时【务必勾选】[√] Add python.exe to PATH
+    echo   安装完成后重新运行 [一键升级.bat]。
+)
+
 echo ============================================================
 echo.
 pause

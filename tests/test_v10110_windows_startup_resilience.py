@@ -59,7 +59,7 @@ def test_v10110_bat_scans_multiple_python_paths():
 def test_v10110_version_bumped():
     """版本已升级到 10.1.10。"""
     import version as v
-    assert v.__version__ in ("10.1.10", "10.1.11"), f"期望 10.1.10 或 10.1.11，实际 {v.__version__}"
+    assert v.__version__ in ("10.1.10", "10.1.11", "10.1.12"), f"期望 10.1.10/11/12，实际 {v.__version__}"
     assert v.__codename__ == "鸿蒙始"
 
 
@@ -77,6 +77,16 @@ def test_v10111_bat_explicitly_filters_windowsapps():
         content = (ROOT / fname).read_text(encoding="utf-8", errors="replace")
         assert "WindowsApps" in content, f"{fname} 必须显式过滤 WindowsApps 目录"
         assert "gtr 0" in content, f"{fname} 必须检查文件大小大于 0 字节"
+
+
+def test_v10112_windows_7_compatibility():
+    """验证启动与升级脚本原生适配 Windows 7 及以上系统。"""
+    for fname in ("一键启动.bat", "一键升级.bat"):
+        content = (ROOT / fname).read_text(encoding="utf-8", errors="replace")
+        assert "Windows 7" in content or "Win7" in content, f"{fname} 必须包含针对 Windows 7 的适配说明"
+        assert "Python39" in content, f"{fname} 必须支持探测 Python 3.9"
+        assert "chcp 65001 >nul 2>nul" in content, f"{fname} 必须抑制 Win7 控制台代码页切换错误"
+
 
 
 

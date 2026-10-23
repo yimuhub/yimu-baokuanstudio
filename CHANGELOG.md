@@ -42,6 +42,19 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.1.12] - 2026-10-23 · 鸿蒙始 (Primordial Dawn)
+
+### 🛡️ Windows 全版本通用架构 (Windows 7 / 8 / 8.1 / 10 / 11 终极适配)
+- **终极彻底根除 Windows 启动闪退**：
+  - Windows 11 的 Store 假解释器（`WindowsApps\python.exe` 0 字节 ReparsePoint）只要被直接调用就会导致 CMD 进程瞬间崩溃闪退。新版在调用前直接通过路径特征与文件大小进行静态隔离，彻底杜绝调用；
+  - 优先扫描官方/系统所有标准安装目录（27+ 常见路径），一经命中立即使用绝对路径直启；
+  - 彻底规避批处理预解析陷阱，采用安全标签跳转结构；
+  - 无论何时出现异常或缺少依赖，窗口绝对常开（`pause`），杜绝任何控制台闪退或盲退。
+- **原生适配 Windows 7 / 8 / 8.1 老旧系统**：
+  - 兼容检测 `ver` 内核版本（NT 6.1），专属提供 Windows 7 Python 3.10/3.11 安装指导与国内高速下载镜像；
+  - 优化代码页切换 `chcp 65001 >nul 2>nul`，抑制旧版点阵字体控制台报错崩溃；
+  - 兼容 Python 3.9+ 解释器探测与启动。
+
 ## [10.1.11] - 2026-10-23 · 鸿蒙始 (Primordial Dawn)
 
 ### 🛡️ 全端全流程韧性加固 (Full-Stack Cross-Platform Resilience Release)

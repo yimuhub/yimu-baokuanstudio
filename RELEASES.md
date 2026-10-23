@@ -4,6 +4,21 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🛡️ Version 10.1.12 · Windows 7 to 11 Universal Architecture · 2026-10-23
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.12"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🔧 Ultimate Windows Startup & Upgrade Resilience (Win7 / 8 / 8.1 / 10 / 11)
+
+| # | Architecture Feature | Detail |
+|---|----------------------|--------|
+| 1 | **Static WindowsApps Isolation** | Never attempts to invoke 0-byte Store execution aliases on Windows 11; statically filters them before `CreateProcessW` can trigger a console crash. |
+| 2 | **Direct Path First (27+ Paths)** | Exhaustively scans standard installation paths across `ProgramFiles`, `LocalAppData`, `C:\`, `D:\`, `E:\`, Anaconda, Miniconda for Python 3.9-3.12. |
+| 3 | **Windows 7 Native Adaptation** | Detects NT 6.1 kernel, provides dedicated Windows 7 Python 3.10/3.11 download guidance, suppresses raster font `chcp` switching issues, and supports Python 3.9+. |
+| 4 | **No-Flash Window Guarantee** | All error and exit branches are bounded by explicit `pause` and label jumps; console window remains permanently open for user inspection. |
+
+---
+
 ## 🛡️ Version 10.1.11 · Cross-Platform Full-Chain Resilience · 2026-10-23
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.1.11"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

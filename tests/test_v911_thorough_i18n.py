@@ -16,8 +16,8 @@ def test_v911_version_single_source():
     index_html = get_html_page()
     mobile_html = get_mobile_html_page()
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
-    readme_en = Path("README.md").read_text(encoding="utf-8")
-    readme_zh = Path("README_ZH.md").read_text(encoding="utf-8")
+    readme_en = Path("README_EN.md").read_text(encoding="utf-8")  # 默认语言对调：README.md 为中文
+    readme_zh = Path("README.md").read_text(encoding="utf-8")
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
 
     assert f"V{version.__version__}" in index_html

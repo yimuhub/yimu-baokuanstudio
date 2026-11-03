@@ -101,7 +101,11 @@ def compile_inno_setup():
         return False
 
     print(f"🔨 正在调用 Inno Setup 编译 Windows 原生应用安装程序 (.exe)...")
-    res = subprocess.run([iscc_bin, str(ISS_FILE)], cwd=str(ISS_FILE.parent))
+    # ⭐ 版本号从 version.py 注入，安装包文件名/注册信息不再受 .iss 里写死的旧版本影响
+    res = subprocess.run(
+        [iscc_bin, f"/DMyAppVersion={version.__version__}", str(ISS_FILE)],
+        cwd=str(ISS_FILE.parent),
+    )
     if res.returncode == 0:
         exe_path = DIST_DIR / f"YIMU-Studio-Windows-Setup-v{version.__version__}.exe"
         print(f"🎉 Windows 安装包构建成功: {exe_path}")
@@ -113,7 +117,11 @@ def compile_inno_setup():
 
 def main():
     prepare_windows_bundle(with_runtime=False)
-    compile_inno_setup()
+    ok = compile_inno_setup()
+    # Windows 上编译失败必须让构建红掉：历史上 main() 丢弃返回值，
+    # 导致 .exe 根本没产出、CI 照样绿，最后发布出去的 Release 里缺安装包。
+    if not ok and os.name == "nt":
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -4,6 +4,23 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🛠️ Version 10.3.0 · Stability Overhaul & Diagnostics · 2026-11-03
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.3.0"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🔧 Reliability & Output Quality
+
+| # | Fix | Detail |
+|---|-----|--------|
+| 1 | **Windows rewrite always failed** | `draft_history` column migration only ran on first-time DB creation, so existing databases never received the `title` column. New drafts worked (no history row), every rewrite failed (needs history row). Migration now runs on the fast path plus a last-metre `ALTER TABLE` fallback. |
+| 2 | **Storage vs. display separation** | Body text keeps Markdown in the database so WeChat HTML can render real `<strong>`; symbols are stripped only at plain-text exits (card images, XHS/Weibo/Toutiao/Zhihu, copy, raw). |
+| 3 | **Stray `**` printed on card images** | The Pillow kicker was drawn without sanitising, so `**核心痛点**` landed on the PNG. Fixed, plus card HTML now maps `**bold**` to `<b>bold</b>`. |
+| 4 | **Silent regressions from normalisation** | `# 标题` / `### 标题` normalised to `【标题】` broke every `startswith("# ")` / `startswith("### ")` parser — XHS title lost, card sections degraded. New `extract_leading_title()` and unified `is_section_heading()`; 9 call sites fixed. |
+| 5 | **System diagnostics log** | Settings → 🩺 System Diagnostics: ring buffer + rotating file, env snapshot (OS/Python/encoding/writable dirs/`draft_history` columns), step-by-step rewrite tracing, auto-redaction of secrets, copy/save/filter/clear in the UI. |
+| 6 | **Windows CI packaging** | Build scripts printed Chinese/emoji to a `cp1252` console and crashed the installer build. Stdout now reconfigured to UTF-8; installer version is injected via `/DMyAppVersion` instead of being hard-coded in the `.iss`. |
+
+---
+
 ## 🚀 Version 10.2.1 · Native Application Installers (.exe, .dmg, .deb) · 2026-10-23
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.2.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

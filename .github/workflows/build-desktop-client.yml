@@ -13,6 +13,11 @@ jobs:
   build-windows:
     name: Build Windows Setup (.exe)
     runs-on: windows-latest
+    # Windows runner 默认控制台编码是 cp1252，构建脚本里的中文/emoji 日志会抛
+    # UnicodeEncodeError 把打包直接打断。脚本内已 reconfigure stdout，这里再兜一层环境变量。
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONUTF8: "1"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4

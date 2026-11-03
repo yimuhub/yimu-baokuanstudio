@@ -22,6 +22,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+def _ensure_utf8_stdio() -> None:
+    """Windows 控制台默认 cp1252 / cp936，打印中文或 emoji 会抛 UnicodeEncodeError，
+    整个打包流程当场中断（CI 上表现为 Build Windows Setup 恒定失败）。
+    这里把标准输出/错误切到 UTF-8 并允许替换，宁可掉一个字符也不能让构建挂掉。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
+_ensure_utf8_stdio()
+
 import version
 
 PYTHON_WIN_EMBED_URL = "https://www.python.org/ftp/python/3.11.9/python-3.11.9-embed-amd64.zip"

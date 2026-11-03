@@ -20,7 +20,7 @@
   <i>One Thought. One Scene. Infinite Worlds.</i>
 </p>
 
-[English](README.md) • **简体中文**
+[English](README_EN.md) • **简体中文**
 
 [✨ 功能特性](#-核心特性矩阵) • [🚀 快速启动](#-快速启动) • [📖 系统说明书](docs/系统功能说明书.md) • [🏗️ 系统架构](#-系统架构) • [🛠️ 开发指南](DEVELOPMENT.md) • [📦 发行日志](RELEASES.md) • [📜 开源协议](#-开源许可与版权主体-license--copyright)
 

@@ -1924,5 +1924,7 @@
   "最近 100 条": "Last 100 entries",
   "最近 500 条": "Last 500 entries",
   "全部（最多 2000 条）": "All (max 2000)",
-  "只看错误与警告": "Errors & warnings only"
+  "只看错误与警告": "Errors & warnings only",
+  "关闭引导": "Close guide",
+  "关闭（视为已完成，不再打扰）": "Close (marks onboarding as done)"
 }

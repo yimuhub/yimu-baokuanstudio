@@ -1964,6 +1964,43 @@ input[type=text]:focus, textarea:focus, select:focus {
   z-index: 90;
 }
 .mask.on { display: flex; }
+
+/* 🚀 首次引导 Wizard 布局兜底（V10.3.1 修复「按钮点不到 / 点不动」）
+   症状：Windows 1366×768 笔记本（浏览器可视区 ≈ 560px，125% 缩放更低）下，
+         .modal-box 的 max-height:88vh 把「下一步 / 完成引导」压到滚动区下方，
+         按钮在视口外 → 看起来"点了没反应"。
+   处理：① mask 自身可滚动，且改为 flex-start 起排，超高时顶部不会被居中裁掉；
+        ② 每步底部操作条 sticky 贴底，任何屏高下都看得见、点得到。 */
+#m-wizard {
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+#m-wizard > .modal-box {
+  margin: auto;
+  max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
+  overscroll-behavior: contain;
+}
+#m-wizard .wz-footer {
+  position: sticky;
+  bottom: -1px;
+  z-index: 3;
+  margin-top: 8px;
+  padding: 10px 0 2px;
+}
+/* 只有在该步内容真的超出（矮屏）时才把操作条做成实色底栏挡住后面的正文；
+   高屏不溢出时保持透明，避免完成页底部多出一条突兀的色带。 */
+#m-wizard > .modal-box.is-scroll .wz-footer {
+  background: #0d121c;
+  box-shadow: 0 -10px 12px -8px rgba(13, 18, 28, 0.98);
+}
+#m-wizard .wz-step { cursor: pointer; transition: opacity .15s ease; }
+#m-wizard .wz-step:hover { opacity: .85; }
+#m-wizard .wz-step[data-locked="1"] { cursor: default; }
+#m-wizard .wz-step[data-locked="1"]:hover { opacity: 1; }
+
 .img-mgr-drawer {
   width: min(1100px, 95vw);
   height: 88vh;
@@ -9276,7 +9313,7 @@ async function deleteUserAccount(uid, username) {
      ② 选择主链路：直接开始（走官方通道 + 免费体验额度）或填入自备 Key
      ③ 完成/跳过（POST /api/onboarding/done 持久化，不再打扰） -->
 <div class="mask" id="m-wizard" style="z-index:1000">
-  <div class="modal-box" style="width:min(560px,94vw);background:linear-gradient(145deg,#161c28,#0d121c);border:1px solid rgba(64,184,190,0.4);box-shadow:0 16px 50px rgba(0,0,0,.8);max-height:88vh;overflow-y:auto">
+  <div class="modal-box" style="width:min(560px,94vw);background:linear-gradient(145deg,#161c28,#0d121c);border:1px solid rgba(64,184,190,0.4);box-shadow:0 16px 50px rgba(0,0,0,.8)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08)">
       <div style="display:flex;align-items:center;gap:8px">
         <img src="/static/img/logo-icon.png" style="width:24px;height:24px;border-radius:5px;object-fit:contain" alt="Logo">
@@ -9285,14 +9322,14 @@ async function deleteUserAccount(uid, username) {
           <div style="font-size:11px;color:var(--text-muted)" data-i18n="wizard_sub">30 秒完成引导，即可开始生成你的第一条爆款内容</div>
         </div>
       </div>
-      <button class="btn btn-sm ghost" style="padding:2px 8px;border-radius:4px" onclick="closeWizard()">✕</button>
+      <button type="button" class="btn btn-sm ghost" aria-label="关闭引导" title="关闭（视为已完成，不再打扰）" style="padding:6px 12px;border-radius:6px;font-size:14px;line-height:1" onclick="closeWizard()">✕</button>
     </div>
 
-    <!-- 步骤条 -->
+    <!-- 步骤条（可点回看已完成步骤，不能跳到未走到的步骤） -->
     <div style="display:flex;gap:6px;margin-bottom:16px" id="wizard-steps">
-      <div class="wz-step on" data-step="1" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(64,184,190,.15);color:#40b8be;border-radius:6px" data-i18n="wizard_step1">1 · 免费额度</div>
-      <div class="wz-step" data-step="2" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.04);color:var(--text-muted);border-radius:6px" data-i18n="wizard_step2">2 · 选主链路</div>
-      <div class="wz-step" data-step="3" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.04);color:var(--text-muted);border-radius:6px" data-i18n="wizard_step3">3 · 完成</div>
+      <div class="wz-step on" data-step="1" onclick="wizardStepClick(1)" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(64,184,190,.15);color:#40b8be;border-radius:6px" data-i18n="wizard_step1">1 · 免费额度</div>
+      <div class="wz-step" data-step="2" onclick="wizardStepClick(2)" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.04);color:var(--text-muted);border-radius:6px" data-i18n="wizard_step2">2 · 选主链路</div>
+      <div class="wz-step" data-step="3" onclick="wizardStepClick(3)" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.04);color:var(--text-muted);border-radius:6px" data-i18n="wizard_step3">3 · 完成</div>
     </div>
 
     <!-- 第 1 步：认识免费体验额度 -->
@@ -9316,7 +9353,9 @@ async function deleteUserAccount(uid, username) {
           </div>
         </div>
       </div>
-      <button class="btn ok" style="width:100%;padding:10px" onclick="wizardGo(2)" data-i18n="wizard_next">下一步 →</button>
+      <div class="wz-footer">
+        <button type="button" class="btn ok" style="width:100%;padding:10px" onclick="wizardGo(2)" data-i18n="wizard_next">下一步 →</button>
+      </div>
     </div>
 
     <!-- 第 2 步：选主链路 -->
@@ -9355,9 +9394,9 @@ async function deleteUserAccount(uid, username) {
           </div>
         </label>
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
-        <button class="btn ghost" style="font-size:12px" onclick="wizardGo(1)">← 上一步</button>
-        <button class="btn ok" style="flex:1;padding:10px" onclick="wizardFinish()">完成引导 ➔</button>
+      <div class="wz-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <button type="button" class="btn ghost" style="font-size:12px" onclick="wizardGo(1)" data-i18n="wizard_prev">← 上一步</button>
+        <button type="button" id="wz-finish-btn" class="btn ok" style="flex:1;padding:10px" onclick="wizardFinish()" data-i18n="wizard_finish">完成引导 ➔</button>
       </div>
     </div>
 
@@ -9369,9 +9408,9 @@ async function deleteUserAccount(uid, username) {
         <div style="font-size:12.5px;color:var(--text);line-height:1.6;margin-bottom:14px" id="wz-done-msg">
           现在可以直接在「灵感生成器」里输入一句话，开始生成你的第一条爆款。
         </div>
-        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-          <button class="btn ok" style="padding:9px 18px" onclick="closeWizard();goInspire()" data-i18n="wizard_done_cta1">去写第一条爆款 ➔</button>
-          <button class="btn ghost" style="padding:9px 18px" onclick="closeWizard()" data-i18n="wizard_done_cta2">留在当前页</button>
+        <div class="wz-footer" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;text-align:center">
+          <button type="button" class="btn ok" style="padding:9px 18px" onclick="closeWizard();goInspire()" data-i18n="wizard_done_cta1">去写第一条爆款 ➔</button>
+          <button type="button" class="btn ghost" style="padding:9px 18px" onclick="closeWizard()" data-i18n="wizard_done_cta2">留在当前页</button>
         </div>
       </div>
     </div>
@@ -10277,17 +10316,45 @@ function toast(msg, duration = 3500) {
   toastTimer = setTimeout(() => t.classList.remove('on'), duration);
 }
 
-function modal(id) { $(id).classList.add('on'); }
+// ⚠️ modal() 必须返回元素：历史上它没有 return，导致 closeWizard() 里的
+//    modal('m-wizard').classList 抛 TypeError（引导的 ✕ / 完成按钮全部点不动）。
+function modal(id) {
+  const el = $(id);
+  if (el) el.classList.add('on');
+  return el;
+}
 function closeModal() { 
   const tVid = $('theater-video');
   if (tVid) { tVid.pause(); tVid.src = ''; }
   document.querySelectorAll('.mask').forEach(m => m.classList.remove('on')); 
 }
 document.querySelectorAll('.mask').forEach(m => {
-  m.addEventListener('click', e => { if(e.target === m) closeModal(); });
+  m.addEventListener('click', e => {
+    if (e.target !== m) return;
+    // 引导弹窗点背景关闭也要落"已完成"标记，否则下次刷新又弹（用户会以为关不掉）
+    if (m.id === 'm-wizard') { closeWizard(); return; }
+    closeModal();
+  });
 });
 document.addEventListener('keydown', e => {
-  if(e.key === 'Escape') closeModal();
+  if (e.key !== 'Escape') return;
+  const wz = $('m-wizard');
+  if (wz && wz.classList.contains('on')) { closeWizard(); return; }
+  closeModal();
+});
+// 引导内回车直达下一步（按钮聚焦时交给浏览器默认 click，避免触发两次）
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' || e.isComposing) return;
+  const wz = $('m-wizard');
+  if (!wz || !wz.classList.contains('on')) return;
+  const tag = (e.target && e.target.tagName) || '';
+  if (tag === 'BUTTON' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+  const step2 = $('wizard-step-2');
+  const step3 = $('wizard-step-3');
+  if (step3 && step3.style.display === 'block') return;
+  if (step2 && step2.style.display === 'block') { e.preventDefault(); wizardFinish(); return; }
+  e.preventDefault();
+  wizardGo(2);
 });
 
 function openLoginModal() {
@@ -10866,6 +10933,13 @@ async function doLogin() {
     updateAuthUI(true, currentUserInfo);
     toast(`🎉 欢迎，【${username || '创作者'}】！${currentAuthTab === 'register' ? '账号注册成功，已获赠体验额度！' : '登录成功！'}`);
     refresh();
+    // 新注册 / 首次登录的用户：登录完立刻拉起引导，别让他们对着一片空白发呆
+    setTimeout(() => {
+      fetch('/api/auth/status')
+        .then(r => r.json())
+        .then(st => checkWizard(st))
+        .catch(() => {});
+    }, 500);
   } catch(err) {
     errBox.textContent = '❌ ' + err.message;
     errBox.style.display = 'block';
@@ -19720,7 +19794,11 @@ updateThemeToggleDisplay();
       const ld = await lr.json().catch(() => ({}));
       if (lr.ok) {
         updateAuthUI(true, ld.user);
-        checkWizard({authed: true, user: ld.user, wizard: (d && d.wizard) || {show: false}});
+        // 🔴 修复：此前这里用登录前的 d.wizard（show 恒为 false），
+        //    默认管理员自动登录后引导永远不会出现。登录成功后重新取一次真实状态。
+        let st = null;
+        try { st = await (await fetch('/api/auth/status')).json(); } catch (_e) { st = null; }
+        checkWizard(st || {authed: true, user: ld.user, wizard: {show: false}});
       }
       else updateAuthUI(false);
     }
@@ -19738,13 +19816,19 @@ updateThemeToggleDisplay();
    - 任何一步可关闭/跳过，关闭即 POST /api/onboarding/done 持久化标记，绝不反复打扰；
    - 展示"官方通道每日 3 次免费体验额度"，让第一次成功先于第一次付费；
    - 自备 Key 路径直接走 /api/user/vault/keys 加密保存（复用既有 Vault 机制）。 */
+// 当前已走到第几步（步骤条点击只允许回看 ≤ 该步，不允许跳到还没走到的步骤）
+window._WIZ_MAX_STEP = 1;
+
 function wizardGo(step) {
-  const s = step || 1;
+  const s = Math.min(3, Math.max(1, Number(step) || 1));
+  window._WIZ_MAX_STEP = Math.max(window._WIZ_MAX_STEP || 1, s);
   document.querySelectorAll('#wizard-steps .wz-step').forEach(el => {
     const cur = Number(el.dataset.step);
     el.classList.toggle('on', cur === s);
     el.style.background = cur === s ? 'rgba(64,184,190,.15)' : 'rgba(255,255,255,.04)';
     el.style.color = cur === s ? '#40b8be' : 'var(--text-muted)';
+    // 未走到的步骤不可点（避免空跑到"完成"页）
+    el.dataset.locked = cur > window._WIZ_MAX_STEP ? '1' : '0';
   });
   [1, 2, 3].forEach(i => {
     const p = $('wizard-step-' + i);
@@ -19755,11 +19839,49 @@ function wizardGo(step) {
     const leftEl = $('wz-free-left-2');
     if (leftEl && window._WIZ_FREE_LEFT != null) leftEl.textContent = window._WIZ_FREE_LEFT;
   }
+  // 切换步骤后把弹窗滚回顶部，避免停在上一屏的滚动位置（矮屏尤其明显）
+  const box = document.querySelector('#m-wizard > .modal-box');
+  if (box) box.scrollTop = 0;
+  wizardSyncScrollFlag();
+}
+
+// 内容溢出时才给底部操作条上实色底（否则完成页会多一条难看的色带）
+function wizardSyncScrollFlag() {
+  const box = document.querySelector('#m-wizard > .modal-box');
+  if (!box) return;
+  box.classList.toggle('is-scroll', box.scrollHeight - box.clientHeight > 4);
+}
+
+// 窗口尺寸变化（拖窗口 / 投屏切换分辨率）时重新判定是否需要实色底栏
+window.addEventListener('resize', () => {
+  const wz = $('m-wizard');
+  if (wz && wz.classList.contains('on')) wizardSyncScrollFlag();
+});
+// 弹窗从 display:none 变为显示时 clientHeight 才有效，用 ResizeObserver 兜住这次变化
+try {
+  const _wzBox = document.querySelector('#m-wizard > .modal-box');
+  if (_wzBox && window.ResizeObserver) {
+    new ResizeObserver(() => wizardSyncScrollFlag()).observe(_wzBox);
+  }
+} catch (_e) { /* 老浏览器没有 ResizeObserver 也不影响主流程 */ }
+
+// 步骤条点击：只允许回看已走过的步骤
+function wizardStepClick(step) {
+  const s = Number(step) || 1;
+  if (s > (window._WIZ_MAX_STEP || 1)) return;
+  wizardGo(s);
 }
 
 function closeWizard() {
-  // 标记完成，避免反复打扰；任何时刻关闭都视为"完成/跳过"
-  modal('m-wizard').classList.remove('on');
+  /* 任何时刻关闭（✕ / 背景 / Esc / 完成页按钮）都算"完成/跳过"并落标记，避免反复打扰。
+     🔴 修复：此前这里写的是 modal('m-wizard').classList.remove('on')，
+        而 modal() 没有返回值 → 必然抛 TypeError，✕ 和完成页两个按钮全部点不动，
+        POST /api/onboarding/done 也永远发不出去 → 引导关不掉、每次刷新都弹。 */
+  try {
+    const w = $('m-wizard');
+    if (w) w.classList.remove('on');
+  } catch (_e) { /* DOM 缺失也不阻塞标记 */ }
+  window._WIZ_MAX_STEP = 1;
   fetch('/api/onboarding/done', {method: 'POST'})
     .catch(() => { /* 标记失败不阻塞 */ });
 }
@@ -19790,14 +19912,24 @@ function onWizardProviderChange() {
 }
 
 async function wizardFinish() {
+  const btn = $('wz-finish-btn');
   const choice = (document.querySelector('input[name="wz-choice"]:checked') || {}).value || 'official';
   if (choice === 'key') {
-    const provider = $('wz-key-provider').value;
-    const key = $('wz-key-value').value.trim();
+    const selEl = $('wz-key-provider');
+    const inpEl = $('wz-key-value');
+    const provider = selEl ? selEl.value : 'deepseek';
+    const key = inpEl ? inpEl.value.trim() : '';
     if (!key) {
       toast('请填写 API Key，或改选"官方通道（免 Key）"');
+      // 把焦点送到真正要填的地方，而不是让用户对着"点了没反应"发呆
+      if (inpEl) {
+        try { inpEl.scrollIntoView({block: 'center'}); inpEl.focus(); } catch (_e) {}
+        inpEl.style.borderColor = '#f85149';
+        setTimeout(() => { inpEl.style.borderColor = ''; }, 1800);
+      }
       return;
     }
+    if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
     try {
       const r = await fetch('/api/user/vault/keys', {
         method: 'POST',
@@ -19805,21 +19937,30 @@ async function wizardFinish() {
         body: JSON.stringify({provider: provider, api_key: key, model_id: '', label: 'Wizard 引导'})
       });
       const d = await r.json().catch(() => ({}));
-      if (r.ok) toast('✅ 自备 API Key 已加密保存并生效');
-      else toast('❌ ' + (d.detail || d.message || '保存失败'), 4000);
+      if (!r.ok) {
+        // 保存失败不能继续走"完成"页，否则用户会以为自己配好了
+        toast('❌ ' + (d.detail || d.message || '保存失败'), 4000);
+        return;
+      }
+      toast('✅ 自备 API Key 已加密保存并生效');
     } catch(e) {
       toast('❌ 网络错误：' + e.message, 4000);
       return;
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '完成引导 ➔'; }
     }
   }
   // 进入完成页
   wizardGo(3);
   const left = (window._WIZ_FREE_LEFT != null) ? window._WIZ_FREE_LEFT : 3;
-  $('wz-done-msg').innerHTML =
-    (choice === 'official'
-      ? '主链路已设为「官方通道」，今日剩余 '
-      : '已启用自备 Key 主链路。官方通道今日剩余 ')
-    + '<b style="color:#40b8be">' + left + '</b> 次免费体验额度 · 随时可在「控制中心 → 模型服务」切换。';
+  const doneMsg = $('wz-done-msg');
+  if (doneMsg) {
+    doneMsg.innerHTML =
+      (choice === 'official'
+        ? '主链路已设为「官方通道」，今日剩余 '
+        : '已启用自备 Key 主链路。官方通道今日剩余 ')
+      + '<b style="color:#40b8be">' + left + '</b> 次免费体验额度 · 随时可在「控制中心 → 模型服务」切换。';
+  }
   // 持久化标记（防反复打扰）
   fetch('/api/onboarding/done', {method: 'POST'}).catch(() => {});
 }
@@ -19838,11 +19979,17 @@ async function checkWizard(statusData) {
     const hasKey = !!(d && d.using_platform_default === false);
     if (hasKey) { fetch('/api/onboarding/done', {method: 'POST'}).catch(() => {}); return; }
   } catch(e) { /* 网络失败也照显示，引导不阻塞 */ }
-  if (window._WIZ_FREE_LEFT != null) {
-    $('wz-free-left').textContent = window._WIZ_FREE_LEFT;
+  const freeLeft = $('wz-free-left');
+  if (freeLeft && window._WIZ_FREE_LEFT != null) {
+    freeLeft.textContent = window._WIZ_FREE_LEFT;
   }
+  const w = $('m-wizard');
+  if (!w) return;                       // DOM 缺失就安静退出，绝不抛错打断主流程
+  if (w.classList.contains('on')) return; // 已在展示中，别重复初始化
+  window._WIZ_MAX_STEP = 1;
   wizardGo(1);
   modal('m-wizard');
+  wizardSyncScrollFlag();   // 弹窗刚显示时才算得准 clientHeight
 }
 
 /* =================== 🖼️ 配图管理器 =================== */

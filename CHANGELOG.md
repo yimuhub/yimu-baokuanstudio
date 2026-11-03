@@ -42,6 +42,26 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.3.1] - 2026-11-03 · 鸿蒙始 (Primordial Dawn) · 首次引导按钮修复 (Onboarding Wizard Fixes)
+
+### Fixed
+- **首次引导（Wizard）里 ✕ / 下一步 / 完成引导全部点不动**：
+  `closeWizard()` 里写的是 `modal('m-wizard').classList.remove('on')`，而 `modal()` 没有返回值，
+  必然抛 `TypeError: Cannot read properties of undefined (reading 'classList')`。
+  结果是弹窗关不掉、`POST /api/onboarding/done` 也永远发不出去 → 每次刷新都重新弹，新用户被永久卡在引导里。
+  - `modal()` 改为返回元素（并对不存在的 id 静默容错）。
+  - `closeWizard()` 直接操作 DOM 并包 try/catch，无论从哪条路径关闭都落「已完成」标记。
+  - 背景点击 / Esc 关闭引导同样走 `closeWizard()`，不再出现「关了但下次还弹」。
+- **矮屏（1366×768 笔记本、125% 缩放、小窗口）下「下一步」被压在可视区外**：
+  弹窗 `max-height:88vh` + 内部滚动，把底部按钮藏到滚动区之外，看着像"按钮没反应"。
+  - mask 改为 `flex-start + overflow-y:auto`，超高时弹窗顶部不会被居中裁掉，整层可滚动。
+  - 每步的底部操作条改为 `position:sticky` 实色贴底，任何屏高下「下一步 / 完成引导」都看得见、点得到。
+- **步骤条只能看不能点**：现在可点击回看已走过的步骤，未走到的步骤保持锁定，避免空跑到「完成」页。
+- **自备 Key 保存失败仍跳「完成」页**：改为失败即停在当前步并提示，按钮进入「保存中…」防连点；
+  Key 为空时把焦点与红框送到输入框，而不是弹个 toast 就没了。
+- **默认管理员自动登录后永不出现引导**：此前用登录前的状态判断（`wizard.show` 恒为 false），
+  改为登录成功后重新拉取 `/api/auth/status`；注册 / 登录成功后也会立即拉起引导。
+
 ## [10.3.0] - 2026-11-03 · 鸿蒙始 (Primordial Dawn) · 系统诊断日志与改写链路修复 (Diagnostics & Rewrite Fixes)
 
 ### Added

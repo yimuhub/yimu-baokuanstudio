@@ -4,6 +4,23 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🩹 Version 10.3.1 · Onboarding Wizard Fixes · 2026-11-03
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.3.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🚪 First-Run Onboarding
+
+| # | Fix | Detail |
+|---|-----|--------|
+| 1 | **✕ / Next / Finish did nothing** | `closeWizard()` called `modal('m-wizard').classList…` while `modal()` returned `undefined` → guaranteed `TypeError`. The dialog could never be dismissed and `POST /api/onboarding/done` was never sent, so new users were trapped in a wizard that reappeared on every reload. `modal()` now returns the element; `closeWizard()` is defensive and always persists the "done" flag. |
+| 2 | **Backdrop click / Esc didn't persist dismissal** | Both paths now route through `closeWizard()`, so closing by any means stops the wizard from coming back. |
+| 3 | **Bottom button pushed outside the viewport** | On 1366×768 laptops (and 125% scaling), `max-height:88vh` + inner scrolling hid "下一步 / 完成引导" below the fold — it looked like a dead button. The overlay now starts top-aligned with its own scroll, and each step's action bar is a sticky, opaque footer that is always visible. |
+| 4 | **Step chips were inert** | Clicking a chip now jumps back to any step already reached; not-yet-reached steps stay locked. |
+| 5 | **Failed key save still showed "done"** | Saving a self-hosted API key now aborts on failure with the button in a "saving…" state; an empty key focuses and highlights the input instead of just toasting. |
+| 6 | **Default admin never saw the wizard** | The auto-login path evaluated `wizard.show` from the pre-login response (always `false`). Status is fetched again after login, and register/login now raise the wizard immediately. |
+
+---
+
 ## 🛠️ Version 10.3.0 · Stability Overhaul & Diagnostics · 2026-11-03
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.3.0"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

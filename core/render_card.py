@@ -13,17 +13,27 @@ from core.themes import XHS_CARD_STYLES, DEFAULT_CARD_STYLE
 def card_html(title: str, paragraphs: list[str], *, kicker: str = "",
               footer: str = "", cover: bool = False,
               style: str = DEFAULT_CARD_STYLE, bg_img: Path | None = None) -> str:
+    # ⭐ 卡片是图片成品：`**`、`##`、`- ` 会被直接印在图上——入口必须净化。
+    #   V10.3：正文改走 card_inline_html，`**重点**` → `<b>重点</b>`，
+    #   图片上依然是加粗的，但绝不会出现星号（排版保留、画面零符号）。
+    from core.text_purity import card_inline_html, purify_title
+
+    title_h = card_inline_html(purify_title(title))
+    paras_h = [h for h in (card_inline_html(x) for x in (paragraphs or [])) if h.strip()]
+    kicker_h = card_inline_html(purify_title(kicker))
+    footer_h = card_inline_html(footer)
+
     st = XHS_CARD_STYLES.get(style, XHS_CARD_STYLES[DEFAULT_CARD_STYLE])
     cls = "card cover" if cover else "card"
     badge = '<span class="badge">精选收藏</span>' if not cover else '<span class="badge">爆款精选</span>'
-    kicker = kicker or ("精选干货" if cover else "干货要点")
-    footer = footer or "#深度干货 #生活灵感"
+    kicker_h = kicker_h or ("精选干货" if cover else "干货要点")
+    footer_h = footer_h or "#深度干货 #生活灵感"
 
     # 1. 全幅 AI 视觉画报 / 背景大图融合与透光磨砂蒙版布局
     if bg_img and bg_img.exists():
         import base64
         b64 = base64.b64encode(bg_img.read_bytes()).decode()
-        body = "".join(f"<p>{html.escape(p)}</p>" for p in paragraphs)
+        body = "".join(f"<p>{p}</p>" for p in paras_h)
         is_dark = (style in ("ai_visual_dark", "dark", "cyber_neon", "boldposter", "ai_visual_split", "magazine"))
         scrim_cls = "scrim-dark" if is_dark else "scrim-light"
         
@@ -33,16 +43,16 @@ def card_html(title: str, paragraphs: list[str], *, kicker: str = "",
                 f"<img src='data:image/png;base64,{b64}' class='visual-bg-img'/>"
                 f"<div class='{scrim_cls}'></div>"
                 f"<div class='visual-content'>"
-                f"<div class='kicker'>{html.escape(kicker)}</div>"
-                f"<div class='title'>{html.escape(title)}</div>"
+                f"<div class='kicker'>{kicker_h}</div>"
+                f"<div class='title'>{title_h}</div>"
                 f"{'<div class=\"divider\"></div>' if cover else ''}"
                 f"<div class='body'>{body}</div>"
-                f"<div class='footer'><span>{html.escape(footer)}</span>{badge}</div>"
+                f"<div class='footer'><span>{footer_h}</span>{badge}</div>"
                 f"</div></div></body></html>")
 
     # 2. 若未带底图但启用了 AI 视觉画报风格，以全景暗夜电影渐变保持半透明磨砂玻璃卡片质感
     if style in ("ai_visual_dark", "ai_visual_split", "ai_visual_light"):
-        body = "".join(f"<p>{html.escape(p)}</p>" for p in paragraphs)
+        body = "".join(f"<p>{p}</p>" for p in paras_h)
         is_dark = (style != "ai_visual_light")
         scrim_cls = "scrim-dark" if is_dark else "scrim-light"
         bg_gradient = "radial-gradient(circle at 75% 20%, #2b173e 0%, #101626 50%, #080b12 100%)" if is_dark else "radial-gradient(circle at 75% 20%, #fef3e2 0%, #faede1 50%, #f4e8dc 100%)"
@@ -51,20 +61,20 @@ def card_html(title: str, paragraphs: list[str], *, kicker: str = "",
                 f"<div class='{cls} visual-card' style='background:{bg_gradient}'>"
                 f"<div class='{scrim_cls}' style='background:radial-gradient(circle at 20% 80%, rgba(255,36,66,0.18) 0%, transparent 65%)'></div>"
                 f"<div class='visual-content'>"
-                f"<div class='kicker'>{html.escape(kicker)}</div>"
-                f"<div class='title'>{html.escape(title)}</div>"
+                f"<div class='kicker'>{kicker_h}</div>"
+                f"<div class='title'>{title_h}</div>"
                 f"{'<div class=\"divider\"></div>' if cover else ''}"
                 f"<div class='body'>{body}</div>"
-                f"<div class='footer'><span>{html.escape(footer)}</span>{badge}</div>"
+                f"<div class='footer'><span>{footer_h}</span>{badge}</div>"
                 f"</div></div></body></html>")
 
     # 3. 经典纯排版美学布局
-    body = "".join(f"<p>{html.escape(p)}</p>" for p in paragraphs)
-    inner = (f"<div class='kicker'>{html.escape(kicker)}</div>"
-             f"<div class='title'>{html.escape(title)}</div>"
+    body = "".join(f"<p>{p}</p>" for p in paras_h)
+    inner = (f"<div class='kicker'>{kicker_h}</div>"
+             f"<div class='title'>{title_h}</div>"
              f"{'<div class=\"divider\"></div>' if cover else ''}"
              f"<div class='body'>{body}</div>"
-             f"<div class='footer'><span>{html.escape(footer)}</span>{badge}</div>")
+             f"<div class='footer'><span>{footer_h}</span>{badge}</div>")
     return (f"<!doctype html><html><head><meta charset='utf-8'>"
             f"<style>{st['css']}</style></head><body>"
             f"<div class='{cls}'>{inner}</div></body></html>")
@@ -202,15 +212,19 @@ def _render_pillow_card(out_file: Path, title: str, paragraphs: list, is_cover: 
         font_title = font_body = font_kicker = ImageFont.load_default()
 
     cur_y = margin + 60
-    
-    # 顶部 Kicker 胶囊
-    kicker_text = kicker or ("精选干货" if is_cover else f"第 {card_idx} 幕")
+
+    from core.text_purity import purify_body as _pb, purify_title as _pt
+
+    # 顶部 Kicker 胶囊 —— V10.3：kicker 同样必须净化。
+    # 这里曾是星号上图的真凶：调用方传入的 sec_title[:10] 常带 `**`，
+    # 标题/正文都洗了，唯独 kicker 直接 draw.text 印在图上。
+    kicker_text = _pt(str(kicker or "")) or ("精选干货" if is_cover else f"第 {card_idx} 幕")
     draw.rounded_rectangle([(margin + 40, cur_y), (margin + 40 + len(kicker_text)*28 + 30, cur_y + 44)], radius=8, fill=accent_color)
     draw.text((margin + 55, cur_y + 8), kicker_text, fill=(255, 255, 255), font=font_kicker)
     cur_y += 76
 
     # 主标题渲染
-    clean_title = re.sub(r'^[#\s]+', '', str(title or "")).strip()
+    clean_title = _pt(str(title or ""))
     title_lines = _wrap_text_by_pixel(clean_title, font_title, content_w, draw)
     for tl in title_lines[:3]:
         if bg_img and bg_img.exists():
@@ -233,7 +247,7 @@ def _render_pillow_card(out_file: Path, title: str, paragraphs: list, is_cover: 
         temp_y = cur_y
         p_blocks = []
         for p in paragraphs:
-            clean_p = re.sub(r'^[#\s\-*•\d\.\、]+', '', str(p or "")).strip()
+            clean_p = _pb(str(p or ""))
             if not clean_p:
                 continue
             p_lines = _wrap_text_by_pixel(clean_p, font_body, content_w - 40, draw)
@@ -264,7 +278,7 @@ def _render_pillow_card(out_file: Path, title: str, paragraphs: list, is_cover: 
         cur_y = temp_y
     else:
         for p in paragraphs:
-            clean_p = re.sub(r'^[#\s\-*•\d\.\、]+', '', str(p or "")).strip()
+            clean_p = _pb(str(p or ""))
             if not clean_p:
                 continue
             p_lines = _wrap_text_by_pixel(clean_p, font_body, content_w, draw)

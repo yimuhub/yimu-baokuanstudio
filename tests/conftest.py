@@ -51,6 +51,22 @@ def assert_test_db_isolated(db_path: str) -> str:
     return db_path
 
 
+# ⭐ 进程级隔离：本文件在收集测试模块**之前**被导入，因此这里设的环境变量
+#    能赶在 `core.db` / `core.auth` 计算 DB_PATH 之前生效。
+#
+# 为什么必须做：历史上有大量用例直接 `from web.admin import app`，走的是真库
+# data/mediaflow.db。于是「改管理员口令」「给 u-admin 加余额」这类用例会把状态
+# 留给后面的用例 —— 单跑全绿、连跑变红，典型的状态污染。
+# 这里统一把整轮测试指到一个一次性临时库，真库不再被写入。
+_SESSION_DB_DIR = tempfile.mkdtemp(prefix="yimu_test_db_")
+os.environ.setdefault("YIMU_DB_PATH", os.path.join(_SESSION_DB_DIR, "mediaflow.db"))
+assert_test_db_isolated(os.environ["YIMU_DB_PATH"])
+
+# 诊断日志同样隔离：否则每轮测试产生的 4xx 记录都会写进项目的 data/logs/，
+# 把用户真正的失败现场挤出环形缓冲区。
+os.environ.setdefault("YIMU_LOG_DIR", os.path.join(_SESSION_DB_DIR, "logs"))
+
+
 def make_test_db(prefix: str = "yimu_test_") -> tuple[str, str]:
     """在系统临时目录创建一个隔离测试库，返回 (db_path, db_url)。
 

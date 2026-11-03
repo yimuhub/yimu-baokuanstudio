@@ -1,6 +1,5 @@
 """全域多端矩阵级裂变引擎：按需并发产出 6 大主流平台版本（公众号、小红书5图全集、今日头条、知乎、微博、Twitter / 𝕏）。"""
 from __future__ import annotations
-import html
 import json
 import logging
 import re
@@ -8,6 +7,7 @@ import time
 from pathlib import Path
 
 from core import agents, db, llm
+from core.text_purity import purify_body, purify_title, to_storage
 from core.render_card import render_draft_cards
 from core.themes import DEFAULT_CARD_STYLE, DEFAULT_THEME
 from adapters import toutiao, wechat_mp, zhihu, weibo, twitter
@@ -64,11 +64,23 @@ def _build_derivation_prompt(target_platforms: list[str]) -> tuple[str, bool]:
 
 
 def _parse_fission_output(raw: str) -> dict:
+    """解析六端产物，并在出口统一净化——这里出去的值会直接写进各平台 .md。
+
+    ⭐ V10.3：`BODY_WX` 是公众号正文源，保留 Markdown（加粗靠它渲染）；
+      其余各端是直接粘贴发布的纯文本，剥净标记。
+    """
     sections = {}
     pattern = r"===([A-Z_]+)===\s*\n(.*?)(?====[A-Z_]+===|\Z)"
     matches = re.findall(pattern, raw, re.DOTALL)
     for k, v in matches:
-        sections[k.strip()] = v.strip()
+        key = k.strip()
+        val = v.strip()
+        if key.startswith("TITLE"):
+            sections[key] = purify_title(val)
+        elif key == "BODY_WX":
+            sections[key] = to_storage(val)
+        else:
+            sections[key] = purify_body(val)
     return sections
 
 
@@ -195,7 +207,7 @@ def derive_all_platforms_from_master(
         )
         tt_html = toutiao.render_preview(tt_body, tt_title)
         save_preview(ddir, "toutiao", tt_html)
-        (ddir / "toutiao.md").write_text(f"# {tt_title}\n\n{tt_body}", encoding="utf-8")
+        (ddir / "toutiao.md").write_text(f"{tt_title}\n\n{purify_body(tt_body)}", encoding="utf-8")
 
     # 5. 知乎处理
     zh_title = parsed.get("TITLE_ZH")
@@ -206,7 +218,7 @@ def derive_all_platforms_from_master(
         zh_body = zh_body or (f"谢邀。\n\n关于这个问题，我们需要从底层逻辑进行深度拆解：\n\n{body_md}")
         zh_html = zhihu.render_preview(zh_body, zh_title)
         save_preview(ddir, "zhihu", zh_html)
-        (ddir / "zhihu.md").write_text(f"# {zh_title}\n\n{zh_body}", encoding="utf-8")
+        (ddir / "zhihu.md").write_text(f"{zh_title}\n\n{purify_body(zh_body)}", encoding="utf-8")
 
     # 6. 微博处理
     wb_text = parsed.get("TEXT_WB")
@@ -219,7 +231,7 @@ def derive_all_platforms_from_master(
         )
         wb_html = weibo.render_preview(wb_text, title)
         save_preview(ddir, "weibo", wb_html)
-        (ddir / "weibo.md").write_text(wb_text, encoding="utf-8")
+        (ddir / "weibo.md").write_text(purify_body(wb_text), encoding="utf-8")
 
     # 7. Twitter / 𝕏 连击串推处理
     tw_text = parsed.get("TEXT_TWITTER")

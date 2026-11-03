@@ -180,7 +180,9 @@ def _clean_llm_output(text: str) -> str:
             t = "\n".join(lines).strip()
     # 移除开头的废话如 "好的，这是为您改写的口播文案："
     t = re.sub(r"^(好的[，,！!]?|没问题[，,！!]?|以下是[^\n]*?[：:\n]+)", "", t).strip()
-    return t
+    # ⭐ 口播稿也是成品：去掉 ** / ## / - 等标记，标点统一为中文
+    from core.text_purity import purify_body
+    return purify_body(t)
 
 
 def rewrite_video_script(

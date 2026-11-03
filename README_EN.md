@@ -159,7 +159,11 @@ pip install -r requirements.txt
 
 # 4. Configure environment
 cp .env.example .env
-# Edit .env to set your YIMU_SECRET_KEY and ADMIN_PASSWORD
+# Generate the admin password (.env.example ships no real password; an empty,
+# local-admin/admin/123456 value is treated as "not configured" by the backend,
+# which rejects admin login and also disables local passwordless access)
+python scripts/ensure_admin_password.py .env
+# Other secrets: set YIMU_SECRET_KEY in .env (or generate via openssl rand -hex 32)
 
 # 5. Start the server
 python -m uvicorn web.admin:app --host 127.0.0.1 --port 8790

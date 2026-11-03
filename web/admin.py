@@ -8,6 +8,7 @@ v2：仿写按钮禁用态+进度、toast、草稿左右分栏工作区、手机
 from __future__ import annotations
 import asyncio
 import hashlib
+import logging
 import re
 import json
 import sys
@@ -16,6 +17,23 @@ import uuid
 from contextvars import ContextVar
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+
+# 模块级 logger：历史上 advideo / aivideo 两处 except 里写了不存在的 `log`，
+# NameError 会把真实异常顶掉，前端只看到 500 而没有原因。这里补上真实对象。
+logger = logging.getLogger("yimu.web")
+
+# ⭐ Windows 兼容：控制台默认编码是 cp936，任何 print 里的 emoji / 生僻字都会抛
+#    UnicodeEncodeError。这类 print 夹在长链路（改写、生成）中间，会让业务看起来
+#    "莫名其妙失败"，而同一段代码在 macOS/Linux 上跑得好好的。
+#    统一把标准流切到 UTF-8 + replace，让编码问题不再伪装成业务 bug。
+for _stream_name in ("stdout", "stderr"):
+    try:
+        _stream = getattr(sys, _stream_name, None)
+        _enc = (getattr(_stream, "encoding", "") or "").lower().replace("-", "").replace("_", "")
+        if _stream is not None and hasattr(_stream, "reconfigure") and _enc != "utf8":
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 BASE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE))
@@ -29,6 +47,11 @@ from fastapi.staticfiles import StaticFiles          # noqa: E402
 from fastapi.routing import APIRoute                # noqa: E402
 
 from core import db, judge, orchestrator             # noqa: E402
+from core import diagnostics as diag                 # noqa: E402
+
+# ⭐ 诊断日志尽早安装：此后任何 logger.exception、线程/进程未捕获异常、
+#    HTTP 4xx/5xx 都会自动留档，用户可在「设置 → 系统诊断日志」一键复制。
+diag.install()
 from core.llm import load_config, load_env           # noqa: E402
 import os as _os
 for _k, _v in load_env().items():
@@ -84,9 +107,16 @@ app.add_middleware(SecurityHeadersMiddleware)
 # ⚠️ 有意放行的例外（否则会打断公网分享功能）：
 #   - /s/{token} 分享页及其二维码/海报：地址里**只有令牌、没有 did**，
 #     令牌→稿件映射只存在于服务端库，无法靠改 did 越权（R5-5 已验证）。
-#   - /preview/{did}/{platform}：分享产物预览页，由 share 令牌链路驱动。
-#   其余一切带 did 的路由一律校验归属。
-_DID_OWNER_EXEMPT_PREFIXES = ("/s/", "/preview/")
+#     分享页里引用的图片改为 /s/{token}/img/... 令牌路由（见 share_media），
+#     因此 /img/{did}/... 不再需要对外公开。
+#   - /preview/{did}/{platform} **不再豁免**：它只是把本地文件吐出来，
+#     与分享链路无关（分享页由 /s/{token} 直接读文件渲染）。
+#     历史上把它列进豁免前缀等于「知道 did 就能读他人排版稿」。
+_DID_OWNER_EXEMPT_PREFIXES = ("/s/",)
+
+#: 草稿 id 的合法形态（生成侧为 uuid4().hex[:12]，历史数据也全是 [A-Za-z0-9_-]）。
+#: 用途：① 拦住 "../../etc" 这类路径穿越；② 非法 id 直接 400，不进数据库查询。
+_SAFE_DID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 
 class DraftOwnerRoute(APIRoute):
@@ -99,11 +129,18 @@ class DraftOwnerRoute(APIRoute):
 
         async def guarded(request: Request) -> Response:
             u = get_current_user(request)
-            # 未登录：交给下游 guard() 处理，保持 401 语义统一；
-            # 这里放行不代表能访问——所有业务路由自身都会再 guard() 一次。
-            if u and not _is_admin_user(u):
-                did = str(request.path_params.get("did") or "")
-                draft = db.get_draft(did) if did else None
+            # ⭐ fail-closed：未登录直接 401。
+            #   修复前这里是 `if u and not _is_admin_user(u)`——u 为 None 时整段跳过，
+            #   注释写「交给下游 guard()」，但 /api/drafts/{did}/raw、/img/{did}/{name}
+            #   等 14 个 handler 体内根本没有 guard()，等于匿名可下载任意稿件与配图。
+            #   鉴权必须收口在这一处：新增路由自动受保护，不依赖每个 handler 记得写。
+            if not u:
+                raise HTTPException(401, "未登录或登录态已失效，请先登录")
+            did = str(request.path_params.get("did") or "")
+            if not _SAFE_DID_RE.match(did):
+                raise HTTPException(400, "非法的草稿 id")
+            if not _is_admin_user(u):
+                draft = db.get_draft(did)
                 if not db.is_draft_owner(draft, _current_user_id(u), is_admin=False):
                     # 刻意用 404 而非 403：403 等于确认「该 id 存在」，
                     # 反而给了遍历 did 探测的口子。
@@ -150,10 +187,15 @@ app.include_router(gateway_openai_router)
 # 保证网关 UI、/v1、会员三方数据一致（测试可用 YIMU_DB_URL 隔离）。
 import os as _os  # noqa: E402
 import secrets as _secrets  # noqa: E402
+from core import secret_store as _secret_store  # noqa: E402
 from core.db import DB_PATH as _MAIN_DB_PATH  # noqa: E402
 _os.environ.setdefault("YIMU_DB_URL", "sqlite:///" + str(_MAIN_DB_PATH))
+# studio.auth 在 import 期就要求 YIMU_SECRET_KEY，因此这里必须供给。
+# ⚠️ 必须用**持久化**密钥（data/.secrets/session），不能再用启动时随机：
+#    随机值会让每次重启都换签名密钥（全员掉线 + 已存 API Key 解不开），
+#    且多 worker 之间互不认对方的 token。
 if not _os.environ.get("YIMU_SECRET_KEY"):
-    _os.environ["YIMU_SECRET_KEY"] = "yimu-dev-" + _secrets.token_hex(16)
+    _os.environ["YIMU_SECRET_KEY"] = _secret_store.session_secret()
 from studio.membership_router import router as membership_router  # noqa: E402
 app.include_router(membership_router)
 from app.routers import architecture_router  # noqa: E402
@@ -246,8 +288,35 @@ except Exception as _gw_exc:  # pragma: no cover
     print(f"⚠️ 网关 /v1 运行时装配失败（主服务不受影响，/v1 暂不可用）：{_gw_exc}")
 
 
+def _draft_table_health() -> str:
+    """把 draft_history 的真实列写进启动日志。
+
+    改写失败最常见的原因是这张表缺列（旧库 / studio 建表版本），
+    启动时记一次，导出日志第一屏就能看出来。
+    """
+    try:
+        c = db.conn()
+        try:
+            cols = [r[1] for r in c.execute("PRAGMA table_info(draft_history)")]
+        finally:
+            c.close()
+        return ",".join(cols) or "表不存在"
+    except Exception as e:
+        return f"探测失败({e})"
+
+
 @app.on_event("startup")
 async def on_startup():
+    # ⭐ 诊断日志：接管 asyncio 未处理异常，并把启动现场（环境快照）记一条，
+    #    这样即使用户什么也没做，导出日志也能看到跑在什么环境上。
+    try:
+        diag.install_asyncio(asyncio.get_event_loop())
+        # 只记一行；完整环境快照在导出文本的开头，不必重复一遍
+        diag.record("system", "startup", status="ok",
+                    detail=f"服务已启动 · 版本 {version.__version__}",
+                    draft_tables=_draft_table_health())
+    except Exception:
+        pass
     try:
         from core.db import auto_heal_all_sqlite_databases
         auto_heal_all_sqlite_databases()
@@ -353,6 +422,38 @@ async def idempotent_posts(request: Request, call_next):
     return await call_next(request)
 
 
+# ⭐ 诊断日志的 HTTP 采集层：任何 /api/ 失败与超慢请求都留档。
+#   注册在 idempotent_posts 之后 → Starlette 逆序执行，本中间件在最外层，
+#   因此连 idempotent_posts 自己抛的异常也能捕获。
+_DIAG_THROTTLE: dict = {}
+
+
+@app.middleware("http")
+async def diagnostics_middleware(request: Request, call_next):
+    t0 = time.perf_counter()
+    method = request.method
+    path = request.url.path
+    try:
+        resp = await call_next(request)
+    except Exception as exc:
+        dt = time.perf_counter() - t0
+        diag.capture_exc("http", f"{method} {path}", exc, elapsed=dt,
+                         query=str(request.url.query or "")[:200])
+        raise
+    dt = time.perf_counter() - t0
+    if path.startswith("/api/") and (resp.status_code >= 400 or dt > 8):
+        # 同一接口同一状态码 5 秒内只记一次，避免前端轮询把缓冲区刷爆
+        key = (path, resp.status_code)
+        now = time.time()
+        if now - _DIAG_THROTTLE.get(key, 0) > 5:
+            _DIAG_THROTTLE[key] = now
+            for k in [k for k, v in _DIAG_THROTTLE.items() if now - v > 60]:
+                _DIAG_THROTTLE.pop(k, None)
+            diag.http_event(method, path, resp.status_code, dt,
+                            detail="慢请求（超过 8 秒）" if resp.status_code < 400 else "")
+    return resp
+
+
 # ---------------------------------------------------------------------------
 # ⭐ 单机管理口令与 loopback 免密通行（fail-closed）
 #
@@ -371,8 +472,11 @@ async def idempotent_posts(request: Request, call_next):
 #      （一键启动.command 会生成随机口令）开箱可用。
 # ---------------------------------------------------------------------------
 
-#: 进程内随机的管理会话密钥：每次启动重新生成，外部无法预测或伪造 mf_token
-_MF_SESSION_SECRET = _secrets.token_hex(32)
+#: 管理会话密钥：**持久化**到 data/.secrets/admin_session（0600），
+#: 重启/升级/多 worker 均复用同一份，外部仍不可预测。
+#: ⚠️ 不要改回 token_hex(32) 的进程内随机：那会让每次重启全员掉线，
+#:    且 --workers 2 时 A worker 签发的 Cookie 到 B worker 直接 401。
+_MF_SESSION_SECRET = _secret_store.admin_session_secret()
 
 #: 历史默认弱口令：即使 .env 里真的写了它，也不当作"已配置口令"处理
 _WEAK_DEFAULT_PASSWORD = "local-admin"
@@ -535,6 +639,12 @@ def guard(request: Request) -> dict:
     if not u:
         raise HTTPException(401, "未登录或登录态已失效，请先登录")
     _CURRENT_USER.set(u)
+    # 让 db 层知道"谁在请求"：活动工作区/工作区列表要按用户隔离，
+    # 否则 A 切工作区会让 B 的草稿箱跟着换（见 core/db.py:set_request_user）。
+    try:
+        db.set_request_user(str((u or {}).get("id") or ""))
+    except Exception:
+        pass
     return u
 
 
@@ -568,6 +678,12 @@ _ACTION_LABELS = {
 }
 
 
+#: 自备 Key 也**不能**免额度的动作：算力不在用户 Key 上。
+#: drama_render = 本机 ffmpeg 渲染；drama_tts = 平台侧配音引擎。
+#: 其余动作（改写/评分/润色/生图）确实消耗用户自己的模型额度，可免。
+_BYOK_NEVER_FREE_ACTIONS = frozenset({"drama_render", "drama_tts"})
+
+
 def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
     """⭐ 扣算力额度并校验结果：余额不足直接抛 402，调用方必须 return。
 
@@ -598,7 +714,11 @@ def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
     user_id = str(user.get("id") or "")
 
     # ⭐ V10.0.0：当用户已配置并启用自备 API Key（BYOK）时，兑现「自备 Key 不扣会员额度」承诺
-    if user_id:
+    # 🔴 但必须排除「根本不走用户 Key」的动作：短剧渲染跑在本机 ffmpeg、
+    #    TTS 走平台侧引擎——这些对平台是真金白银的成本，
+    #    原实现只要填了自己的 Key 就全免，等于把自毁开关交给用户。
+    #    判定口径：动作的算力是否真的由用户 Key 承担。
+    if user_id and action not in _BYOK_NEVER_FREE_ACTIONS:
         try:
             from core import auth as _core_auth
             _u_cfg = _core_auth.get_active_user_llm_config(user_id)
@@ -739,8 +859,13 @@ def _on_quota_blocked(action: str, label: str, need: int, balance: int) -> None:
 def _tier_quota_check(user: dict, capability: str) -> tuple:
     """会员配额检查（V7 Free / V7 Pro / V7 Studio 三档）。
 
-    返回 (allowed, reason, tier)：配额系统异常时直接放行（配额是体验
-    限制非资金，不阻塞主功能）；未知用户按 free 档处理。
+    返回 (allowed, reason, tier)。
+
+    🔴 租户修复：原来写死 ``tenant_id="default"``，而 studio 侧真实租户是 uuid，
+       于是 get_user_tier 永远查不到会员行 → 一律返回 free，
+       付费用户的热榜次数/单次发布平台数/赛马权限全被按免费档限流
+       （用户侧表现为「我明明买了却说额度不足」）。
+       现在统一走 _web_tenant_id() 解析真实租户。
     """
     try:
         from studio.membership import capabilities as _caps
@@ -748,32 +873,49 @@ def _tier_quota_check(user: dict, capability: str) -> tuple:
         _db = _caps.get_db_session()
         try:
             _uid = str((user or {}).get("id") or "")
-            _tier = _caps.get_user_tier(_db, tenant_id="default", user_id=_uid)
+            _tenant = _web_tenant_id(_db, _uid)
+            _tier = _caps.get_user_tier(_db, tenant_id=_tenant, user_id=_uid)
             _allowed, _reason = _caps.check_and_consume(
-                _db, tenant_id="default", user_id=_uid,
+                _db, tenant_id=_tenant, user_id=_uid,
                 tier=_tier, capability=capability,
             )
             return _allowed, _reason, _tier
         finally:
             _db.close()
-    except Exception:
-        return True, "", "pro"
+    except Exception as e:
+        # 配额是体验限制，不是资金校验：数据库抖动时不阻断主功能。
+        # 但**不得升级为 pro**（那等于一抖库就把免费用户全解锁），
+        # 取值退回用户档案里的档位，缺省 free。
+        print(f"[配额] 检查失败，本次不限制（按保守档位回退）: {e}")
+        return True, "", str((user or {}).get("plan") or "free")
 
 
 def _tier_capability_limit(user: dict, capability: str):
-    """取用户某能力的配置值；异常时返回 -1（不限）。"""
+    """取用户某能力的配置值。
+
+    🔴 异常时**不再返回 -1（不限）**：那等于一抖库免费用户就拿到不限次数。
+       改为退回 free 档的限额（纯函数，不依赖数据库）。
+    """
+    tier = "free"
     try:
         from studio.membership import capabilities as _caps
 
         _db = _caps.get_db_session()
         try:
-            _tier = _caps.get_user_tier(
-                _db, tenant_id="default", user_id=str((user or {}).get("id") or ""))
-            return _caps.capability_limit(_tier, capability)
+            _uid = str((user or {}).get("id") or "")
+            _tenant = _web_tenant_id(_db, _uid)
+            tier = _caps.get_user_tier(_db, tenant_id=_tenant, user_id=_uid)
+            return _caps.capability_limit(tier, capability)
         finally:
             _db.close()
-    except Exception:
-        return -1
+    except Exception as e:
+        print(f"[配额] 限额查询失败，按 free 档回退: {e}")
+        try:
+            from studio.membership import capabilities as _caps2
+
+            return _caps2.capability_limit(tier, capability)
+        except Exception:
+            return 1
 
 
 def write_env(key: str, value: str):
@@ -968,7 +1110,9 @@ async def api_change_password(request: Request):
             c.close()
 
     if not user_dict:
-        raise HTTPException(404, "目标用户不存在")
+        # 安全：账号不存在与密码错误必须返回同一条提示，
+        # 否则攻击者可凭 404 / 400 的差异枚举系统里存在哪些用户名。
+        raise HTTPException(400, "原密码不正确，请重新输入")
 
     # 验证原密码：若存在原密码哈希或管理员口令，则必须严格核验
     if user_dict.get("password_hash"):
@@ -1216,8 +1360,13 @@ def api_system_check_update(force: bool = False):
 
 @app.post("/api/system/upgrade")
 def api_system_upgrade(request: Request):
-    """一键从 GitHub 同步升级最新代码（需要管理员权限）。"""
-    guard(request)
+    """一键从 GitHub 同步升级最新代码（**仅管理员**）。
+
+    🔴 注释一直写「需要管理员权限」，代码却是 guard(request)——
+       任何登录用户都能触发 git pull + 重启，等于把服务端代码替换权
+       交给所有注册用户。现已改为 guard_admin。
+    """
+    guard_admin(request)
     from core import updater
     return updater.perform_upgrade()
 
@@ -1555,7 +1704,9 @@ async def api_render(request: Request):
     if did:
         ddir = db.draft_dir(did)
         if (ddir / "img").exists():
-            sec_titles = [l[4:].strip() for l in body_md.splitlines() if l.startswith("### ")]
+            # ⭐ 存储态正文的 `### 标题` 已归一为 `【标题】`，必须用统一小节判定
+            from core.text_denoise import extract_section_headings
+            sec_titles = [t.strip("【】").strip() for t, _ in extract_section_headings(body_md)]
             pngs = sorted((ddir / "img").glob("sec-*.png"))
             images = {t: f"/img/{did}/{p.name}" for t, p in zip(sec_titles, pngs)}
             if (ddir / "img" / "cover.png").exists():
@@ -1613,10 +1764,9 @@ async def draft_images_analyze_prompts(did: str, request: Request):
     if not d:
         raise HTTPException(404, "草稿不存在")
     from core.imagegen import analyze_article_visual_prompts
-    sec_meta = []
-    for line in d["body_md"].splitlines():
-        if line.startswith("### "):
-            sec_meta.append((line[4:].strip(), ""))
+    from core.text_denoise import extract_section_headings
+    # ⭐ 存储态正文的小节标题是 `【标题】` 而非 `### 标题`，统一判定才不会落空
+    sec_meta = [(t.strip("【】").strip(), "") for t, _ in extract_section_headings(d["body_md"])]
     if not sec_meta:
         sec_meta = [("核心看点", d["title"])]
     def _run():
@@ -2040,9 +2190,11 @@ async def draft_save_wechat(did: str, request: Request):
     tf = ddir / "toutiao.md"
     old_title = "# " + d["title"]
     if tf.exists():
-        first = tf.read_text(encoding="utf-8").splitlines()
-        if first and first[0].startswith("# "):
-            old_title = first[0]
+        # ⭐ 磁盘上可能是净化后的 `【标题】`，只认 `# ` 会把标题丢掉
+        from core.text_denoise import extract_leading_title
+        _lead = extract_leading_title(tf.read_text(encoding="utf-8"))
+        if _lead:
+            old_title = _lead
     tf.write_text(f"{old_title}\n\n{body_md}", encoding="utf-8")
     return {"ok": True}
 
@@ -2136,9 +2288,11 @@ async def draft_ai_layout(did: str, request: Request):
                             xhs_title = _ln_s[2:].strip() or xhs_title
                             break
                 sec_meta, cur = [], None
+                from core.text_denoise import is_section_heading
                 for line in body_text.splitlines():
-                    if line.startswith("### ") or line.startswith("## "):
-                        cur = [line.lstrip("#").strip(), []]
+                    # ⭐ 兼容 `### 标题` 与净化后的 `【标题】`，否则卡片小节全靠兜底
+                    if is_section_heading(line):
+                        cur = [line.lstrip("#").strip().strip("【】").strip(), []]
                         sec_meta.append(cur)
                     elif cur is not None and line.strip():
                         cur[1].append(line.strip().lstrip("- "))
@@ -2278,6 +2432,58 @@ async def draft_switch_title(did: str, request: Request):
         raise HTTPException(500, f"切换标题失败: {e}")
 
 
+@app.post("/api/drafts/{did}/title")
+async def draft_set_title(did: str, request: Request):
+    """保存标题（极简画布自动存盘用）。
+
+    🔴 补齐缺失端点：前端 saveLiteCanvasEdits 一直在调 `/title` 与 `/body`，
+       后端只有 `/switch_title`，于是两个请求都是 404，而前端是
+       `try{...}catch(e){}` 空捕获——画布永远停在「● 正在存盘…」，
+       用户以为文件一直在保存中。这里与 switch_title 复用同一套重绘逻辑。
+    """
+    guard(request)
+    body = await request.json()
+    title = str(body.get("title") or "").strip()
+    if not title:
+        raise HTTPException(400, "标题不能为空")
+    try:
+        updated = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: orchestrator.switch_draft_title(did, title))
+        return {"ok": True, "draft": updated}
+    except Exception as e:
+        raise HTTPException(500, f"保存标题失败: {e}")
+
+
+@app.post("/api/drafts/{did}/body")
+async def draft_set_body(did: str, request: Request):
+    """保存正文（极简画布自动存盘用），并同步刷新各平台排版产物。
+
+    与 `/title` 成对存在——缺任何一条，前端存盘都会 404 静默失败。
+    """
+    guard(request)
+    body = await request.json()
+    md = body.get("body_md")
+    if md is None:
+        md = body.get("body")
+    if md is None:
+        raise HTTPException(400, "缺少 body_md")
+
+    def _run():
+        d = db.get_draft(did)
+        if not d:
+            raise HTTPException(404, "草稿不存在")
+        db.update_draft_body(did, str(md))
+        # 正文变了，各平台预览/产物必须跟着重排版（switch_draft_title 内部
+        # 会重新读 body_md 渲染 wechat/toutiao/zhihu/weibo/xhs）
+        try:
+            orchestrator.switch_draft_title(did, d.get("title") or "")
+        except Exception as e:
+            print(f"[存盘] 正文已保存，但重排版失败（不影响正文）: {e}")
+        return {"ok": True, "chars": len(str(md))}
+
+    return await asyncio.get_event_loop().run_in_executor(None, _run)
+
+
 # ---------------- drafts ----------------
 
 @app.post("/api/drafts/{did}/publish")
@@ -2295,7 +2501,11 @@ async def draft_publish(did: str, request: Request):
             400,
             f"当前档位单次最多发布到 {_plimit} 个平台，升级 Pro 解锁全平台发布",
         )
-    return orchestrator.approve_and_publish(did, platforms)
+    # ⭐ 必须丢线程池：approve_and_publish 内部是同步 httpx（公众号上传/建草稿，
+    # timeout 20s + 30s）。直接在 async 路由里调用会**独占事件循环**——
+    # 最坏 50 秒内 /health、静态资源、所有用户的请求全部无响应。
+    return await asyncio.get_event_loop().run_in_executor(
+        None, lambda: orchestrator.approve_and_publish(did, platforms))
 
 
 @app.post("/api/drafts/{did}/rescore")
@@ -2685,46 +2895,82 @@ HEALTH_SERVICES = [
 
 @app.get("/api/health/services")
 def health_services(request: Request):
+    """本地依赖组件探活。
+
+    前端渲染用的是 `s.status` 与 `s.detail`，而后端此前只回 `ok`，
+    于是界面永远显示「端口/状态: undefined」。这里补齐两个展示字段
+    （status 给中文状态，detail 给实际探测的地址，便于用户排查端口冲突）。
+    """
     guard(request)
     import httpx
     out = []
     for svc in HEALTH_SERVICES:
+        addr = f"127.0.0.1:{svc['port']}{svc['path']}"
         try:
             with httpx.Client(timeout=2, trust_env=False) as client:
-                r = client.get(f"http://127.0.0.1:{svc['port']}{svc['path']}")
+                r = client.get(f"http://{addr}")
                 ok = r.status_code < 500
+                status = f"在线 (HTTP {r.status_code})" if ok else f"异常 (HTTP {r.status_code})"
         except Exception:
             ok = False
-        out.append({**svc, "ok": ok})
+            status = "未启动 / 无法连接"
+        out.append({**svc, "ok": ok, "status": status, "detail": addr})
     return {"services": out, "mediaflow": True}
 
 
 @app.post("/api/health/repair")
 async def health_repair(request: Request):
-    guard(request)
+    """重启某个本地依赖组件（**仅管理员**）。
+
+    ⭐ 修复三件事：
+       1. 原来是 guard() —— 普通用户就能让服务端起/杀本机进程；
+       2. 原代码硬编码了作者本机的 launchd 标签（com.czmj.apipool / com.czmj.wae），
+          在别人机器上 100% 失败且报错不可读；现在从环境变量读标签，
+          没配置就明确回 501（而不是静默失败）；
+       3. 原来的 time.sleep(4/3/1) + subprocess.run 直接跑在 async 路由里，
+          一次点击阻塞事件循环 8 秒以上（期间全站无响应），现在整体丢线程池。
+    """
+    guard_admin(request)
     body = await request.json()
-    name = body.get("name")
-    import subprocess as sp
-    uid = sp.run(["id", "-u"], capture_output=True, text=True).stdout.strip()
-    if name == "apipool":
-        sp.run(["launchctl", "kickstart", "-k", f"gui/{uid}/com.czmj.apipool"], capture_output=True)
-        time.sleep(4)
-    elif name == "exporter":
-        sp.run(["launchctl", "kickstart", "-k", f"gui/{uid}/com.czmj.wae"], capture_output=True)
-        time.sleep(3)
-    elif name == "xhsmcp":
-        xb = BASE / "vendors/xhs-mcp/xiaohongshu-mcp"
-        if xb.exists():
+    name = str(body.get("name") or "")
+
+    def _run() -> dict:
+        import subprocess as sp
+        # 组件名 → (环境变量名, 重启后等待秒数)
+        launchd = {
+            "apipool": ("YIMU_LAUNCHD_APIPOOL", 4),
+            "exporter": ("YIMU_LAUNCHD_EXPORTER", 3),
+        }
+        if name in launchd:
+            env_name, wait_s = launchd[name]
+            label = (_os.environ.get(env_name) or "").strip()
+            if not label:
+                raise HTTPException(
+                    501,
+                    f"当前环境未注册该组件的后台服务（缺少 {env_name}），"
+                    "请手动重启对应程序后重试",
+                )
+            uid_ = sp.run(["id", "-u"], capture_output=True, text=True).stdout.strip()
+            sp.run(["launchctl", "kickstart", "-k", f"gui/{uid_}/{label}"],
+                   capture_output=True)
+            time.sleep(wait_s)
+            return {"ok": True}
+        if name == "xhsmcp":
+            xb = BASE / "vendors/xhs-mcp/xiaohongshu-mcp"
+            if not xb.exists():
+                raise HTTPException(400, "组件未安装")
             sp.run(["pkill", "-f", "xiaohongshu-mcp"], capture_output=True)
             time.sleep(1)
-            sp.Popen([str(xb), "-headless=true"], cwd=str(xb.parent),
-                     stdout=open(BASE / "logs/xhsmcp.out", "w"), stderr=sp.STDOUT)
+            log_dir = BASE / "logs"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            with open(log_dir / "xhsmcp.out", "w") as _log:
+                sp.Popen([str(xb), "-headless=true"], cwd=str(xb.parent),
+                         stdout=_log, stderr=sp.STDOUT)
             time.sleep(3)
-        else:
-            raise HTTPException(400, "组件未安装")
-    else:
-        raise HTTPException(404, name)
-    return {"ok": True}
+            return {"ok": True}
+        raise HTTPException(404, f"未知组件: {name}")
+
+    return await asyncio.get_event_loop().run_in_executor(None, _run)
 
 
 @app.get("/api/video/tasks")
@@ -3081,7 +3327,7 @@ async def advideo_script_rewrite(request: Request):
         )
         return res
     except Exception as e:
-        log.exception("[admin] advideo script_rewrite 异常: %s", e)
+        logger.exception("[admin] advideo script_rewrite 异常: %s", e)
         raise HTTPException(500, f"广告话术生成失败: {e}")
 
 
@@ -3181,7 +3427,7 @@ async def aivideo_rewrite(request: Request):
     except ValueError as ve:
         raise HTTPException(400, str(ve))
     except Exception as e:
-        log.exception("[admin] aivideo rewrite 失败: %s", e)
+        logger.exception("[admin] aivideo rewrite 失败: %s", e)
         raise HTTPException(500, f"AI 文案改写失败: {e}")
 
 
@@ -4067,7 +4313,8 @@ def billing_my_orders(request: Request):
                 "credits": int(r.credits),
                 "amount_yuan": round(int(r.amount_cents) / 100.0, 2),
                 "status": r.status,
-                "cdkey": r.cdkey if r.status != "refunded" else "",
+                # 卡密仅付款后可见：下单即发码 = 不付钱也能兑换（见 commerce._order_view）
+                "cdkey": r.cdkey if r.status == "paid" else "",
                 "created_at": r.created_at.isoformat() if r.created_at else None,
             }
             for r in rows
@@ -4115,24 +4362,38 @@ async def billing_cancel_my_order(request: Request, order_id: str):
 
 @app.post("/api/billing/orders/{order_id}/activate")
 async def billing_activate_order(request: Request, order_id: str):
-    """一键完成订单收款确认与卡密核销到账（完整购买闭环加速通道）。"""
-    u = guard(request)
+    """管理员代客核销：把**已确认收款**订单的卡密兑换到账。
+
+    🔴 这是一个历史漏洞点，改动请勿回退：
+       修复前用的是 ``guard(request)``，且会在 ``status == "pending"`` 时
+       自己调 ``confirm_order_paid``——等于任何注册用户都能把自己的订单
+       一键标记为「已收款」并把卡密兑换成额度（Pro ¥300 / Studio ¥2000 白嫖），
+       同时把假订单写成 paid 污染财务对账。
+       现在：① 仅管理员可调用；② **绝不自助确认收款**，必须已是 paid；
+       ③ 订单查询去掉跨租户兜底。
+    """
+    admin = guard_admin(request)
     from studio.membership import commerce
     from studio import billing_adapter
     from studio.db_models import Order
 
     db = _r3_session()
     try:
-        user_id = _current_user_id(u)
-        tenant_id = _web_tenant_id(db, user_id)
-        order = db.query(Order).filter(Order.id == str(order_id), Order.tenant_id == tenant_id).first() or db.query(Order).filter(Order.id == str(order_id)).first() or db.query(Order).filter(Order.id == str(order_id)).first() or db.query(Order).filter(Order.id == str(order_id)).first()
+        actor_id = _current_user_id(admin)
+        tenant_id = _web_tenant_id(db, actor_id)
+        order = (
+            db.query(Order)
+            .filter(Order.id == str(order_id), Order.tenant_id == tenant_id)
+            .first()
+        )
         if order is None:
             raise HTTPException(404, "订单不存在")
-        if order.user_id != user_id and not _is_admin_user(u):
-            raise HTTPException(403, "无权操作他人订单")
-        if order.status == "pending":
-            commerce.confirm_order_paid(db, tenant_id, order_id, actor=user_id)
-            db.refresh(order)
+        if order.status != "paid":
+            # pending = 还没收到钱；cancelled/refunded = 不该到账
+            raise HTTPException(
+                409,
+                f"订单当前状态为 {order.status}，只有已确认收款（paid）的订单才能核销到账",
+            )
         cdkey = order.cdkey
         target_uid = order.user_id
     finally:
@@ -4141,6 +4402,12 @@ async def billing_activate_order(request: Request, order_id: str):
     if not cdkey:
         raise HTTPException(400, "该订单无可用卡密")
     res = billing_adapter.redeem_cdkey_for_user(cdkey, target_uid)
+    try:
+        from core import analytics
+        analytics.track("cdkey_redeemed", actor_id,
+                        {"order_id": str(order_id), "by": "admin", "ok": bool(res.get("ok"))})
+    except Exception:
+        pass
     return {"ok": bool(res.get("ok")), "redeem": res, "order_id": order_id}
 
 
@@ -5279,6 +5546,10 @@ async def ai_upgrade_draft_endpoint(did: str, request: Request):
         )
         return res
     except Exception as e:
+        # ⭐ 诊断：把完整 traceback 留档，前端只显示一句话，用户可在
+        #   「设置 → 系统诊断日志」复制出来定位。
+        diag.capture_exc("rewrite", "ai_upgrade_draft", e, draft_id=did,
+                         persona=persona, skills=skills, instruction_len=len(instruction or ""))
         update_async_job(jid, status="failed", error=str(e)[:300], step="AI 改写提升失败")
         raise HTTPException(500, f"AI 一键改写提升失败: {e}")
 
@@ -5287,10 +5558,13 @@ async def ai_upgrade_draft_endpoint(did: str, request: Request):
 async def draft_rewrite(did: str, request: Request):
     guard(request)
     body = await request.json()
+    t0 = time.perf_counter()
     try:
         return await asyncio.get_event_loop().run_in_executor(
             None, lambda: orchestrator.rewrite_draft_once(did, body.get("instruction", "")))
     except Exception as e:
+        diag.capture_exc("rewrite", "draft_rewrite", e, elapsed=time.perf_counter() - t0,
+                         draft_id=did, instruction_len=len(body.get("instruction") or ""))
         raise HTTPException(500, f"重写失败: {e}")
 
 
@@ -5325,6 +5599,8 @@ async def draft_rewrite_platform(did: str, request: Request):
         result["platform_name"] = plat_name
         return result
     except Exception as e:
+        diag.capture_exc("rewrite", "rewrite_single_platform", e, draft_id=did,
+                         platform=platform, instruction_len=len(instruction or ""))
         raise HTTPException(500, f"{plat_name} 重写失败: {e}")
 
 
@@ -5587,6 +5863,8 @@ async def draft_evolve(did: str, request: Request):
 
 @app.get("/api/drafts/{did}/raw/{platform}")
 def draft_raw(did: str, platform: str):
+    from core.text_purity import purify_body
+
     d = db.get_draft(did)
     if not d:
         raise HTTPException(404, "草稿不存在")
@@ -5600,7 +5878,10 @@ def draft_raw(did: str, platform: str):
         from core.layouter import render as layout_render, _dedupe_wechat_html_images
         if not f.exists() or f.stat().st_size < 100 or (has_imgs_on_disk and "<img" not in content):
             images_dict = {f"sec-{i}": u for i, u in enumerate(d_imgs.get("sections", []))}
-            sec_meta = [line[4:].strip() for line in d["body_md"].splitlines() if line.startswith("### ")]
+            # ⭐ body_md 是存储态，`### 标题` 已在去噪阶段归一为 `【标题】`；
+            #    这里必须用统一的小节判定，不能只匹配 "### "（会永远落空、配图对不上小节）。
+            from core.text_denoise import extract_section_headings
+            sec_meta = [t.strip("【】").strip() for t, _ in extract_section_headings(d["body_md"])]
             for i, sec_t in enumerate(sec_meta):
                 if i < len(d_imgs.get("sections", [])):
                     images_dict[sec_t] = d_imgs["sections"][i]
@@ -5619,14 +5900,11 @@ def draft_raw(did: str, platform: str):
         return {"title": d["title"], "body_md": d["body_md"], "text": d["body_md"]}
     if platform == "xhs":
         f_md = ddir / "xhs.md"
-        # 从 xhs.md 首行 # 标题提取当前小红书标题
+        # 从 xhs.md 首行提取当前小红书标题（兼容 `# 标题` 与净化后的 `【标题】`）
         xhs_title = d["title"]
         raw_txt = f_md.read_text(encoding="utf-8") if f_md.exists() else d["body_md"]
-        for _ln in raw_txt.splitlines():
-            _ln_s = _ln.strip()
-            if _ln_s.startswith("# "):
-                xhs_title = _ln_s[2:].strip() or xhs_title
-                break
+        from core.text_denoise import extract_leading_title
+        xhs_title = extract_leading_title(raw_txt) or xhs_title
         cards = sorted([f"/card/{did}/{p.name}" for p in ddir.glob("card-*.png")])
         if len(cards) < 5:
             try:
@@ -5653,6 +5931,8 @@ def draft_raw(did: str, platform: str):
         from core.imagegen import inject_images_to_markdown, get_draft_images
         d_imgs = get_draft_images(did)
         text = f_md.read_text(encoding="utf-8") if f_md.exists() else inject_images_to_markdown(d["body_md"], did)
+        # ⭐ 磁盘上的旧 .md 可能是旧逻辑写的（带 ** / ### / 配图说明），读出来先净化
+        text = purify_body(text)
         if not f_md.exists():
             (ddir / "toutiao.md").write_text(text, encoding="utf-8")
             
@@ -5678,6 +5958,7 @@ def draft_raw(did: str, platform: str):
         from adapters import zhihu as _zh
         from core.imagegen import inject_images_to_markdown, get_draft_images
         text = f_md.read_text(encoding="utf-8") if f_md.exists() else inject_images_to_markdown(d["body_md"], did)
+        text = purify_body(text)
         if not f_md.exists():
             (ddir / "zhihu.md").write_text(text, encoding="utf-8")
         if f_html.exists() and f_html.stat().st_size > 100:
@@ -5697,6 +5978,7 @@ def draft_raw(did: str, platform: str):
         from adapters import weibo as _wb
         from core.imagegen import inject_images_to_markdown, get_draft_images
         text = f_md.read_text(encoding="utf-8") if f_md.exists() else inject_images_to_markdown(d["body_md"], did)
+        text = purify_body(text)
         if not f_md.exists():
             (ddir / "weibo.md").write_text(text, encoding="utf-8")
         if f_html.exists() and f_html.stat().st_size > 100:
@@ -5737,6 +6019,12 @@ async def draft_save_platform(did: str, request: Request):
     body = await request.json()
     platform = body.get("platform", "wechat_mp")
     text = body.get("text", "")
+    # ⭐ V10.3：按「形态」分流，不再一律 purify_body。
+    #    · wechat_mp 画布写回的是公众号正文源（Markdown），必须保留 `**`，
+    #      否则用户刚在编辑器里打的加粗会被洗掉、排版永久丢失；
+    #    · 其余平台是直接粘贴发布的纯文本成品，剥净标记。
+    from core.text_purity import purify_body, to_storage
+
     theme = body.get("theme")
 
     d = db.get_draft(did)
@@ -5745,6 +6033,8 @@ async def draft_save_platform(did: str, request: Request):
     ddir = db.draft_dir(did)
 
     if platform == "wechat_mp":
+        # 公众号正文源：保留 Markdown 排版标记（加粗靠 `**` 渲染成 <strong>）
+        text = to_storage(text)
         c = db.conn()
         c.execute("UPDATE drafts SET body_md=? WHERE id=?", (text, did))
         c.commit(); c.close()
@@ -5761,18 +6051,26 @@ async def draft_save_platform(did: str, request: Request):
         return {"ok": True, "text": text, "html": html}
 
     elif platform == "xhs":
+        # 小红书正文是纯文本成品：剥净标记，卡片图上更不能有星号
+        text = purify_body(text)
         (ddir / "xhs.md").write_text(text, encoding="utf-8")
-        # 从文本首行 # 标题提取小红书标题（与 switch_draft_title 同步）
-        xhs_title = d["title"]
-        for _ln in text.splitlines():
-            _ln_s = _ln.strip()
-            if _ln_s.startswith("# "):
-                xhs_title = _ln_s[2:].strip() or xhs_title
-                break
+        # 从文本首行标题提取小红书标题（兼容 `# 标题` 与净化后的 `【标题】`）
+        from core.text_denoise import extract_leading_title, is_section_heading
+        xhs_title = extract_leading_title(text) or d["title"]
+        lines = text.splitlines()
+        # ⭐ 首行是主标题，不是小节。`【标题】` 同样满足 is_section_heading，
+        #    不跳过的话它会被当成第 1 小节，首卡标题变成主标题、正文挂错位。
+        if extract_leading_title(text):
+            for _i, _l in enumerate(lines):
+                if _l.strip():
+                    lines = lines[_i + 1:]
+                    break
         sec_meta, cur = [], None
-        for line in text.splitlines():
-            if line.startswith("### ") or line.startswith("## "):
-                cur = [line.lstrip("#").strip(), []]
+        for line in lines:
+            # ⭐ 净化后 `### 标题` 已归一为 `【标题】`，必须用统一判定，
+            #    否则这里永远匹配不到、卡片小节全靠兜底文本，排版就散了。
+            if is_section_heading(line):
+                cur = [line.lstrip("#").strip().strip("【】").strip(), []]
                 sec_meta.append(cur)
             elif cur is not None and line.strip():
                 cur[1].append(line.strip().lstrip("- "))
@@ -5795,6 +6093,7 @@ async def draft_save_platform(did: str, request: Request):
         return {"ok": True, "text": text, "cards": cards}
 
     elif platform == "toutiao":
+        text = purify_body(text)   # 纯文本成品：头条编辑器粘贴不带任何标记
         (ddir / "toutiao.md").write_text(text, encoding="utf-8")
         from adapters import toutiao as _tt
         from core.imagegen import get_draft_images
@@ -5804,6 +6103,7 @@ async def draft_save_platform(did: str, request: Request):
         return {"ok": True, "text": text, "html": html}
 
     elif platform == "zhihu":
+        text = purify_body(text)   # 纯文本成品
         (ddir / "zhihu.md").write_text(text, encoding="utf-8")
         from adapters import zhihu as _zh
         from core.imagegen import get_draft_images
@@ -5813,6 +6113,7 @@ async def draft_save_platform(did: str, request: Request):
         return {"ok": True, "text": text, "html": html}
 
     elif platform == "weibo":
+        text = purify_body(text)   # 纯文本成品
         (ddir / "weibo.md").write_text(text, encoding="utf-8")
         from adapters import weibo as _wb
         from core.imagegen import get_draft_images
@@ -5822,6 +6123,7 @@ async def draft_save_platform(did: str, request: Request):
         return {"ok": True, "text": text, "html": html}
 
     elif platform == "twitter":
+        text = purify_body(text)   # 纯文本成品
         (ddir / "twitter.md").write_text(text, encoding="utf-8")
         from adapters import twitter as _tw
         html = _tw.render_twitter_html(text, d["title"])
@@ -5999,29 +6301,38 @@ def get_model_providers(request: Request):
 
 @app.post("/api/models/fetch")
 async def model_fetch(request: Request):
-    guard(request)
+    """拉取远端模型清单（**管理员**：这是全站模型配置的一部分）。
+
+    🔴 安全：修复前是 guard() 且 route 层自己做了
+       ``api_key or MEDIAFLOW_APIPOOL_KEY`` 的兜底——普通用户把 base_url
+       指向自己的服务器就能收到平台主 Key 明文。
+       现在：① 仅管理员；② 平台主 Key 的兜底只在 core.llm 内部、
+       且仅对「平台自有端点」生效（见 llm._is_platform_endpoint）。
+    """
+    guard_admin(request)
     body = await request.json()
     base_url = body.get("base_url", "")
     provider_id = body.get("provider_id", "custom")
     from core import llm
-    api_key = body.get("api_key") or llm.load_env().get("MEDIAFLOW_APIPOOL_KEY", "")
+    api_key = body.get("api_key") or ""
     return llm.fetch_remote_models(base_url, api_key, provider_id)
 
 
 @app.post("/api/models/ping")
 async def model_ping(request: Request):
-    guard(request)
+    """连通性测试（**管理员**，原因同 :func:`model_fetch`）。"""
+    guard_admin(request)
     body = await request.json()
     base_url = body.get("base_url", "")
     from core import llm
-    api_key = body.get("api_key") or llm.load_env().get("MEDIAFLOW_APIPOOL_KEY", "")
+    api_key = body.get("api_key") or ""
     model = body.get("model", "")
     return llm.ping_provider(base_url, api_key, model)
 
 
 @app.post("/api/models/save")
 async def model_save(request: Request):
-    guard(request)
+    guard_admin(request)
     body = await request.json()
     provider_id = body.get("provider_id", "custom")
     provider_name = body.get("provider_name", "")
@@ -6044,7 +6355,7 @@ async def model_save(request: Request):
 
 @app.post("/api/models/provider/set_active")
 async def model_set_active_provider(request: Request):
-    guard(request)
+    guard_admin(request)
     body = await request.json()
     provider_id = body.get("provider_id", "")
     if not provider_id:
@@ -6056,7 +6367,7 @@ async def model_set_active_provider(request: Request):
 
 @app.post("/api/models/provider/delete")
 async def model_delete_provider(request: Request):
-    guard(request)
+    guard_admin(request)
     body = await request.json()
     provider_id = body.get("provider_id", "")
     provider_ids = body.get("provider_ids", [])
@@ -6636,22 +6947,48 @@ def draft_zip(did: str):
 
 @app.post("/api/drafts/delete")
 async def drafts_delete(request: Request):
-    guard(request)
+    """批量删除草稿（进废纸篓，不物理删除）。
+
+    ⭐ 安全修复（两处，缺一不可）：
+       1. **归属校验**：此前只 guard()，ids 里的 did 不校验归属——
+          任何登录用户传别人的 did 就能删掉他人全部稿件。
+          现在逐条 is_draft_owner，非本人（且非管理员）直接跳过。
+       2. **路径穿越**：此前 `BASE/"data"/"drafts"/did` 直接拼，
+          did="../.." 会让 shutil.move 把整个仓库移进废纸篓。
+          现在先过 id 白名单，再 resolve 校验父子关系。
+       被拒绝的 id 不报错、只进 skipped——避免把「无权」与「不存在」
+       区分开，也不让一次批量操作因为混入一个坏 id 全盘失败。
+    """
+    u = guard(request)
     body = await request.json()
     ids = body.get("ids") or []
     if not ids:
         raise HTTPException(400, "未选择草稿")
     import shutil
+    uid = _current_user_id(u)
+    is_admin = _is_admin_user(u)
+    root = (BASE / "data" / "drafts").resolve()
     trash = Path.home() / ".Trash"
-    removed = []
-    for did in ids:
+    removed: list[str] = []
+    skipped: list[str] = []
+    for raw_did in ids:
+        did = str(raw_did or "").strip()
+        if not _SAFE_DID_RE.match(did):
+            skipped.append(str(raw_did))
+            continue
         d = db.get_draft(did)
+        if d and not db.is_draft_owner(d, uid, is_admin=is_admin):
+            skipped.append(did)
+            continue
+        ddir = (root / did).resolve()
+        if root not in ddir.parents:      # 双保险：白名单失效时也不越界
+            skipped.append(did)
+            continue
         if d:  # 幂等：重复请求（本机网络层会重放 POST）时视为已删，同样报成功
             c = db.conn()
             c.execute("DELETE FROM drafts WHERE id=?", (did,))
             c.execute("DELETE FROM jobs WHERE draft_id=?", (did,))
             c.commit(); c.close()
-        ddir = BASE / "data" / "drafts" / did
         if ddir.exists():
             try:
                 trash.mkdir(exist_ok=True)
@@ -6659,7 +6996,7 @@ async def drafts_delete(request: Request):
             except Exception:
                 pass
         removed.append(did)
-    return {"removed": removed}
+    return {"removed": removed, "skipped": skipped}
 
 
 @app.post("/api/drafts/clean_old")
@@ -6791,6 +7128,48 @@ def share_poster(token: str):
     return Response(svg, media_type="image/svg+xml")
 
 
+@app.get("/s/{token}/img/{name}")
+def share_media_img(token: str, name: str):
+    """分享页配图（令牌作用域）。
+
+    ⭐ 为什么要这条路由：`/img/{did}/{name}` 现在是 fail-closed 的，
+       匿名访客会 401。分享页由 :func:`core.share.rewrite_media_urls`
+       把图片地址改写成这里，令牌 → 稿件映射在服务端库，
+       因此「令牌有效」即可读图，无法通过改 did 拿别人的图。
+    """
+    from core import share as _share
+
+    if "/" in name or "\\" in name or ".." in name:
+        raise HTTPException(400, "bad name")
+    rec = _share.resolve(token, count_hit=False)
+    if not rec:
+        raise HTTPException(404, "分享链接无效或已失效")
+    f = db.draft_dir(str(rec["draft_id"])) / "img" / name
+    if not f.is_file():
+        raise HTTPException(404, "图片不存在")
+    resp = FileResponse(f, media_type="image/png")
+    resp.headers["Cache-Control"] = "public, max-age=600"
+    return resp
+
+
+@app.get("/s/{token}/card/{name}")
+def share_media_card(token: str, name: str):
+    """分享页卡片图（令牌作用域），语义同 :func:`share_media_img`。"""
+    from core import share as _share
+
+    if "/" in name or "\\" in name or ".." in name or not name.startswith("card-"):
+        raise HTTPException(400, "bad name")
+    rec = _share.resolve(token, count_hit=False)
+    if not rec:
+        raise HTTPException(404, "分享链接无效或已失效")
+    f = db.draft_dir(str(rec["draft_id"])) / name
+    if not f.is_file():
+        raise HTTPException(404, "卡片不存在")
+    resp = FileResponse(f, media_type="image/png")
+    resp.headers["Cache-Control"] = "public, max-age=600"
+    return resp
+
+
 @app.get("/card/{did}/{name}")
 def card(did: str, name: str):
     if "/" in name or not name.startswith("card-"):
@@ -6819,7 +7198,7 @@ def draft_img(did: str, name: str):
 
 @app.post("/api/settings")
 async def settings(request: Request):
-    guard(request)
+    guard_admin(request)
     body = await request.json()
     cfg = load_config()
     gw = body.get("gateway") or {}
@@ -6932,6 +7311,9 @@ def _run_rewrite_job(jid: str, payload: dict):
                 rnd += 1
         update_async_job(jid, status="done", progress=100, step="爆款仿写完成！", result={"draft_id": d["id"], "score": score, "title": title})
     except Exception as e:
+        diag.capture_exc("rewrite", "rewrite_job", e, job_id=jid,
+                         platform=payload.get("platform"), text_len=len(payload.get("text") or ""),
+                         has_url=bool(payload.get("url")))
         update_async_job(jid, status="failed", error=str(e)[:400], step="仿写失败")
 
 
@@ -7010,6 +7392,33 @@ def rewrite_job_status(jid: str, request: Request):
     if not j:
         raise HTTPException(404, "任务不存在")
     return j
+
+
+# ---------------- 系统诊断日志 ----------------
+# 用户场景：Windows 上「改写失败」，但拿不到服务端控制台。
+# 这三个接口把失败现场变成可复制文本，用户粘给开发者即可定位。
+
+@app.get("/api/diagnostics/stats")
+def diagnostics_stats(request: Request):
+    guard(request)
+    return {"ok": True, **diag.stats()}
+
+
+@app.get("/api/diagnostics/log")
+def diagnostics_log(request: Request, limit: int = 300, only_problems: int = 0):
+    """导出诊断日志文本（供「设置 → 系统诊断日志」一键复制）。"""
+    guard(request)
+    limit = max(20, min(int(limit or 300), 2000))
+    text = diag.snapshot(limit=limit, only_problems=bool(only_problems))
+    return {"ok": True, "text": text, "stats": diag.stats()}
+
+
+@app.post("/api/diagnostics/clear")
+def diagnostics_clear(request: Request):
+    guard(request)
+    diag.clear()
+    diag.record("system", "diagnostics_cleared", status="ok", detail="用户手动清空诊断日志")
+    return {"ok": True}
 
 
 # ---------------- HTML ----------------

@@ -148,7 +148,10 @@ pip install -r requirements.txt
 
 # 4. 配置环境变量
 cp .env.example .env
-# 编辑 .env 文件，填写 YIMU_SECRET_KEY 与 ADMIN_PASSWORD
+# 生成管理员口令（.env.example 里没有真实口令；留空或沿用 local-admin/admin/123456
+# 会被后端判定为「未配置」，导致管理员登录被拒、本机免密也关闭）
+python scripts/ensure_admin_password.py .env
+# 其它密钥：编辑 .env 填写 YIMU_SECRET_KEY（或用 openssl rand -hex 32 生成）
 
 # 5. 启动开发服务
 python -m uvicorn web.admin:app --host 127.0.0.1 --port 8790

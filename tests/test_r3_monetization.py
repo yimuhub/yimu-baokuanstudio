@@ -273,8 +273,9 @@ class TestOrderToCdkeyFlow:
         assert order["status"] == "pending"
         assert order["amount_yuan"] == 300.0
         assert order["credits"] == 30000
-        cdkey = order["cdkey"]
-        assert cdkey, "下单必须返回卡密"
+        # ⭐ V10.2.2 口径：卡密只在「已确认收款(paid)」后下发。
+        #   修复前下单即给码，用户可以不付钱直接兑换（配合自助 activate 就是 0 元开通）。
+        assert order["cdkey"] == "", "付款前不得下发卡密"
 
         # 2) 支付指引必须存在且**不含一键支付按钮**（无支付资质不假装）
         assert order["payment_instructions"], "必须给出支付指引"
@@ -290,8 +291,11 @@ class TestOrderToCdkeyFlow:
         assert r.status_code == 200, r.text
         assert r.json()["order"]["status"] == "paid"
 
-        # 5) 切回买家兑换卡密 → 额度到账
+        # 5) 切回买家：从「我的订单」取到卡密 → 兑换 → 额度到账
         r3_client.as_user(user_id=buyer_id).ensure_studio_user(buyer_id)
+        items = r3_client.get("/api/billing/orders").json()["items"]
+        cdkey = next((o["cdkey"] for o in items if o["id"] == order["id"]), "")
+        assert cdkey, "确认收款后应从「我的订单」取到卡密"
         r = r3_client.post("/api/billing/redeem", json={"code": cdkey})
         assert r.status_code == 200, r.text
         assert r.json().get("ok") is True
@@ -318,6 +322,13 @@ class TestOrderToCdkeyFlow:
         before = r3_client.balance(tid, buyer_id)
         order = r3_client.post(
             "/api/billing/order", json={"plan": "studio"}).json()["order"]
+        # 接口不再在付款前下发卡密，这里直接从库里取原始码用于验证「取消即作废」
+        from studio.db_models import Order as _Order
+
+        _row = (r3_client.db_session.query(_Order)
+                .filter(_Order.id == order["id"]).first())
+        cdkey = _row.cdkey
+        assert cdkey, "订单应已生成卡密（只是不提前下发）"
 
         r3_client.as_user(role="admin").ensure_studio_user()
         r = r3_client.post(f"/api/admin/orders/{order['id']}/cancel", json={"reason": "测试"})
@@ -326,7 +337,7 @@ class TestOrderToCdkeyFlow:
 
         # 卡密已作废 → 兑换失败，额度不变
         r3_client.as_user(user_id=buyer_id).ensure_studio_user(buyer_id)
-        r = r3_client.post("/api/billing/redeem", json={"code": order["cdkey"]})
+        r = r3_client.post("/api/billing/redeem", json={"code": cdkey})
         assert r.status_code != 200 or r.json().get("ok") is not True
         assert r3_client.balance(tid, buyer_id) == before
 
@@ -501,9 +512,12 @@ class TestRefund:
         r3_client.as_user(role="admin").ensure_studio_user()
         r = r3_client.post(f"/api/admin/orders/{order['id']}/confirm", json={})
         assert r.status_code == 200, r.text
-        # 切回买家兑换
+        # 切回买家：从「我的订单」取到卡密再兑换（付款前接口不下发卡密）
         r3_client.as_user(user_id=buyer_id).ensure_studio_user(buyer_id)
-        r = r3_client.post("/api/billing/redeem", json={"code": order["cdkey"]})
+        items = r3_client.get("/api/billing/orders").json()["items"]
+        cdkey = next((o["cdkey"] for o in items if o["id"] == order["id"]), "")
+        assert cdkey, "确认收款后应能取到卡密"
+        r = r3_client.post("/api/billing/redeem", json={"code": cdkey})
         assert r.json().get("ok") is True, r.text
         after_redeem = r3_client.balance(tid, buyer_id)
         return order, buyer_id, before, after_redeem, tid

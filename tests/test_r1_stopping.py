@@ -702,8 +702,18 @@ def test_r1_5_mf_token_not_predictable_constant(monkeypatch):
     assert web_admin._token() == web_admin._token(), "同进程内应稳定（登录后可复验）"
 
 
-def test_r1_5_token_rotates_across_processes(monkeypatch):
-    """R1-5：进程重启后旧 mf_token 失效。"""
+def test_r1_5_token_stable_across_restarts(monkeypatch):
+    """R1-5：重启后 mf_token 保持稳定；改口令后立即失效。
+
+    ⚠️ 这条断言已按设计变更调整（V10.2.2）：
+    历史版本要求「每次进程启动都换 token」，那其实是拿可用性换安全——
+    每次重启/升级全员掉线，`--workers 2` 时 A 签发的 Cookie 到 B 直接 401，
+    已存的用户 API Key 也会因为同源密钥变化而解不开（见 core/secret_store.py）。
+
+    真正的安全边界是两条，这里都验：
+      1. 密钥高熵且**外部不可预测**（不是由默认口令推导出的常量）；
+      2. 管理口令一旦变化，旧 token 立即失效。
+    """
     import importlib
 
     from web import admin as web_admin
@@ -712,7 +722,9 @@ def test_r1_5_token_rotates_across_processes(monkeypatch):
     first = web_admin._token()
     reloaded = importlib.reload(web_admin)
     monkeypatch.setattr(reloaded, "load_env", lambda: {"ADMIN_PASSWORD": "pw-abc"})
-    assert reloaded._token() != first, "重启后 token 必须变化"
+    assert reloaded._token() == first, "重启后 token 必须保持稳定，否则用户每次升级都被踢下线"
+    monkeypatch.setattr(reloaded, "load_env", lambda: {"ADMIN_PASSWORD": "pw-xyz"})
+    assert reloaded._token() != first, "管理口令变更后旧 token 必须立即失效"
     # 还原模块，避免影响后续测试
     importlib.reload(web_admin)
 

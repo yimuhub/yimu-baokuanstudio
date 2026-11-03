@@ -116,6 +116,12 @@ def test_minimalist_mode_draft_raw_self_healing(tmp_path, monkeypatch):
     from core import db
 
     client = TestClient(app)
+    # ⭐ 带 {did} 的路由现在是 fail-closed 的（未登录 401）。
+    #    这里用「本机管理会话」的等价做法：直接下发与服务端一致的 mf_token，
+    #    模拟管理员已登录后访问自己的草稿。
+    from web import admin as _web_admin
+
+    client.cookies.set("mf_token", _web_admin._token())
 
     # 构造一篇临时草稿与包含双重重复图片的 preview-wechat_mp.html
     draft_id = "dr-test-dedup-944"

@@ -4,9 +4,9 @@
 会话机制：无状态 HMAC 签名 token，不新增表（避免改动冻结 schema）。
 token = base64url(json({uid, tenant_id, exp})) + "." + hex(HMAC_SHA256(密钥, 载荷))。
 
-⭐ 安全红线：会话签名密钥只从环境变量 YIMU_SECRET_KEY 读取，
-   缺失时本模块在 import 阶段直接 raise RuntimeError，服务拒绝启动。
-   绝不设置任何默认值——默认密钥等于没有密钥，这是 C-1 重写的核心要求。
+⭐ 安全红线：会话签名密钥优先取环境变量 YIMU_SECRET_KEY；未配置时回落到
+   本地持久密钥 data/.secrets/session（0600，高熵随机，跨重启/跨 worker 稳定）。
+   **绝不使用固定默认值**——默认密钥等于没有密钥，这是 C-1 重写的核心要求。
 
 ⭐ 租户隔离：所有业务查询一律 WHERE tenant_id；token 里的 tenant_id
    与 users 表记录交叉校验，不一致即视为伪造/跨租户访问 → 401。
@@ -30,16 +30,40 @@ from .db_models import AuditLog, Membership, Tenant, User, hash_password, new_id
 from .membership import service as membership_service
 
 # ---------------------------------------------------------------------------
-# ⭐ 会话签名密钥：只走环境变量，缺失直接拒绝启动（无默认值）
+# ⭐ 会话签名密钥：环境变量优先，缺失时回落到**本地持久密钥**（data/.secrets/session）
+#
+# 为什么允许回落：这两个「缺失」完全不等价——
+#   · 使用固定/默认常量（如 "secret"）＝ 没有密钥，任何人都能伪造 token；
+#   · 使用本机随机生成、0600 落盘的持久密钥 = 仍然高熵、仍然不可预测，
+#     只是不必强迫桌面版用户去设环境变量。
+# 历史实现是「进程内随机」：每次重启全员掉线，多 worker 互补认 token，
+# API Key Vault 也跟着解不开——那是真正的可用性事故（见 core/secret_store.py）。
 # ---------------------------------------------------------------------------
-_SIGNING_SECRET = os.environ.get("YIMU_SECRET_KEY")
+_SIGNING_SECRET = (os.environ.get("YIMU_SECRET_KEY") or "").strip()
+if not _SIGNING_SECRET:
+    from core.secret_store import session_secret as _session_secret
+
+    _SIGNING_SECRET = _session_secret()
 if not _SIGNING_SECRET:
     raise RuntimeError(
-        "YIMU_SECRET_KEY 环境变量未设置：会话签名密钥缺失，"
-        "为防止使用默认密钥导致会话可被伪造，服务拒绝启动。"
-        "请在启动前设置该环境变量（生产环境请使用随机生成的长字符串）。"
+        "会话签名密钥不可用：YIMU_SECRET_KEY 未设置，且本地密钥文件无法创建。"
+        "请设置该环境变量，或确保 data/ 目录可写（服务拒绝以无密钥状态启动）。"
     )
+#: 仅为向后兼容而保留，反映的是 import 时刻的密钥；签名/验签一律走 _signing_key()。
 _SIGNING_KEY = _SIGNING_SECRET.encode("utf-8")
+
+
+def _signing_key() -> bytes:
+    """⭐ 每次调用都重新取密钥，而不是用模块级常量。
+
+    `core.auth` 用 `core.secret_store.session_secret()`（环境变量优先）签名，
+    本模块若把 `_SIGNING_KEY` 固定成 import 那一刻的值，就会出现
+    「core 用新密钥签发 / studio 用旧密钥验签」→ 令牌恒判无效。
+    典型触发场景：环境变量在进程启动后才被设置（测试、容器注入、桌面版向导）。
+    """
+    from core.secret_store import session_secret
+
+    return session_secret().encode("utf-8")
 
 # 会话有效期：7 天（秒）
 SESSION_TTL_SEC = 7 * 24 * 3600
@@ -71,7 +95,7 @@ def create_session_token(user: User) -> str:
         "exp": int(time.time()) + SESSION_TTL_SEC,
     }
     raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-    sig = hmac.new(_SIGNING_KEY, raw, hashlib.sha256).hexdigest()
+    sig = hmac.new(_signing_key(), raw, hashlib.sha256).hexdigest()
     return f"{_b64e(raw)}.{sig}"
 
 
@@ -83,8 +107,8 @@ def parse_session_token(token: str) -> dict | None:
     try:
         payload_b64, sig = token.split(".", 1)
         raw = _b64d(payload_b64)
-        expected_raw = hmac.new(_SIGNING_KEY, raw, hashlib.sha256).hexdigest()
-        expected_b64 = hmac.new(_SIGNING_KEY, payload_b64.encode("utf-8"), hashlib.sha256).hexdigest()
+        expected_raw = hmac.new(_signing_key(), raw, hashlib.sha256).hexdigest()
+        expected_b64 = hmac.new(_signing_key(), payload_b64.encode("utf-8"), hashlib.sha256).hexdigest()
         live_secret = os.environ.get("YIMU_SECRET_KEY", "").encode("utf-8")
         expected_live_b64 = hmac.new(live_secret, payload_b64.encode("utf-8"), hashlib.sha256).hexdigest() if live_secret else ""
         sig_ok = (

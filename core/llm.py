@@ -203,13 +203,43 @@ def classify_model(model_id: str) -> str:
     return "text"
 
 
+def _is_platform_endpoint(base: str) -> bool:
+    """判断 base_url 是否属于「平台自己的」通道（可以带平台主 Key）。
+
+    🔴 为什么必须有这个判断：修复前 fetch_remote_models 是
+    ``key = api_key or MEDIAFLOW_APIPOOL_KEY``——只要不传 api_key，
+    平台主 Key 就会跟着**用户提供的任意 base_url** 发出去。
+    攻击者注册一个账号，把 base_url 填成自己的服务器即可收走明文 Key。
+    现在只有落到配置里的网关地址、或预设里标记为官方/计费的供应商，
+    才允许回退到平台主 Key。
+    """
+    b = (base or "").strip().rstrip("/")
+    if not b:
+        return True  # 空 base 会走供应商预设，属于平台内部调用
+    try:
+        gw = str((load_config().get("gateway") or {}).get("base_url") or "").strip().rstrip("/")
+    except Exception:
+        gw = ""
+    if gw and (b == gw or b.startswith(gw + "/")):
+        return True
+    for meta in MODEL_PROVIDERS.values():
+        pb = str(meta.get("base_url") or "").strip().rstrip("/")
+        if pb and b == pb and (meta.get("official") or meta.get("metered")):
+            return True
+    return False
+
+
 def fetch_remote_models(base_url: str, api_key: str = "", provider_id: str = "") -> dict:
     """调用远端供应商 /v1/models 或兼容端点获取模型清单并结构化分类，若失败自动降级到预设模型。"""
     base = (base_url or "").strip().rstrip("/")
+    if base and not base.lower().startswith(("http://", "https://")):
+        return {"ok": False, "models": [], "error": "base_url 必须以 http:// 或 https:// 开头"}
     if not base and provider_id in MODEL_PROVIDERS:
         base = MODEL_PROVIDERS[provider_id].get("base_url", "").rstrip("/")
-        
-    key = (api_key or "").strip() or load_env().get("MEDIAFLOW_APIPOOL_KEY", "")
+
+    key = (api_key or "").strip()
+    if not key and _is_platform_endpoint(base):
+        key = load_env().get("MEDIAFLOW_APIPOOL_KEY", "")
 
     candidates = []
     if base.endswith("/v1") or base.endswith("/v4"):

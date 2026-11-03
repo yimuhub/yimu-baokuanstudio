@@ -12,6 +12,7 @@ import re
 from typing import Optional, Callable, Any, Dict, List
 
 from core import agents, db, judge, llm, orchestrator
+from core.text_purity import purify_body, purify_title, to_storage
 from core.title_forge import generate_candidate_titles
 
 logger = logging.getLogger(__name__)
@@ -107,7 +108,13 @@ def extract_xhs_card_selling_points(title: str, body_md: str, model: Optional[st
     while len(sections) < 4:
         sections.append(defaults[len(sections)])
 
-    return sections[:4]
+    # ⭐ 卡片文字会直接印在成品图上。这里走存储态（保留 `**`），
+    #    由 render_card 决定形态：HTML 路径把 `**重点**` 转 <b> 保留加粗，
+    #    Pillow 兜底路径再剥成纯文字——两条路都不会把星号印到图上。
+    return [
+        (purify_title(t), [to_storage(p) for p in pts])
+        for t, pts in sections[:4]
+    ]
 
 
 VISUAL_STYLE_KEYWORDS = {
@@ -286,6 +293,23 @@ def append_draft_copilot_history(draft_id: str, role: str, content: str):
         logger.warning(f"保存草稿 {draft_id} 对话历史失败: {e}")
 
 
+def skill_display_name(sk_obj: dict) -> str:
+    """把技能翻成创作者看得懂的中文名。
+
+    技能文件 frontmatter 的 ``name`` 其实是英文 slug（title-forge / de-ai …），
+    直接展示会漏内部标识；``description`` 的首句才是中文名（如「爆款标题工坊（…）」）。
+    """
+    desc = str((sk_obj or {}).get("description") or "").strip()
+    if desc:
+        head = re.split(r"[（(]", desc, 1)[0].strip(" ：:，,、")
+        if head and re.search(r"[\u4e00-\u9fa5]", head) and len(head) <= 24:
+            return head
+    category = str((sk_obj or {}).get("category") or "").strip()
+    if category and re.search(r"[\u4e00-\u9fa5]", category):
+        return category
+    return "创作技能"
+
+
 def handle_copilot_chat(message: str, draft_id: Optional[str] = None, 
                         history: Optional[list] = None, 
                         target_platform: str = "xhs",
@@ -347,8 +371,9 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
         for sk_id in applied_skills:
             sk_obj = skill_lib.get(sk_id)
             if sk_obj and sk_obj.get("body"):
-                sk_parts.append(f"◆ 技能【{sk_obj['name']}】：{sk_obj.get('description', '')}\n{sk_obj['body']}")
-                skills_applied_names.append(sk_obj["name"])
+                _disp = skill_display_name(sk_obj)
+                sk_parts.append(f"◆ 技能【{_disp}】：{sk_obj.get('description', '')}\n{sk_obj['body']}")
+                skills_applied_names.append(_disp)
         if sk_parts:
             active_sys_prompt += "\n\n【创作者专属爆款创作与改写技能规范（必须严格调用贯彻）】：\n" + "\n\n".join(sk_parts)
 
@@ -480,7 +505,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
             {"role": "system", "content": active_sys_prompt},
             {"role": "user", "content": improve_prompt}
         ], temp=0.72)
-        cleaned_body = re.sub(r"^```markdown\s*|^```\s*|```$", "", raw_body.strip(), flags=re.MULTILINE).strip()
+        cleaned_body = to_storage(re.sub(r"^```markdown\s*|^```\s*|```$", "", raw_body.strip(), flags=re.MULTILINE).strip())
         
         _report("💾 正在保存重塑版本并重新进行 7 维深度体检…", 80)
         # 保存历史并更新正文
@@ -502,7 +527,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
                     xhs_md_lines.append(f"- {p}")
                 xhs_md_lines.append("")
             xhs_md_lines.append("#爆款笔记 #干货分享 #认知思维 #个人成长")
-            (ddir / "xhs.md").write_text("\n".join(xhs_md_lines), encoding="utf-8")
+            (ddir / "xhs.md").write_text(purify_body("\n".join(xhs_md_lines)), encoding="utf-8")
             
             parsed_arts = {
                 "TITLE_WX": cur_draft["title"],
@@ -699,7 +724,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
             {"role": "user", "content": surg_prompt}
         ], temp=0.7)
         
-        cleaned_new_para = re.sub(r"^```markdown\s*|^```\s*|```$", "", raw_new_para.strip(), flags=re.MULTILINE).strip()
+        cleaned_new_para = to_storage(re.sub(r"^```markdown\s*|^```\s*|```$", "", raw_new_para.strip(), flags=re.MULTILINE).strip())
         cleaned_new_para = re.sub(r"^第\s*[0-9一二两三四五六七八九十]+\s*段\s*[:：]\s*", "", cleaned_new_para).strip()
         
         # 就地原位热替换
@@ -848,7 +873,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
         ], temp=0.75)
         
         # 清理多余标签
-        cleaned_body = re.sub(r"^```markdown\s*|^```\s*|```$", "", raw_body.strip(), flags=re.MULTILINE).strip()
+        cleaned_body = to_storage(re.sub(r"^```markdown\s*|^```\s*|```$", "", raw_body.strip(), flags=re.MULTILINE).strip())
         
         _report("🎨 正在同步更新多平台自适应排版产物…", 75)
         # 保存历史版本与更新草稿
@@ -871,7 +896,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
                     xhs_md_lines.append(f"- {p}")
                 xhs_md_lines.append("")
             xhs_md_lines.append("#爆款笔记 #干货分享 #认知思维 #个人成长")
-            (ddir / "xhs.md").write_text("\n".join(xhs_md_lines), encoding="utf-8")
+            (ddir / "xhs.md").write_text(purify_body("\n".join(xhs_md_lines)), encoding="utf-8")
             from core.orchestrator import save_xhs_history_snapshot
             save_xhs_history_snapshot(cur_draft["id"], note="Agent 全文整改")
             
@@ -957,17 +982,26 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
                             pass
 
                 web_ref_text = (
-                    "\n\n【🌐 全网真实高浏览量热门文章深度蓝本（核心事实与论据依据，严禁凭空捏造）】\n"
-                    "以下是从全网各大平台权威抓取的高流量热文精要，你必须将其作为创作的【唯一事实与依据蓝本】："
-                    "将其中的真实论据、核心数据、案例背景融入创作，严禁凭空捏造或脱离事实！\n\n"
+                    "\n\n【🌐 同题高热度内容的选题角度与结构参考】\n"
+                    "下面是对同一主题的公开内容摘要，**仅用于参考选题角度、结构与表达节奏**。\n"
+                    "硬性约束：\n"
+                    "① 只可借鉴写法，不得照搬其中的软件名、站点名、下载链接、版本号等具体信息；\n"
+                    "② 与主题无关的条目一律忽略，绝不可为凑字数而引入；\n"
+                    "③ 拿不准的事实不要写，宁可少写也不编造。\n\n"
                 )
                 for i, r in enumerate(refs, 1):
                     web_ref_text += (
-                        f"◆ 真实参考源 {i}：《{r['title']}》（来源：{r['source']}）\n"
-                        f"   核心内容与论据要点：{r['snippet'][:600]}\n\n"
+                        f"◆ 参考源 {i}：《{r['title']}》（来源：{r['source']}）\n"
+                        f"   内容要点：{r['snippet'][:600]}\n\n"
                     )
         except Exception as se:
             logger.warning(f"全网多源检索异常: {se}")
+
+        if not web_ref_text:
+            web_ref_text = (
+                "\n\n【说明】本次没有取得可靠的同题参考内容，请直接围绕主题创作：\n"
+                "不要虚构「参考了某篇文章」，也不要引入与主题无关的内容。\n"
+            )
 
         _report(f"✍️ 正在融合全网真实文章事实与爆款技能，构思黄金前3秒与成稿…", 38)
 
@@ -979,13 +1013,13 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
         creation_prompt = (
             f"创作者灵感主题：【{clean_topic}】\n\n"
             f"【核心创作使命】：\n"
-            f"你必须以抓取到的【全网真实高浏览量爆款文章蓝本】为事实与论据依据，结合自身具备的爆款自媒体创作技能，"
-            f"进行升华改写与深度重构，坚决杜绝无依据的凭空捏造与AI公文套话！\n\n"
+            f"围绕上方主题，结合你具备的爆款自媒体创作技能，写出一篇读者愿意读完、能带走干货的成稿。\n"
+            f"若下方附有同题参考内容，只借鉴其角度与写法，不得照搬其中的具体名称与链接。\n\n"
             f"【改写与创作具体要求】：\n"
             f"1. 标题必须有悬念钩子、数字或反差（25字内，高吸引力）；\n"
             f"2. 正文开头前30字黄金3秒必须紧抓读者痛点或制造悬念好奇心；\n"
             f"3. 层次分明，使用【小节标题】或中文序号与 - 列表清晰梳理，严禁在正文中使用 ### 或 ## 符号，严禁使用 *** 或 --- 分割线，# 仅限文末标签；\n"
-            f"4. 核心论点、数据、案例与逻辑必须源自真实文章蓝本，有理有据，具备穿透性干货价值；\n"
+            f"4. 论点要落到具体做法或可核实的事实上，参考源只提供角度，不得整段搬运；\n"
             f"{skill_instruction}"
             f"6. 结尾设置强互动引导（点赞/收藏/评论引发共鸣）；\n"
             f"7. 严禁出现任何『视觉指南/配图说明/排版提示/参考依据』等幕后制作性文字！\n"
@@ -1004,9 +1038,9 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
         title_match = re.search(r"TITLE\s*[:：]\s*(.+)", raw_res)
         body_match = re.search(r"BODY\s*[:：]\s*(.*)", raw_res, re.DOTALL)
         
-        gen_title = title_match.group(1).strip() if title_match else f"关于《{clean_topic[:20]}》的爆款思考"
+        gen_title = purify_title(title_match.group(1)) if title_match else f"关于《{clean_topic[:20]}》的爆款思考"
         gen_body = body_match.group(1).strip() if body_match else raw_res.strip()
-        gen_body = re.sub(r"^```markdown\s*|^```\s*|```$", "", gen_body, flags=re.MULTILINE).strip()
+        gen_body = to_storage(re.sub(r"^```markdown\s*|^```\s*|```$", "", gen_body, flags=re.MULTILINE).strip())
         
         _report("🎨 正在自适应排版微信公众号与小红书爆款图文…", 68)
         
@@ -1101,7 +1135,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
                     xhs_md_lines.append(f"- {p}")
                 xhs_md_lines.append("")
             xhs_md_lines.append("#爆款笔记 #干货分享 #认知思维 #个人成长")
-            (ddir / "xhs.md").write_text("\n".join(xhs_md_lines), encoding="utf-8")
+            (ddir / "xhs.md").write_text(purify_body("\n".join(xhs_md_lines)), encoding="utf-8")
         except Exception as xhs_err:
             logger.warning(f"极简模式自动生成小红书卡片失败: {xhs_err}")
 
@@ -1139,7 +1173,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
                 _report(f"🔄 初稿得分 {cur_sc} 分（低于 80 分合格线），正在执行第 {rewrite_rounds_done} 轮自动重写提分…", 92 + rewrite_rounds_done * 2)
                 rewritten_md = judge.rewrite_with_feedback(new_draft["id"], score_res)
                 if rewritten_md and len(rewritten_md.strip()) > 100:
-                    cleaned_rw = re.sub(r"^```markdown\s*|^```\s*|```$", "", rewritten_md.strip(), flags=re.MULTILINE).strip()
+                    cleaned_rw = to_storage(re.sub(r"^```markdown\s*|^```\s*|```$", "", rewritten_md.strip(), flags=re.MULTILINE).strip())
                     from core import imagegen as _ig
                     gen_body = _ig.inject_images_to_markdown(cleaned_rw, new_draft["id"])
                     db.update_draft_body(new_draft["id"], gen_body)
@@ -1197,20 +1231,25 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
             
         _report("✨ 创作完成，正在装载成品画布…", 98)
         
-        # 组装给创作者的清晰回复展示（包含引用的真实文章依据与贯彻的技能）
+        # 组装给创作者的回复（有可靠参考源才展示依据，绝不拿低质结果凑数）
         ref_display_lines = []
         for i, r in enumerate(refs[:4], 1):
             ref_display_lines.append(f"{i}. 📌 **《{r['title']}》**（{r['source']}）")
-        ref_block = "\n".join(ref_display_lines) if ref_display_lines else "（全网多源高权重实时热文综合萃取）"
 
         skill_str = "、".join(skills_applied_names) if skills_applied_names else "黄金3秒Hook、深度去AI味、反差认知穿透、五式标题赛马"
 
+        if ref_display_lines:
+            reply_head = "🎉 **已参考全网同题高热度内容，结合专属技能为您完成成稿！**"
+            ref_section = "🌐 **选题参考来源**：\n" + "\n".join(ref_display_lines) + "\n\n"
+        else:
+            reply_head = "🎉 **已结合专属技能为您完成成稿！**"
+            ref_section = ""
+
         reply = (
-            f"🎉 **已基于全网真实高浏览量爆款文章，结合专属技能为您完成深度改写！**\n\n"
+            f"{reply_head}\n\n"
             f"📌 **生成标题**：**《{gen_title}》**\n\n"
-            f"🌐 **改写依据的全网真实爆款文章（拒绝虚构）**：\n"
-            f"{ref_block}\n\n"
-            f"🧠 **本次深度贯彻的专属爆款技能**：\n"
+            f"{ref_section}"
+            f"🧠 **本次调用的创作技能**：\n"
             f"• **{skill_str}**\n\n"
             f"📊 **自动质量体检**：{score_res.get('total', 89)} 分（评级：{score_res.get('grade', '良好')}）\n"
             f"📱 **多端全自适应**：已同步排版微信公众号长文、今日头条资讯体，以及小红书 5 幕全景磨砂视觉卡片！\n\n"

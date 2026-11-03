@@ -257,6 +257,13 @@ if not exist ".env" (
         copy ".env.example" ".env" >nul
     )
 )
+rem ⭐ 确保管理员口令可用：
+rem   .env.example 不含真实口令；若 ADMIN_PASSWORD 为空或命中 local-admin/admin/123456，
+rem   后端会判定为「未配置」→ 口令登录被拒 + 本机免密关闭 → 用户被弹回登录框，
+rem   只能用普通账号登录，管理功能全部 403（历史确定性死锁）。
+if exist "scripts\ensure_admin_password.py" (
+    %PY_BIN% "scripts\ensure_admin_password.py" ".env"
+)
 
 echo.
 echo ============================================================

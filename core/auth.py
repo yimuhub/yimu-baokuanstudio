@@ -23,11 +23,12 @@ from studio.pricing import TIER_CREDITS
 
 BASE = Path(__file__).resolve().parent.parent
 DATA = BASE / "data"
-DB_PATH = DATA / "mediaflow.db"
+#: 与 core.db.DB_PATH 保持同一口径：默认 data/mediaflow.db，可用 YIMU_DB_PATH 覆盖。
+#: 两个模块必须读同一个值，否则「用户表」和「草稿表」会落到两个库里。
+DB_PATH = Path(os.environ.get("YIMU_DB_PATH") or (DATA / "mediaflow.db"))
 
 _PBKDF2_ITERATIONS = 210_000  # OWASP 对 HMAC-SHA-256 的建议量级（新哈希）
 _LEGACY_ITERATIONS = 100_000  # 老版本哈希轮数（仅用于验证存量口令）
-_PROCESS_FALLBACK_SECRET = secrets.token_hex(32)
 
 
 def _free_quota() -> int:
@@ -43,11 +44,16 @@ def _iso_now() -> str:
 
 
 def _secret_key() -> str:
-    """⭐ 签名密钥：优先取环境变量 YIMU_SECRET_KEY；未配置时使用进程级高熵随机密钥，绝不使用固定公开常量，也不污染 os.environ。"""
-    key = os.environ.get("YIMU_SECRET_KEY", "").strip()
-    if key:
-        return key
-    return _PROCESS_FALLBACK_SECRET
+    """⭐ 签名密钥：环境变量 YIMU_SECRET_KEY > 本地持久密钥 data/.secrets/session。
+
+    ⚠️ 不得退回「进程内随机」：那会导致 ① 每次重启全员掉线；
+       ② 多 worker 时 A 签发 B 拒收，无法水平扩容；
+       ③ API Key Vault 的加密密钥同源，重启后已存 Key 解不开。
+       见 :mod:`core.secret_store` 的模块注释。
+    """
+    from core.secret_store import session_secret
+
+    return session_secret()
 
 
 def _db():
@@ -245,17 +251,22 @@ def register_user(username: str, password: str, email: str = "", invite_code: st
     c.commit()
     c.close()
 
-    # 若携带了邀请码，尝试通过裂变模块或卡密模块兑付奖励（绝不阻断主注册）
+    # 若携带了邀请码，尝试通过卡密/邀请模块兑付奖励（绝不阻断主注册）
+    # 🔴 修复：原来调 `core.fission.accept_referral`——该函数**全仓不存在**
+    #    （core.fission 是「一稿六端裂变」的内容推导模块，与邀请无关），
+    #    AttributeError 被 except 吞掉，于是邀请码填了也等于没填。
+    #    现在走真实兑换链路（与 /api/billing/redeem 同源），并顺带发邀请人奖励。
     bonus_credits = 0
     clean_code = (invite_code or "").strip()
     if clean_code:
         try:
-            from core import fission
-            ref_res = fission.accept_referral(clean_code, uid)
+            from studio import billing_adapter as _billing
+
+            ref_res = _billing.redeem_cdkey_for_user(clean_code, uid)
             if ref_res.get("ok"):
-                bonus_credits = int(ref_res.get("invitee_bonus", 0) or 0)
-        except Exception:
-            pass
+                bonus_credits = int(ref_res.get("credits", 0) or 0)
+        except Exception as e:
+            print(f"[注册] 邀请码兑付失败（不阻断注册）: {e}")
 
     # 埋点：记录注册漏斗首步 signup
     try:

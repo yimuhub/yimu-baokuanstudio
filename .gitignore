@@ -10,6 +10,8 @@ venv/
 .env.*
 !.env.example
 .pytest_cache/
+# pytest 临时目录（CI/本地跑测试时可能指到仓库内，避免误提交）
+.pytest-tmp*/
 .mypy_cache/
 .ruff_cache/
 

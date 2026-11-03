@@ -34,6 +34,7 @@
 from __future__ import annotations
 
 import json
+import re
 import secrets
 import time
 import uuid
@@ -98,10 +99,12 @@ def create_share(draft_id: str, platform: str, owner_user_id: str = "",
     }
 
 
-def resolve(token: str) -> dict | None:
+def resolve(token: str, *, count_hit: bool = True) -> dict | None:
     """令牌 → 分享记录。无效/过期/已吊销一律返回 None。
 
     命中时**顺带累加访问计数**（运营需要知道哪篇稿子真的被传播了）。
+    ``count_hit=False`` 供「同一页面里的图片子资源」使用：一次浏览会
+    触发十几张图，若都计数，hits 就变成「图片数」而不是「阅读数」。
     """
     if not (token or "").strip():
         return None
@@ -124,8 +127,9 @@ def resolve(token: str) -> dict | None:
     if exp and exp <= _now():
         c.close()
         return None
-    c.execute("UPDATE share_links SET hits = hits + 1 WHERE id=?", (rec["id"],))
-    c.commit()
+    if count_hit:
+        c.execute("UPDATE share_links SET hits = hits + 1 WHERE id=?", (rec["id"],))
+        c.commit()
     c.close()
     return rec
 
@@ -289,12 +293,35 @@ def _truncate_cjk(text: str, limit: int) -> str:
     return "".join(out)
 
 
+def rewrite_media_urls(html: str, draft_id: str, token: str) -> str:
+    """把产物 HTML 里的 ``/img/{did}/`` ``/card/{did}/`` 改写成令牌路由。
+
+    为什么必须改：`/img/{did}/{name}` 现在是**归属校验 + fail-closed** 的
+    （匿名请求 401），而分享页是给未登录的外部访客看的。若不改写，
+    访客能看到文字但所有配图/卡片 404——等于把分享功能一起关掉。
+
+    改写目标 ``/s/{token}/img/{name}`` 的安全性与分享页完全同源：
+    令牌不可猜测、可吊销、可过期，且只能取到签名时那一篇稿件的图。
+    """
+    if not html or not draft_id or not token:
+        return html
+    did = re.escape(str(draft_id))
+    html = re.sub(rf"/img/{did}/", f"/s/{token}/img/", html)
+    html = re.sub(rf"/card/{did}/", f"/s/{token}/card/", html)
+    return html
+
+
 def render_share_page(record: dict, html: str) -> str:
     """给分享页套一层壳：顶部提示 + 内容区 + 底部品牌署名。
 
     ⭐ 内容原样嵌入（不二次渲染），避免二次转义破坏已排版 HTML。
     """
     platform = _esc(record.get("platform") or "")
+    html = rewrite_media_urls(
+        html,
+        str(record.get("draft_id") or ""),
+        str(record.get("token") or ""),
+    )
     return f"""<!doctype html>
 <html lang="zh-CN"><head>
 <meta charset="utf-8">

@@ -5910,6 +5910,19 @@ input[type=text]:focus, textarea:focus, select:focus {
             </div>
           </div>
 
+          <!-- 系统诊断日志 -->
+          <div style="padding-top:12px;border-top:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+              <div style="flex:1;min-width:240px">
+                <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px"><span>🩺</span> 系统诊断日志</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-diag-info">
+                  遇到「改写失败 / 生成失败 / 发布失败」时，先复现一次，再点右侧导出，把文本发给我们即可精确定位。日志会自动打码 API Key。
+                </div>
+              </div>
+              <button class="btn btn-sm" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;font-weight:700" onclick="diagOpen()">🩺 查看并复制诊断日志</button>
+            </div>
+          </div>
+
           <!-- GitHub 仓库在线升级与同步 -->
           <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);background:rgba(56,189,248,0.03);padding:14px;border-radius:10px;margin-top:12px;border:1px solid rgba(56,189,248,0.2)">
             <div>
@@ -6260,7 +6273,7 @@ input[type=text]:focus, textarea:focus, select:focus {
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="btn btn-sm ghost" onclick="openLoginModal()" title="切换登录身份或重新验证口令">🔐 账号与口令</button>
-            <button class="btn btn-sm ghost" onclick="openChangePasswordModal()" style="color:#a78bfa;border-color:rgba(167,139,250,0.4)" title="修改当前登录账号密码">🔑 修改密码</button>
+            <button class="btn btn-sm ghost" onclick="openSelfChangePassword()" style="color:#a78bfa;border-color:rgba(167,139,250,0.4)" title="修改当前登录账号密码">🔑 修改密码</button>
             <button class="btn btn-sm ghost" onclick="openBillingModal()" style="color:var(--primary);border-color:rgba(240,136,62,0.4)" title="商业化充值与卡密兑换">💎 算力账本</button>
             <a class="btn btn-sm ghost" href="/releases" target="_blank" style="color:#38bdf8;border-color:rgba(56,189,248,0.4);text-decoration:none;display:inline-flex;align-items:center" title="查看全生命周期版本更新与演进展示">📦 版本更新展示</a>
             <button class="btn btn-sm ghost" onclick="checkSystemUpdate(true)" title="检查 GitHub 仓库最新代码">🪐 检查更新</button>
@@ -6278,7 +6291,7 @@ input[type=text]:focus, textarea:focus, select:focus {
               <span>🆔</span> 创作者媒体与账号档案
             </div>
             <div style="display:flex;gap:6px;align-items:center">
-              <button class="btn btn-sm ghost" style="padding:2px 8px;font-size:11px;color:#a78bfa" onclick="openChangePasswordModal()">🔑 修改密码</button>
+              <button class="btn btn-sm ghost" style="padding:2px 8px;font-size:11px;color:#a78bfa" onclick="openSelfChangePassword()">🔑 修改密码</button>
               <span class="badge green">生效中</span>
             </div>
           </div>
@@ -6290,7 +6303,7 @@ input[type=text]:focus, textarea:focus, select:focus {
           <div style="font-size:11.5px;color:var(--text-muted);display:flex;justify-content:space-between;align-items:center;margin-top:4px">
             <span>支持多平台同步发布时的媒体签名引用</span>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-sm ghost" style="padding:2px 8px;font-size:11px" onclick="openChangePasswordModal()">修改密码</button>
+              <button class="btn btn-sm ghost" style="padding:2px 8px;font-size:11px" onclick="openSelfChangePassword()">修改密码</button>
               <button class="btn btn-sm ghost" style="padding:2px 8px;font-size:11px" onclick="openLoginModal()">切换/登出账号</button>
             </div>
           </div>
@@ -6691,10 +6704,10 @@ input[type=text]:focus, textarea:focus, select:focus {
         <div id="inapp-co-instructions" style="font-size:12px;color:#c8cee0;line-height:1.85;background:#0d1117;border-radius:8px;padding:12px 14px;margin-bottom:14px"></div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px">
-          <span style="font-size:12px;color:var(--text-muted)">💡 可直接点击右侧按钮完成订单收款核销与卡密兑换，算力与会员等级将实时到账：</span>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn ok btn-sm" onclick="inappActivateOrderOneClick(window._inappCurOrderId, window._inappCurOrderCdkey)">🚀 确认收款并立即激活到账（一步走通）</button>
-            <button class="btn info btn-sm" onclick="inappConfirmOrderPaid(window._inappCurOrderId)">✅ 仅确认收款</button>
+          <span id="inapp-co-hint" style="font-size:12px;color:var(--text-muted)">💡 付款后请等待运营确认收款；确认完成后本单专属卡密会显示在此处。</span>
+          <div id="inapp-co-admin-actions" style="display:none;gap:8px;flex-wrap:wrap">
+            <button class="btn ok btn-sm" onclick="inappActivateOrderOneClick(window._inappCurOrderId, window._inappCurOrderCdkey)">🚀 确认收款并立即激活到账（管理员）</button>
+            <button class="btn info btn-sm" onclick="inappConfirmOrderPaid(window._inappCurOrderId)">✅ 仅确认收款（管理员）</button>
             <button class="btn ghost btn-sm" onclick="inappRedeemCodeNow(window._inappCurOrderCdkey)">🎟️ 立即核销此卡密</button>
           </div>
         </div>
@@ -8670,6 +8683,40 @@ async function deleteUserAccount(uid, username) {
   </div>
 </div></div>
 
+<div class="mask" id="m-diagnostics">
+  <div class="modal-box" style="max-width:980px;width:96%;max-height:92vh;display:flex;flex-direction:column;padding:20px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px">
+      <div>
+        <h3 style="margin:0;font-size:17px;display:flex;align-items:center;gap:8px;color:#fff">
+          <span style="color:#38bdf8">🩺</span> 系统诊断日志
+        </h3>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;line-height:1.7">
+          复现失败后点「刷新」，再点「复制全部」，把内容整段发出来即可定位。<br>
+          日志含环境快照、失败步骤、完整错误堆栈；<b>不含</b> API Key 与密码（已自动打码）。
+        </div>
+      </div>
+      <button class="btn btn-sm ghost" onclick="closeModal()">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <select id="diag-limit" class="m-input" style="font-size:12px;padding:4px 8px;background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px" onchange="diagLoad()">
+        <option value="100">最近 100 条</option>
+        <option value="500" selected>最近 500 条</option>
+        <option value="2000">全部（最多 2000 条）</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted);cursor:pointer;margin:0">
+        <input type="checkbox" id="diag-only-problems" onchange="diagLoad()" style="cursor:pointer"> 只看错误与警告
+      </label>
+      <button class="btn btn-sm ghost" onclick="diagLoad()">↻ 刷新</button>
+      <button class="btn btn-sm ok" style="background:#238636;color:#fff;border:none;font-weight:700" onclick="diagCopy()">📋 复制全部</button>
+      <button class="btn btn-sm ghost" onclick="diagDownload()">⬇ 保存为文件</button>
+      <button class="btn btn-sm ghost" style="color:#ef4444;border-color:rgba(239,68,68,0.4)" onclick="diagClear()">🧹 清空</button>
+      <span id="diag-meta" style="font-size:11.5px;color:var(--text-muted);margin-left:auto"></span>
+    </div>
+    <textarea id="diag-text" readonly spellcheck="false"
+      style="flex:1;min-height:52vh;width:100%;background:#0d1117;color:#c9d1d9;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.6;white-space:pre;overflow:auto;resize:vertical"></textarea>
+  </div>
+</div>
+
 <div class="mask" id="m-gateway">
   <div class="modal-box" style="max-width:920px;width:95%;max-height:90vh;overflow-y:auto;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:16px">
@@ -8787,10 +8834,10 @@ async function deleteUserAccount(uid, username) {
 
       <!-- 分类筛选器选项卡 -->
       <div style="display:flex;gap:6px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:8px;flex-wrap:wrap">
-        <button type="button" class="filter-tab-btn active" id="mtab-all" onclick="filterModelCategory('all')">全部模型 (<span id="cnt-all">0</span>)</button>
-        <button type="button" class="filter-tab-btn" id="mtab-text" onclick="filterModelCategory('text')">📝 文字生成与推理 (<span id="cnt-text">0</span>)</button>
-        <button type="button" class="filter-tab-btn" id="mtab-image" onclick="filterModelCategory('image')">🎨 图片绘画生成 (<span id="cnt-image">0</span>)</button>
-        <button type="button" class="filter-tab-btn" id="mtab-video" onclick="filterModelCategory('video')">🎬 视频影视生成 (<span id="cnt-video">0</span>)</button>
+        <button type="button" class="filter-tab-btn active" id="mtab-all" onclick="filterModelCategory('all')">全部模型 (<span id="mcnt-all">0</span>)</button>
+        <button type="button" class="filter-tab-btn" id="mtab-text" onclick="filterModelCategory('text')">📝 文字生成与推理 (<span id="mcnt-text">0</span>)</button>
+        <button type="button" class="filter-tab-btn" id="mtab-image" onclick="filterModelCategory('image')">🎨 图片绘画生成 (<span id="mcnt-image">0</span>)</button>
+        <button type="button" class="filter-tab-btn" id="mtab-video" onclick="filterModelCategory('video')">🎬 视频影视生成 (<span id="mcnt-video">0</span>)</button>
       </div>
 
       <!-- 模型卡片网格列表 (带复选框、类别切换徽章) -->
@@ -10380,6 +10427,93 @@ function syncVersionBadge() {
   }
 }
 
+/* ==================== 系统诊断日志 ====================
+   场景：Windows 端「改写失败」但拿不到服务端日志。
+   这里把失败现场（环境、步骤、堆栈）导出成一段可复制文本。 */
+function diagOpen() {
+  modal('m-diagnostics');
+  diagLoad();
+}
+
+async function diagLoad() {
+  const ta = document.getElementById('diag-text');
+  if (!ta) return;
+  const sel = document.getElementById('diag-limit');
+  const chk = document.getElementById('diag-only-problems');
+  const meta = document.getElementById('diag-meta');
+  const limit = (sel && sel.value) || 500;
+  const only = (chk && chk.checked) ? 1 : 0;
+  ta.value = '正在收集诊断信息…';
+  if (meta) meta.textContent = '';
+  try {
+    const res = await api('/api/diagnostics/log?limit=' + encodeURIComponent(limit) + '&only_problems=' + only);
+    ta.value = (res && res.text) || '（暂无日志）';
+    const st = (res && res.stats) || {};
+    if (meta) {
+      meta.textContent = '内存 ' + (st.events || 0) + ' 条 · 错误 ' + (st.errors || 0) +
+        ' · 警告 ' + (st.warnings || 0) + ' · 文件 ' + st.path;
+    }
+  } catch (e) {
+    // 接口都读不到时，直接告诉用户磁盘上的文件在哪，方便手动取
+    ta.value = '读取失败：' + ((e && e.message) ? e.message : e) +
+      '\n\n你仍然可以直接打开程序目录下的这个文件，把内容发给我们：' +
+      '\n  data/logs/diagnostics.log';
+  }
+}
+
+async function diagCopy() {
+  const ta = document.getElementById('diag-text');
+  if (!ta || !ta.value.trim()) { toast('⚠️ 还没有内容，请先点「刷新」'); return; }
+  try {
+    await navigator.clipboard.writeText(ta.value);
+    toast('✅ 诊断日志已复制，直接粘贴发给我们即可');
+  } catch (e) {
+    // 非安全上下文（http 局域网 / 老 WebView）下 clipboard 不可用 → 退回 execCommand
+    let ok = false;
+    try {
+      ta.removeAttribute('readonly');
+      ta.focus();
+      ta.select();
+      ta.setSelectionRange(0, ta.value.length);
+      ok = document.execCommand('copy');
+    } catch (_e) { ok = false; }
+    try { ta.setAttribute('readonly', 'readonly'); } catch (_e) {}
+    toast(ok ? '✅ 已复制到剪贴板' : '复制失败，请手动全选（Ctrl+A）后复制');
+  }
+}
+
+function diagDownload() {
+  const ta = document.getElementById('diag-text');
+  if (!ta || !ta.value.trim()) { toast('⚠️ 还没有内容'); return; }
+  try {
+    const blob = new Blob([ta.value], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    const d = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const stamp = d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + '-' +
+                  pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
+    a.href = URL.createObjectURL(blob);
+    a.download = 'yimu-diagnostics-' + stamp + '.txt';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  } catch (e) {
+    toast('保存失败：' + ((e && e.message) ? e.message : e));
+  }
+}
+
+async function diagClear() {
+  if (!confirm('确定清空诊断日志？建议先「复制全部」保存一份。')) return;
+  try {
+    await api('/api/diagnostics/clear', { method: 'POST' });
+    toast('✅ 已清空');
+    diagLoad();
+  } catch (e) {
+    toast('清空失败：' + ((e && e.message) ? e.message : e));
+  }
+}
+
 async function checkSystemUpdate(manual = false) {
   const statusEl = document.getElementById('st-updater-status');
   const checkBtn = document.getElementById('btn-check-update');
@@ -10620,7 +10754,7 @@ function switchAuthTab(tab) {
   if (errBox) errBox.style.display = 'none';
 }
 
-function openChangePasswordModal() {
+function openSelfChangePassword() {
   modal('m-login');
   switchAuthTab('password');
   const uInp = $('login-username');
@@ -14069,6 +14203,11 @@ async function loadAndRenderPlatformData(d, tab) {
   const canvas = $('wb-preview-canvas');
   if(!canvas) return;
 
+  // 重新载入即视为「服务器状态 = 本地状态」，清掉脏标记与待执行的自动保存，
+  // 否则切 tab 后自动保存会把上一篇的内容写进这一篇。
+  _wbDirty = false;
+  clearTimeout(_wbAutoSaveTimer);
+
   updateSaveStatus(true, '⚡ 载入中…');
 
   if (tab === 'wechat_mp' || tab === 'toutiao' || tab === 'zhihu' || tab === 'weibo' || tab === 'twitter') {
@@ -15215,11 +15354,41 @@ async function showPlatformScores() {
 }
 
 /* ================= 专业双栏工作台编辑与热重渲交互 ================= */
+
+/* 编辑兜底（审查 P1-6）：
+   此前编辑器没有任何自动保存、也没有 beforeunload 提示——切 tab 或刷新就直接
+   把 `editorInput.value = 服务器内容` 覆盖掉，改半小时的稿子瞬间没了。
+   现在：输入即标脏 → 2.5 秒静默自动保存 → 关页面前拦截提示。 */
+var _wbDirty = false;
+var _wbAutoSaveTimer = null;
+
+function _wbMarkDirty() {
+  _wbDirty = true;
+  clearTimeout(_wbAutoSaveTimer);
+  _wbAutoSaveTimer = setTimeout(async () => {
+    if (!_wbDirty || !curDraft) return;
+    const saved = await saveCurrentPlatformContent(true);
+    if (saved) {
+      _wbDirty = false;
+      updateSaveStatus(true, '✓ 已自动保存');
+    }
+  }, 2500);
+}
+
+window.addEventListener('beforeunload', (e) => {
+  if (_wbDirty) {
+    e.preventDefault();
+    e.returnValue = '当前平台的修改尚未保存，确定离开吗？';
+    return e.returnValue;
+  }
+});
+
 function handleEditorInput() {
   const tx = $('wb-editor-input');
   if(!tx) return;
   updateWordCount(tx.value);
-  updateSaveStatus(false, '● 未保存修改 (按 Ctrl+S 存盘)');
+  updateSaveStatus(false, '● 未保存修改 (按 Ctrl+S 存盘，2.5 秒后自动保存)');
+  _wbMarkDirty();
 
   // 400ms 轻量防抖即时热刷（如果是小红书或纯文本）
   clearTimeout(editorInputTimer);
@@ -15253,13 +15422,13 @@ function updateSaveStatus(saved, msg) {
   }
 }
 
-async function saveCurrentPlatformContent() {
-  if(!curDraft) return toast('请先选择草稿');
+async function saveCurrentPlatformContent(silent) {
+  if(!curDraft) { if(!silent) toast('请先选择草稿'); return false; }
   const txt = $('wb-editor-input')?.value || '';
   const theme = $('ed-theme-select')?.value;
   const btn = $('btn-wb-save');
   if(btn) { btn.disabled = true; btn.textContent = '⏳ 保存渲染中…'; }
-  updateSaveStatus(false, '⏳ 正在保存并重新排版…');
+  if(!silent) updateSaveStatus(false, '⏳ 正在保存并重新排版…');
 
   try {
     const res = await api(`/api/drafts/${curDraft}/save_platform`, {
@@ -15273,7 +15442,7 @@ async function saveCurrentPlatformContent() {
       })
     });
 
-    toast(`✅ ${PLATFORM_CONFIG[currentPlatformTab]?.name || '当前平台'} 已保存并重新排版！`, 3000);
+    if(!silent) toast(`✅ ${PLATFORM_CONFIG[currentPlatformTab]?.name || '当前平台'} 已保存并重新排版！`, 3000);
     updateSaveStatus(true, '✓ 已与服务器同步');
 
     // 实时更新右侧视窗
@@ -15290,9 +15459,11 @@ async function saveCurrentPlatformContent() {
     if(d && currentPlatformTab === 'wechat_mp') {
       d.body_md = txt;
     }
+    return true;
   } catch(e) {
-    toast('保存失败: ' + e.message);
-    updateSaveStatus(false, '❌ 保存失败');
+    if(!silent) toast('保存失败: ' + e.message);
+    updateSaveStatus(false, '❌ 保存失败（修改仍在本地，请重试）');
+    return false;
   } finally {
     if(btn) { btn.disabled = false; btn.textContent = '💾 保存并重新渲染 (Ctrl+S)'; }
   }
@@ -18704,10 +18875,13 @@ function updateCategoryCounts() {
   const imageCount = currentModelsList.filter(x => x.category === 'image').length;
   const videoCount = currentModelsList.filter(x => x.category === 'video').length;
 
-  if ($('cnt-all')) $('cnt-all').textContent = total;
-  if ($('cnt-text')) $('cnt-text').textContent = textCount;
-  if ($('cnt-image')) $('cnt-image').textContent = imageCount;
-  if ($('cnt-video')) $('cnt-video').textContent = videoCount;
+  // ⚠️ 必须用 mcnt-* 前缀：cnt-all/cnt-image/cnt-video 曾被「任务抽屉」占用，
+  //    重复 id 让 $() 只命中 DOM 里更靠前的模型页元素 →
+  //    任务抽屉的分类计数永远显示 0，模型页计数被任务列表覆盖。
+  if ($('mcnt-all')) $('mcnt-all').textContent = total;
+  if ($('mcnt-text')) $('mcnt-text').textContent = textCount;
+  if ($('mcnt-image')) $('mcnt-image').textContent = imageCount;
+  if ($('mcnt-video')) $('mcnt-video').textContent = videoCount;
   if ($('model-count-badge')) $('model-count-badge').textContent = `已激活 ${enabledCount} / ${total} 款`;
 }
 
@@ -19588,6 +19762,23 @@ function closeWizard() {
   modal('m-wizard').classList.remove('on');
   fetch('/api/onboarding/done', {method: 'POST'})
     .catch(() => { /* 标记失败不阻塞 */ });
+}
+
+function goInspire() {
+  /* 向导第 3 步「去写第一条爆款 ➔」的落点：切到「灵感生成器」并聚焦关键词输入框。
+     🔴 修复：这个函数此前**全仓没有定义**，而按钮 onclick 里直接调它，
+        点下去只会在 Console 报 ReferenceError——全产品唯一一处手把手引导，
+        最后一步是死链。 */
+  try {
+    const nav = document.querySelector('.nav-item[data-p=inspire]');
+    if (nav) nav.click();
+    const kw = $('sk-kw');
+    if (kw) {
+      setTimeout(() => {
+        try { kw.scrollIntoView({block: 'center'}); kw.focus(); } catch (e) {}
+      }, 200);
+    }
+  } catch (e) { /* 引导跳转失败不影响主界面 */ }
 }
 
 function onWizardProviderChange() {
@@ -22176,7 +22367,7 @@ async function inappCreateOrder(planCode, btnEl) {
     if (d && d.ok && d.order) {
       inappShowCheckout(d.order);
       await loadInappPricingOrders();
-      toast('✅ 订单已创建！可在收银台一键确认并核销激活到账', 4000);
+      toast('✅ 订单已创建！请按收银台指引完成付款，运营确认到账后卡密会自动显示', 4500);
     }
   } catch (e) {
     toast('⚠️ 下单失败: ' + e.message, 4000);
@@ -22194,7 +22385,21 @@ function inappShowCheckout(o) {
   if ($('inapp-co-meta')) $('inapp-co-meta').textContent = '订单号：' + o.id + ' · 套餐：' + String(o.plan || '').toUpperCase() + ' · 创建时间：' + String(o.created_at || '').slice(0, 19).replace('T', ' ');
   if ($('inapp-co-amount')) $('inapp-co-amount').textContent = '¥' + Number(o.amount_yuan || 0).toFixed(2);
   if ($('inapp-co-credits')) $('inapp-co-credits').textContent = '含 ' + Number(o.credits || 0).toLocaleString() + ' 点算力额度';
-  if ($('inapp-co-cdkey')) $('inapp-co-cdkey').textContent = o.cdkey || '—';
+  // 卡密只在 paid 后下发：pending 时明确告诉用户「还没确认收款」，
+  // 而不是显示一个空横线让他以为系统坏了。
+  const _isAdmin = !!(currentUserInfo && (currentUserInfo.role === 'admin' || currentUserInfo.role === 'owner'));
+  if ($('inapp-co-cdkey')) {
+    $('inapp-co-cdkey').textContent = o.cdkey
+      || (o.status === 'paid' ? '加载中…' : '付款确认后显示');
+  }
+  const _adminBox = $('inapp-co-admin-actions');
+  if (_adminBox) _adminBox.style.display = _isAdmin ? 'flex' : 'none';
+  const _hint = $('inapp-co-hint');
+  if (_hint) {
+    _hint.textContent = _isAdmin
+      ? '💡 管理员：核对到账后点「确认收款」，再把卡密交给客户或直接代客核销。'
+      : '💡 请按上方收款方式完成付款；运营确认到账后，本单卡密会显示在这里（也可在「我的订单」查看）。';
+  }
   if ($('inapp-co-instructions')) {
     $('inapp-co-instructions').innerHTML = (o.payment_instructions || []).map(s => '<div>' + s + '</div>').join('');
   }
@@ -22212,6 +22417,10 @@ function inappCopyOrderKey() {
 
 async function inappActivateOrderOneClick(orderId, cdkeyArg) {
   if (!orderId && !cdkeyArg) return toast('请先选择套餐创建订单');
+  const _isAdmin = !!(currentUserInfo && (currentUserInfo.role === 'admin' || currentUserInfo.role === 'owner'));
+  if (!_isAdmin) {
+    return toast('⚠️ 确认收款与代客核销仅限管理员；付款后请等待运营确认，卡密确认后会自动出现在「我的订单」', 5000);
+  }
   try {
     // 1. 确认订单收款（直接调用内置 /api/admin/orders/{id}/confirm，已确认则幂等放行）
     if (orderId) {
@@ -22368,24 +22577,28 @@ async function loadInappPricingOrders() {
     }
     const L = { pending: '待支付', paid: '已收款', refunded: '已退款', cancelled: '已取消' };
     const badgeCls = { pending: 'warn', paid: 'ok', refunded: 'danger', cancelled: 'ghost' };
+    // 确认收款/退款/代客核销都是管理员动作（后端 guard_admin），
+    // 普通用户看到这些按钮只会点出 403，所以按角色隐藏。
+    const _isAdmin = !!(currentUserInfo && (currentUserInfo.role === 'admin' || currentUserInfo.role === 'owner'));
     box.innerHTML = '<table class="tbl" style="width:100%;font-size:12.5px"><thead><tr><th>下单时间</th><th>套餐档位</th><th>应付金额</th><th>算力额度</th><th>专属卡密</th><th>状态</th><th>全流程操作</th></tr></thead><tbody>'
       + d.items.map(o => {
           const acts = [];
+          // 卡密只在「已确认收款(paid)」后由后端下发；pending 时为空串，
+          // 用户自助核对收款的口子已关闭（见后端 activate 的注释）。
           if (o.cdkey && o.status !== 'cancelled' && o.status !== 'refunded') {
-            acts.push('<button class="btn ok btn-sm" onclick="inappActivateOrderOneClick(\'' + o.id + '\')">🚀 一键激活到账</button>');
-            acts.push('<button class="btn ghost btn-sm" onclick="inappRedeemCodeNow(\'' + o.cdkey + '\')">🎟️ 兑换卡密</button>');
+            acts.push('<button class="btn ok btn-sm" onclick="inappRedeemCodeNow(\'' + o.cdkey + '\')">🎟️ 兑换卡密</button>');
           }
-          if (o.status === 'pending') {
+          if (_isAdmin && o.status === 'pending') {
             acts.push('<button class="btn info btn-sm" onclick="inappConfirmOrderPaid(\'' + o.id + '\')">✅ 确认收款</button>');
             acts.push('<button class="btn ghost btn-sm" style="color:#ff7b72" onclick="inappCancelOrder(\'' + o.id + '\')">取消</button>');
-          } else if (o.status === 'paid') {
+          } else if (_isAdmin && o.status === 'paid') {
             acts.push('<button class="btn ghost btn-sm" style="color:#ff7b72" onclick="inappRefundOrder(\'' + o.id + '\')">↩ 退款</button>');
           }
           return '<tr><td>' + String(o.created_at || '').slice(0, 16).replace('T', ' ') + '</td>'
             + '<td><b>' + String(o.plan || '').toUpperCase() + '</b></td>'
             + '<td style="color:var(--primary);font-weight:700">¥' + o.amount_yuan + '</td>'
             + '<td>' + Number(o.credits || 0).toLocaleString() + ' 点</td>'
-            + '<td><code style="background:#0d1117;padding:3px 8px;border-radius:5px;color:#7ee787">' + (o.cdkey || '—') + '</code></td>'
+            + '<td><code style="background:#0d1117;padding:3px 8px;border-radius:5px;color:#7ee787">' + (o.cdkey || (o.status === 'pending' ? '待确认收款后显示' : '—')) + '</code></td>'
             + '<td><span class="badge ' + (badgeCls[o.status] || 'info') + '">' + (L[o.status] || o.status) + '</span></td>'
             + '<td><div style="display:flex;gap:6px;flex-wrap:wrap">' + (acts.join('') || '<span style="color:var(--text-muted)">已闭环</span>') + '</div></td></tr>';
         }).join('')

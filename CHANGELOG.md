@@ -42,6 +42,29 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.3.0] - 2026-11-03 · 鸿蒙始 (Primordial Dawn) · 系统诊断日志与改写链路修复 (Diagnostics & Rewrite Fixes)
+
+### Added
+- **系统诊断日志（设置 → 系统诊断日志）**：一键导出可复制的诊断文本，包含环境快照、失败步骤、完整错误堆栈。
+  - 新增 `core/diagnostics.py`：环形缓冲区（2000 条）+ 落盘 `data/logs/diagnostics.log`（2MB 自动轮转）。
+  - 自动接管 `logging` WARNING 及以上、线程/进程未捕获异常、asyncio 未处理异常、HTTP 4xx/5xx。
+  - 新增接口 `GET /api/diagnostics/log`、`GET /api/diagnostics/stats`、`POST /api/diagnostics/clear`。
+  - 敏感字段（key/token/password/secret/cookie/auth）自动打码，可安全外发。
+  - 前端支持「复制全部 / 保存为文件 / 只看错误与警告 / 清空」。
+
+### Fixed
+- **Windows 端「新建正常、所有改写方式全失败」**：旧库 `draft_history` 缺 `title` 列时报
+  `table draft_history has no column named title`。根因是补列迁移只写在「首次建库」分支，
+  只要 `drafts` 表存在就走快速路径，永远补不上。
+  - `conn()` 快速路径现在会补缺失的表（`_ensure_core_tables`）与缺失的列（`_migrate_columns`）。
+  - `add_history` 增加「最后一米」兜底：表存在但缺 `title` / `body_md` / `score` / `created_at` 时就地补齐。
+  - `add_history` 改为单连接 + `finally` 关闭，避免异常路径漏关连接造成的 `database is locked`。
+- **改写不再因「历史版本存不下」整体失败**：`add_history` 失败降级为告警，改写继续。
+- **Windows 控制台编码**：启动时把 `stdout`/`stderr` 切到 UTF-8 + `replace`，
+  避免 `cp936` 下 print emoji 抛 `UnicodeEncodeError` 把长链路带崩。
+- **改写链路步骤埋点**：`rewrite_draft_once` / `rewrite_single_platform` 记录「读取草稿 → 写历史 →
+  调模型 → 解析 → 重建产物 → 评分」各步，失败时能直接看出卡在哪一步。
+
 ## [10.2.1] - 2026-10-23 · 鸿蒙始 (Primordial Dawn) · 原生应用安装包发布 (Native Application Installers)
 
 ### Added

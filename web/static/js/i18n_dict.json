@@ -1908,5 +1908,21 @@
   "• 200,000 点算力额度": "• 200,000 Compute Credits",
   "• 深度博主音色/排版蒸馏": "• Deep Voice & Style Distillation",
   "实时同步价格": "Live Synced Price",
-  "· 价格与额度从定价中心实时同步": "· Prices and quotas synced live from Pricing Center"
+  "· 价格与额度从定价中心实时同步": "· Prices and quotas synced live from Pricing Center",
+  "💡 付款后请等待运营确认收款；确认完成后本单专属卡密会显示在此处。": "💡 Please wait for our team to confirm your payment. The activation code for this order will appear here once confirmed.",
+  "🚀 确认收款并立即激活到账（管理员）": "🚀 Confirm payment & credit immediately (admin)",
+  "✅ 仅确认收款（管理员）": "✅ Confirm payment only (admin)",
+  "系统诊断日志": "System Diagnostics Log",
+  "遇到「改写失败 / 生成失败 / 发布失败」时，先复现一次，再点右侧导出，把文本发给我们即可精确定位。日志会自动打码 API Key。": "When a rewrite / generation / publishing failure happens, reproduce it once, then export from the right panel and send us the text. API keys are masked automatically.",
+  "🩺 查看并复制诊断日志": "🩺 View & Copy Diagnostics",
+  "复现失败后点「刷新」，再点「复制全部」，把内容整段发出来即可定位。": "Reproduce the failure, click Refresh, then Copy All and send us the whole text.",
+  "日志含环境快照、失败步骤、完整错误堆栈；": "It includes the environment snapshot, the failed step and the full stack trace;",
+  "不含": "never",
+  "API Key 与密码（已自动打码）。": "API keys or passwords (masked automatically).",
+  "📋 复制全部": "📋 Copy All",
+  "⬇ 保存为文件": "⬇ Save to File",
+  "最近 100 条": "Last 100 entries",
+  "最近 500 条": "Last 500 entries",
+  "全部（最多 2000 条）": "All (max 2000)",
+  "只看错误与警告": "Errors & warnings only"
 }

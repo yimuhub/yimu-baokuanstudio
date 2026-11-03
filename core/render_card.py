@@ -28,6 +28,9 @@ def card_html(title: str, paragraphs: list[str], *, kicker: str = "",
     badge = '<span class="badge">精选收藏</span>' if not cover else '<span class="badge">爆款精选</span>'
     kicker_h = kicker_h or ("精选干货" if cover else "干货要点")
     footer_h = footer_h or "#深度干货 #生活灵感"
+    # ⭐ 单独提出：f-string 里写 '<div class="divider"></div>' 属于 PEP 701（3.12+），
+    #    会让整个文件在 3.11 及以下 SyntaxError，ruff 按 py39 解析直接报 invalid-syntax。
+    divider = '<div class="divider"></div>' if cover else ""
 
     # 1. 全幅 AI 视觉画报 / 背景大图融合与透光磨砂蒙版布局
     if bg_img and bg_img.exists():
@@ -45,7 +48,7 @@ def card_html(title: str, paragraphs: list[str], *, kicker: str = "",
                 f"<div class='visual-content'>"
                 f"<div class='kicker'>{kicker_h}</div>"
                 f"<div class='title'>{title_h}</div>"
-                f"{'<div class=\"divider\"></div>' if cover else ''}"
+                f"{divider}"
                 f"<div class='body'>{body}</div>"
                 f"<div class='footer'><span>{footer_h}</span>{badge}</div>"
                 f"</div></div></body></html>")
@@ -63,7 +66,7 @@ def card_html(title: str, paragraphs: list[str], *, kicker: str = "",
                 f"<div class='visual-content'>"
                 f"<div class='kicker'>{kicker_h}</div>"
                 f"<div class='title'>{title_h}</div>"
-                f"{'<div class=\"divider\"></div>' if cover else ''}"
+                f"{divider}"
                 f"<div class='body'>{body}</div>"
                 f"<div class='footer'><span>{footer_h}</span>{badge}</div>"
                 f"</div></div></body></html>")
@@ -72,7 +75,7 @@ def card_html(title: str, paragraphs: list[str], *, kicker: str = "",
     body = "".join(f"<p>{p}</p>" for p in paras_h)
     inner = (f"<div class='kicker'>{kicker_h}</div>"
              f"<div class='title'>{title_h}</div>"
-             f"{'<div class=\"divider\"></div>' if cover else ''}"
+             f"{divider}"
              f"<div class='body'>{body}</div>"
              f"<div class='footer'><span>{footer_h}</span>{badge}</div>")
     return (f"<!doctype html><html><head><meta charset='utf-8'>"

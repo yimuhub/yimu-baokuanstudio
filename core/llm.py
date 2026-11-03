@@ -229,6 +229,92 @@ def _is_platform_endpoint(base: str) -> bool:
     return False
 
 
+def clean_api_key(raw) -> str:
+    """把用户粘进来的 Key 洗成可以直接放进 Authorization 头的形态。
+
+    真实用户会从文档/聊天窗口复制，常见污染：前后空格、换行、零宽字符、
+    全角空格、外层引号、以及自带 ``Bearer `` 前缀（再拼一次就成了
+    ``Bearer Bearer sk-...``，上游一律回 401）。
+    """
+    k = str(raw or "")
+    for ch in ("\u200b", "\u200c", "\u200d", "\ufeff"):
+        k = k.replace(ch, "")
+    k = k.replace("\u3000", " ").strip()
+    if len(k) >= 2 and k[0] == k[-1] and k[0] in ("'", '"'):
+        k = k[1:-1].strip()
+    if k[:7].lower() == "bearer ":
+        k = k[7:].strip()
+    return k
+
+
+def _norm_base(base: str) -> str:
+    """base_url 归一化，用于判断「是不是同一个端点」。"""
+    return (base or "").strip().rstrip("/").lower()
+
+
+def _saved_base_for(provider_id: str) -> str:
+    """取该供应商**已保存**的 base_url（优先供应商池，其次内置预设）。"""
+    pid = (provider_id or "").strip()
+    if not pid:
+        return ""
+    try:
+        gw = load_config().get("gateway") or {}
+    except Exception:
+        gw = {}
+    saved = (gw.get("providers") or {}).get(pid) or {}
+    b = saved.get("base_url")
+    if not b and pid in MODEL_PROVIDERS:
+        b = MODEL_PROVIDERS[pid].get("base_url")
+    return str(b or "")
+
+
+def resolve_provider_key(base_url: str, api_key: str, provider_id: str = "") -> tuple[str, str]:
+    """决定「这次请求用哪个 Key」。返回 ``(key, source)``。
+
+    source 取值：``input`` 手填 / ``saved`` 已保存 / ``platform`` 平台主 Key / ``none`` 没带。
+
+    🔴 为什么需要它：设置页编辑已有供应商时，Key 输入框是**故意清空**的
+    （placeholder：留空则保持现有密钥不变）。以前 ``ping_provider`` 直接拿
+    输入框的值当 Key，于是「编辑官方通道 → 点测速」永远不发 Authorization，
+    必然 401；用户看到「密钥已存储在 .env」只会更困惑。这不是配置错误，
+    是测速与保存两条链路对「空 Key」的解释不一致。
+
+    🔴 安全边界（不能退化成把 Key 送给任意地址）：
+      · 手填的 Key 永远优先，且只发往用户当前填写的 base_url；
+      · 已保存的 Key 只在「base_url 与已保存的 base_url 完全一致」时才回退，
+        防止把 base_url 指向自己的服务器骗走已存 Key；
+      · 平台主 Key 只在「平台自己的端点」生效（复用 _is_platform_endpoint）。
+    """
+    k = clean_api_key(api_key)
+    if k:
+        return k, "input"
+
+    pid = (provider_id or "").strip()
+    target = _norm_base(base_url)
+    env = load_env()
+
+    if pid:
+        # base 留空 = 按已保存/预设地址探测，属于平台内部调用
+        if not target or target == _norm_base(_saved_base_for(pid)):
+            k = clean_api_key(env.get(f"MEDIAFLOW_KEY_{pid.upper()}"))
+            if k:
+                return k, "saved"
+            try:
+                active_pid = (load_config().get("gateway") or {}).get("provider_id")
+            except Exception:
+                active_pid = None
+            if pid == active_pid:
+                k = clean_api_key(env.get("MEDIAFLOW_APIPOOL_KEY"))
+                if k:
+                    return k, "platform"
+
+    if _is_platform_endpoint(base_url):
+        k = clean_api_key(env.get("MEDIAFLOW_APIPOOL_KEY"))
+        if k:
+            return k, "platform"
+    return "", "none"
+
+
 def fetch_remote_models(base_url: str, api_key: str = "", provider_id: str = "") -> dict:
     """调用远端供应商 /v1/models 或兼容端点获取模型清单并结构化分类，若失败自动降级到预设模型。"""
     base = (base_url or "").strip().rstrip("/")
@@ -237,9 +323,7 @@ def fetch_remote_models(base_url: str, api_key: str = "", provider_id: str = "")
     if not base and provider_id in MODEL_PROVIDERS:
         base = MODEL_PROVIDERS[provider_id].get("base_url", "").rstrip("/")
 
-    key = (api_key or "").strip()
-    if not key and _is_platform_endpoint(base):
-        key = load_env().get("MEDIAFLOW_APIPOOL_KEY", "")
+    key, key_source = resolve_provider_key(base, api_key, provider_id)
 
     candidates = []
     if base.endswith("/v1") or base.endswith("/v4"):
@@ -324,6 +408,7 @@ def fetch_remote_models(base_url: str, api_key: str = "", provider_id: str = "")
         "ok": True,
         "is_fallback": is_preset_fallback,
         "count": len(classified_models),
+        "key_source": key_source,
         "models": classified_models,
         "msg": "成功从远端获取模型列表" if not is_preset_fallback else f"远端端点未响应模型列表 ({error_msg or '未开放 /v1/models'})，已载入高质量预设模型库"
     }
@@ -363,11 +448,19 @@ def load_env() -> dict:
     return vals
 
 
-def ping_provider(base_url: str, api_key: str, model: str) -> dict:
-    """向指定供应商端点发送极简测试握手，测算真实网络延迟并验证 Key 权限。"""
+def ping_provider(base_url: str, api_key: str, model: str, provider_id: str = "") -> dict:
+    """向指定供应商端点发送极简测试握手，测算真实网络延迟并验证 Key 权限。
+
+    ``api_key`` 可以留空——留空时按 :func:`resolve_provider_key` 回退到该供应商
+    已保存的 Key（这正是设置页「编辑已有供应商」的正常路径）。
+    """
     base = (base_url or "").strip().rstrip("/")
+    key, key_source = resolve_provider_key(base, api_key, provider_id)
+    if not base and key_source in ("saved", "platform"):
+        base = _saved_base_for(provider_id).strip().rstrip("/")
     if not base:
-        return {"ok": False, "error": "Base URL 不能为空", "latency_ms": 0}
+        return {"ok": False, "error": "Base URL 不能为空", "latency_ms": 0,
+                "key_source": key_source}
     if not base.endswith("/v1") and not base.endswith("/v4"):
         # 宽容拼接
         test_url = f"{base}/v1/chat/completions" if "bigmodel" not in base else f"{base}/chat/completions"
@@ -375,8 +468,8 @@ def ping_provider(base_url: str, api_key: str, model: str) -> dict:
         test_url = f"{base}/chat/completions"
 
     headers = {}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key.strip()}"
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
     headers["Content-Type"] = "application/json"
 
     body = {
@@ -400,15 +493,26 @@ def ping_provider(base_url: str, api_key: str, model: str) -> dict:
                     "latency_ms": latency,
                     "status_code": 200,
                     "model": model,
+                    "key_source": key_source,
                     "reply": (reply[:30] + "...") if len(reply) > 30 else reply,
                     "msg": f"握手成功！响应延迟 {latency}ms"
                 }
             else:
                 err_text = r.text[:200]
+                hint = ""
+                if r.status_code in (401, 403):
+                    if key_source == "none":
+                        hint = "请求没有携带 API Key：输入框为空，且该系统里没有可回退的已保存密钥"
+                    else:
+                        src = {"input": "你刚填写的 Key", "saved": "已保存的 Key",
+                               "platform": "平台主 Key"}.get(key_source, "当前 Key")
+                        hint = f"上游拒绝了{src}，请确认它属于该供应商、未过期且额度正常"
                 return {
                     "ok": False,
                     "latency_ms": latency,
                     "status_code": r.status_code,
+                    "key_source": key_source,
+                    "hint": hint,
                     "error": f"HTTP {r.status_code}: {err_text}",
                     "msg": f"连接返回异常 ({r.status_code})"
                 }
@@ -417,6 +521,7 @@ def ping_provider(base_url: str, api_key: str, model: str) -> dict:
         return {
             "ok": False,
             "latency_ms": latency,
+            "key_source": key_source,
             "error": str(e),
             "msg": f"连接超时或网络不可达: {e}"
         }

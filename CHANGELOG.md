@@ -42,6 +42,27 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [10.3.2] - 2026-11-03 · 鸿蒙始 (Primordial Dawn) · 模型服务测速 401 修复 (Provider Ping Auth Fix)
+
+### Fixed
+- **编辑已有模型服务后点「连通性测速」必然 401**：设置页在编辑时会**故意清空** Key 输入框，
+  占位提示写着「留空则保持现有密钥不变」，但测速接口直接把输入框的值当 Key 用，
+  空值就完全不带 `Authorization` 头，于是：
+  - 一幕官方通道 → `HTTP 401: invalid api key`
+  - 自建 / AgnesAI 通道 → `HTTP 401: Token not provided (AgnesAI_error)`
+
+  同一个根因，两个上游的不同措辞。Key 本身是好的——带上已保存的同一把 Key 请求即 200。
+  - 新增 `core/llm.resolve_provider_key()`：手填 Key 优先；留空时回退到该服务已保存的 Key；
+    平台自有端点再回退到平台主 Key。返回 `key_source`（input / saved / platform / none）。
+  - `ping_provider()` 与 `fetch_remote_models()` 统一走这套解析，避免「测速」和「拉取模型」
+    再次出现同款分裂。`/api/models/ping` 现在把 `provider_id` 一并透传给后端。
+  - 前端在输入框留空时明确提示「将使用已保存的密钥」，结果行显示「校验凭证: 已保存密钥」；
+    401 时直接给结论（未携带 Key / 该 Key 被上游拒绝），不再只丢一句英文报错。
+- **粘贴的 Key 带 `Bearer ` 前缀 / 引号 / 零宽字符时同样 401**：新增 `clean_api_key()` 统一清洗，
+  避免拼成 `Bearer Bearer sk-...`。
+- **安全边界保持不变**：已保存的 Key 只在 `base_url` 与该服务已保存地址一致时才回退，
+  平台主 Key 只在平台自有端点生效——把 `base_url` 指向自己的服务器骗不走任何密钥。
+
 ## [10.3.1] - 2026-11-03 · 鸿蒙始 (Primordial Dawn) · 首次引导按钮修复 (Onboarding Wizard Fixes)
 
 ### Fixed

@@ -4,6 +4,25 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🩹 Version 10.3.2 · Provider Ping Auth Fix · 2026-11-03
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.3.2"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🔌 Model Service Connectivity Test
+
+| # | Fix | Detail |
+|---|-----|--------|
+| 1 | **"Test connection" always returned HTTP 401 when editing a saved model service** | The settings form deliberately clears the API-key field when you open an existing service (its placeholder says "leave blank to keep the current key"). The ping endpoint, however, used that blank field verbatim and therefore sent **no `Authorization` header at all**: the official channel answered `401 invalid api key`, a self-hosted / AgnesAI endpoint answered `401 Token not provided`. The key was never wrong — replaying the same saved key returns 200. `core/llm.resolve_provider_key()` now resolves the credential as *typed key → saved key for this service → platform key on platform endpoints*, and reports which one was used (`key_source`). |
+| 2 | **"Fetch models" had the same blind spot** | It now shares the same resolver, so testing and model discovery can no longer drift apart. `/api/models/ping` forwards `provider_id` so the backend knows which saved key to use. |
+| 3 | **Keys copied with a `Bearer ` prefix, quotes, or zero-width characters failed** | `clean_api_key()` strips prefixes, wrapping quotes, full-width spaces and zero-width junk before the header is built — no more `Bearer Bearer sk-...`. |
+| 4 | **401 messages were unactionable** | The UI now states whether a blank field will fall back to the saved key, shows which credential was validated, and on 401 says either "no API key was sent" or "this key was rejected upstream". |
+
+### 🔒 Security Boundary (unchanged)
+
+A saved key is only reused when the `base_url` you are testing matches the one stored for that service, and the platform master key is only attached to platform-owned endpoints. Pointing `base_url` at your own server still yields **no credential at all** — verified by regression tests.
+
+---
+
 ## 🩹 Version 10.3.1 · Onboarding Wizard Fixes · 2026-11-03
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.3.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

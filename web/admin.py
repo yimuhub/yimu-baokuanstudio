@@ -6320,14 +6320,20 @@ async def model_fetch(request: Request):
 
 @app.post("/api/models/ping")
 async def model_ping(request: Request):
-    """连通性测试（**管理员**，原因同 :func:`model_fetch`）。"""
+    """连通性测试（**管理员**，原因同 :func:`model_fetch`）。
+
+    ``api_key`` 允许留空：设置页编辑已有模型服务时输入框是故意清空的
+    （留空=不修改已存密钥），此时由 ``llm.resolve_provider_key`` 回退到
+    该服务已保存的 Key，否则「编辑 → 测速」必然 401。
+    """
     guard_admin(request)
     body = await request.json()
     base_url = body.get("base_url", "")
     from core import llm
     api_key = body.get("api_key") or ""
     model = body.get("model", "")
-    return llm.ping_provider(base_url, api_key, model)
+    provider_id = body.get("provider_id", "")
+    return llm.ping_provider(base_url, api_key, model, provider_id)
 
 
 @app.post("/api/models/save")

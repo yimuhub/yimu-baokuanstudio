@@ -387,11 +387,29 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V11.0.1 -->
+      <!-- V11.1.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🩹 V11.0.1 · 沧海吟 (Oceanic Ode)</span>
+          <span class="t-ver">🏔 V11.1.0 · 山岳赋 (Mountain Hymn)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">三栏逐项对齐原型：左栏重建（新建创作 / 二级树 / 最近产出 / 紧凑底栏），中栏加副标题、胶囊条与空态引导，右栏补复制·导出·发布动作条。功能一个不少，经典版原样保留。</div>
+        <ul class="t-list">
+          <li><b>🧭 左栏重建</b>：品牌块改 logo + 两行文字；橙色「＋ 新建创作」；30px 单行导航配线性图标；8 个一级页可展开 35 个二级入口，全部指向真实子视图；</li>
+          <li><b>🗂 最近产出</b>：直连草稿数据，点一条即切到内容工作台并载入该稿；底部收为主题 / 算力 / 用户 / 经典版 / 控制中心一行；</li>
+          <li><b>💬 中栏</b>：标题下加页面副标题；快捷胶囊条接管原快捷芯片，两个入口图标并排右侧；输入框改圆角卡片 + 圆形发送；空对话时给「从这里开始」三张引导卡；</li>
+          <li><b>🗂 右栏动作条</b>：底部新增「复制 / 导出 / 发布」，分别接既有复制、导出压缩包、发布弹窗；</li>
+          <li><b>🕰 隔离如常</b>：所有增强规则都挂在 <code>body[data-shell="v2"]</code> 下，经典版与窄屏回落一行未改；</li>
+          <li><b>🌐 中英双语</b>：注入文案与 35 个二级入口全部中英成对，英文模式下不残留中文。</li>
+        </ul>
+      </div>
+
+      <!-- V11.0.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🩹 V11.0.1 · 沧海吟 (Oceanic Ode)</span>
+          <span class="badge blue">历史版本 · Archived</span>
           <span class="t-date">2026-11-04</span>
         </div>
         <div class="t-desc">质量门禁修复：术语扫描与版本门禁双双转绿，三栏工作台功能零改动。</div>

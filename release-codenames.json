@@ -1,8 +1,8 @@
 {
-  "current_version": "11.0.1",
-  "current_codename_zh": "沧海吟",
-  "current_codename_en": "Oceanic Ode",
-  "next_index": 5,
+  "current_version": "11.1.0",
+  "current_codename_zh": "山岳赋",
+  "current_codename_en": "Mountain Hymn",
+  "next_index": 6,
   "sequence": [
     {
       "zh": "曦光序",
@@ -364,6 +364,12 @@
       "version": "v11.0.1",
       "zh": "沧海吟",
       "en": "Oceanic Ode",
+      "date": "2026-11-04"
+    },
+    {
+      "version": "v11.1.0",
+      "zh": "山岳赋",
+      "en": "Mountain Hymn",
       "date": "2026-11-04"
     }
   ]

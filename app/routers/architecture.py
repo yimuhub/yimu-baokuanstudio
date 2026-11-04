@@ -15,7 +15,7 @@ def v10_architecture_health() -> dict:
     return {
         "ok": True,
         "version": version.__version__,
-        "codename": getattr(version, "__codename__", "沧海吟"),
+        "codename": getattr(version, "__codename__", "山岳赋"),
         "codename_en": getattr(version, "__codename_en__", "Longwind Ballad"),
         "layers": ["app", "domain", "infra", "web"],
     }

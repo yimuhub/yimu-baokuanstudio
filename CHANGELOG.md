@@ -42,6 +42,33 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [11.1.0] - 2026-11-04 · 山岳赋 (Mountain Hymn) · 三栏逐项对齐原型 (Prototype Parity)
+
+三栏外壳在 11.0.x 只是「搭起了架子」：左栏仍是老的加粗双行导航，中栏仍是「Copilot 面板 + 画布」
+两块并排，顶栏还有元素重叠。这一版把左栏、中栏、右栏逐项改成原型的样子，功能一个不少。
+
+### Added
+- **左栏（全新）**：品牌块改为 logo + 两行文字；橙色「＋ 新建创作」主按钮；30px 单行导航配线性图标；
+  一级项可展开二级树（8 个一级页共 35 个二级入口，全部指向真实子视图）；「最近产出」列表直连
+  `S.drafts`，点一条即切到内容工作台并载入该稿；底部收为主题 / 算力 / 用户 / 经典版 / 控制中心一行
+- **中栏**：标题下加副标题（按页面切换）；快捷胶囊条接管原 6 个快捷芯片，右侧并排两个入口图标；
+  输入框改圆角卡片 + 圆形发送键；对话为空时给出「从这里开始」三张引导卡，开聊后自动撤掉
+- **右栏**：底部新增动作条「复制 / 导出 / 发布」，分别接 `copyLiteCurrentRichContent` /
+  `dlXhsZip` / `openPublishModal`
+- `tests/test_v1102_rail_prototype_parity.py` 14 项门禁：注入块齐全、二级树无死链、
+  样式全部收在 `body[data-shell="v2"]` 下、SVG 有明确尺寸、中英文案成对、无调试开关残留
+
+### Fixed
+- 注入的内联 SVG 缺省尺寸导致按 300×150 撑开，把右栏动作条挤成竖排文字；统一补上尺寸规则
+- 胶囊条 6 个胶囊 + 2 个工具入口超出一行被裁切；改为 4 个胶囊 + 两个图标入口
+- 原「爆款创作 Copilot」行与顶部标题重复；两个入口收进胶囊条，整行收起
+- 中栏在 1280px 宽时输入框提示被裁下半截（`min-height` 抬高）
+
+### Notes
+- 经典版 `?legacy=1` 与 <1280px 回落完全未受影响，注入块与增强样式全部挂在 `body[data-shell="v2"]` 下
+- 英文模式下注入块全部为英文（`New draft / Recent / Copy / Export / Publish` 与 35 个二级项）
+- 预览：`prototype/ui-v2.html`
+
 ## [11.0.1] - 2026-11-04 · 沧海吟 (Oceanic Ode) · 质量门禁修复 (Quality Gate Fix)
 
 ### Fixed

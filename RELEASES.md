@@ -4,6 +4,27 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🏔 Version 11.1.0 · Prototype Parity · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.1.0"`, `__codename__ = "山岳赋"`, `__codename_en__ = "Mountain Hymn"`)
+
+Minor release. The three-pane shell from 11.0.x only had the frame — the left rail was still the old
+two-line nav, the center was still two panels side by side, and the header had overlapping elements.
+This release rebuilds all three panes to match the prototype, with zero feature loss.
+
+| Area | What changed |
+|---|---|
+| **Left rail** | Brand block (logo + two lines) · orange **＋ 新建创作** · 30px single-line nav with line icons · expandable sub-tree (35 real entries across 8 pages) · **最近产出** list bound to live drafts · compact bottom bar |
+| **Center** | Page subtitle under the title · pill strip replacing the old chip row, with two entry icons docked right · rounded composer with circular send · "从这里开始" guide cards that disappear once the conversation starts |
+| **Right panel** | New bottom action bar: **复制 / 导出 / 发布**, wired to existing copy / zip / publish functions |
+| **Isolation** | Every new rule is scoped under `body[data-shell="v2"]`; classic mode and <1280px fallback are untouched |
+| **i18n** | All injected strings ship in Chinese and English, including the 35 sub-entries |
+
+**Verification** — full `pytest` green; ruff `F821,E9` clean; 8 pages × 1512px with zero horizontal
+overflow and zero console errors; classic mode screenshot-compared against 11.0.1.
+
+---
+
 ## 🩹 Version 11.0.1 · Quality Gate Fix · 2026-11-04
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.0.1"`, `__codename__ = "沧海吟"`, `__codename_en__ = "Oceanic Ode"`)

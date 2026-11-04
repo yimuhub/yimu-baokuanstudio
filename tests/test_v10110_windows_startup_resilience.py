@@ -59,8 +59,8 @@ def test_v10110_bat_scans_multiple_python_paths():
 def test_v10110_version_bumped():
     """版本已升级到 10.1.10。"""
     import version as v
-    assert v.__version__ in ("10.1.10", "10.1.11", "10.1.12", "10.2.0", "10.2.1", "10.3.0", "10.3.1", "10.3.2", "11.0.1", "11.0.0"), f"期望 10.1.x/11.x，实际 {v.__version__}"
-    assert v.__codename__ in ("鸿蒙始", "长风谣", "沧海吟")
+    assert v.__version__ in ("10.1.10", "10.1.11", "10.1.12", "10.2.0", "10.2.1", "10.3.0", "10.3.1", "10.3.2", "11.1.0", "11.0.1", "11.0.0"), f"期望 10.1.x/11.x，实际 {v.__version__}"
+    assert v.__codename__ in ("鸿蒙始", "长风谣", "沧海吟", "山岳赋")
 
 
 def test_v10110_upgrade_bat_validates_python_and_traps_errors():

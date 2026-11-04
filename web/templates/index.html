@@ -3895,6 +3895,589 @@ body[data-shell="v2"] .panel .sub-tabs > * { flex: 0 0 auto; }
 @media (prefers-reduced-motion: reduce) {
   .a-thumb img { transition: none; }
 }
+/* ==========================================================================
+   V11.1 · 视觉收敛（把 v2 三栏的观感对齐 ui-v2 原型）
+   —— 只收窄老组件的“体量”，不改 DOM 结构、不改业务函数。
+   ========================================================================== */
+
+/* ---------- 左栏：紧凑导航（两行大条目 → 单行 34px） ---------- */
+body[data-shell="v2"] > .side {
+  width: auto; position: static; top: auto; height: auto; min-height: 0;
+  border-right: 1px solid var(--border);
+}
+body[data-shell="v2"] > .side .logo-box {
+  padding: 13px 14px 11px !important;
+  border-bottom: 1px solid var(--border) !important;
+  gap: 5px !important;
+}
+body[data-shell="v2"] > .side .logo-title {
+  font-size: 13.5px !important; font-weight: 600 !important;
+  gap: 9px !important; letter-spacing: 0.2px !important;
+}
+body[data-shell="v2"] > .side .logo-title img {
+  width: 22px !important; height: 22px !important;
+  filter: none !important;
+}
+body[data-shell="v2"] > .side .logo-badge,
+body[data-shell="v2"] > .side .version-badge {
+  background: none !important; color: var(--text-muted) !important;
+  font-weight: 500 !important; padding: 0 !important;
+  box-shadow: none !important; border-radius: 0 !important;
+  font-size: 10.5px !important; letter-spacing: 0.2px !important;
+  opacity: 0.85;
+}
+body[data-shell="v2"] > .side .nav-group {
+  padding: 8px 8px !important; gap: 1px !important;
+}
+body[data-shell="v2"] > .side .nav-item {
+  height: 34px; padding: 0 10px !important;
+  gap: 10px !important; border-radius: 7px !important;
+  font-size: 12.5px !important; font-weight: 400 !important;
+  align-items: center !important;
+  border: none !important;
+}
+body[data-shell="v2"] > .side .nav-icon {
+  width: 16px !important; font-size: 14px !important;
+  text-align: center; opacity: 0.9; flex: 0 0 16px;
+}
+body[data-shell="v2"] > .side .nav-item .nav-txt {
+  flex-direction: row !important; align-items: center !important;
+  min-width: 0; gap: 0;
+}
+body[data-shell="v2"] > .side .nav-item .nav-txt small { display: none !important; }
+body[data-shell="v2"] > .side .nav-item.on {
+  background: var(--active, #161d29) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+  font-weight: 500 !important;
+}
+body[data-shell="v2"] > .side .nav-item.on .nav-icon { filter: none !important; }
+
+/* 左栏底部状态区收紧 */
+body[data-shell="v2"] > .side > div:last-child { border-top: 1px solid var(--border); }
+
+/* ---------- 中间列：对话主台（画布交给右栏「成稿」，不再重复） ---------- */
+body[data-shell="v2"] .main-wrapper > main {
+  padding: 0 !important;
+  min-height: 0; display: flex; flex-direction: column;
+}
+body[data-shell="v2"] #p-lite-mode {
+  height: 100% !important; min-height: 0 !important;
+  gap: 0 !important; padding: 0 !important;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-right { display: none !important; }
+body[data-shell="v2"] #p-lite-mode .lite-col-left {
+  flex: 1 1 auto !important; max-width: none !important; min-width: 0 !important;
+  border: none !important; border-radius: 0 !important;
+  box-shadow: none !important; background: transparent !important;
+  height: 100%;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left > div:first-child {
+  background: transparent !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 9px 18px !important;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left > div:first-child span[style*="font-size:22px"] {
+  font-size: 17px !important;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left > div:first-child span[style*="font-weight:800"] {
+  font-size: 13px !important; font-weight: 600 !important;
+}
+
+/* ---------- 顶栏：收紧为单行 48px ---------- */
+body[data-shell="v2"] .main-wrapper > header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
+  gap: 10px !important;
+}
+body[data-shell="v2"] .main-wrapper > header .page-title {
+  flex: 0 1 auto; min-width: 0; gap: 10px !important;
+}
+body[data-shell="v2"] .main-wrapper > header .top-acts {
+  display: flex; align-items: center; gap: 8px;
+  margin-left: 16px; min-width: 0; flex: 0 1 auto;
+}
+/* #header-extra 是 0 宽内联 span，却嵌着算力胶囊的块级 div —— 让它正常参与布局 */
+body[data-shell="v2"] .main-wrapper > header #header-extra {
+  display: inline-flex !important; align-items: center; min-width: 0;
+}
+body[data-shell="v2"] .main-wrapper > header #nav-ver-text { display: none !important; }
+body[data-shell="v2"] .main-wrapper > header #header-title,
+body[data-shell="v2"] .main-wrapper > header #header-icon { white-space: nowrap; flex: 0 0 auto; }
+body[data-shell="v2"] .main-wrapper > header .page-title > div:first-child { flex: 0 0 auto; white-space: nowrap; }
+/* 模式切换器内的“小白极速/专业操盘”小胶囊在窄栏里是噪音，v2 收掉 */
+body[data-shell="v2"] .main-wrapper > header .sys-mode-btn span:last-child:nth-child(2) { display: none; }
+body[data-shell="v2"] .main-wrapper > header .token-pill {
+  height: 26px; padding: 0 10px; font-size: 11.5px; white-space: nowrap;
+  gap: 5px; max-width: 340px; overflow: hidden;
+}
+
+body[data-shell="v2"] .main-wrapper > header {
+  padding: 0 18px !important;
+  height: 48px;
+  min-height: 48px;
+  gap: 12px;
+}
+body[data-shell="v2"] .main-wrapper > header #header-title { font-size: 13.5px !important; font-weight: 600 !important; }
+body[data-shell="v2"] .main-wrapper > header #header-icon { font-size: 15px !important; }
+body[data-shell="v2"] .main-wrapper > header .sys-mode-btn {
+  height: 24px; padding: 0 10px !important; font-size: 11.5px !important;
+}
+body[data-shell="v2"] .main-wrapper > header .btn,
+body[data-shell="v2"] .main-wrapper > header button {
+  height: 26px; font-size: 11.5px !important;
+}
+/* ==========================================================================
+   V11.2 · 与 ui-v2 原型对齐（左栏 / 中栏 / 右栏动作条）
+   —— 仅作用于 body[data-shell="v2"]，经典版一行不受影响。
+   —— 不改任何业务函数，只重排容器与注入原型中的缺失块。
+   ========================================================================== */
+
+/* ============ 左栏：品牌 ============ */
+body[data-shell="v2"] > .side .logo-box {
+  display: grid !important;
+  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 9px;
+  row-gap: 1px;
+  align-items: center;
+  padding: 13px 14px 11px !important;
+  border-bottom: none !important;
+  background: transparent !important;
+}
+body[data-shell="v2"] > .side .logo-title { display: contents !important; }
+body[data-shell="v2"] > .side .logo-title img {
+  grid-column: 1; grid-row: 1 / span 2;
+  width: 24px !important; height: 24px !important;
+  border-radius: 6px; object-fit: contain;
+}
+body[data-shell="v2"] > .side .logo-title > span {
+  grid-column: 2; grid-row: 1;
+  font-size: 13px !important; font-weight: 500 !important;
+  letter-spacing: .2px; white-space: nowrap;
+  color: var(--text) !important;
+}
+body[data-shell="v2"] > .side .logo-box > div:last-child {
+  grid-column: 2; grid-row: 2;
+  display: flex !important; align-items: center; gap: 6px; min-width: 0;
+}
+body[data-shell="v2"] > .side .logo-badge {
+  font-size: 11px !important; font-weight: 400 !important;
+  color: var(--text-dim, #5c6a7d) !important;
+  background: none !important; padding: 0 !important;
+  border: none !important; box-shadow: none !important;
+  border-radius: 0 !important; white-space: nowrap;
+}
+/* 版本号与工作室名并排，保持一行且不抢视线 */
+body[data-shell="v2"] > .side .version-badge {
+  display: inline-block !important;
+  font-size: 10px !important; font-weight: 400 !important;
+  color: var(--text-dim, #5c6a7d) !important;
+  background: none !important; border: none !important;
+  padding: 0 !important; margin: 0 !important;
+  box-shadow: none !important; border-radius: 0 !important;
+  opacity: .75; white-space: nowrap;
+}
+body[data-shell="v2"] > .side .version-badge::before {
+  content: "·"; margin-right: 5px; opacity: .55;
+}
+
+/* ============ 左栏：新建创作 ============ */
+body[data-shell="v2"] > .side .rail-new {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  height: 32px; margin: 0 12px 10px; flex: 0 0 32px;
+  border-radius: 8px; border: none;
+  background: var(--primary, #f0883e); color: #1a1207;
+  font-size: 12.5px; font-weight: 500; cursor: pointer;
+  transition: filter .15s;
+}
+body[data-shell="v2"] > .side .rail-new:hover { filter: brightness(1.07); }
+body[data-shell="v2"] > .side .rail-new svg { width: 13px; height: 13px; }
+
+/* ============ 左栏：导航 ============ */
+body[data-shell="v2"] > .side .nav-group {
+  padding: 0 8px !important;
+  display: flex !important; flex-direction: column; gap: 1px;
+  flex: 0 0 auto !important; overflow: visible !important;
+}
+body[data-shell="v2"] > .side .nav-item {
+  height: 30px !important; min-height: 30px;
+  padding: 0 9px !important;
+  gap: 9px !important;
+  border-radius: 7px !important;
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+  color: var(--text-muted, #8b98ac) !important;
+  border: none !important;
+  background: transparent;
+  cursor: pointer;
+}
+body[data-shell="v2"] > .side .nav-item:hover { background: var(--hover, rgba(255,255,255,.05)) !important; color: var(--text) !important; }
+body[data-shell="v2"] > .side .nav-item.on { background: var(--active, #161d29) !important; color: var(--text) !important; font-weight: 500 !important; }
+body[data-shell="v2"] > .side .nav-item .nav-icon {
+  width: 16px !important; flex: 0 0 16px;
+  font-size: 13px !important; line-height: 1;
+  text-align: center; filter: none !important;
+}
+body[data-shell="v2"] > .side .nav-item.on .nav-icon { color: var(--primary, #f0883e); }
+body[data-shell="v2"] > .side .nav-item .nav-txt { flex: 1 1 auto; min-width: 0; }
+body[data-shell="v2"] > .side .nav-item .nav-txt > span {
+  font-size: 12.5px !important; font-weight: inherit !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body[data-shell="v2"] > .side .nav-item .nav-txt small { display: none !important; }
+
+/* 展开箭头 + 计数 */
+body[data-shell="v2"] > .side .nav-item .rail-chev {
+  width: 12px; height: 12px; flex: 0 0 12px;
+  margin-left: auto; opacity: .7;
+  transition: transform .18s; color: var(--text-dim, #5c6a7d);
+}
+body[data-shell="v2"] > .side .nav-item.open .rail-chev { transform: rotate(90deg); }
+body[data-shell="v2"] > .side .nav-item .rail-cnt {
+  margin-left: auto; font-size: 10.5px; color: var(--text-dim, #5c6a7d);
+}
+
+/* 二级树 */
+body[data-shell="v2"] > .side .rail-subs {
+  display: none; flex-direction: column; gap: 1px;
+  margin: 1px 0 3px; padding-left: 9px;
+}
+body[data-shell="v2"] > .side .rail-subs.on { display: flex; }
+body[data-shell="v2"] > .side .rail-sub {
+  display: flex; align-items: center; gap: 6px;
+  height: 25px; padding: 0 8px 0 20px; flex: 0 0 25px;
+  border-radius: 6px; position: relative;
+  font-size: 11.5px; color: var(--text-dim, #5c6a7d);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer;
+}
+body[data-shell="v2"] > .side .rail-sub::before {
+  content: ""; position: absolute; left: 9px; top: 0; bottom: 0;
+  width: 1px; background: var(--border, #1b2431);
+}
+body[data-shell="v2"] > .side .rail-sub:hover { background: var(--hover, rgba(255,255,255,.05)); color: var(--text); }
+body[data-shell="v2"] > .side .rail-sub.on {
+  color: var(--primary, #f0883e);
+  background: var(--accbg, rgba(240,136,62,.12));
+}
+body[data-shell="v2"] > .side .rail-sub.on::before { background: var(--primary, #f0883e); }
+
+/* ============ 左栏：最近产出 ============ */
+body[data-shell="v2"] > .side .rail-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 14px 6px; flex: 0 0 auto;
+  font-size: 11px; color: var(--text-dim, #5c6a7d);
+}
+body[data-shell="v2"] > .side .rail-head button {
+  display: flex; align-items: center; color: var(--text-dim, #5c6a7d);
+  background: none; border: none; cursor: pointer; padding: 0;
+}
+body[data-shell="v2"] > .side .rail-head button:hover { color: var(--text); }
+body[data-shell="v2"] > .side .rail-list {
+  flex: 1 1 auto; overflow-y: auto; overflow-x: hidden;
+  padding: 0 8px 8px; min-height: 56px;
+}
+body[data-shell="v2"] > .side .rail-list::-webkit-scrollbar { width: 0; }
+body[data-shell="v2"] > .side .rail-item {
+  padding: 7px 9px; border-radius: 7px; cursor: pointer;
+  transition: background .15s;
+}
+body[data-shell="v2"] > .side .rail-item:hover { background: var(--hover, rgba(255,255,255,.05)); }
+body[data-shell="v2"] > .side .rail-item.on { background: var(--active, #161d29); }
+body[data-shell="v2"] > .side .rail-item .t {
+  font-size: 12px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body[data-shell="v2"] > .side .rail-item .s {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10.5px; color: var(--text-dim, #5c6a7d); margin-top: 2px;
+}
+body[data-shell="v2"] > .side .rail-item .s em {
+  font-style: normal; color: var(--primary, #f0883e);
+  background: var(--accbg, rgba(240,136,62,.12));
+  border-radius: 3px; padding: 0 4px; font-size: 10px;
+}
+body[data-shell="v2"] > .side .rail-empty {
+  padding: 14px 10px; font-size: 11.5px; color: var(--text-dim, #5c6a7d);
+  line-height: 1.7; text-align: center;
+}
+
+/* ============ 左栏：底部 ============ */
+body[data-shell="v2"] > .side .side-foot {
+  flex: 0 0 auto !important;
+  border-top: 1px solid var(--border, #1b2431) !important;
+  padding: 7px 9px !important;
+  display: flex !important; align-items: center; gap: 4px !important;
+  background: transparent !important;
+  flex-wrap: nowrap;
+  margin-top: 0 !important;
+}
+body[data-shell="v2"] > .side .side-foot .gw-pill {
+  flex: 0 0 auto; height: 24px; padding: 0 7px;
+  font-size: 10.5px; border-radius: 6px; white-space: nowrap;
+}
+body[data-shell="v2"] > .side #side-user-profile-btn {
+  flex: 1 1 auto; min-width: 0;
+  padding: 3px 5px !important; border-radius: 7px;
+  background: transparent !important; border: none !important;
+  box-shadow: none !important; margin: 0 !important;
+}
+body[data-shell="v2"] > .side #side-user-profile-btn:hover { background: var(--hover, rgba(255,255,255,.05)) !important; }
+body[data-shell="v2"] > .side #side-user-profile-btn img {
+  width: 20px !important; height: 20px !important; border-radius: 50%;
+  flex: 0 0 20px;
+}
+body[data-shell="v2"] > .side #side-user-profile-btn #side-user-title {
+  font-size: 11.5px !important; font-weight: 400 !important;
+  color: var(--text-muted, #8b98ac) !important;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body[data-shell="v2"] > .side #side-user-profile-btn .badge { display: none !important; }
+body[data-shell="v2"] > .side .side-version-bar,
+body[data-shell="v2"] > .side .side-foot > div:last-child { display: none !important; }
+
+/* 底部图标按钮 */
+body[data-shell="v2"] > .side .rail-icobtn {
+  width: 27px; height: 27px; flex: 0 0 27px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 7px; border: none; background: none;
+  color: var(--text-muted, #8b98ac); cursor: pointer;
+}
+body[data-shell="v2"] > .side .rail-icobtn:hover {
+  background: var(--hover, rgba(255,255,255,.05)); color: var(--text);
+}
+body[data-shell="v2"] > .side .rail-icobtn svg { width: 15px; height: 15px; }
+
+/* ============ 中栏：头部（原型 chat-head） ============ */
+body[data-shell="v2"] .main-wrapper > header {
+  height: 46px !important; min-height: 46px !important;
+  padding: 0 14px 0 16px !important;
+  border-bottom: 1px solid var(--border, #1b2431) !important;
+  gap: 10px !important;
+}
+body[data-shell="v2"] .main-wrapper > header .page-title {
+  display: flex; align-items: center; gap: 0 !important; min-width: 0; flex: 0 1 auto;
+}
+body[data-shell="v2"] .main-wrapper > header #header-icon { display: none !important; }
+body[data-shell="v2"] .main-wrapper > header #header-title {
+  font-size: 13px !important; font-weight: 500 !important;
+  letter-spacing: .2px;
+}
+body[data-shell="v2"] .main-wrapper > header .rail-headsub {
+  display: block; font-size: 11px; color: var(--text-dim, #5c6a7d);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-top: 1px;
+}
+body[data-shell="v2"] .main-wrapper > header .top-acts { margin-left: auto !important; gap: 5px !important; }
+body[data-shell="v2"] .main-wrapper > header .token-pill,
+body[data-shell="v2"] .main-wrapper > header .sys-mode-btn {
+  height: 25px !important; padding: 0 9px !important;
+  font-size: 11px !important; border-radius: 20px !important;
+  white-space: nowrap;
+}
+body[data-shell="v2"] .main-wrapper > header #header-extra {
+  display: inline-flex !important; align-items: center; gap: 5px; min-width: 0;
+}
+
+/* ============ 中栏：子标签条 ============ */
+body[data-shell="v2"] .main-wrapper .rail-subbar {
+  flex: 0 0 33px; height: 33px;
+  display: flex; align-items: center; gap: 5px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--border, #1b2431);
+  overflow-x: auto; overflow-y: hidden; min-width: 0;
+  background: transparent;
+}
+body[data-shell="v2"] .main-wrapper .rail-subbar::-webkit-scrollbar { height: 0; }
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb {
+  flex: 0 0 auto; font-size: 11.5px; color: var(--text-muted, #8b98ac);
+  padding: 3px 10px; border-radius: 20px;
+  border: 1px solid transparent; white-space: nowrap;
+  background: none; cursor: pointer; transition: all .15s;
+}
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb:hover {
+  background: var(--hover, rgba(255,255,255,.05)); color: var(--text);
+}
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb.on {
+  background: var(--accbg, rgba(240,136,62,.12));
+  color: var(--primary, #f0883e);
+  border-color: rgba(240,136,62,.32);
+}
+
+/* ============ 中栏：输入框（原型 composer） ============ */
+body[data-shell="v2"] #p-lite-mode .lite-col-left .composer-v11-box {
+  border: 1px solid var(--border2, #26313f);
+  background: var(--card2, #0f1621);
+  border-radius: 12px; padding: 9px 11px;
+  transition: border-color .15s;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .composer-v11-wrap {
+  padding: 0 18px 14px; flex: 0 0 auto;
+}
+body[data-shell="v2"] #copilot-input {
+  border: none !important; background: transparent !important;
+  box-shadow: none !important; padding: 0 !important;
+  font-size: 12.5px !important; line-height: 1.6 !important;
+  resize: none !important;
+}
+body[data-shell="v2"] #btn-copilot-send.rail-send {
+  width: 28px; height: 28px; min-width: 28px; padding: 0 !important;
+  border-radius: 50% !important;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--primary, #f0883e) !important;
+  color: #1a1207 !important; border: none !important;
+  font-size: 0 !important;   /* 隐藏原文字，只留图标 */
+  position: relative;
+}
+body[data-shell="v2"] #btn-copilot-send.rail-send::after {
+  content: "↑"; font-size: 15px; font-weight: 600; line-height: 1;
+}
+body[data-shell="v2"] #btn-copilot-send.rail-send:disabled { opacity: .35; }
+body[data-shell="v2"] .lite-plat-row {
+  display: flex; align-items: center; gap: 6px; margin-top: 7px;
+}
+
+/* ============ 右栏：底部动作条 ============ */
+body[data-shell="v2"] .assets .assets-foot { display: none !important; }
+body[data-shell="v2"] .assets .assets-acts {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--border, #1b2431);
+  padding: 9px 10px;
+  display: flex; gap: 6px;
+}
+body[data-shell="v2"] .assets .assets-acts .btn {
+  flex: 1; height: 30px; min-width: 0;
+  border-radius: 7px;
+  border: 1px solid var(--border2, #26313f);
+  background: var(--card2, #0f1621);
+  color: var(--text-muted, #8b98ac);
+  font-size: 11.5px;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  cursor: pointer; transition: all .15s;
+}
+body[data-shell="v2"] .assets .assets-acts .btn:hover {
+  color: var(--text); border-color: var(--border3, #33415a);
+}
+body[data-shell="v2"] .assets .assets-acts .btn.primary {
+  background: #f0883e;
+  border-color: #f0883e;
+  color: #1a1207; font-weight: 600;
+}
+body[data-shell="v2"] .assets .assets-acts .btn.primary:hover { filter: brightness(1.07); }
+
+/* ---- 注入块内联 SVG 统一尺寸（否则浏览器按 300×150 撑开） ---- */
+body[data-shell="v2"] > .side .rail-chev svg { width: 12px; height: 12px; display: block; }
+body[data-shell="v2"] > .side .rail-search-btn svg { width: 14px; height: 14px; display: block; }
+body[data-shell="v2"] > .side .rail-icobtn svg { width: 15px; height: 15px; display: block; }
+body[data-shell="v2"] .assets-acts .btn svg {
+  width: 13px; height: 13px; flex: 0 0 13px; display: block;
+}
+
+/* ---- 底部区只留算力、用户与图标，其余行收起 ---- */
+body[data-shell="v2"] > .side .side-foot > div { display: none !important; }
+body[data-shell="v2"] > .side .side-foot > div#side-user-profile-btn { display: flex !important; }
+body[data-shell="v2"] > .side .side-foot > div.gw-pill { display: flex !important; }
+
+/* ============ 中栏：空态功能引导卡 ============ */
+body[data-shell="v2"] .rail-guide {
+  display: flex; flex-direction: column; gap: 8px;
+  max-width: 560px; margin: 10px auto 0; width: 100%;
+}
+body[data-shell="v2"] .rail-guide .rg-t {
+  font-size: 11px; color: var(--text-dim, #5c6a7d);
+  letter-spacing: .2px; padding-left: 2px;
+}
+body[data-shell="v2"] .rail-guide .rg-card {
+  display: flex; align-items: flex-start; gap: 10px;
+  border: 1px solid var(--border2, #26313f);
+  background: var(--card2, #0f1621);
+  border-radius: 10px; padding: 11px 12px;
+  cursor: pointer; transition: all .15s;
+}
+body[data-shell="v2"] .rail-guide .rg-card:hover {
+  border-color: var(--border3, #33415a);
+  background: var(--card, #111823);
+}
+body[data-shell="v2"] .rail-guide .rg-card .ic {
+  width: 26px; height: 26px; flex: 0 0 26px; border-radius: 8px;
+  background: rgba(240,136,62,.12); color: #f0883e;
+  display: flex; align-items: center; justify-content: center;
+}
+body[data-shell="v2"] .rail-guide .rg-card .ic svg { width: 14px; height: 14px; display: block; }
+body[data-shell="v2"] .rail-guide .rg-card .tx { flex: 1 1 auto; min-width: 0; }
+body[data-shell="v2"] .rail-guide .rg-card .tx b {
+  display: block; font-size: 12.5px; font-weight: 500; color: var(--text);
+}
+body[data-shell="v2"] .rail-guide .rg-card .tx p {
+  font-size: 11px; color: var(--text-dim, #5c6a7d);
+  margin-top: 2px; line-height: 1.55;
+}
+body[data-shell="v2"] .rail-guide .rg-card .arw {
+  color: var(--text-dim, #5c6a7d); font-size: 16px; line-height: 1.2;
+}
+
+/* 胶囊条：允许胶囊按需收缩，工具入口固定右侧，整行永不溢出 */
+body[data-shell="v2"] .main-wrapper .rail-subbar {
+  overflow-x: hidden !important;
+  flex-wrap: nowrap;
+}
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb {
+  flex: 0 1 auto !important;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb-tool { flex: 0 0 auto !important; }
+
+/* 收进胶囊条的两个工具入口改用胶囊外观 */
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb-tool {
+  height: 22px !important; padding: 0 9px !important;
+  border-radius: 20px !important; border: 1px solid var(--border2, #26313f) !important;
+  background: var(--card, #111823) !important;
+  color: var(--text-muted, #8b98ac) !important;
+  font-size: 11px !important; font-weight: 400 !important;
+  display: inline-flex !important; align-items: center; gap: 5px;
+  box-shadow: none !important; margin: 0 !important;
+  flex: 0 0 auto;
+}
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb-tool:hover {
+  color: var(--text) !important; border-color: var(--border3, #33415a) !important;
+}
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb-tool svg {
+  width: 12px; height: 12px; flex: 0 0 12px;
+}
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb-tool span { display: none; }
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb-tool {
+  width: 26px; height: 26px; padding: 0 !important;
+  justify-content: center;
+}
+body[data-shell="v2"] .main-wrapper .rail-subbar .sb-tool svg { width: 13px; height: 13px; }
+
+/* 动作条按钮文字不换行 */
+body[data-shell="v2"] .assets-acts .btn span { white-space: nowrap; }
+
+/* ---- 原快捷芯片由顶部胶囊条接管，避免同一排出现两次 ---- */
+body[data-shell="v2"] #p-lite-mode .copilot-chips-wrap { display: none !important; }
+
+/* 二级入口定位后的短暂高亮 */
+body[data-shell="v2"] .rail-flash {
+  outline: 1px solid rgba(240,136,62,.55) !important;
+  outline-offset: 2px;
+  border-radius: 6px;
+  transition: outline-color .3s;
+}
+
+/* ============ 窄屏兜底：恢复为经典排布 ============ */
+@media (max-width: 1279px) {
+  body[data-shell="v2"] > .side .rail-new,
+  body[data-shell="v2"] > .side .rail-head,
+  body[data-shell="v2"] > .side .rail-list,
+  body[data-shell="v2"] > .side .rail-subs { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -24141,6 +24724,7 @@ function switchMobileNav(panelKey) {
 
 <!-- V11 三栏外壳：栏宽拖拽 / 右栏资产台 / 专注放大。非 v2 布局下自行空转退出。 -->
 <script src="/static/js/workbench-shell.js"></script>
+<script src="/static/js/workbench-rail.js"></script>
 
 </body>
 

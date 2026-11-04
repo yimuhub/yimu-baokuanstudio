@@ -22,14 +22,14 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_v1002_version_single_source_of_truth():
     """验证版本单一真源为当前版本。"""
-    assert version.__version__.startswith("11.0.")
-    assert version.__codename__ == "沧海吟"
+    assert version.__version__.startswith("11.")
+    assert version.__codename__ in ("沧海吟", "山岳赋")
     assert hasattr(version, "get_version")
-    assert version.get_version().startswith("11.0.")
+    assert version.get_version().startswith("11.")
 
     info = version.get_version_info()
-    assert info.get("version").startswith("11.0.")
-    assert info.get("codename") == "沧海吟"
+    assert info.get("version").startswith("11.")
+    assert info.get("codename") in ("沧海吟", "山岳赋")
 
     # pyproject.toml
     pyproject_toml = (ROOT / "pyproject.toml").read_text(encoding="utf-8")

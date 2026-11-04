@@ -387,11 +387,27 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V12.0.0 -->
+      <!-- V12.1.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌲 V12.0.0 · 松涛境 (Pinewave Realm)</span>
+          <span class="t-ver">🎋 V12.1.0 · 竹韵篇 (Bamboo Rhythm)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">全站进页即取真数据，页面不再停在「加载中」；控制中心工单流程五步可视化。</div>
+        <ul class="t-list">
+          <li><b>🔌 进页钩子补齐</b>：订阅、内容工作台、控制中心、操盘大屏 四页进入即拉取真实数据；</li>
+          <li><b>🧭 舞台改道修正</b>：业务跳转先跑完钩子再搬面板，页面不会停在自己的加载态；</li>
+          <li><b>🎋 工单流程可视化</b>：抓热榜 → 挑选优质题 → AI 成稿 → 制作短视频 → 钉钉卡片 五步横向流程；</li>
+          <li><b>♻️ 同页复用</b>：重复触发同一次打开不再重复搬运，滚动位置与输入焦点得以保留。</li>
+        </ul>
+      </div>
+
+      <!-- V12.0.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🌲 V12.0.0 · 松涛境 (Pinewave Realm)</span>
+          <span class="badge blue">已归档 · Archived</span>
           <span class="t-date">2026-11-04</span>
         </div>
         <div class="t-desc">交互模型重构：左栏恒定、中栏恒定对话，所有功能页面在右栏打开并可全屏。全站主色收敛为品牌橙。</div>

@@ -1958,5 +1958,16 @@
   "去生成图片": "Generate Images",
   "⋯ 更多": "⋯ More",
   "✕ 收起": "✕ Close",
-  "💡 提示：按 Enter 直接对话；点左侧功能，内容在右侧打开，可全屏": "💡 Enter to chat. Any feature on the left opens on the right — full screen supported."
+  "💡 提示：按 Enter 直接对话；点左侧功能，内容在右侧打开，可全屏": "💡 Enter to chat. Any feature on the left opens on the right — full screen supported.",
+  "抓热榜": "Trending sweep",
+  "六大平台同步抓取": "Six platforms in one pass",
+  "挑选优质题": "Pick winners",
+  "按热度与适配度排序": "Ranked by heat and fit",
+  "AI 成稿": "AI draft",
+  "评分自迭代达标": "Self-scored until it passes",
+  "制作短视频": "Short video",
+  "图文一键转成片": "Posts into video",
+  "钉钉推送卡片": "DingTalk card",
+  "工单卡片供你审核": "Ticket ready for review",
+  "每日定时执行；成稿前先自评分，未达标自动重写。": "Runs daily; every draft is self-scored and rewritten until it passes."
 }

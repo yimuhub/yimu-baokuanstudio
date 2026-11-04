@@ -42,6 +42,16 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [12.1.0] - 2026-11-04 · 竹韵篇 (Bamboo Rhythm) · 进页真数据 (Page-Enter Data)
+
+### Added
+- **控制中心工单流程可视化**：把原来一行机制说明升级为「抓热榜 → 挑选优质题 → AI 成稿 → 制作短视频 → 钉钉推送卡片」五步横向流程卡，宽屏一行铺满、窄屏自动折行。
+
+### Fixed
+- **进页不拉数据**：订阅与会员、内容工作台、控制中心、操盘大屏 四页此前没有进页钩子，进入后停在「加载中…」。现补齐 `pageLoaders` 统一钩子，进页即调用 `loadIntegratedPricingPanel` / `renderDraftList` / `loadTicketStatus` / `renderAgentList` / `renderSkillsList` / `healthLoad` / 大屏统计与雷达刷新。
+- **右栏舞台改道吞掉业务逻辑**：`switchToPage` 的舞台包装此前直接打开舞台并提前返回，页面自己的加载与子视图切换全部被跳过。改为先执行原函数（挂钩子、拉数据、写高亮），再搬运面板。
+- **同页重复搬运**：业务跳转与导航冒泡会各触发一次打开，导致滚动位置与输入焦点被冲掉；`open()` 增加同页复用判断。
+
 ## [12.0.0] - 2026-11-04 · 松涛境 (Pinewave Realm) · 右栏舞台 (Right-Pane Stage)
 
 Major release. 交互模型整体重构：**左栏恒定、中栏恒定对话、所有功能页面在右栏打开、右栏可全屏**。

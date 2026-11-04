@@ -7321,9 +7321,34 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
               <button class="btn btn-sm" id="btn-ticket-run" onclick="ticketRun()">▶ 立即触发一次</button>
             </div>
           </div>
-          <div style="margin-top:12px;font-size:12.5px;color:var(--text-muted);background:rgba(255,255,255,0.02);padding:10px;border-radius:8px">
-            💡 机制：每天定时自动执行 抓热榜 → 挑选优质题 → AI成稿（评分自迭代达标）→ 制作短视频 → 钉钉推送工单卡片供你审核。
+          <div style="margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:8px">
+            <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+              <div style="font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#f0883e;margin-bottom:4px">STEP 1</div>
+              <div style="font-size:13px;font-weight:700;color:#fff">抓热榜</div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">六大平台同步抓取</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+              <div style="font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#f0883e;margin-bottom:4px">STEP 2</div>
+              <div style="font-size:13px;font-weight:700;color:#fff">挑选优质题</div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">按热度与适配度排序</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+              <div style="font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#f0883e;margin-bottom:4px">STEP 3</div>
+              <div style="font-size:13px;font-weight:700;color:#fff">AI 成稿</div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">评分自迭代达标</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+              <div style="font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#f0883e;margin-bottom:4px">STEP 4</div>
+              <div style="font-size:13px;font-weight:700;color:#fff">制作短视频</div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">图文一键转成片</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:8px;padding:10px 12px">
+              <div style="font-size:10.5px;font-weight:800;letter-spacing:.08em;color:#f0883e;margin-bottom:4px">STEP 5</div>
+              <div style="font-size:13px;font-weight:700;color:#fff">钉钉推送卡片</div>
+              <div style="font-size:11.5px;color:var(--text-muted);margin-top:3px">工单卡片供你审核</div>
+            </div>
           </div>
+          <div style="margin-top:10px;font-size:11.5px;color:var(--text-muted)">每日定时执行；成稿前先自评分，未达标自动重写。</div>
           <div id="tk-last-card" style="margin-top:14px;display:none">
             <div style="font-size:13px;font-weight:600;margin-bottom:6px" id="tk-last-title"></div>
             <pre style="font-size:12px;background:#0d1117;padding:12px;border-radius:8px;border:1px solid var(--border);color:var(--text-muted);white-space:pre-wrap" id="tk-last-body"></pre>
@@ -12637,6 +12662,21 @@ document.querySelectorAll('.nav-item').forEach(item => {
     if (item.dataset.p === 'profile' && typeof syncProfileCenterData === 'function') {
       try { syncProfileCenterData(); } catch(e) { console.warn('[profile-center] 同步失败:', e); }
     }
+    /* 进页即取真数据：订阅 / 内容工作台 / 控制中心 / 操盘大屏
+       此前只有影音工坊与个人中心挂了进页钩子，其余页面停在「加载中」 */
+    const pageLoaders = {
+      dashboard: ['renderDashboardRealStats', 'refreshDashboardRadar', 'renderDashboardRadarChips'],
+      drafts: ['renderDraftList'],
+      console: ['loadTicketStatus', 'renderAgentList', 'renderSkillsList', 'healthLoad'],
+      pricing: ['loadIntegratedPricingPanel']
+    }[item.dataset.p] || [];
+    pageLoaders.forEach(fn => {
+      if (typeof window[fn] !== 'function') return;
+      try {
+        const p = window[fn]();
+        if (p && typeof p.catch === 'function') p.catch(() => {});
+      } catch (e) { console.warn('[page-enter] ' + fn + ' 失败:', e); }
+    });
   };
 });
 

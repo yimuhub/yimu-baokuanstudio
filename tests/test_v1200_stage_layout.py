@@ -167,3 +167,30 @@ def test_business_switch_is_routed_to_stage(js: str) -> None:
     """舞台开着时，业务里的 switchToPage 必须改走舞台，不能切到看不见的主区。"""
     assert "switchToPage" in js
     assert "__stageWrapped" in js
+
+
+def test_page_enter_loaders_wired(html: str) -> None:
+    """进页必须拉真数据：订阅 / 工作台 / 控制中心 / 大屏 都要有进页钩子。
+
+    此前只有影音工坊与个人中心挂了钩子，其余页面进页停在「加载中」。
+    """
+    seg = html[html.find("const pageLoaders = {"):][:700]
+    assert seg, "缺少进页加载钩子表 pageLoaders"
+    for key in ("dashboard", "drafts", "console", "pricing"):
+        assert key in seg, f"进页钩子缺少 {key}"
+    for fn in ("loadIntegratedPricingPanel", "renderDraftList", "loadTicketStatus", "healthLoad"):
+        assert fn in html, f"进页加载函数 {fn} 不存在"
+        assert fn in seg, f"进页钩子未挂 {fn}"
+
+
+def test_switch_page_runs_business_before_move(js: str) -> None:
+    """改道舞台前必须先让业务函数跑完（挂钩子、拉数据、切子视图），再搬面板。"""
+    seg = js[js.find("function patchSwitchPage"):][:900]
+    assert "orig.apply(this, arguments)" in seg
+    idx_orig = seg.find("orig.apply(this, arguments)")
+    idx_open = seg.find("open(key);")
+    assert idx_open > idx_orig, "必须先调用原 switchToPage，再打开舞台"
+
+    # 同一页重复触发不重复搬运，否则滚动位置与焦点会被冲掉
+    oseg = js[js.find("function open(key)"):][:600]
+    assert "current === key" in oseg, "缺少同页复用判断"

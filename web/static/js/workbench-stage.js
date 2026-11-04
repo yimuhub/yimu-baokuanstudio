@@ -141,6 +141,13 @@
     var panel = byId('p-' + key);
     if (!panel) return;
 
+    /* 同一页重复触发（业务跳转 + 导航冒泡各来一次）时直接复用，
+       避免反复搬运把滚动位置与输入焦点冲掉 */
+    if (current === key && body.getAttribute('data-stage') === 'on' && panel.parentNode === body) {
+      panel.classList.add('on');
+      return;
+    }
+
     restore();
 
     current = key;
@@ -239,17 +246,21 @@
     }, true);
   }
 
-  /* 业务里任何「跳到某页」的调用，在舞台打开时改走舞台，避免页面在看不见的主区里切换 */
+  /* 业务里任何「跳到某页」的调用，在舞台打开时改走舞台，避免页面在看不见的主区里切换。
+     注意：必须先让业务函数跑完（它会挂进页钩子、拉数据、切子视图、写高亮），再搬面板；
+     否则页面会停在自己的「加载中」状态。 */
   function patchSwitchPage() {
     var orig = WIN.switchToPage;
     if (typeof orig !== 'function' || orig.__stageWrapped) return;
     var wrapped = function (key, sub) {
       if (DOC.body.getAttribute('data-stage') === 'on' && PAGES[key]) {
+        var ret;
+        try { ret = orig.apply(this, arguments); } catch (er) { /* ignore */ }
         open(key);
         if (sub && typeof WIN.switchSubTab === 'function') {
           setTimeout(function () { try { WIN.switchSubTab(key, sub); } catch (er) { /* ignore */ } }, 60);
         }
-        return undefined;
+        return ret;
       }
       return orig.apply(this, arguments);
     };
@@ -318,7 +329,7 @@
 
     /* 对外：允许其他模块主动打开某个页面（例如右栏资产台的「去工作台」） */
     WIN.YIMU_STAGE = {
-      version: '12.0.0',
+      version: '12.1.0',
       open: open,
       close: close,
       full: toggleFull,

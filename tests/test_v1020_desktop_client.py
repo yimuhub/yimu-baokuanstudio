@@ -23,7 +23,7 @@ ROOT = Path(__file__).resolve().parent.parent
 def test_v1020_version_and_codename():
     """验证版本已步进至 11.0.x，代号与代号序列状态互洽。"""
     assert version.__version__.startswith(("11.", "12."))
-    assert version.__codename__ in ("沧海吟", "山岳赋", "江河曲", "松涛境")
+    assert version.__codename__ in ("沧海吟", "山岳赋", "江河曲", "松涛境", "竹韵篇")
     assert "安装包" in version.__slogan__
 
 

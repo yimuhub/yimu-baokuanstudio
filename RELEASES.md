@@ -4,6 +4,20 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🎋 Version 12.1.0 · Page-Enter Data · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "12.1.0"`, `__codename__ = "竹韵篇"`, `__codename_en__ = "Bamboo Rhythm"`)
+
+Patch release on top of the right-pane stage. The stage itself was right; the pages inside it were
+still opening without their data, so several of them sat on their own loading state forever.
+
+| Area | What changed |
+|---|---|
+| **Page-enter hooks** | A single `pageLoaders` table now runs the right loader for Dashboard, Workspace, Console and Pricing the moment a page opens. Pricing no longer shows 「正在从定价中心加载套餐与权益」 forever. |
+| **Stage re-routing** | The `switchToPage` wrapper executed the stage and returned early, skipping the page's own bootstrap. It now runs the original first — hooks, data, sub-view, highlight — then moves the panel. |
+| **Re-open** | Opening the page that is already on stage reuses it instead of moving it again, so scroll position and input focus survive. |
+| **Console pipeline** | The one-line mechanism note became a five-step flow: trending sweep → pick winners → AI draft → short video → DingTalk card. |
+
 ## 🌲 Version 12.0.0 · Right-Pane Stage · 2026-11-04
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "12.0.0"`, `__codename__ = "松涛境"`, `__codename_en__ = "Pinewave Realm"`)

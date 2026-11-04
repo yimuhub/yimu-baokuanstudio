@@ -1,8 +1,8 @@
 {
-  "current_version": "12.0.0",
-  "current_codename_zh": "松涛境",
-  "current_codename_en": "Pinewave Realm",
-  "next_index": 8,
+  "current_version": "12.1.0",
+  "current_codename_zh": "竹韵篇",
+  "current_codename_en": "Bamboo Rhythm",
+  "next_index": 9,
   "sequence": [
     {
       "zh": "曦光序",
@@ -382,6 +382,12 @@
       "version": "v12.0.0",
       "zh": "松涛境",
       "en": "Pinewave Realm",
+      "date": "2026-11-04"
+    },
+    {
+      "version": "v12.1.0",
+      "zh": "竹韵篇",
+      "en": "Bamboo Rhythm",
       "date": "2026-11-04"
     }
   ]

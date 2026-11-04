@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: BUSL-1.1
 """全局版本号定义（单一真源）。"""
 
-__version__ = "12.0.0"
-__codename__ = "松涛境"
-__codename_en__ = "Pinewave Realm"
-__slogan__ = "松风入座 涛自成章 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · 原生安装包 Win/macOS/Linux 开箱即用"
-__slogan_cn__ = "松风入座 涛自成章 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · 原生安装包 Win/macOS/Linux 开箱即用"
-__slogan_en__ = "Pines in the Wind, Chapters in the Waves · Fixed Rail, Fixed Chat, Every Feature Opens on the Right — Full Screen Ready"
+__version__ = "12.1.0"
+__codename__ = "竹韵篇"
+__codename_en__ = "Bamboo Rhythm"
+__slogan__ = "竹影筛光 韵自成篇 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · 原生安装包 Win/macOS/Linux 开箱即用"
+__slogan_cn__ = "竹影筛光 韵自成篇 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · 原生安装包 Win/macOS/Linux 开箱即用"
+__slogan_en__ = "Bamboo Light Through the Leaves, Every Page in Its Own Rhythm · Fixed Rail, Fixed Chat, Every Feature Opens on the Right — Full Screen Ready"
 
 
 def get_version() -> str:

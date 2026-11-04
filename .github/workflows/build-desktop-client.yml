@@ -120,13 +120,29 @@ jobs:
     name: Publish Installers to GitHub Releases
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    # 某个平台作业被取消（例如 macOS runner 长时间排队拿不到机器）时不连坐：
+    # 只要拿到了产物就发布，避免整版都无法下载；缺失的平台在日志与发布说明里注明。
+    if: always() && startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download all built artifacts
         uses: actions/download-artifact@v4
         with:
           path: release-assets
           merge-multiple: true
+
+      - name: Report missing platforms
+        run: |
+          miss=""
+          cd release-assets || exit 0
+          for pat in '*.dmg:macOS' '*.exe:Windows' '*.deb:Linux'; do
+            glob="${pat%%:*}"; name="${pat##*:}"
+            ls $glob > /dev/null 2>&1 || miss="$miss $name"
+          done
+          if [ -n "$miss" ]; then
+            echo "::warning::本次缺少平台产物:$miss"
+          else
+            echo "三平台产物齐全"
+          fi
 
       - name: Release to GitHub Releases
         uses: softprops/action-gh-release@v2

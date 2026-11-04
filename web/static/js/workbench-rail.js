@@ -783,5 +783,5 @@
     boot();
   }
 
-  WIN.YIMU_RAIL = { refresh: renderRecent, version: '11.1.0' };
+  WIN.YIMU_RAIL = { refresh: renderRecent, version: '11.1.1' };
 })();

@@ -387,11 +387,27 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V11.1.0 -->
+      <!-- V11.1.1 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🏔 V11.1.0 · 山岳赋 (Mountain Hymn)</span>
+          <span class="t-ver">🌊 V11.1.1 · 江河曲 (River Rhapsody)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">实机像素校准：把原型橙还给主按钮，左栏底栏改成两行不再挤压，顶栏在 1280 宽下不再重叠。功能零增减。</div>
+        <ul class="t-list">
+          <li><b>🎨 主色回归原型橙</b>：基础层曾用 <code>!important</code> 把主按钮钉成紫色渐变，现以更高权重改回 <code>#f0883e</code>，模式胶囊一并收敛；</li>
+          <li><b>🧩 底栏不再挤压</b>：用户卡曾被压到 50px 宽、文字与图标重叠，现拆成「图标行 + 整宽个人中心卡」两行；</li>
+          <li><b>🎛 控制中心图标</b>：换成控制滑杆造型，15px 下不再像太阳；</li>
+          <li><b>📐 窄屏顶栏</b>：≤1400px 收起副标题、收紧胶囊内边距，1280 / 1366 / 1512 三档零重叠、零横向溢出。</li>
+        </ul>
+      </div>
+
+      <!-- V11.1.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏔 V11.1.0 · 山岳赋 (Mountain Hymn)</span>
+          <span class="badge blue">已归档 · Archived</span>
           <span class="t-date">2026-11-04</span>
         </div>
         <div class="t-desc">三栏逐项对齐原型：左栏重建（新建创作 / 二级树 / 最近产出 / 紧凑底栏），中栏加副标题、胶囊条与空态引导，右栏补复制·导出·发布动作条。功能一个不少，经典版原样保留。</div>

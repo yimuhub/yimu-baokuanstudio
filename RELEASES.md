@@ -4,6 +4,20 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌊 Version 11.1.1 · Pixel Fixes · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.1.1"`, `__codename__ = "江河曲"`, `__codename_en__ = "River Rhapsody"`)
+
+Patch release. Four visual deviations left over from 11.1.0, found by comparing real
+screenshots against the prototype block by block. Zero feature change.
+
+| Area | What changed |
+|---|---|
+| **Brand color** | The base stylesheet pinned `.btn.primary` to a purple gradient with `!important`. Primary buttons (发布, save, generate) now use the prototype orange `#f0883e`, and the 极简 / 全能 mode pills were brought along. |
+| **Left rail footer** | The user card used to be squeezed to 50px, so 个人中心 overlapped the gear icon. Now row one holds theme / gateway / classic / control center, row two holds the full-width 个人中心 · 已登录 card. |
+| **Icon** | 控制中心 switched from a sun-like glyph to a sliders glyph, readable at 15px. |
+| **Header at narrow widths** | Below 1400px the page subtitle collapses and the mode pills tighten up. 1280 / 1366 / 1512 all measure zero overlap and `scrollWidth === innerWidth`. |
+
 ## 🏔 Version 11.1.0 · Prototype Parity · 2026-11-04
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.1.0"`, `__codename__ = "山岳赋"`, `__codename_en__ = "Mountain Hymn"`)

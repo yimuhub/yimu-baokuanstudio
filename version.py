@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: BUSL-1.1
 """全局版本号定义（单一真源）。"""
 
-__version__ = "11.1.0"
-__codename__ = "山岳赋"
-__codename_en__ = "Mountain Hymn"
-__slogan__ = "山高可攀 岳峙成章 · 左栏、中栏、右栏逐项对齐原型，功能一字未减 · 原生安装包 Win/macOS/Linux 开箱即用"
-__slogan_cn__ = "山高可攀 岳峙成章 · 左栏、中栏、右栏逐项对齐原型，功能一字未减 · 原生安装包 Win/macOS/Linux 开箱即用"
-__slogan_en__ = "Summit and Verse. · Every Pane Now Matches the Prototype, With Zero Feature Loss"
+__version__ = "11.1.1"
+__codename__ = "江河曲"
+__codename_en__ = "River Rhapsody"
+__slogan__ = "江流不息 河山入曲 · 品牌主色与左 / 中 / 右三栏细节全面修补，实机截图逐像素校准 · 原生安装包 Win/macOS/Linux 开箱即用"
+__slogan_cn__ = "江流不息 河山入曲 · 品牌主色与左 / 中 / 右三栏细节全面修补，实机截图逐像素校准 · 原生安装包 Win/macOS/Linux 开箱即用"
+__slogan_en__ = "Rivers Flow, Verses Follow. · Brand Color and Triple-Pane Details Recalibrated Against Real Screenshots"
 
 
 def get_version() -> str:

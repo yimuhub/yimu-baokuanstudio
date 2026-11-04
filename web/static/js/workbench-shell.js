@@ -959,7 +959,7 @@
     })();
 
     WIN.YIMU_SHELL = {
-      version: '11.1.0-p0',
+      version: '11.1.1',
       setTab: function (t) { ST.tab = t; render(); },
       focus: setFocus,
       refresh: render,

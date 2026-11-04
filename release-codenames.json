@@ -1,8 +1,8 @@
 {
-  "current_version": "11.1.0",
-  "current_codename_zh": "山岳赋",
-  "current_codename_en": "Mountain Hymn",
-  "next_index": 6,
+  "current_version": "11.1.1",
+  "current_codename_zh": "江河曲",
+  "current_codename_en": "River Rhapsody",
+  "next_index": 7,
   "sequence": [
     {
       "zh": "曦光序",
@@ -370,6 +370,12 @@
       "version": "v11.1.0",
       "zh": "山岳赋",
       "en": "Mountain Hymn",
+      "date": "2026-11-04"
+    },
+    {
+      "version": "v11.1.1",
+      "zh": "江河曲",
+      "en": "River Rhapsody",
       "date": "2026-11-04"
     }
   ]

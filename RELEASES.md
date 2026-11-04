@@ -4,6 +4,30 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🧭 Version 11.0.0 · Three-Pane Workbench Shell · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.0.0"`, `__codename__ = "长风谣"`, `__codename_en__ = "Longwind Ballad"`)
+
+The main screen is now a real workbench: **left rail (functions) · center stage (the work) · right rail (the assets)**. Nothing was rewritten — the seven existing panels, ~400 functions and 117 endpoints are untouched; the shell only re-allocates the viewport.
+
+### 🧱 Shell
+
+| # | Capability | Detail |
+|---|-----------|--------|
+| 1 | **Three columns, freely resizable** | Two 11px drag handles between the panes. Left 200–420px, right 300–680px, center never below 460px. Double-click a handle to reset; widths are remembered in `localStorage` and default sensibly by screen width (248/400 → 224/360 → 210/340). |
+| 2 | **Right rail = real assets, not a mock** | Four tabs bound to live data: **Draft** (platform switch, genuine typeset preview in a sandboxed iframe, version history with one-click rollback), **Images** (draft artwork, click-to-zoom lightbox, ← → navigation), **Videos** (`/api/video/tasks`, playable finished cuts), **Analytics** (current draft score, background tasks, asset totals). |
+| 3 | **Selection follows you** | Picking a draft in the Workbench or finishing one in Lite Mode updates the right rail instantly; navigating to the Media Studio flips it to the video tab. |
+| 4 | **Focus mode** | "⛶ Expand" fills the screen with the draft at a 940px measure; `Esc` or the floating badge returns. |
+| 5 | **Header auto-collapse** | When the center column narrows, low-priority header actions move into a "⋯ More" menu by importance, keeping the header a single 57px row on every width — no feature is dropped. |
+| 6 | **Classic mode round-trip** | `?legacy=1` / `?classic=1` renders the original interface verbatim, with a persistent "⚡ New Workbench" pill to come back. Below 1280px the app falls back to classic automatically. |
+
+### 📐 Layout Fixes Brought by the Narrower Center Column
+
+- Lite Mode's two columns compress instead of overflowing; panel sub-tabs scroll horizontally instead of wrapping into two rows.
+- Verified at 1920×1080, 1512×945, 1440×900 and 1280×800: zero horizontal overflow on all seven panels, zero console errors.
+
+---
+
 ## 🩹 Version 10.3.2 · Provider Ping Auth Fix · 2026-11-03
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.3.2"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

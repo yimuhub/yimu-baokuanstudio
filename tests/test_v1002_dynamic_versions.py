@@ -2,7 +2,7 @@
 """V10.1 全端全页面动态版本单一真源专项门禁测试。
 
 核心验证：
-1. 全站版本单一真源步进至 10.1（鸿蒙始 · Primordial Dawn）。
+1. 全站版本单一真源步进至 10.1（长风谣 · Longwind Ballad）。
 2. 所有前端页面（PC 端首页、移动端、独立定价页、运营看板、用户管理、审计日志等）全部动态从单一真源提取版本号。
 3. 原始模板文件不再写死静态旧版本，杜绝因漏改或缓存导致的版本漂移。
 4. 前端独立动态版本库 (web/static/js/version-sync.js) 具备全局管理与自执行能力。
@@ -22,24 +22,24 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_v1002_version_single_source_of_truth():
     """验证版本单一真源为当前版本。"""
-    assert version.__version__ == "10.3.2"
-    assert version.__codename__ == "鸿蒙始"
+    assert version.__version__ == "11.0.0"
+    assert version.__codename__ == "长风谣"
     assert hasattr(version, "get_version")
-    assert version.get_version() == "10.3.2"
+    assert version.get_version() == "11.0.0"
 
     info = version.get_version_info()
-    assert info.get("version") == "10.3.2"
-    assert info.get("codename") == "鸿蒙始"
+    assert info.get("version") == "11.0.0"
+    assert info.get("codename") == "长风谣"
 
     # pyproject.toml
     pyproject_toml = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    assert 'version = "10.3.2"' in pyproject_toml
+    assert 'version = "11.0.0"' in pyproject_toml
 
     # locales
     zh_locale = (ROOT / "web/static/locales/zh-CN.json").read_text(encoding="utf-8")
     en_locale = (ROOT / "web/static/locales/en-US.json").read_text(encoding="utf-8")
-    assert '"version": "10.3.2"' in zh_locale
-    assert '"version": "10.3.2"' in en_locale
+    assert '"version": "11.0.0"' in zh_locale
+    assert '"version": "11.0.0"' in en_locale
 
 
 def test_v1002_all_pages_render_dynamic_version():

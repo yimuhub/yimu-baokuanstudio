@@ -21,9 +21,9 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_v1020_version_and_codename():
-    """验证版本已正式步进至 10.3.2，代号保持为 鸿蒙始。"""
-    assert version.__version__ == "10.3.2"
-    assert version.__codename__ == "鸿蒙始"
+    """验证版本已正式步进至 11.0.0，代号步进为 长风谣。"""
+    assert version.__version__ == "11.0.0"
+    assert version.__codename__ == "长风谣"
     assert "安装包" in version.__slogan__
 
 

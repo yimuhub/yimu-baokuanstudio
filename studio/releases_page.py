@@ -387,11 +387,28 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V10.1 -->
+      <!-- V11.0.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌌 V10.1 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="t-ver">🧭 V11.0.0 · 长风谣 (Longwind Ballad)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">三栏工作台外壳重构：左功能栏 / 中主台 / 右资产台，栏宽可拖拽、资产实时跟随、专注态整屏放大、经典版一键往返。</div>
+        <ul class="t-list">
+          <li><b>🧱 三栏工作台</b>：左右两条拖拽带实时改宽（左 200–420 / 右 300–680，中栏保底 460），双击复位并按屏宽自适应默认值；</li>
+          <li><b>🗂️ 右栏资产台</b>：成稿 / 图片 / 视频 / 数据四页全部接真实接口，成稿真排版预览、版本历史一键回滚、图片点击放大灯箱、成片直接播放；</li>
+          <li><b>⛶ 专注态</b>：右栏一键铺满整屏阅读稿件，Esc 或浮标退出；</li>
+          <li><b>🕰 经典版往返</b>：<code>?legacy=1</code> 直达原版界面，右下角常驻返程浮标，低于 1280px 自动回落；</li>
+          <li><b>🧩 业务零改动</b>：7 个业务面板、约 400 个函数、117 个接口原样复用，仅更换容器与视口分配。</li>
+        </ul>
+      </div>
+
+      <!-- V10.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🌌 V10.1 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="badge blue">历史版本 · Archived</span>
           <span class="t-date">2026-10-15</span>
         </div>
         <div class="t-desc">全页面动态版本提取架构重构、统一前端版本同步管理库 (version-sync.js)、彻底消除硬编码与静态版本漂移。</div>

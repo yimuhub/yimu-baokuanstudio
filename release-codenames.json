@@ -1,8 +1,8 @@
 {
-  "current_version": "10.1.3",
-  "current_codename_zh": "星河纪",
-  "current_codename_en": "Starfall Chronicle",
-  "next_index": 3,
+  "current_version": "11.0.0",
+  "current_codename_zh": "长风谣",
+  "current_codename_en": "Longwind Ballad",
+  "next_index": 4,
   "sequence": [
     {
       "zh": "曦光序",
@@ -353,6 +353,12 @@
       "zh": "星河纪",
       "en": "Starfall Chronicle",
       "date": "2026-10-16"
+    },
+    {
+      "version": "v11.0.0",
+      "zh": "长风谣",
+      "en": "Longwind Ballad",
+      "date": "2026-11-04"
     }
   ]
 }

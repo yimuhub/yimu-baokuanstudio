@@ -77,7 +77,7 @@
       radar: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4"/><path d="M12 12l6.6-6.6"/>',
       doc: '<path d="M6.5 3.5h7l4.5 4.5v13h-11.5z"/><path d="M13.5 3.5V8h4.5M9 12.5h6M9 16h4"/>',
       film: '<rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><path d="M8 4.5v15M16 4.5v15M3.5 12h17"/>',
-      gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 3.5v2.2M12 18.3v2.2M4.9 7.8l1.9 1.1M17.2 15.1l1.9 1.1M4.9 16.2l1.9-1.1M17.2 8.9l1.9-1.1"/>',
+      gear: '<path d="M4 7.5h8M16.5 7.5H20M4 16.5h3.5M12 16.5h8"/><circle cx="14.2" cy="7.5" r="2.3"/><circle cx="9.8" cy="16.5" r="2.3"/>',
       search: '<circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/>',
       gem: '<path d="M7 4.5h10l3.5 5-8.5 10L3.5 9.5z"/><path d="M3.5 9.5h17M9.5 9.5L12 19.5l2.5-10"/>',
       user: '<circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20c1-3.7 3.8-5.6 7.2-5.6s6.2 1.9 7.2 5.6"/>',

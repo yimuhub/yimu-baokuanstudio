@@ -4368,6 +4368,37 @@ body[data-shell="v2"] .assets .assets-acts .btn.primary {
 }
 body[data-shell="v2"] .assets .assets-acts .btn.primary:hover { filter: brightness(1.07); }
 
+/* ---- 窄屏收敛：先收副标题、再收模式胶囊，杜绝顶栏与右侧胶囊重叠 ---- */
+body[data-shell="v2"] .main-wrapper > header #rail-headsub {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 1400px) {
+  body[data-shell="v2"] .main-wrapper > header #rail-headsub { display: none !important; }
+  body[data-shell="v2"] .main-wrapper > header .system-mode-toggle .sys-mode-btn {
+    padding: 3px 10px !important; font-size: 11.5px !important; gap: 4px !important;
+  }
+}
+
+/* ---- 品牌主色收敛：主按钮与模式胶囊统一回原型橙（覆盖基础层写死的紫色 !important） ---- */
+body[data-shell="v2"] .btn.primary {
+  background: #f0883e !important;
+  border-color: #f0883e !important;
+  color: #1a1207 !important;
+  box-shadow: 0 3px 12px rgba(240, 136, 62, .28) !important;
+}
+body[data-shell="v2"] .btn.primary:hover {
+  box-shadow: 0 5px 16px rgba(240, 136, 62, .42) !important;
+}
+body[data-shell="v2"] .system-mode-toggle .sys-mode-btn.active {
+  background: linear-gradient(135deg, #f7a05a, #f0883e) !important;
+  color: #1a1207 !important;
+  box-shadow: 0 2px 8px rgba(240, 136, 62, .35) !important;
+}
+body[data-shell="v2"] .system-mode-toggle .sys-mode-btn.active span[style] {
+  background: rgba(26, 18, 7, .16) !important;
+  color: #1a1207 !important;
+}
+
 /* ---- 注入块内联 SVG 统一尺寸（否则浏览器按 300×150 撑开） ---- */
 body[data-shell="v2"] > .side .rail-chev svg { width: 12px; height: 12px; display: block; }
 body[data-shell="v2"] > .side .rail-search-btn svg { width: 14px; height: 14px; display: block; }
@@ -4377,9 +4408,39 @@ body[data-shell="v2"] .assets-acts .btn svg {
 }
 
 /* ---- 底部区只留算力、用户与图标，其余行收起 ---- */
+body[data-shell="v2"] > .side .side-foot {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 6px; padding: 8px 9px 9px;
+}
 body[data-shell="v2"] > .side .side-foot > div { display: none !important; }
 body[data-shell="v2"] > .side .side-foot > div#side-user-profile-btn { display: flex !important; }
 body[data-shell="v2"] > .side .side-foot > div.gw-pill { display: flex !important; }
+/* 用户卡独占第二行，避免与右侧图标互相挤压导致文字重叠 */
+body[data-shell="v2"] > .side .side-foot > #side-user-profile-btn {
+  order: 99; flex: 1 0 100%; box-sizing: border-box;
+  height: 26px; margin-top: 0 !important;
+  padding: 0 8px !important; border-radius: 7px !important;
+  background: rgba(255, 255, 255, .03) !important;
+  border: 1px solid var(--border, #1b2431) !important;
+  transition: all .15s;
+}
+body[data-shell="v2"] > .side .side-foot > #side-user-profile-btn:hover {
+  background: var(--hover, rgba(255, 255, 255, .05)) !important;
+  border-color: var(--border2, #26313f) !important;
+}
+body[data-shell="v2"] > .side .side-foot > #side-user-profile-btn > div { gap: 6px !important; min-width: 0; }
+body[data-shell="v2"] > .side .side-foot > #side-user-profile-btn #side-user-title {
+  font-size: 11.5px !important; font-weight: 500 !important;
+  min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+body[data-shell="v2"] > .side .side-foot > #side-user-profile-btn #side-auth-badge {
+  font-size: 9.5px !important; padding: 1px 6px !important; flex: 0 0 auto;
+  display: inline-flex !important; align-items: center;
+  color: #3fb950 !important; background: rgba(63, 185, 80, .12) !important;
+  border-radius: 5px !important; font-weight: 600 !important;
+}
+body[data-shell="v2"] > .side .side-foot .rail-icobtn { flex: 0 0 27px; }
+body[data-shell="v2"] > .side .side-foot .rail-icobtn:first-child { margin-right: auto; }
 
 /* ============ 中栏：空态功能引导卡 ============ */
 body[data-shell="v2"] .rail-guide {
@@ -24725,6 +24786,12 @@ function switchMobileNav(panelKey) {
 <!-- V11 三栏外壳：栏宽拖拽 / 右栏资产台 / 专注放大。非 v2 布局下自行空转退出。 -->
 <script src="/static/js/workbench-shell.js"></script>
 <script src="/static/js/workbench-rail.js"></script>
+
+
+
+
+
+
 
 </body>
 

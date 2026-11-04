@@ -387,11 +387,26 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V11.0.0 -->
+      <!-- V11.0.1 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🧭 V11.0.0 · 长风谣 (Longwind Ballad)</span>
+          <span class="t-ver">🩹 V11.0.1 · 沧海吟 (Oceanic Ode)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">质量门禁修复：术语扫描与版本门禁双双转绿，三栏工作台功能零改动。</div>
+        <ul class="t-list">
+          <li><b>🔤 术语门禁</b>：改正一段 V11 外壳 CSS 注释里的内部用词，面向用户文案扫描恢复通过；</li>
+          <li><b>🔒 版本门禁自洽</b>：版本与代号改由 <code>release-codenames.json</code> 交叉校验，补丁版不再逐处改测试；</li>
+          <li><b>🏷 代号推进</b>：<code>next_index</code> 4 → 5，下一代号「山岳赋 / Mountain Hymn」。</li>
+        </ul>
+      </div>
+
+      <!-- V11.0.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🧭 V11.0.0 · 长风谣 (Longwind Ballad)</span>
+          <span class="badge blue">历史版本 · Archived</span>
           <span class="t-date">2026-11-04</span>
         </div>
         <div class="t-desc">三栏工作台外壳重构：左功能栏 / 中主台 / 右资产台，栏宽可拖拽、资产实时跟随、专注态整屏放大、经典版一键往返。</div>

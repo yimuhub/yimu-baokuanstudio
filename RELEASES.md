@@ -4,6 +4,23 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🩹 Version 11.0.1 · Quality Gate Fix · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.0.1"`, `__codename__ = "沧海吟"`, `__codename_en__ = "Oceanic Ode"`)
+
+Patch release. The v11.0.0 three-pane shell is functionally unchanged — this only turns the project's own quality gates back to green.
+
+### 🔧 Fixed
+
+- **Jargon gate**: a CSS comment added during the V11 layout pass contained the internal word 「占位」, which the user-facing copy scanner (`tests/test_no_internal_jargon.py`) bans. Reworded to 「提示文案」. No behavioural change.
+- **Version-gate churn**: `tests/test_v1100_workbench_shell.py` no longer hard-codes `11.0.0` / 「长风谣」; it now cross-validates `version.py` against `release-codenames.json` (version, both codenames, last history row, no duplicate in sequence). `test_v1002` / `test_v1020` now read the expected version from `version.py` instead of repeating a literal, so future patch releases stop touching tests.
+
+### 🏷 Codename
+
+`沧海吟 / Oceanic Ode` — sequence index 4 consumed; `next_index` is now 5 (「山岳赋 / Mountain Hymn」).
+
+---
+
 ## 🧭 Version 11.0.0 · Three-Pane Workbench Shell · 2026-11-04
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.0.0"`, `__codename__ = "长风谣"`, `__codename_en__ = "Longwind Ballad"`)

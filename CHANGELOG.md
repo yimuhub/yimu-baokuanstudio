@@ -42,6 +42,19 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [11.0.1] - 2026-11-04 · 沧海吟 (Oceanic Ode) · 质量门禁修复 (Quality Gate Fix)
+
+### Fixed
+
+- **术语门禁红**：`web/templates/index.html` 中一段 V11 三栏外壳的 CSS 注释误用了「占位」一词，触发 `tests/test_no_internal_jargon.py` 的面向用户文案禁用词表，导致 v11.0.0 的 CI 校验失败。注释已改写为「提示文案」，功能零影响。
+- **版本门禁随补丁版漂移**：`tests/test_v1100_workbench_shell.py` 原先硬编码 `11.0.0` 与「长风谣」，现改为与 `release-codenames.json` 互相校验（版本号 / 中英代号 / history 末条 / 序列不重复），`test_v1002`、`test_v1020` 的版本等值断言改为从 `version.py` 动态取值，后续补丁版不再需要逐处改测试。
+
+### Changed
+
+- 版本推进至 `11.0.1`，代号「沧海吟 / Oceanic Ode」，`next_index` 由 4 推进至 5，下一代号「山岳赋 / Mountain Hymn」。
+
+---
+
 ## [11.0.0] - 2026-11-04 · 长风谣 (Longwind Ballad) · 三栏工作台外壳重构 (Three-Pane Workbench Shell)
 
 ### Added

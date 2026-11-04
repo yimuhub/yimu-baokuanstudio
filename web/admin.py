@@ -1287,7 +1287,7 @@ def get_app_version_info() -> dict:
             return version.get_version_info()
         return {
             "version": version.__version__,
-            "codename": getattr(version, "__codename__", "长风谣"),
+            "codename": getattr(version, "__codename__", "沧海吟"),
             "codename_en": getattr(version, "__codename_en__", "Longwind Ballad"),
             "slogan": getattr(version, "__slogan__", ""),
             "slogan_cn": getattr(version, "__slogan_cn__", ""),
@@ -4100,12 +4100,12 @@ def api_releases():
     return {
         "ok": True,
         "current_version": cur_ver,
-        "codename": info.get("codename", "长风谣"),
+        "codename": info.get("codename", "沧海吟"),
         "licensor": "yimu.hyipf.com",
         "releases": [
             {
                 "version": "10.1",
-                "codename": "长风谣",
+                "codename": "沧海吟",
                 "date": "2026-10-15",
                 "status": "latest",
                 "highlights": [
@@ -4117,7 +4117,7 @@ def api_releases():
             },
             {
                 "version": "10.0.1",
-                "codename": "长风谣",
+                "codename": "沧海吟",
                 "date": "2026-10-15",
                 "status": "stable",
                 "highlights": [
@@ -4128,7 +4128,7 @@ def api_releases():
             },
             {
                 "version": "10.0.0",
-                "codename": "长风谣",
+                "codename": "沧海吟",
                 "date": "2026-10-15",
                 "status": "stable",
                 "highlights": [

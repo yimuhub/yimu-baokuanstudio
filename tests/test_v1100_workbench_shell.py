@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: BUSL-1.1
-"""V11.0.0（长风谣 · Longwind Ballad）三栏工作台外壳专项门禁测试。
+"""V11 三栏工作台外壳专项门禁测试（版本与代号以 release-codenames.json 为准）。
 
 验收口径：
-1. 版本单一真源步进至 11.0.0，代号「长风谣 / Longwind Ballad」，序列状态同步消耗。
+1. 版本单一真源与代号序列状态互洽，pyproject / 语言包不得漂移。
 2. 主界面具备左功能栏 / 中主台 / 右资产台三列结构与两条拖拽手柄。
 3. 右栏四个资产页全部绑定真实只读接口，不允许出现静态假数据。
 4. 经典版可双向往返：`?legacy=1` 进入，`yimu.shell.mode` + 返程浮标返回。
@@ -39,34 +39,45 @@ def shell_js() -> str:
 
 
 def test_v1100_version_and_codename():
-    """版本单一真源已跨代步进至 11.0.0（长风谣）。"""
-    assert version.__version__ == "11.0.0"
-    assert version.__codename__ == "长风谣"
-    assert version.__codename_en__ == "Longwind Ballad"
-    assert version.get_version() == "11.0.0"
+    """版本单一真源与代号序列状态必须互洽（不硬编码具体版本号，避免补丁版漂移）。"""
+    state = json.loads((ROOT / "release-codenames.json").read_text(encoding="utf-8"))
+    assert version.__version__.startswith("11."), version.__version__
+    assert version.__version__ == state["current_version"]
+    assert version.__codename__ == state["current_codename_zh"]
+    assert version.__codename_en__ == state["current_codename_en"]
+    assert version.__codename_en__  # 英文代号不得为空
     info = version.get_version_info()
-    assert info["codename"] == "长风谣"
-    assert info["codename_en"] == "Longwind Ballad"
+    assert info["version"] == version.__version__
+    assert info["codename"] == version.__codename__
+    assert info["codename_en"] == version.__codename_en__
 
 
 def test_v1100_packaging_and_locales_in_sync():
-    """pyproject 与中英语言包版本号同步，不允许版本漂移。"""
-    assert 'version = "11.0.0"' in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+    """pyproject 与中英语言包版本号必须跟 version.py 完全一致，不允许版本漂移。"""
+    ver = version.__version__
+    assert f'version = "{ver}"' in (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     zh = json.loads((ROOT / "web/static/locales/zh-CN.json").read_text(encoding="utf-8"))
     en = json.loads((ROOT / "web/static/locales/en-US.json").read_text(encoding="utf-8"))
-    assert zh["version"] == "11.0.0"
-    assert en["version"] == "11.0.0"
-    assert zh["codename"] == "长风谣"
-    assert en["codename"] == "Longwind Ballad"
+    assert zh["version"] == ver
+    assert en["version"] == ver
+    assert zh["codename"] == version.__codename__
+    assert en["codename"] == version.__codename_en__
 
 
 def test_v1100_codename_sequence_state():
-    """代号序列状态已消耗「长风谣」，下一个应为「沧海吟」。"""
+    """代号序列已消耗当前版本，history 末条与 current 一致，未越界。"""
     state = json.loads((ROOT / "release-codenames.json").read_text(encoding="utf-8"))
-    assert state["current_version"] == "11.0.0"
-    assert state["current_codename_zh"] == "长风谣"
-    assert state["sequence"][state["next_index"]]["zh"] == "沧海吟"
-    assert state["history"][-1]["version"] == "v11.0.0"
+    assert state["current_version"] == version.__version__
+    assert state["current_codename_zh"] == version.__codename__
+    assert state["next_index"] < len(state["sequence"]), "代号序列已耗尽，需续批"
+    # 当前代号必须是 history 最后一条，且与 next_index 指向的下一个不同
+    last = state["history"][-1]
+    assert last["version"] == "v" + state["current_version"]
+    assert last["zh"] == state["current_codename_zh"]
+    assert state["sequence"][state["next_index"]]["zh"] != state["current_codename_zh"]
+    # 序列内不得有重复代号
+    zh_seq = [c["zh"] for c in state["sequence"]]
+    assert len(zh_seq) == len(set(zh_seq)), "代号序列出现重复"
 
 
 # ---------------------------------------------------------------- 三栏外壳

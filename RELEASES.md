@@ -4,6 +4,23 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌲 Version 12.0.0 · Right-Pane Stage · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "12.0.0"`, `__codename__ = "松涛境"`, `__codename_en__ = "Pinewave Realm"`)
+
+Major release. The interaction model is rebuilt around one rule: **the rail never moves,
+the conversation never moves, every feature opens on the right — and the right pane goes full screen.**
+
+| Area | What changed |
+|---|---|
+| **Middle pane** | `#p-lite-mode` is pinned. No menu click can replace the conversation. The seven feature panels are hidden from `<main>` by CSS. |
+| **Right pane** | Becomes a real stage. Clicking a rail item moves that panel into the right pane — DOM relocation, not a rewrite, so every onclick, listener, scroll position and form state survives. |
+| **Layout pivot** | Opening a feature flips the three columns: the chat shrinks to 340–400px, the stage takes the rest. |
+| **Full screen** | Button, double-click on the title, or `Esc`. `.assets` is a stacking context, so it is raised together with the stage — otherwise the rail would cover it. |
+| **Routing** | `switchToPage()` is redirected to the stage while it is open, so pages never switch in an invisible `<main>`. |
+| **Color** | Eight purple variants (100+ occurrences) collapsed into the brand orange `#f0883e`. |
+| **Detail fixes** | Rail sub-trees became an accordion; sub-tabs wrap instead of clipping; cards lost their glow borders; page headings lost their rainbow gradients; buttons no longer break into two lines. |
+
 ## 🌊 Version 11.1.1 · Pixel Fixes · 2026-11-04
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.1.1"`, `__codename__ = "江河曲"`, `__codename_en__ = "River Rhapsody"`)

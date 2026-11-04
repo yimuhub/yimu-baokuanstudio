@@ -780,6 +780,14 @@
       setTimeout(function () {
         var key = item.getAttribute('data-p');
         var box = DOC.querySelector('.rail-subs[data-for="' + key + '"]');
+        /* 手风琴：切页时先收起其它已展开的二级树，否则连点几次会全摊开把「最近产出」顶下去 */
+        var others = DOC.querySelectorAll('.rail-subs.on');
+        for (var i = 0; i < others.length; i++) {
+          if (others[i] === box) continue;
+          others[i].classList.remove('on');
+          var prev = others[i].previousElementSibling;
+          if (prev) prev.classList.remove('open');
+        }
         if (box && SUBS[key] && SUBS[key].length) {
           box.classList.add('on');
           item.classList.add('open');
@@ -806,5 +814,5 @@
     boot();
   }
 
-  WIN.YIMU_RAIL = { refresh: renderRecent, version: '11.1.1' };
+  WIN.YIMU_RAIL = { refresh: renderRecent, version: '12.0.0' };
 })();

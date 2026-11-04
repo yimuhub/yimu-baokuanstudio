@@ -112,11 +112,11 @@
   --primary: #f0883e;
   --primary-hover: #ff9d55;
   --primary-subtle: rgba(240, 136, 62, 0.16);
-  --purple: #a855f7;
-  --purple-subtle: rgba(168, 85, 247, 0.16);
-  --accent-grad: linear-gradient(135deg, #f0883e 0%, #a855f7 100%);
+  --purple: #f0883e;
+  --purple-subtle: rgba(240, 136, 62, 0.16);
+  --accent-grad: linear-gradient(135deg, #f0883e 0%, #e05a10 100%);
   --glow-primary: 0 0 25px rgba(240, 136, 62, 0.28);
-  --glow-purple: 0 0 25px rgba(168, 85, 247, 0.28);
+  --glow-purple: 0 0 25px rgba(240, 136, 62, 0.28);
   --text: #f0f6fc;
   --text-muted: #8b98a8;
   --text-dark: #24292e;
@@ -143,7 +143,7 @@ body {
   display: flex;
   overflow-x: hidden;
   background-image: radial-gradient(circle at 50% 0%, rgba(240,136,62,0.06) 0%, transparent 60%),
-                    radial-gradient(circle at 100% 100%, rgba(168,85,247,0.05) 0%, transparent 50%);
+                    radial-gradient(circle at 100% 100%, rgba(240,136,62,0.05) 0%, transparent 50%);
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
@@ -160,9 +160,9 @@ body {
   --primary: #ea580c;
   --primary-hover: #f97316;
   --primary-subtle: rgba(234, 88, 12, 0.08);
-  --purple: #9333ea;
+  --purple: #e05a10;
   --purple-subtle: rgba(147, 51, 234, 0.08);
-  --accent-grad: linear-gradient(135deg, #ea580c 0%, #9333ea 100%);
+  --accent-grad: linear-gradient(135deg, #ea580c 0%, #e05a10 100%);
   --glow-primary: 0 0 20px rgba(234, 88, 12, 0.14);
   --glow-purple: 0 0 20px rgba(147, 51, 234, 0.14);
   --text: #0f172a;
@@ -272,15 +272,15 @@ body {
   color: #0284c7 !important;
 }
 
-[data-theme="light"] span[style*="color:#d8b4fe"],
-[data-theme="light"] span[style*="color: #d8b4fe"],
-[data-theme="light"] span[style*="color:#d2a8ff"],
-[data-theme="light"] span[style*="color: #d2a8ff"],
-[data-theme="light"] strong[style*="color:#d8b4fe"],
-[data-theme="light"] strong[style*="color: #d8b4fe"],
-[data-theme="light"] strong[style*="color:#d2a8ff"],
-[data-theme="light"] strong[style*="color: #d2a8ff"] {
-  color: #7c3aed !important;
+[data-theme="light"] span[style*="color:#ffd0a6"],
+[data-theme="light"] span[style*="color: #ffd0a6"],
+[data-theme="light"] span[style*="color:#ffd0a6"],
+[data-theme="light"] span[style*="color: #ffd0a6"],
+[data-theme="light"] strong[style*="color:#ffd0a6"],
+[data-theme="light"] strong[style*="color: #ffd0a6"],
+[data-theme="light"] strong[style*="color:#ffd0a6"],
+[data-theme="light"] strong[style*="color: #ffd0a6"] {
+  color: #e05a10 !important;
 }
 
 [data-theme="light"] span[style*="color:#7ee787"],
@@ -445,7 +445,7 @@ body {
   border-color: #c9d1d9 !important;
 }
 [data-theme="light"] #stage-single-rewrite-bar {
-  background: rgba(139,92,246,0.06) !important;
+  background: rgba(240,136,62,0.06) !important;
   border-bottom-color: #d0d7de !important;
 }
 [data-theme="light"] #hot-db-stats {
@@ -1120,7 +1120,7 @@ body {
   border-color: rgba(255, 255, 255, 0.2);
 }
 .task-tab-pill.on {
-  background: linear-gradient(135deg, rgba(88, 166, 255, 0.18), rgba(168, 85, 247, 0.22));
+  background: linear-gradient(135deg, rgba(88, 166, 255, 0.18), rgba(240, 136, 62, 0.22));
   border-color: rgba(88, 166, 255, 0.55);
   color: #ffffff;
   font-weight: 600;
@@ -1720,7 +1720,7 @@ input[type=text]:focus, textarea:focus, select:focus {
 .wb-nav-tab[data-pst="zhihu"].on { background: #0066ff; }
 .wb-nav-tab[data-pst="weibo"].on { background: #d97706; }
 .wb-nav-tab[data-pst="twitter"].on { background: #0284c7; }
-.wb-nav-tab[data-pst="score"].on { background: #8957e5; }
+.wb-nav-tab[data-pst="score"].on { background: #e05a10; }
 .wb-nav-tab[data-pst="analysis"].on { background: #238636; }
 
 .derive-chip {
@@ -2267,9 +2267,9 @@ input[type=text]:focus, textarea:focus, select:focus {
   border: 1px solid rgba(240, 136, 62, 0.3);
 }
 .model-cat-badge.cat-video {
-  background: rgba(163, 113, 247, 0.15);
-  color: #bc8cff;
-  border: 1px solid rgba(163, 113, 247, 0.3);
+  background: rgba(240, 136, 62, 0.15);
+  color: #ffb877;
+  border: 1px solid rgba(240, 136, 62, 0.3);
 }
 
 /* 8 步短剧工业流水线专用样式 */
@@ -2390,7 +2390,7 @@ input[type=text]:focus, textarea:focus, select:focus {
 
 /* 爆款数字中枢顶栏看板 */
 .live-metrics-banner {
-  background: linear-gradient(90deg, rgba(240, 136, 62, 0.12) 0%, rgba(168, 85, 247, 0.1) 50%, rgba(88, 166, 255, 0.08) 100%);
+  background: linear-gradient(90deg, rgba(240, 136, 62, 0.12) 0%, rgba(240, 136, 62, 0.1) 50%, rgba(88, 166, 255, 0.08) 100%);
   border: 1px solid rgba(240, 136, 62, 0.25);
   border-radius: var(--radius);
   padding: 12px 20px;
@@ -2419,7 +2419,7 @@ input[type=text]:focus, textarea:focus, select:focus {
 
 /* 爆款保底巡航熔炉控制器 */
 .evolution-furnace-bar {
-  background: linear-gradient(135deg, rgba(240, 136, 62, 0.15), rgba(168, 85, 247, 0.12));
+  background: linear-gradient(135deg, rgba(240, 136, 62, 0.15), rgba(240, 136, 62, 0.12));
   border: 1px solid rgba(240, 136, 62, 0.35);
   border-radius: var(--radius-sm);
   padding: 12px 18px;
@@ -2478,7 +2478,7 @@ input[type=text]:focus, textarea:focus, select:focus {
   border-color: rgba(240,136,62,0.3);
 }
 .defect-fix-btn {
-  background: linear-gradient(135deg, #1f6feb 0%, #a855f7 100%);
+  background: linear-gradient(135deg, #1f6feb 0%, #f0883e 100%);
   color: #fff;
   border: none;
   padding: 4px 10px;
@@ -2495,7 +2495,7 @@ input[type=text]:focus, textarea:focus, select:focus {
 }
 .defect-fix-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 4px 12px rgba(240, 136, 62, 0.4);
 }
 .provider-card {
   background: var(--bg-card);
@@ -2588,10 +2588,10 @@ input[type=text]:focus, textarea:focus, select:focus {
   transition: all 0.25s ease;
 }
 .sys-mode-btn.active {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1) !important;
+  background: linear-gradient(135deg, #f7a05a, #f0883e) !important;
   color: #fff !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 8px rgba(139,92,246,0.35);
+  box-shadow: 0 2px 8px rgba(240,136,62,0.35);
 }
 [data-theme="light"] .system-mode-toggle {
   background: #eef2f6;
@@ -2611,7 +2611,7 @@ input[type=text]:focus, textarea:focus, select:focus {
 .btn-lite-head-pill:hover {
   transform: translateY(-1.5px);
   filter: brightness(1.12);
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3) !important;
+  box-shadow: 0 4px 12px rgba(240, 136, 62, 0.3) !important;
 }
 .btn-lite-head-pill:active {
   transform: translateY(0);
@@ -2677,7 +2677,7 @@ input[type=text]:focus, textarea:focus, select:focus {
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 .copilot-msg.assistant .copilot-avatar {
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  background: linear-gradient(135deg, #f7a05a, #f0883e);
   color: #fff;
 }
 .copilot-msg.user .copilot-avatar {
@@ -2699,8 +2699,8 @@ input[type=text]:focus, textarea:focus, select:focus {
   border-top-left-radius: 2px;
 }
 .copilot-msg.user .copilot-bubble {
-  background: linear-gradient(135deg, rgba(139,92,246,0.2), rgba(99,102,241,0.25));
-  border: 1px solid rgba(139,92,246,0.4);
+  background: linear-gradient(135deg, rgba(240,136,62,0.2), rgba(240,136,62,0.25));
+  border: 1px solid rgba(240,136,62,0.4);
   color: #fff;
   border-top-right-radius: 2px;
 }
@@ -2712,7 +2712,7 @@ input[type=text]:focus, textarea:focus, select:focus {
 [data-theme="light"] .copilot-msg.user .copilot-bubble {
   background: #ede9fe;
   border-color: #c4b5fd;
-  color: #4c1d95;
+  color: #7c3a10;
 }
 
 /* 提示词气泡 Chips */
@@ -2736,9 +2736,9 @@ input[type=text]:focus, textarea:focus, select:focus {
   white-space: nowrap;
 }
 .copilot-chip:hover {
-  background: rgba(139,92,246,0.15);
-  border-color: rgba(139,92,246,0.4);
-  color: #a78bfa;
+  background: rgba(240,136,62,0.15);
+  border-color: rgba(240,136,62,0.4);
+  color: #f7a05a;
   transform: translateY(-1px);
 }
 
@@ -2777,7 +2777,7 @@ input[type=text]:focus, textarea:focus, select:focus {
   transition: border-color 0.2s;
 }
 .lite-canvas-title-input:focus {
-  border-bottom-color: #8b5cf6;
+  border-bottom-color: #f0883e;
 }
 
 /* ==================== ✨ V5.0 PRO 小红书高清文字卡片与深色对比度强化 ==================== */
@@ -2872,11 +2872,11 @@ input[type=text]:focus, textarea:focus, select:focus {
   transition: background 0.15s;
 }
 .lite-draft-item:hover {
-  background: rgba(139,92,246,0.1);
+  background: rgba(240,136,62,0.1);
 }
 .lite-draft-item.active {
-  background: rgba(139,92,246,0.18);
-  border-left: 3px solid #8b5cf6;
+  background: rgba(240,136,62,0.18);
+  border-left: 3px solid #f0883e;
 }
 
 /* 极简草稿箱全屏居中管理中枢主题样式 (Dark / Light 自适应) */
@@ -2955,8 +2955,8 @@ input[type=text]:focus, textarea:focus, select:focus {
 }
 [data-theme="light"] .lite-modal-search-input:focus {
   background: #ffffff !important;
-  border-color: #8b5cf6 !important;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15) !important;
+  border-color: #f0883e !important;
+  box-shadow: 0 0 0 3px rgba(240, 136, 62, 0.15) !important;
 }
 
 .lite-modal-select {
@@ -2990,12 +2990,12 @@ input[type=text]:focus, textarea:focus, select:focus {
 }
 .lite-draft-card:hover {
   background: #2a3142;
-  border-color: #8b5cf6;
+  border-color: #f0883e;
   transform: translateY(-1px);
 }
 .lite-draft-card.active {
-  background: rgba(139, 92, 246, 0.18);
-  border-color: #8b5cf6;
+  background: rgba(240, 136, 62, 0.18);
+  border-color: #f0883e;
 }
 
 [data-theme="light"] .lite-draft-card {
@@ -3005,12 +3005,12 @@ input[type=text]:focus, textarea:focus, select:focus {
 }
 [data-theme="light"] .lite-draft-card:hover {
   background: #f8fafc !important;
-  border-color: #8b5cf6 !important;
-  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.12) !important;
+  border-color: #f0883e !important;
+  box-shadow: 0 4px 14px rgba(240, 136, 62, 0.12) !important;
 }
 [data-theme="light"] .lite-draft-card.active {
-  background: rgba(139, 92, 246, 0.08) !important;
-  border-color: #8b5cf6 !important;
+  background: rgba(240, 136, 62, 0.08) !important;
+  border-color: #f0883e !important;
 }
 
 .lite-draft-card-title {
@@ -3068,16 +3068,16 @@ input[type=text]:focus, textarea:focus, select:focus {
 
 /* 极简模式：亮色模式精致微调 */
 [data-theme="light"] .btn-lite-head-pill {
-  color: #6366f1 !important;
-  background: rgba(99, 102, 241, 0.08) !important;
-  border-color: rgba(99, 102, 241, 0.25) !important;
-  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.08) !important;
+  color: #f0883e !important;
+  background: rgba(240, 136, 62, 0.08) !important;
+  border-color: rgba(240, 136, 62, 0.25) !important;
+  box-shadow: 0 2px 6px rgba(240, 136, 62, 0.08) !important;
 }
 [data-theme="light"] .btn-lite-head-pill svg {
-  color: #6366f1 !important;
+  color: #f0883e !important;
 }
 [data-theme="light"] #p-lite-mode .user-media-badge-bar {
-  background: linear-gradient(90deg, rgba(139, 92, 246, 0.08) 0%, rgba(248, 250, 252, 0.95) 100%) !important;
+  background: linear-gradient(90deg, rgba(240, 136, 62, 0.08) 0%, rgba(248, 250, 252, 0.95) 100%) !important;
   border-bottom-color: #e2e8f0 !important;
 }
 [data-theme="light"] #p-lite-mode .user-media-name-input {
@@ -3086,8 +3086,8 @@ input[type=text]:focus, textarea:focus, select:focus {
   color: #0f172a !important;
 }
 [data-theme="light"] #p-lite-mode .user-media-name-input:focus {
-  border-color: #8b5cf6 !important;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15) !important;
+  border-color: #f0883e !important;
+  box-shadow: 0 0 0 3px rgba(240, 136, 62, 0.15) !important;
 }
 
 /* 内容工作台右下角常驻贴边 Copilot 浮动按钮与弹窗 */
@@ -3097,7 +3097,7 @@ input[type=text]:focus, textarea:focus, select:focus {
   right: 24px;
   bottom: 30px;
   z-index: 9999;
-  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  background: linear-gradient(135deg, #f7a05a, #f0883e);
   color: #fff;
   font-size: 13px;
   font-weight: 700;
@@ -3107,12 +3107,12 @@ input[type=text]:focus, textarea:focus, select:focus {
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 20px rgba(139,92,246,0.45);
+  box-shadow: 0 4px 20px rgba(240,136,62,0.45);
   transition: all 0.25s;
 }
 .wb-floating-agent-btn:hover {
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 25px rgba(139,92,246,0.6);
+  box-shadow: 0 6px 25px rgba(240,136,62,0.6);
 }
 #wb-floating-agent-window {
   display: none;
@@ -3143,8 +3143,8 @@ input[type=text]:focus, textarea:focus, select:focus {
   color: #f1f5f9 !important;
 }
 #wb-floating-agent-window .copilot-msg.user .copilot-bubble {
-  background: linear-gradient(135deg, #7c3aed, #4f46e5) !important;
-  border: 1px solid #8b5cf6 !important;
+  background: linear-gradient(135deg, #e05a10, #4f46e5) !important;
+  border: 1px solid #f0883e !important;
   color: #ffffff !important;
 }
 [data-theme="light"] #wb-floating-agent-window .copilot-bubble {
@@ -4539,6 +4539,283 @@ body[data-shell="v2"] .rail-flash {
   body[data-shell="v2"] > .side .rail-list,
   body[data-shell="v2"] > .side .rail-subs { display: none !important; }
 }
+
+/* ==========================================================================
+   V12 · 右栏舞台（Stage）
+   —— 左栏恒定、中栏恒定对话，所有功能页面在右栏打开，可全屏。
+      仅在 body[data-shell="v2"] 下生效；经典版与窄屏回落完全不受影响。
+   ========================================================================== */
+
+/* ---------- 1. 中栏：永远是同一个对话框 ---------- */
+body[data-shell="v2"] .main-wrapper > main {
+  position: relative;
+  display: block !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+/* 功能面板全部由右栏舞台承接，主区不再显示它们（舞台内的不受影响：不在 main 里） */
+body[data-shell="v2"] .main-wrapper > main > .panel,
+body[data-shell="v2"] .main-wrapper > main > .panel.on { display: none !important; }
+body[data-shell="v2"] .main-wrapper > main > .live-metrics-banner { display: none !important; }
+body[data-shell="v2"] #p-lite-mode {
+  display: flex !important;
+  flex-direction: row !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+}
+body[data-shell="v2"] #p-lite-mode > .lite-col-right { display: none !important; }
+body[data-shell="v2"] #p-lite-mode > .lite-col-left {
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 100%;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* 打开功能页时轴心反转：中栏收成固定对话宽度，右栏吃满剩余空间 */
+body[data-shell="v2"][data-stage="on"] {
+  grid-template-columns: var(--railw) minmax(340px, var(--panelw)) minmax(0, 1fr);
+}
+@media (max-width: 1500px) {
+  body[data-shell="v2"][data-stage="on"] {
+    grid-template-columns: var(--railw) minmax(320px, 372px) minmax(0, 1fr);
+  }
+}
+
+/* ---------- 2. 右栏舞台容器 ---------- */
+body[data-shell="v2"] .assets > .stage {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: none;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--bg, #0b0f16);
+}
+body[data-shell="v2"][data-stage="on"] .assets > .stage { display: flex; }
+
+body[data-shell="v2"] .stage-head {
+  flex: 0 0 auto;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 9px 0 7px;
+  border-bottom: 1px solid var(--border, #1b2431);
+  background: var(--sidebar, #0d131c);
+  user-select: none;
+}
+body[data-shell="v2"] .stage-back,
+body[data-shell="v2"] .stage-btn {
+  flex: 0 0 auto;
+  width: 27px;
+  height: 27px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted, #8b98a9);
+  cursor: pointer;
+  transition: background .14s, color .14s, border-color .14s;
+}
+body[data-shell="v2"] .stage-back:hover,
+body[data-shell="v2"] .stage-btn:hover {
+  background: rgba(255, 255, 255, .06);
+  border-color: var(--border, #1b2431);
+  color: var(--text, #e6edf3);
+}
+body[data-shell="v2"] .stage-back svg,
+body[data-shell="v2"] .stage-btn svg { width: 15px; height: 15px; display: block; }
+
+body[data-shell="v2"] .stage-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  cursor: default;
+}
+body[data-shell="v2"] .stage-ic { font-size: 13px; line-height: 1; }
+body[data-shell="v2"] .stage-nm {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .2px;
+  color: var(--text, #e6edf3);
+  white-space: nowrap;
+}
+body[data-shell="v2"] .stage-sb {
+  font-size: 11px;
+  color: var(--text-muted, #7d8a9c);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-shell="v2"] .stage-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--bg, #0b0f16);
+}
+/* 搬进来的面板铺满舞台，自己滚动 */
+body[data-shell="v2"] .stage-body > .panel {
+  position: absolute;
+  inset: 0;
+  display: block !important;
+  margin: 0 !important;
+  padding: 14px 16px 30px !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  animation: none !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+body[data-shell="v2"] .stage-body > .panel::-webkit-scrollbar { width: 9px; }
+body[data-shell="v2"] .stage-body > .panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .12);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* ---------- 2.5 舞台模式下的中栏：只留对话，顶栏收到最简 ---------- */
+body[data-shell="v2"][data-stage="on"] .main-wrapper > header {
+  height: 46px;
+  padding: 0 8px 0 13px;
+  gap: 6px;
+}
+body[data-shell="v2"][data-stage="on"] .main-wrapper > header #rail-headsub { display: none !important; }
+/* 算力、会员、工作区、排期、账号全部收进「更多」，避免窄栏里堆成一团 */
+body[data-shell="v2"][data-stage="on"] .main-wrapper > header .top-acts > *:not(.hdr-more) {
+  display: none !important;
+}
+body[data-shell="v2"][data-stage="on"] .main-wrapper > header .top-acts > .hdr-more {
+  display: inline-flex !important;
+  margin-left: auto;
+}
+/* 快捷胶囊窄栏里横滑而不是换行裁切 */
+body[data-shell="v2"][data-stage="on"] .main-wrapper .rail-subbar {
+  overflow-x: auto !important;
+  scrollbar-width: none;
+}
+body[data-shell="v2"][data-stage="on"] .main-wrapper .rail-subbar::-webkit-scrollbar { display: none; }
+body[data-shell="v2"][data-stage="on"] .main-wrapper .rail-subbar .sb { flex: 0 0 auto !important; }
+/* 模式胶囊窄栏里只留图标，标题优先 */
+body[data-shell="v2"][data-stage="on"] .main-wrapper > header .system-mode-toggle .sys-mode-btn {
+  padding: 3px 8px !important;
+  font-size: 11px !important;
+}
+body[data-shell="v2"][data-stage="on"] .main-wrapper > header .system-mode-toggle .sys-mode-btn span + span {
+  display: none !important;
+}
+
+/* ---------- 2.6 内页组件：与工作台同一套视觉语言 ---------- */
+/* 子标签换行而不是被右边缘裁掉 */
+body[data-shell="v2"] .stage-body .sub-tabs {
+  flex-wrap: wrap !important;
+  overflow: visible !important;
+  gap: 6px 7px !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 14px !important;
+}
+body[data-shell="v2"] .stage-body .sub-tab {
+  flex: 0 0 auto;
+  padding: 5px 12px !important;
+  font-size: 12.5px !important;
+  font-weight: 500 !important;
+  border-radius: 7px !important;
+  border: 1px solid transparent;
+  color: var(--text-muted, #8b98a9) !important;
+  background: transparent !important;
+  transition: background .14s, color .14s, border-color .14s;
+}
+body[data-shell="v2"] .stage-body .sub-tab:hover {
+  background: rgba(255, 255, 255, .045) !important;
+  color: var(--text, #e6edf3) !important;
+}
+body[data-shell="v2"] .stage-body .sub-tab.on {
+  background: rgba(240, 136, 62, .13) !important;
+  border-color: rgba(240, 136, 62, .35) !important;
+  color: #f7a05a !important;
+  font-weight: 600 !important;
+}
+
+/* 卡片：压掉高亮描边与渐变底，只保留中性边框，避免整页花里胡哨 */
+body[data-shell="v2"] .stage-body .card,
+body[data-shell="v2"] .stage-body .extract-hero-card {
+  background: rgba(255, 255, 255, .022) !important;
+  border: 1px solid var(--border, #1b2431) !important;
+  border-radius: 10px !important;
+  box-shadow: none !important;
+}
+body[data-shell="v2"] .stage-body .extract-hero-card {
+  background: linear-gradient(180deg, rgba(240, 136, 62, .045), rgba(255, 255, 255, .012)) !important;
+  border-color: rgba(240, 136, 62, .18) !important;
+}
+
+/* 按钮文字不换行（窄栏里「配置我的 API」曾被压成两行） */
+body[data-shell="v2"] .stage-body .btn,
+body[data-shell="v2"] .stage-body button.btn {
+  white-space: nowrap;
+}
+/* 步骤条 / 分段控件允许换行，不再被右边缘切掉 */
+body[data-shell="v2"] .stage-body .drama-stepper,
+body[data-shell="v2"] .stage-body [class$="-stepper"],
+body[data-shell="v2"] .stage-body [class*="steps-bar"] {
+  flex-wrap: wrap !important;
+  row-gap: 6px;
+}
+
+/* 页面大标题：去掉彩虹渐变文字，回到清晰的单色标题 */
+body[data-shell="v2"] .stage-body h1,
+body[data-shell="v2"] .stage-body h2 {
+  background: none !important;
+  -webkit-text-fill-color: currentColor !important;
+  color: var(--text, #e6edf3) !important;
+  letter-spacing: .2px;
+}
+body[data-shell="v2"] .stage-body > .panel > h1,
+body[data-shell="v2"] .stage-body > .panel > h2 {
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  margin: 0 0 4px !important;
+}
+
+/* ---------- 3. 全屏 ---------- */
+/* .assets 自身是层叠上下文（z-index: 20），必须一起抬高，否则全屏会被左栏/中栏盖住 */
+body[data-shell="v2"][data-stage-full="1"] > .assets {
+  z-index: 9500;
+  position: relative;
+}
+body[data-shell="v2"][data-stage-full="1"] .assets > .stage {
+  position: fixed;
+  inset: 0;
+  z-index: 9600;
+}
+body[data-shell="v2"][data-stage-full="1"] .stage-head {
+  height: 48px;
+  padding-left: 14px;
+}
+
+/* ---------- 4. 舞台里的内页：统一到工作台的深色语言 ---------- */
+body[data-shell="v2"] .stage-body { container-type: inline-size; }
+
+/* 面板自带的超大标题与副标题交给舞台头，避免一进来先看到两块标题 */
+body[data-shell="v2"] .stage-body > .panel > h1:first-child,
+body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !important; }
+
 </style>
 </head>
 <body>
@@ -4648,7 +4925,7 @@ body[data-shell="v2"] .rail-flash {
         <code style="color:var(--primary);font-weight:700" id="side-version-text" data-app-version="prefix">{{ APP_VERSION_FULL }}</code>
       </div>
       <div style="display:flex;align-items:center;gap:4px">
-        <a href="/releases" target="_blank" style="font-size:10px;padding:1px 6px;text-decoration:none;background:rgba(168,85,247,0.18);color:#d8b4fe;border:1px solid rgba(168,85,247,0.3);border-radius:4px;font-weight:700" title="打开版本更新与发布历史展示页">Releases ↗</a>
+        <a href="/releases" target="_blank" style="font-size:10px;padding:1px 6px;text-decoration:none;background:rgba(240,136,62,0.18);color:#ffd0a6;border:1px solid rgba(240,136,62,0.3);border-radius:4px;font-weight:700" title="打开版本更新与发布历史展示页">Releases ↗</a>
       </div>
     </div>
     <div style="margin-top:6px;text-align:center;font-size:10px;color:var(--text-muted);opacity:0.75">
@@ -4702,7 +4979,7 @@ body[data-shell="v2"] .rail-flash {
       </div>
 
       <!-- ⚡ Cmd+K 极速命令中枢 -->
-      <button class="btn btn-sm" onclick="toggleCmdK()" style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(124,58,237,0.25));border:1px solid rgba(139,92,246,0.45);color:#d8b4fe;font-weight:600" title="唤起全局智慧命令面板 (⌘K)">
+      <button class="btn btn-sm" onclick="toggleCmdK()" style="display:flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(240,136,62,0.15),rgba(224,90,16,0.25));border:1px solid rgba(240,136,62,0.45);color:#ffd0a6;font-weight:600" title="唤起全局智慧命令面板 (⌘K)">
         <span style="font-size:13px">⚡ 快捷命令</span>
         <kbd style="font-size:10px;background:rgba(0,0,0,0.4);padding:1px 5px;border-radius:4px;border:1px solid rgba(255,255,255,0.15)">⌘K</kbd>
       </button>
@@ -4731,12 +5008,12 @@ body[data-shell="v2"] .rail-flash {
       </button>
 
       <!-- 👤 账号 6 维数字画像快捷入口 -->
-      <button class="btn btn-sm" onclick="openProfileModal()" style="display:flex;align-items:center;gap:5px;background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.35);color:#d8b4fe;font-weight:600" title="配置账号 6 维数字画像与人设声纹">
+      <button class="btn btn-sm" onclick="openProfileModal()" style="display:flex;align-items:center;gap:5px;background:rgba(240,136,62,0.12);border:1px solid rgba(240,136,62,0.35);color:#ffd0a6;font-weight:600" title="配置账号 6 维数字画像与人设声纹">
         <span data-i18n="top_profile_6d">👤 6维画像</span>
       </button>
 
       <!-- 🔑 专属 API 保险箱入口 -->
-      <button class="btn btn-sm" onclick="openUserVaultModal()" style="display:flex;align-items:center;gap:5px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#c084fc;font-weight:600" title="配置我个人的专属 API Key 或切换平台托管服务">
+      <button class="btn btn-sm" onclick="openUserVaultModal()" style="display:flex;align-items:center;gap:5px;background:rgba(240,136,62,0.15);border:1px solid rgba(240,136,62,0.4);color:#ff9d55;font-weight:600" title="配置我个人的专属 API Key 或切换平台托管服务">
         <span data-i18n="top_my_api">🔑 我的API</span>
       </button>
 
@@ -4781,9 +5058,9 @@ body[data-shell="v2"] .rail-flash {
     <div id="p-lite-mode">
       <!-- 左栏：💬 对话式爆款创作 Copilot -->
       <div class="lite-col lite-col-left">
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:rgba(139,92,246,0.06)">
+        <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:rgba(240,136,62,0.06)">
           <div style="display:flex;align-items:center;gap:10px">
-            <span style="font-size:22px;cursor:pointer;filter:drop-shadow(0 2px 6px rgba(139,92,246,0.4))" onclick="openCopilotSettingsModal()" title="点击配置 Agent 大模型驱动与创作技能风格">🤖</span>
+            <span style="font-size:22px;cursor:pointer;filter:drop-shadow(0 2px 6px rgba(240,136,62,0.4))" onclick="openCopilotSettingsModal()" title="点击配置 Agent 大模型驱动与创作技能风格">🤖</span>
             <div>
               <div style="display:flex;align-items:center;gap:6px">
                 <span style="font-weight:800;font-size:14px;color:var(--text);letter-spacing:0.2px">爆款创作 Copilot</span>
@@ -4793,7 +5070,7 @@ body[data-shell="v2"] .rail-flash {
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <!-- 精致重绘：极简草稿箱 -->
-            <button type="button" class="btn-lite-head-pill" onclick="openLiteDraftsModal()" title="打开极简草稿箱管理中枢，居中弹窗随时调取历史文章" style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:20px;font-size:12px;font-weight:700;color:#c4b5fd;background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(99,102,241,0.26));border:1px solid rgba(167,139,250,0.45);box-shadow:0 2px 8px rgba(139,92,246,0.22);cursor:pointer;transition:all 0.2s cubic-bezier(0.4,0,0.2,1)">
+            <button type="button" class="btn-lite-head-pill" onclick="openLiteDraftsModal()" title="打开极简草稿箱管理中枢，居中弹窗随时调取历史文章" style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:20px;font-size:12px;font-weight:700;color:#c4b5fd;background:linear-gradient(135deg,rgba(240,136,62,0.2),rgba(240,136,62,0.26));border:1px solid rgba(247,160,90,0.45);box-shadow:0 2px 8px rgba(240,136,62,0.22);cursor:pointer;transition:all 0.2s cubic-bezier(0.4,0,0.2,1)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#c4b5fd"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
               <span>极简草稿箱</span>
             </button>
@@ -4849,7 +5126,7 @@ body[data-shell="v2"] .rail-flash {
                       style="flex:1;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;line-height:1.5;resize:none;outline:none"
                       onkeydown="handleCopilotKeyDown(event)"></textarea>
             <button type="button" class="btn" id="btn-copilot-send" onclick="sendCopilotMessage()" 
-                    style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;border:none;font-weight:700;padding:8px 16px;height:42px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:4px">
+                    style="background:linear-gradient(135deg,#f7a05a,#f0883e);color:#fff;border:none;font-weight:700;padding:8px 16px;height:42px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:4px">
               <span>⚡ 发送</span>
             </button>
             <button type="button" class="btn danger" id="btn-copilot-stop" onclick="stopCopilotGeneration()" 
@@ -4858,8 +5135,8 @@ body[data-shell="v2"] .rail-flash {
             </button>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:11px;color:var(--text-muted)">
-            <span>💡 提示：按 Enter 即刻对话，AI 会自动更新右侧成稿画布</span>
-            <span id="copilot-status-indicator" style="display:none;color:#8b5cf6">AI 正在深度构思中…</span>
+            <span id="lite-tip">💡 提示：按 Enter 直接对话；点左侧功能，内容在右侧打开，可全屏</span>
+            <span id="copilot-status-indicator" style="display:none;color:#f0883e">AI 正在深度构思中…</span>
           </div>
         </div>
       </div>
@@ -4867,7 +5144,7 @@ body[data-shell="v2"] .rail-flash {
       <!-- 右栏：📄 爆款成品排版画布 (WYSIWYG Finished Canvas) -->
       <div class="lite-col lite-col-right" style="position:relative">
         <!-- 创作者媒体身份记忆栏 (与内容工坊全局联动复用) -->
-        <div class="user-media-badge-bar" style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(90deg,rgba(139,92,246,0.12) 0%,rgba(20,24,35,0.7) 100%);border-bottom:1px solid rgba(139,92,246,0.25);padding:7px 16px;gap:10px;flex-wrap:wrap">
+        <div class="user-media-badge-bar" style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(90deg,rgba(240,136,62,0.12) 0%,rgba(20,24,35,0.7) 100%);border-bottom:1px solid rgba(240,136,62,0.25);padding:7px 16px;gap:10px;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:15px">🏷️</span>
             <div>
@@ -4876,7 +5153,7 @@ body[data-shell="v2"] .rail-flash {
             </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex:1;max-width:350px">
-            <input type="text" class="user-media-name-input" placeholder="输入您的媒体号/公众号名称" style="background:rgba(0,0,0,0.45);border:1px solid rgba(139,92,246,0.4);padding:4px 10px;border-radius:6px;color:#fff;font-size:12px;font-weight:600;flex:1" oninput="syncUserMediaName(this.value)" value="一幕·YIMU 爆款工作室">
+            <input type="text" class="user-media-name-input" placeholder="输入您的媒体号/公众号名称" style="background:rgba(0,0,0,0.45);border:1px solid rgba(240,136,62,0.4);padding:4px 10px;border-radius:6px;color:#fff;font-size:12px;font-weight:600;flex:1" oninput="syncUserMediaName(this.value)" value="一幕·YIMU 爆款工作室">
             <button type="button" class="btn btn-xs ghost" onclick="resetUserMediaName()" title="恢复默认名称" style="white-space:nowrap;font-size:11px;padding:3px 7px">重置</button>
           </div>
         </div>
@@ -4885,7 +5162,7 @@ body[data-shell="v2"] .rail-flash {
         <div style="padding:10px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;background:rgba(255,255,255,0.02)">
           <!-- 平台秒切 Tab -->
           <div style="display:flex;gap:5px;align-items:center">
-            <button type="button" class="btn btn-xs ok" onclick="newLiteDraft()" style="font-weight:700;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;margin-right:6px" title="清空当前草稿，开启全新空白创作">➕ 新建创作</button>
+            <button type="button" class="btn btn-xs ok" onclick="newLiteDraft()" style="font-weight:700;background:linear-gradient(135deg,#f7a05a,#f0883e);border:none;color:#fff;margin-right:6px" title="清空当前草稿，开启全新空白创作">➕ 新建创作</button>
             <button type="button" class="btn btn-xs" id="lite-plat-wechat" onclick="switchLitePlatform('wechat_mp')" style="background:#238636;color:#fff;border:none;font-weight:700">🟢 微信公众号 (已排版)</button>
             <button type="button" class="btn btn-xs ghost" id="lite-plat-xhs" onclick="switchLitePlatform('xhs')">📕 小红书 (卡片画报)</button>
             <button type="button" class="btn btn-xs ghost" id="lite-plat-toutiao" onclick="switchLitePlatform('toutiao')">🔴 今日头条</button>
@@ -4913,14 +5190,14 @@ body[data-shell="v2"] .rail-flash {
         <div id="lite-finished-preview-box" style="flex:1;display:flex;flex-direction:column;overflow:hidden;background:#ffffff;position:relative">
           <!-- 动态创作过程生动展示视窗 (用户发送后展示，实色浮层杜绝透光) -->
           <div id="lite-generating-status-view" style="display:none;position:absolute;inset:0;background:linear-gradient(180deg, #0d121c 0%, #080b12 100%);z-index:90;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;box-sizing:border-box">
-            <div style="background:linear-gradient(145deg, #161e2e, #0e1420);border:1px solid rgba(139,92,246,0.35);border-radius:24px;padding:36px 32px;max-width:520px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,0.65);display:flex;flex-direction:column;align-items:center;position:relative">
+            <div style="background:linear-gradient(145deg, #161e2e, #0e1420);border:1px solid rgba(240,136,62,0.35);border-radius:24px;padding:36px 32px;max-width:520px;width:90%;box-shadow:0 24px 60px rgba(0,0,0,0.65);display:flex;flex-direction:column;align-items:center;position:relative">
               <div style="position:relative;width:80px;height:80px;margin-bottom:20px">
-                <div style="position:absolute;inset:0;border:4px solid rgba(139,92,246,0.25);border-top-color:#8b5cf6;border-radius:50%;animation:spin 1s linear infinite"></div>
-                <div style="position:absolute;inset:8px;border:4px solid rgba(99,102,241,0.25);border-bottom-color:#6366f1;border-radius:50%;animation:spin 1.5s linear infinite reverse"></div>
+                <div style="position:absolute;inset:0;border:4px solid rgba(240,136,62,0.25);border-top-color:#f0883e;border-radius:50%;animation:spin 1s linear infinite"></div>
+                <div style="position:absolute;inset:8px;border:4px solid rgba(240,136,62,0.25);border-bottom-color:#f0883e;border-radius:50%;animation:spin 1.5s linear infinite reverse"></div>
                 <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:32px">🤖</div>
               </div>
               <div style="font-size:18px;font-weight:900;color:#ffffff;margin-bottom:12px;letter-spacing:-0.2px">爆款创作 Agent 正在全速打磨成稿…</div>
-              <div id="lite-gen-ticker-text" style="font-size:14px;font-weight:700;color:#a78bfa;min-height:30px;transition:opacity 0.25s;padding:6px 18px;background:rgba(139,92,246,0.14);border-radius:20px;border:1px solid rgba(139,92,246,0.3);display:inline-flex;align-items:center">
+              <div id="lite-gen-ticker-text" style="font-size:14px;font-weight:700;color:#f7a05a;min-height:30px;transition:opacity 0.25s;padding:6px 18px;background:rgba(240,136,62,0.14);border-radius:20px;border:1px solid rgba(240,136,62,0.3);display:inline-flex;align-items:center">
                 ⚡ 正在检索拆解对标爆款基因与情绪触发点…
               </div>
               <div style="margin-top:16px;font-size:12px;color:#94a3b8;max-width:380px;line-height:1.6">
@@ -4991,12 +5268,12 @@ body[data-shell="v2"] .rail-flash {
           </div>
 
           <!-- 卡片 2: 爆款成稿储备 (点击前往内容工作台) -->
-          <div class="card" onclick="document.querySelector('.nav-item[data-p=drafts]').click()" style="margin-bottom:0;background:linear-gradient(145deg, #121824, #0d121c);border:1px solid rgba(168,85,247,0.3);position:relative;overflow:hidden;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='#a855f7';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(168,85,247,0.3)';this.style.transform='none'" title="点击前往「内容工作台」：真机排版、7维评分与外科手术精修">
-            <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%);border-radius:50%"></div>
+          <div class="card" onclick="document.querySelector('.nav-item[data-p=drafts]').click()" style="margin-bottom:0;background:linear-gradient(145deg, #121824, #0d121c);border:1px solid rgba(240,136,62,0.3);position:relative;overflow:hidden;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='#f0883e';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(240,136,62,0.3)';this.style.transform='none'" title="点击前往「内容工作台」：真机排版、7维评分与外科手术精修">
+            <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle, rgba(240,136,62,0.2) 0%, transparent 70%);border-radius:50%"></div>
             <div style="font-size:12px;color:var(--text-muted)">📝 爆款成稿储备</div>
             <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-drafts-count">—</div>
             <div style="font-size:11.5px;color:var(--text-muted)" id="dash-drafts-sub">还没有成稿，去生成第一篇</div>
-            <div style="font-size:11px;color:#a855f7;margin-top:6px;display:flex;align-items:center;gap:4px">
+            <div style="font-size:11px;color:#f0883e;margin-top:6px;display:flex;align-items:center;gap:4px">
               <span>直达内容工作台</span> <span>➔</span>
             </div>
           </div>
@@ -5044,8 +5321,8 @@ body[data-shell="v2"] .rail-flash {
                     <stop offset="100%" stop-color="#58a6ff" stop-opacity="0.0"/>
                   </linearGradient>
                   <linearGradient id="draft-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#a855f7" stop-opacity="0.32"/>
-                    <stop offset="100%" stop-color="#a855f7" stop-opacity="0.0"/>
+                    <stop offset="0%" stop-color="#f0883e" stop-opacity="0.32"/>
+                    <stop offset="100%" stop-color="#f0883e" stop-opacity="0.0"/>
                   </linearGradient>
                 </defs>
                 <line x1="0" y1="30" x2="400" y2="30" stroke="rgba(255,255,255,0.06)" stroke-dasharray="3 3"/>
@@ -5056,19 +5333,19 @@ body[data-shell="v2"] .rail-flash {
                 <path d="M 0 85 Q 60 65, 130 45 T 260 22 T 330 35 T 400 12" fill="none" stroke="#58a6ff" stroke-width="2.5" stroke-linecap="round"/>
                 <!-- 面积填充与曲线 2: 成稿转化 (紫色) -->
                 <path d="M 0 95 Q 60 80, 130 68 T 260 48 T 330 58 T 400 35 L 400 105 L 0 105 Z" fill="url(#draft-grad)"/>
-                <path d="M 0 95 Q 60 80, 130 68 T 260 48 T 330 58 T 400 35" fill="none" stroke="#a855f7" stroke-width="2" stroke-dasharray="4 2"/>
+                <path d="M 0 95 Q 60 80, 130 68 T 260 48 T 330 58 T 400 35" fill="none" stroke="#f0883e" stroke-width="2" stroke-dasharray="4 2"/>
                 <!-- 数据点与发光圆环 -->
                 <circle cx="130" cy="45" r="3.5" fill="#58a6ff" stroke="#fff" stroke-width="1.5"/>
                 <circle cx="260" cy="22" r="3.5" fill="#58a6ff" stroke="#fff" stroke-width="1.5"/>
                 <circle cx="400" cy="12" r="4.5" fill="#58a6ff" stroke="#fff" stroke-width="2"/>
-                <circle cx="400" cy="35" r="4" fill="#a855f7" stroke="#fff" stroke-width="1.5"/>
+                <circle cx="400" cy="35" r="4" fill="#f0883e" stroke="#fff" stroke-width="1.5"/>
               </svg>
             </div>
             <!-- X轴刻度与图例：R4-7 改为 JS 按当天日期动态生成（此前为写死日期） -->
             <div id="trend-x-axis" style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-top:4px"></div>
             <div style="display:flex;gap:12px;font-size:11px;margin-top:6px">
               <span style="display:flex;align-items:center;gap:4px;color:#58a6ff">● 全网热点捕获量 <span id="trend-peak-label"></span></span>
-              <span style="display:flex;align-items:center;gap:4px;color:#a855f7">╌ 转化成稿数 <span id="trend-draft-label"></span></span>
+              <span style="display:flex;align-items:center;gap:4px;color:#f0883e">╌ 转化成稿数 <span id="trend-draft-label"></span></span>
             </div>
           </div>
 
@@ -5123,7 +5400,7 @@ body[data-shell="v2"] .rail-flash {
           </div>
 
           <!-- 图表 3: 创作形态与质量环形图 (点击直达工作室空间管理中枢) -->
-          <div class="card" onclick="openWorkspaceManageModal()" style="margin-bottom:0;cursor:pointer;background:#0d121c;border:1px solid rgba(168,85,247,0.25);transition:all 0.2s" onmouseover="this.style.borderColor='#a855f7';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(168,85,247,0.25)';this.style.transform='none'" title="点击打开工作室空间管理中枢">
+          <div class="card" onclick="openWorkspaceManageModal()" style="margin-bottom:0;cursor:pointer;background:#0d121c;border:1px solid rgba(240,136,62,0.25);transition:all 0.2s" onmouseover="this.style.borderColor='#f0883e';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(240,136,62,0.25)';this.style.transform='none'" title="点击打开工作室空间管理中枢">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
               <span style="font-weight:700;font-size:13.5px;color:#fff">🍩 矩阵形态与品质环比</span>
               <span class="badge info" style="font-size:10.5px">中枢 ➔</span>
@@ -5137,7 +5414,7 @@ body[data-shell="v2"] .rail-flash {
                   <!-- 爆款图文 48% (橙色) -->
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#f0883e" stroke-width="4.5" stroke-dasharray="42.2 88" stroke-dashoffset="0"/>
                   <!-- 短剧影音 28% (紫色) -->
-                  <circle cx="18" cy="18" r="14" fill="none" stroke="#a855f7" stroke-width="4.5" stroke-dasharray="24.6 88" stroke-dashoffset="-42.2"/>
+                  <circle cx="18" cy="18" r="14" fill="none" stroke="#f0883e" stroke-width="4.5" stroke-dasharray="24.6 88" stroke-dashoffset="-42.2"/>
                   <!-- 签约名家 16% (蓝色) -->
                   <circle cx="18" cy="18" r="14" fill="none" stroke="#58a6ff" stroke-width="4.5" stroke-dasharray="14.1 88" stroke-dashoffset="-66.8"/>
                   <!-- 自蒸馏 8% (绿色) -->
@@ -5151,7 +5428,7 @@ body[data-shell="v2"] .rail-flash {
               <!-- 图例 -->
               <div style="display:flex;flex-direction:column;gap:4px;font-size:10px">
                 <div style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:2px;background:#f0883e"></span><span style="color:var(--text-muted)">图文矩阵 (48%)</span></div>
-                <div style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:2px;background:#a855f7"></span><span style="color:var(--text-muted)">短剧影视 (28%)</span></div>
+                <div style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:2px;background:#f0883e"></span><span style="color:var(--text-muted)">短剧影视 (28%)</span></div>
                 <div style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:2px;background:#58a6ff"></span><span style="color:var(--text-muted)">签约名家 (16%)</span></div>
                 <div style="display:flex;align-items:center;gap:5px"><span style="width:7px;height:7px;border-radius:2px;background:#3fb950"></span><span style="color:var(--text-muted)">自蒸馏库 (8%)</span></div>
               </div>
@@ -5210,7 +5487,7 @@ body[data-shell="v2"] .rail-flash {
                   <span style="color:#fff" id="funnel-2-val">—</span>
                 </div>
                 <div style="background:#1e2636;height:6px;border-radius:3px;overflow:hidden">
-                  <div style="width:70%;height:100%;background:linear-gradient(90deg, #a855f7, #c084fc)"></div>
+                  <div style="width:70%;height:100%;background:linear-gradient(90deg, #f0883e, #ff9d55)"></div>
                 </div>
               </div>
               <div onclick="document.querySelector('.nav-item[data-p=drafts]').click()" style="cursor:pointer" title="点击前往微创外科切除">
@@ -5341,13 +5618,13 @@ body[data-shell="v2"] .rail-flash {
 
       <!-- 子视图：一句话爆款 (全新引擎) -->
       <div id="sp-oneshot" class="sub-view">
-        <div class="extract-hero-card" style="background:linear-gradient(135deg,rgba(163,113,247,0.12) 0%,rgba(22,27,34,0.95) 100%);border:1px solid rgba(163,113,247,0.35);padding:22px;border-radius:10px">
+        <div class="extract-hero-card" style="background:linear-gradient(135deg,rgba(240,136,62,0.12) 0%,rgba(22,27,34,0.95) 100%);border:1px solid rgba(240,136,62,0.35);padding:22px;border-radius:10px">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap">
             <div>
               <div style="display:flex;align-items:center;gap:8px">
                 <span style="font-size:18px">💡</span>
                 <span style="font-weight:700;font-size:16px;color:#fff">一句话成爆款引擎 (One-Sentence Viral Engine)</span>
-                <span class="badge info" style="background:rgba(163,113,247,0.25);color:#d2a8ff;border-color:rgba(163,113,247,0.4)">全自动全网检索 · 真实素材 · 名家成稿</span>
+                <span class="badge info" style="background:rgba(240,136,62,0.25);color:#ffd0a6;border-color:rgba(240,136,62,0.4)">全自动全网检索 · 真实素材 · 名家成稿</span>
               </div>
               <div style="font-size:12.5px;color:var(--text-muted);margin-top:5px;line-height:1.6">
                 输入一句简短的灵感或研究需求，AI 自动提炼检索词、实时联网抓取 3~5 篇权威长文与真实论据，融合名家文风与爆款技能，一键生成微信长文、小红书图文与头条资讯成稿。
@@ -5356,14 +5633,14 @@ body[data-shell="v2"] .rail-flash {
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
               <div style="display:flex;gap:6px;align-items:center">
                 <span style="font-size:12px;color:var(--text-muted)">🎭 挂载名家文风：</span>
-                <select id="oneshot-persona-sel" style="background:#161b22;border:1px solid rgba(163,113,247,0.4);color:#fff;border-radius:6px;padding:5px 10px;font-size:12px" onchange="onOneShotPersonaChange()">
+                <select id="oneshot-persona-sel" style="background:#161b22;border:1px solid rgba(240,136,62,0.4);color:#fff;border-radius:6px;padding:5px 10px;font-size:12px" onchange="onOneShotPersonaChange()">
                   <option value="">（不挂载 · 系统中立）</option>
                 </select>
-                <button type="button" class="btn ghost btn-sm" style="color:#a371f7;border-color:rgba(163,113,247,0.3)" onclick="skillDistillModal()" title="粘贴任意名家文本，AI 深度提取其行文指纹并实时入库挂载">⚡ 蒸馏新名家</button>
+                <button type="button" class="btn ghost btn-sm" style="color:#f0883e;border-color:rgba(240,136,62,0.3)" onclick="skillDistillModal()" title="粘贴任意名家文本，AI 深度提取其行文指纹并实时入库挂载">⚡ 蒸馏新名家</button>
               </div>
               <div style="display:flex;gap:6px;align-items:center">
-                <span style="font-size:12px;color:var(--text-muted)">🎨 配图视觉风格 <span style="color:#a371f7;font-weight:700">(默认 2K 超清)</span>：</span>
-                <select id="oneshot-image-style-sel" style="background:#161b22;border:1px solid rgba(163,113,247,0.4);color:#fff;border-radius:6px;padding:5px 8px;font-size:12px" title="生成文章时联动 AI 生图模型直接输出 2K 超清美学风格配图">
+                <span style="font-size:12px;color:var(--text-muted)">🎨 配图视觉风格 <span style="color:#f0883e;font-weight:700">(默认 2K 超清)</span>：</span>
+                <select id="oneshot-image-style-sel" style="background:#161b22;border:1px solid rgba(240,136,62,0.4);color:#fff;border-radius:6px;padding:5px 8px;font-size:12px" title="生成文章时联动 AI 生图模型直接输出 2K 超清美学风格配图">
                   <option value="">🎯 智能自动匹配 (2K 影视级)</option>
                   <option value="ancient_chinese">🏛️ 古风雅韵·东方意境</option>
                   <option value="tech_cyber">🤖 科技赛博·数字未来</option>
@@ -5382,8 +5659,8 @@ body[data-shell="v2"] .rail-flash {
 
           <div style="display:flex;flex-direction:column;gap:10px">
             <div class="extract-input-group" style="align-items:stretch">
-              <textarea id="oneshot-input" rows="3" placeholder="输入您的一句话创作灵感，例如：我想写一篇关于三国的研究的文章，重点突出一下诸葛亮…" style="flex:1;background:rgba(0,0,0,0.45);border:1px solid rgba(163,113,247,0.4);border-radius:8px;color:#fff;padding:12px 14px;font-size:14px;line-height:1.6;resize:vertical" onkeydown="if(event.key==='Enter' && (event.metaKey || event.ctrlKey))runOneSentenceViral()"></textarea>
-              <button class="btn ok" id="btn-run-oneshot" onclick="runOneSentenceViral()" style="padding:0 24px;font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;white-space:nowrap;background:linear-gradient(135deg,#a371f7,#7928ca)">
+              <textarea id="oneshot-input" rows="3" placeholder="输入您的一句话创作灵感，例如：我想写一篇关于三国的研究的文章，重点突出一下诸葛亮…" style="flex:1;background:rgba(0,0,0,0.45);border:1px solid rgba(240,136,62,0.4);border-radius:8px;color:#fff;padding:12px 14px;font-size:14px;line-height:1.6;resize:vertical" onkeydown="if(event.key==='Enter' && (event.metaKey || event.ctrlKey))runOneSentenceViral()"></textarea>
+              <button class="btn ok" id="btn-run-oneshot" onclick="runOneSentenceViral()" style="padding:0 24px;font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;white-space:nowrap;background:linear-gradient(135deg,#f0883e,#c25a10)">
                 <span>⚡ 一键联网创作</span>
                 <span style="font-size:10.5px;font-weight:400;opacity:0.85">自动打分入库草稿</span>
               </button>
@@ -5392,20 +5669,20 @@ body[data-shell="v2"] .rail-flash {
             <!-- 灵感快捷填入胶囊 -->
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:2px">
               <span style="font-size:12px;color:var(--text-muted)">💡 灵感示例：</span>
-              <span class="badge gray" style="cursor:pointer;border-color:rgba(163,113,247,0.3)" onclick="fillOneShot('我想写一篇关于三国的研究的文章，重点突出一下诸葛亮')">⚔️ 三国研究 · 突出诸葛亮</span>
-              <span class="badge gray" style="cursor:pointer;border-color:rgba(163,113,247,0.3)" onclick="fillOneShot('从 DeepSeek 开源大模型谈起，聊聊中国 AI 破局与开源力量')">🤖 DeepSeek 与 AI 破局</span>
-              <span class="badge gray" style="cursor:pointer;border-color:rgba(163,113,247,0.3)" onclick="fillOneShot('30岁职场裸辞后，我是如何在二三线城市做自媒体拿到结果的')">💼 职场裸辞与自媒体搞钱</span>
-              <span class="badge gray" style="cursor:pointer;border-color:rgba(163,113,247,0.3)" onclick="fillOneShot('当代年轻人的精神内耗与低欲望生存现状，该如何自救与破局')">🧘 精神内耗与破局自救</span>
+              <span class="badge gray" style="cursor:pointer;border-color:rgba(240,136,62,0.3)" onclick="fillOneShot('我想写一篇关于三国的研究的文章，重点突出一下诸葛亮')">⚔️ 三国研究 · 突出诸葛亮</span>
+              <span class="badge gray" style="cursor:pointer;border-color:rgba(240,136,62,0.3)" onclick="fillOneShot('从 DeepSeek 开源大模型谈起，聊聊中国 AI 破局与开源力量')">🤖 DeepSeek 与 AI 破局</span>
+              <span class="badge gray" style="cursor:pointer;border-color:rgba(240,136,62,0.3)" onclick="fillOneShot('30岁职场裸辞后，我是如何在二三线城市做自媒体拿到结果的')">💼 职场裸辞与自媒体搞钱</span>
+              <span class="badge gray" style="cursor:pointer;border-color:rgba(240,136,62,0.3)" onclick="fillOneShot('当代年轻人的精神内耗与低欲望生存现状，该如何自救与破局')">🧘 精神内耗与破局自救</span>
             </div>
 
             <!-- 进度与执行反馈区 -->
-            <div id="oneshot-progress-box" style="display:none;background:rgba(0,0,0,0.35);border:1px solid rgba(163,113,247,0.3);border-radius:6px;padding:12px 16px;margin-top:8px">
+            <div id="oneshot-progress-box" style="display:none;background:rgba(0,0,0,0.35);border:1px solid rgba(240,136,62,0.3);border-radius:6px;padding:12px 16px;margin-top:8px">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-                <span id="oneshot-step-text" style="font-size:13px;font-weight:600;color:#d2a8ff">⏳ 正在初始化创作流程…</span>
+                <span id="oneshot-step-text" style="font-size:13px;font-weight:600;color:#ffd0a6">⏳ 正在初始化创作流程…</span>
                 <span id="oneshot-sub-status" style="font-size:11.5px;color:var(--text-muted)">耗时约 30~60 秒</span>
               </div>
               <div style="height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden">
-                <div id="oneshot-progress-bar" style="height:100%;width:25%;background:linear-gradient(90deg,#a371f7,#58a6ff);transition:width 0.4s ease"></div>
+                <div id="oneshot-progress-bar" style="height:100%;width:25%;background:linear-gradient(90deg,#f0883e,#58a6ff);transition:width 0.4s ease"></div>
               </div>
               <div id="oneshot-search-pills" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"></div>
             </div>
@@ -5551,13 +5828,13 @@ body[data-shell="v2"] .rail-flash {
             <div style="position:absolute;bottom:10px;right:14px;font-size:11.5px;color:var(--text-muted)" id="pt-word-count">已输入 0 字</div>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <label style="font-size:12.5px;color:#a371f7;display:flex;align-items:center;gap:4px">
+            <label style="font-size:12.5px;color:#f0883e;display:flex;align-items:center;gap:4px">
               <span>🎭</span> 挂载名家文风
             </label>
             <select id="inspire-persona-sel" style="min-width:180px" onchange="onInspirePersonaChange()">
               <option value="">（不挂载 · 系统中立）</option>
             </select>
-            <button type="button" class="btn ghost btn-sm" style="color:#a371f7;border-color:rgba(163,113,247,0.3)" onclick="skillDistillModal()" title="粘贴任意名家文本，AI 深度提取其行文指纹并实时入库挂载">⚡ 蒸馏新名家</button>
+            <button type="button" class="btn ghost btn-sm" style="color:#f0883e;border-color:rgba(240,136,62,0.3)" onclick="skillDistillModal()" title="粘贴任意名家文本，AI 深度提取其行文指纹并实时入库挂载">⚡ 蒸馏新名家</button>
             <span style="flex:1"></span>
             <input type="text" id="pt-theme" placeholder="改编创作主题（留空=严格跟随原文核心领域）" style="flex:1;min-width:220px">
             <button class="btn" id="btn-paste-go" onclick="pasteRewrite()">⚡ 锁定架构并改编三平台</button>
@@ -5608,7 +5885,7 @@ body[data-shell="v2"] .rail-flash {
               <span id="batch-progress-percent" style="font-weight:700;color:var(--accent);font-size:13px">0%</span>
             </div>
             <div style="width:100%;height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden">
-              <div id="batch-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#3b82f6,#a855f7);transition:width 0.3s"></div>
+              <div id="batch-progress-bar" style="width:0%;height:100%;background:linear-gradient(90deg,#f0883e,#e05a10);transition:width 0.3s"></div>
             </div>
             <div id="batch-results-list" style="margin-top:14px;display:flex;flex-direction:column;gap:8px"></div>
           </div>
@@ -5654,10 +5931,10 @@ body[data-shell="v2"] .rail-flash {
 
           <div class="stage-top-bar" id="stage-action-bar" style="display:none">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <button class="btn" style="background:linear-gradient(135deg,#1f6feb,#8957e5);border:none;color:#fff;font-weight:700" onclick="triggerOmniFission()">🚀 一键全域五端裂变</button>
+              <button class="btn" style="background:linear-gradient(135deg,#1f6feb,#e05a10);border:none;color:#fff;font-weight:700" onclick="triggerOmniFission()">🚀 一键全域五端裂变</button>
               <button class="btn ok btn-sm" id="btn-ai-images" style="background:#2ea043;border-color:#2ea043;color:#fff;font-weight:700" onclick="triggerAutoImages()">🎨 AI 智能配图</button>
               <!-- 🎨 一键修改配图风格核心功能区 -->
-              <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:6px;border:1px solid rgba(168,85,247,0.35)" title="选择配图视觉风格并一键重塑全篇配图">
+              <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:6px;border:1px solid rgba(240,136,62,0.35)" title="选择配图视觉风格并一键重塑全篇配图">
                 <span style="font-size:12px">🎨</span>
                 <select id="stage-image-style-sel" class="studio-model-select" style="max-width:136px;font-size:11.5px;padding:3px 4px;background:#161b22;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:4px;outline:none">
                   <option value="ancient_chinese">🏛️ 古风·东方意境</option>
@@ -5671,10 +5948,10 @@ body[data-shell="v2"] .rail-flash {
                   <option value="anime_cinematic">🌅 动漫风·新海诚光影</option>
                   <option value="minimalist_3d">🎨 3D风·极简轻拟物</option>
                 </select>
-                <button class="btn btn-sm" id="btn-change-image-style" style="background:linear-gradient(135deg,#8b5cf6,#d946ef);border:none;color:#fff;font-weight:700;padding:3px 9px;font-size:11.5px;border-radius:4px" onclick="triggerChangeImageStyle()" title="根据所选风格一键重新提炼与生成全套专属配图">⚡ 一键换风格配图</button>
+                <button class="btn btn-sm" id="btn-change-image-style" style="background:linear-gradient(135deg,#f7a05a,#f0883e);border:none;color:#fff;font-weight:700;padding:3px 9px;font-size:11.5px;border-radius:4px" onclick="triggerChangeImageStyle()" title="根据所选风格一键重新提炼与生成全套专属配图">⚡ 一键换风格配图</button>
               </div>
-              <button class="btn btn-sm" style="background:linear-gradient(135deg,#6e40c9,#a855f7);border:none;color:#fff;font-weight:700" onclick="openImageManagerDrawer()">🖼️ 配图管理</button>
-              <button class="btn btn-sm" style="background:linear-gradient(135deg,#d946ef,#8b5cf6);border:none;color:#fff;font-weight:700" onclick="openYimuRichEditor()" title="打开全功能一幕原创富文本编辑器(零依赖可视化图文混排与排版)">✍️ 一幕·富文本</button>
+              <button class="btn btn-sm" style="background:linear-gradient(135deg,#f7a05a,#e05a10);border:none;color:#fff;font-weight:700" onclick="openImageManagerDrawer()">🖼️ 配图管理</button>
+              <button class="btn btn-sm" style="background:linear-gradient(135deg,#f0883e,#e05a10);border:none;color:#fff;font-weight:700" onclick="openYimuRichEditor()" title="打开全功能一幕原创富文本编辑器(零依赖可视化图文混排与排版)">✍️ 一幕·富文本</button>
               <button class="btn btn-sm" style="background:linear-gradient(135deg,#2ea043,#1a7431);border:none;color:#fff;font-weight:700" onclick="genVoiceoverScript()">🎙️ 口播稿</button>
               <button class="btn btn-sm" style="background:linear-gradient(135deg,#d4880a,#b86a00);border:none;color:#fff;font-weight:700" onclick="openAssetLibrary()">🗂️ 素材库</button>
               <button class="btn ok btn-sm" onclick="copyCurrentRich('wechat_mp')">📋 复制公众号</button>
@@ -5685,23 +5962,23 @@ body[data-shell="v2"] .rail-flash {
               <button class="btn btn-sm" onclick="openPublishModal()">📢 多端发布</button>
             </div>
             <div style="display:flex;align-items:center;gap:8px">
-              <button class="btn btn-sm" id="btn-stage-ai-upgrade" style="background:linear-gradient(135deg,#f0883e,#e056fd);border:none;color:#fff;font-weight:700" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI 改写提升</button>
+              <button class="btn btn-sm" id="btn-stage-ai-upgrade" style="background:linear-gradient(135deg,#f0883e,#f79b4a);border:none;color:#fff;font-weight:700" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI 改写提升</button>
               <button class="btn btn-sm ghost" onclick="rescoreCurrent()">⚡ 重新评分</button>
-              <button class="btn btn-sm" style="background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.4);color:#8b5cf6;font-size:12px" onclick="showPlatformScores()">📊 各平台评分</button>
-              <button class="btn btn-sm" id="btn-wb-top-copilot" onclick="toggleWbAgentModal()" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);color:#fff;border:none;font-weight:700;box-shadow:0 2px 10px rgba(139,92,246,0.35);display:flex;align-items:center;gap:5px" title="召唤贴身爆款创作 Agent 协作修改与提分">
+              <button class="btn btn-sm" style="background:rgba(240,136,62,0.15);border-color:rgba(240,136,62,0.4);color:#f0883e;font-size:12px" onclick="showPlatformScores()">📊 各平台评分</button>
+              <button class="btn btn-sm" id="btn-wb-top-copilot" onclick="toggleWbAgentModal()" style="background:linear-gradient(135deg,#f7a05a,#f0883e);color:#fff;border:none;font-weight:700;box-shadow:0 2px 10px rgba(240,136,62,0.35);display:flex;align-items:center;gap:5px" title="召唤贴身爆款创作 Agent 协作修改与提分">
                 <span>🤖 爆款 Agent 协作</span>
               </button>
               <button class="btn btn-sm info" onclick="openRewriteModal()">🎯 定向重写</button>
               <button class="btn btn-sm ghost" id="btn-toggle-editor" onclick="toggleEditorDrawer()">✏️ 侧边编辑</button>
-              <button class="btn btn-sm" style="background:rgba(139,92,246,0.18);border-color:rgba(139,92,246,0.5);color:#8b5cf6;font-size:12px" onclick="toggleSingleRewriteBar()" id="btn-toggle-single-rewrite">🎯 单平台重写</button>
+              <button class="btn btn-sm" style="background:rgba(240,136,62,0.18);border-color:rgba(240,136,62,0.5);color:#f0883e;font-size:12px" onclick="toggleSingleRewriteBar()" id="btn-toggle-single-rewrite">🎯 单平台重写</button>
             </div>
           </div>
 
           <!-- 📕 小红书爆款创作者专属工具栏 (AI视觉生图 / 卡片风格 / AI重排 / Zip打包 / 直发小号) -->
 
           <!-- v3.33 单平台专属重写工具栏 -->
-          <div id="stage-single-rewrite-bar" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(139,92,246,0.06);align-items:center;gap:10px;flex-wrap:wrap">
-            <span style="font-size:12px;font-weight:700;color:#8b5cf6">🎯 单平台专属重写</span>
+          <div id="stage-single-rewrite-bar" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(240,136,62,0.06);align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:12px;font-weight:700;color:#f0883e">🎯 单平台专属重写</span>
             <span style="font-size:11.5px;color:var(--text-muted)">仅重写当前选中平台，不影响其他平台内容</span>
             <div style="display:flex;gap:7px;flex-wrap:wrap;margin-left:auto">
               <button class="btn btn-sm" data-plat="wechat_mp" onclick="rewriteSinglePlatform('wechat_mp')" style="background:rgba(35,134,54,0.15);border-color:#238636;color:#238636;font-size:12px">🟢 仅重写公众号</button>
@@ -5829,8 +6106,8 @@ body[data-shell="v2"] .rail-flash {
                   <button type="button" class="wb-tool-btn" onclick="wbInsertImagePlaceholder()" title="插入配图标记">🖼️ 插入配图</button>
                   <select id="ed-theme-select" onchange="triggerThemeChange()" style="font-size:11px;padding:2px 6px;background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:4px" title="公众号排版美学主题（切换即时生效，一字不改）"></select>
                   <button type="button" id="btn-pure-theme-switch" class="wb-tool-btn" style="color:#34d399;border-color:rgba(52,211,153,0.45);font-weight:600" onclick="triggerPureThemeSwitch()" title="纯规则CSS换肤：100%不调用AI、不改一字，毫秒级即时刷新公众号预览">🎨 纯排版换肤</button>
-                  <button type="button" class="wb-tool-btn" style="color:#c084fc;border-color:rgba(168,85,247,0.5);font-weight:700;background:rgba(168,85,247,0.12)" onclick="openYimuRichEditor()" title="打开全功能一幕原创富文本编辑器(零依赖可视化图文混排与排版)">✍️ 一幕·富文本</button>
-                  <button type="button" class="wb-tool-btn" style="color:#e056fd;border-color:rgba(224,86,253,0.5);font-weight:700;background:rgba(224,86,253,0.12)" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI改写提升</button>
+                  <button type="button" class="wb-tool-btn" style="color:#ff9d55;border-color:rgba(240,136,62,0.5);font-weight:700;background:rgba(240,136,62,0.12)" onclick="openYimuRichEditor()" title="打开全功能一幕原创富文本编辑器(零依赖可视化图文混排与排版)">✍️ 一幕·富文本</button>
+                  <button type="button" class="wb-tool-btn" style="color:#f79b4a;border-color:rgba(247,155,74,0.5);font-weight:700;background:rgba(247,155,74,0.12)" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI改写提升</button>
                 </div>
 
                 <!-- 编辑输入框 -->
@@ -5842,7 +6119,7 @@ body[data-shell="v2"] .rail-flash {
                 <div class="wb-editor-footer">
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <button class="btn ok btn-sm" id="btn-wb-save" onclick="saveCurrentPlatformContent()">💾 保存并重新渲染 (Ctrl+S)</button>
-                    <button class="btn btn-sm" id="btn-wb-ai-upgrade" style="background:linear-gradient(135deg,#f0883e,#e056fd);border:none;color:#fff;font-weight:700" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI 一键改写提升</button>
+                    <button class="btn btn-sm" id="btn-wb-ai-upgrade" style="background:linear-gradient(135deg,#f0883e,#f79b4a);border:none;color:#fff;font-weight:700" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI 一键改写提升</button>
                     <button class="btn ghost btn-sm" style="color:#f0883e;border-color:rgba(240,136,62,0.3)" onclick="triggerAutoImages()">🎨 一键生成插图</button>
                   </div>
                   <!-- V3.3 自定义派生目标平台按需勾选胶囊 -->
@@ -5863,7 +6140,7 @@ body[data-shell="v2"] .rail-flash {
 
                   <!-- V3.3 母稿派生按钮 -->
                   <div style="display:flex;gap:6px;margin-top:7px">
-                    <button id="btn-derive-omni" onclick="deriveAllPlatformsFromCurrent()" title="以当前左侧编辑区内容为唯一母稿，按上方勾选平台精准派生（节省算力与Token）" style="flex:1;padding:6px 0;border-radius:6px;border:none;background:linear-gradient(135deg,#1f6feb,#3fb950,#e056fd);color:#fff;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.3px;box-shadow:0 1px 8px rgba(31,111,235,.25)">🚀 母稿按需派生所选平台</button>
+                    <button id="btn-derive-omni" onclick="deriveAllPlatformsFromCurrent()" title="以当前左侧编辑区内容为唯一母稿，按上方勾选平台精准派生（节省算力与Token）" style="flex:1;padding:6px 0;border-radius:6px;border:none;background:linear-gradient(135deg,#1f6feb,#3fb950,#f79b4a);color:#fff;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.3px;box-shadow:0 1px 8px rgba(31,111,235,.25)">🚀 母稿按需派生所选平台</button>
                     <button onclick="triggerOmniFission()" title="旧版：AI重写后裂变全端" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:var(--text-muted);font-size:11px;cursor:pointer">裂变</button>
                   </div>
                   <span style="font-size:10px;color:var(--text-muted);margin-top:3px;display:block">Ctrl+S 即存即渲 · 勾选平台按需生成</span>
@@ -6006,13 +6283,13 @@ body[data-shell="v2"] .rail-flash {
                     <option value="cyberpunk_scifi">🌃 赛博朋克科幻 (雨夜霓虹)</option>
                   </select>
 
-                  <label style="font-size:13px;color:#a371f7;display:flex;align-items:center;gap:4px">
+                  <label style="font-size:13px;color:#f0883e;display:flex;align-items:center;gap:4px">
                     <span>🎭</span> 挂载名家/音色
                   </label>
                   <select id="drama-persona-sel" style="min-width:170px" onchange="onDramaPersonaChange()">
                     <option value="">（不挂载 · 系统中立）</option>
                   </select>
-                  <button type="button" class="btn ghost btn-sm" style="color:#a371f7;border-color:rgba(163,113,247,0.3)" onclick="skillDistillModal()" title="粘贴任意名家文本/剧本台词，AI 提取其行文指纹并实时入库挂载">⚡ 蒸馏新名家</button>
+                  <button type="button" class="btn ghost btn-sm" style="color:#f0883e;border-color:rgba(240,136,62,0.3)" onclick="skillDistillModal()" title="粘贴任意名家文本/剧本台词，AI 提取其行文指纹并实时入库挂载">⚡ 蒸馏新名家</button>
 
                   <label style="font-size:13px;color:var(--text-muted)">画幅</label>
                   <div class="aspect-pill-group">
@@ -6261,7 +6538,7 @@ body[data-shell="v2"] .rail-flash {
                   </div>
                 </div>
                 <div id="drama-step7-model-rule-tip" style="width:100%;display:none;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
-                <div style="font-size:11.5px;color:#a371f7">
+                <div style="font-size:11.5px;color:#f0883e">
                   💡 默认纯净无字幕零遮挡，由 AI 大模型生成真实物理微动作与光影
                 </div>
               </div>
@@ -6280,7 +6557,7 @@ body[data-shell="v2"] .rail-flash {
                 </div>
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                   <button class="btn ghost btn-sm" onclick="switchDramaStep(7)">⬅️ 上一步</button>
-                  <button class="btn btn-sm ghost" style="color:#d8b4fe;border-color:rgba(168,85,247,0.4)" onclick="runDramaRestitch()" title="分镜台词微调或重绘后，秒级智能快速重新混音与拼接母带">⚡ 秒级快速重混母带</button>
+                  <button class="btn btn-sm ghost" style="color:#ffd0a6;border-color:rgba(240,136,62,0.4)" onclick="runDramaRestitch()" title="分镜台词微调或重绘后，秒级智能快速重新混音与拼接母带">⚡ 秒级快速重混母带</button>
                   <button class="btn ok" id="btn-drama-final-render" onclick="runDramaFinalRender()">🔥 立即合成全 AI 短剧成片母带</button>
                 </div>
               </div>
@@ -6362,7 +6639,7 @@ body[data-shell="v2"] .rail-flash {
             </div>
 
             <div>
-              <label style="font-size:12px;color:#a371f7;display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <label style="font-size:12px;color:#f0883e;display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
                 <span>🎭 挂载名家文风与专属音色（鲁迅/王小波/余华/张爱玲/自蒸馏名家）</span>
                 <span id="modal-req-persona-tip" style="font-size:11px;color:var(--text-muted)"></span>
               </label>
@@ -7094,7 +7371,7 @@ body[data-shell="v2"] .rail-flash {
             </div>
             <div style="display:flex;gap:8px">
               <button class="btn btn-sm ghost" onclick="resetHabitSkill()">↺ 重置基准</button>
-              <button class="btn btn-sm" id="btn-evolve-habit" style="background:linear-gradient(135deg,#0284c7,#6366f1);color:#fff;border:none;font-weight:700" onclick="triggerHabitEvolution()">⚡ 一键自主提炼进化</button>
+              <button class="btn btn-sm" id="btn-evolve-habit" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;border:none;font-weight:700" onclick="triggerHabitEvolution()">⚡ 一键自主提炼进化</button>
             </div>
           </div>
           <div id="habit-evolution-box" style="padding:12px 14px;background:rgba(0,0,0,0.35);border-radius:8px;border:1px solid rgba(255,255,255,0.08)">
@@ -7135,17 +7412,17 @@ body[data-shell="v2"] .rail-flash {
       <div id="sp-settings" class="sub-view" style="display:none">
         <div class="card" style="display:flex;flex-direction:column;gap:14px">
           <!-- 个人配置迁移直达引导 -->
-          <div style="background:linear-gradient(135deg,rgba(168,85,247,0.12),rgba(56,189,248,0.08));border:1px solid rgba(168,85,247,0.35);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+          <div style="background:linear-gradient(135deg,rgba(240,136,62,0.12),rgba(56,189,248,0.08));border:1px solid rgba(240,136,62,0.35);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
             <div style="display:flex;align-items:center;gap:12px">
               <span style="font-size:24px">👤</span>
               <div>
-                <div style="font-weight:700;font-size:14px;color:#d8b4fe">创作者个人专属偏好已独立归纳至「个人中心」</div>
+                <div style="font-weight:700;font-size:14px;color:#ffd0a6">创作者个人专属偏好已独立归纳至「个人中心」</div>
                 <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
                   包含：创作者6维数字画像、个人模型 API Vault、日夜外观、输出水印、矩阵渠道派生预设、GitHub 图床等。
                 </div>
               </div>
             </div>
-            <button class="btn btn-sm" style="background:linear-gradient(135deg,#9333ea,#a855f7);color:#fff;border:none;font-weight:700" onclick="switchToProfileCenter()">👉 进入个人中心</button>
+            <button class="btn btn-sm" style="background:linear-gradient(135deg,#f7a05a,#f0883e);color:#fff;border:none;font-weight:700" onclick="switchToProfileCenter()">👉 进入个人中心</button>
           </div>
 
           <!-- 企业级 AI 模型中枢 -->
@@ -7154,7 +7431,7 @@ body[data-shell="v2"] .rail-flash {
               <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px"><span>⚡</span> 企业级 AI 大模型服务与 API 中枢</div>
               <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-gw-info"></div>
             </div>
-            <button class="btn btn-sm" style="background:linear-gradient(135deg,#1f6feb,#8957e5);color:#fff;border:none;font-weight:700" onclick="modal('m-gateway')">⚙️ 配置模型服务与API</button>
+            <button class="btn btn-sm" style="background:linear-gradient(135deg,#1f6feb,#e05a10);color:#fff;border:none;font-weight:700" onclick="modal('m-gateway')">⚙️ 配置模型服务与API</button>
           </div>
 
           <!-- 使用量统计 -->
@@ -7547,10 +7824,10 @@ body[data-shell="v2"] .rail-flash {
     <!-- ================== 5. 个人中心独立面板 (Personal Center) ================== -->
     <section class="panel" id="p-profile">
       <!-- 个人中心头部概览横幅 -->
-      <div class="card" style="margin-bottom:16px;background:radial-gradient(ellipse at top left, rgba(168,85,247,0.18), rgba(15,23,42,0.7));border:1px solid rgba(168,85,247,0.35);padding:22px">
+      <div class="card" style="margin-bottom:16px;background:radial-gradient(ellipse at top left, rgba(240,136,62,0.18), rgba(15,23,42,0.7));border:1px solid rgba(240,136,62,0.35);padding:22px">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
           <div style="display:flex;align-items:center;gap:16px">
-            <div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#9333ea,#f0883e);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(168,85,247,0.4);border:2px solid rgba(255,255,255,0.25);overflow:hidden">
+            <div style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,#e05a10,#f0883e);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(240,136,62,0.4);border:2px solid rgba(255,255,255,0.25);overflow:hidden">
               <img src="/static/img/default-avatar.png" id="profile-user-avatar-img" style="width:100%;height:100%;object-fit:cover" alt="会员默认Logo">
             </div>
             <div>
@@ -7568,7 +7845,7 @@ body[data-shell="v2"] .rail-flash {
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="btn btn-sm ghost" onclick="openLoginModal()" title="切换登录身份或重新验证口令">🔐 账号与口令</button>
-            <button class="btn btn-sm ghost" onclick="openSelfChangePassword()" style="color:#a78bfa;border-color:rgba(167,139,250,0.4)" title="修改当前登录账号密码">🔑 修改密码</button>
+            <button class="btn btn-sm ghost" onclick="openSelfChangePassword()" style="color:#f7a05a;border-color:rgba(247,160,90,0.4)" title="修改当前登录账号密码">🔑 修改密码</button>
             <button class="btn btn-sm ghost" onclick="openBillingModal()" style="color:var(--primary);border-color:rgba(240,136,62,0.4)" title="商业化充值与卡密兑换">💎 算力账本</button>
             <a class="btn btn-sm ghost" href="/releases" target="_blank" style="color:#38bdf8;border-color:rgba(56,189,248,0.4);text-decoration:none;display:inline-flex;align-items:center" title="查看全生命周期版本更新与演进展示">📦 版本更新展示</a>
             <button class="btn btn-sm ghost" onclick="checkSystemUpdate(true)" title="检查 GitHub 仓库最新代码">🪐 检查更新</button>
@@ -7586,7 +7863,7 @@ body[data-shell="v2"] .rail-flash {
               <span>🆔</span> 创作者媒体与账号档案
             </div>
             <div style="display:flex;gap:6px;align-items:center">
-              <button class="btn btn-sm ghost" style="padding:2px 8px;font-size:11px;color:#a78bfa" onclick="openSelfChangePassword()">🔑 修改密码</button>
+              <button class="btn btn-sm ghost" style="padding:2px 8px;font-size:11px;color:#f7a05a" onclick="openSelfChangePassword()">🔑 修改密码</button>
               <span class="badge green">生效中</span>
             </div>
           </div>
@@ -7605,12 +7882,12 @@ body[data-shell="v2"] .rail-flash {
         </div>
 
         <!-- 2. 账号 6 维数字画像 (Profile & 人设档案) -->
-        <div class="card" style="display:flex;flex-direction:column;gap:12px;border-left:3px solid #a855f7">
+        <div class="card" style="display:flex;flex-direction:column;gap:12px;border-left:3px solid #f0883e">
           <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
-            <div style="font-weight:700;font-size:14px;color:#d8b4fe;display:flex;align-items:center;gap:6px">
+            <div style="font-weight:700;font-size:14px;color:#ffd0a6;display:flex;align-items:center;gap:6px">
               <span>👤</span> 账号 6 维数字画像 (Profile & 人设档案)
             </div>
-            <button class="btn btn-sm" style="background:rgba(168,85,247,0.18);border:1px solid rgba(168,85,247,0.45);color:#d8b4fe;font-weight:600" onclick="openProfileModal()">✏️ 编辑画像</button>
+            <button class="btn btn-sm" style="background:rgba(240,136,62,0.18);border:1px solid rgba(240,136,62,0.45);color:#ffd0a6;font-weight:600" onclick="openProfileModal()">✏️ 编辑画像</button>
           </div>
           <div style="font-size:12px;color:var(--text-muted)" id="st-profile-info">定位、声纹语气、受众群体、表达禁忌与爆款长期记忆已同步</div>
           <div id="profile-summary-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
@@ -7624,15 +7901,15 @@ body[data-shell="v2"] .rail-flash {
         </div>
 
         <!-- 3. 我的专属模型 API 凭证 (User API Vault) -->
-        <div class="card" style="display:flex;flex-direction:column;gap:12px;border-left:3px solid #c084fc">
+        <div class="card" style="display:flex;flex-direction:column;gap:12px;border-left:3px solid #ff9d55">
           <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
             <div>
-              <div style="font-weight:700;font-size:14px;color:#c084fc;display:flex;align-items:center;gap:6px">
+              <div style="font-weight:700;font-size:14px;color:#ff9d55;display:flex;align-items:center;gap:6px">
                 <span>🔑</span> 我的专属模型 API 凭证 (API Vault)
               </div>
               <div style="font-size:12px;color:var(--text-muted);margin-top:2px">自备 Key 直连 · 0加价 · AES-GCM 硬件加密安全</div>
             </div>
-            <button class="btn btn-sm" style="background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;border:none;font-weight:600" onclick="openUserVaultModal()">🔑 配置我的 API</button>
+            <button class="btn btn-sm" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;border:none;font-weight:600" onclick="openUserVaultModal()">🔑 配置我的 API</button>
           </div>
           <div style="font-size:12px;color:var(--text-muted);line-height:1.6">
             支持自备 OpenAI、DeepSeek、Claude、智谱 GLM、通义千问、Kimi 等私人 Key。<br>
@@ -7909,7 +8186,7 @@ body[data-shell="v2"] .rail-flash {
     <!-- ================== 6. 套餐与价格独立面板 (Integrated Pricing & Order Center) ================== -->
     <section class="panel" id="p-pricing">
       <!-- 顶部账户状态与核心说明横幅 -->
-      <div class="card" style="margin-bottom:16px;background:radial-gradient(ellipse at top left, rgba(240,136,62,0.16), rgba(168,85,247,0.08), #141a26);border:1px solid rgba(240,136,62,0.35);padding:20px 24px">
+      <div class="card" style="margin-bottom:16px;background:radial-gradient(ellipse at top left, rgba(240,136,62,0.16), rgba(240,136,62,0.08), #141a26);border:1px solid rgba(240,136,62,0.35);padding:20px 24px">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
           <div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
@@ -9897,7 +10174,7 @@ async function deleteUserAccount(uid, username) {
         <label style="display:flex;align-items:flex-start;gap:8px;padding:10px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:rgba(255,255,255,0.02)" id="cp-mode-label-agent">
           <input type="radio" name="cp_layout_mode" value="agent_skill" onchange="onCustomPlatformModeChange()" style="margin-top:3px">
           <div>
-            <div style="font-weight:600;font-size:13px;color:#a855f7">🤖 Agent 专属排版技能</div>
+            <div style="font-weight:600;font-size:13px;color:#f0883e">🤖 Agent 专属排版技能</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px">读取样例文章网址，Agent 自动学习排版视觉法则并自蒸馏生成专属技能</div>
           </div>
         </label>
@@ -9905,15 +10182,15 @@ async function deleteUserAccount(uid, username) {
     </div>
 
     <!-- Agent 排版技能设置区 (仅在选择 agent_skill 时显示) -->
-    <div id="cp-agent-skill-panel" style="display:none;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.3);border-radius:8px;padding:12px;flex-direction:column;gap:8px">
-      <div style="font-weight:600;font-size:12.5px;color:#d8b4fe;display:flex;align-items:center;gap:6px">
+    <div id="cp-agent-skill-panel" style="display:none;background:rgba(240,136,62,0.08);border:1px solid rgba(240,136,62,0.3);border-radius:8px;padding:12px;flex-direction:column;gap:8px">
+      <div style="font-weight:600;font-size:12.5px;color:#ffd0a6;display:flex;align-items:center;gap:6px">
         <span>🧠</span> Agent 读取目标排版方式自学习
       </div>
       <div>
         <label style="font-size:11.5px;color:var(--text);display:block;margin-bottom:3px">目标排版样例文档/文章网址 (URL)</label>
         <div style="display:flex;gap:8px">
           <input type="text" id="cp-inp-sample-url" style="flex:1;font-size:12px" placeholder="粘贴该平台任意一篇心仪排版的文章网址…">
-          <button type="button" class="btn btn-sm" style="background:#9333ea;color:#fff;border:none;font-weight:600" onclick="analyzeTargetPlatformLayout()" id="btn-cp-analyze">🧠 读取并生成排版技能</button>
+          <button type="button" class="btn btn-sm" style="background:#e05a10;color:#fff;border:none;font-weight:600" onclick="analyzeTargetPlatformLayout()" id="btn-cp-analyze">🧠 读取并生成排版技能</button>
         </div>
       </div>
       <div id="cp-skill-preview" style="display:none;margin-top:6px;background:rgba(0,0,0,0.3);padding:10px;border-radius:6px;border:1px solid rgba(255,255,255,0.1)">
@@ -10518,7 +10795,7 @@ async function deleteUserAccount(uid, username) {
 
 <!-- 🔑 用户个人专属 API Vault 模型保险箱弹窗 -->
 <div class="mask" id="m-user-vault">
-  <div class="modal-box" style="width:520px;max-width:92vw;background:linear-gradient(145deg, #161c28, #0f141f);border:1px solid rgba(139,92,246,0.35);box-shadow:0 16px 50px rgba(0,0,0,0.8);max-height:88vh;overflow-y:auto">
+  <div class="modal-box" style="width:520px;max-width:92vw;background:linear-gradient(145deg, #161c28, #0f141f);border:1px solid rgba(240,136,62,0.35);box-shadow:0 16px 50px rgba(0,0,0,0.8);max-height:88vh;overflow-y:auto">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:10px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:20px">🔑</span>
@@ -10547,7 +10824,7 @@ async function deleteUserAccount(uid, username) {
     </div>
 
     <!-- 添加新 API 折叠表单 -->
-    <div style="background:rgba(139,92,246,0.05);border:1px solid rgba(139,92,246,0.25);border-radius:10px;padding:12px">
+    <div style="background:rgba(240,136,62,0.05);border:1px solid rgba(240,136,62,0.25);border-radius:10px;padding:12px">
       <div style="font-size:12px;font-weight:700;color:#c4b5fd;margin-bottom:10px">➕ 添加专属模型服务 (Per-User API)</div>
       
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -10840,7 +11117,7 @@ async function deleteUserAccount(uid, username) {
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-sm" id="btn-img-mgr-analyze" style="background:linear-gradient(135deg,#1f6feb,#8957e5);border:none;color:#fff;font-weight:700;font-size:12px" onclick="runAnalyzeArticlePrompts()">🧠 全文通读·提取要点</button>
+        <button class="btn btn-sm" id="btn-img-mgr-analyze" style="background:linear-gradient(135deg,#1f6feb,#e05a10);border:none;color:#fff;font-weight:700;font-size:12px" onclick="runAnalyzeArticlePrompts()">🧠 全文通读·提取要点</button>
         <button class="btn ghost btn-sm" onclick="closeModal()" style="padding:4px 14px;font-size:14px">✕</button>
       </div>
     </div>
@@ -10910,10 +11187,10 @@ async function deleteUserAccount(uid, username) {
     </div>
 
     <!-- ⚡ 电影级超写实文生图即刻创作条 -->
-    <div style="padding:10px 24px;background:rgba(139,92,246,0.08);border-bottom:1px solid rgba(139,92,246,0.25);display:flex;align-items:center;gap:12px;flex-shrink:0">
+    <div style="padding:10px 24px;background:rgba(240,136,62,0.08);border-bottom:1px solid rgba(240,136,62,0.25);display:flex;align-items:center;gap:12px;flex-shrink:0">
       <span style="font-size:18px">📸</span>
-      <input type="text" id="asset-lib-gen-prompt" placeholder="直接输入任意真实场景（如：老街路边摊冒着热气的炒米粉、雨夜车窗倒影、咖啡馆靠窗看书的青年…），AI 自动注入普利策纪实镜头与自然光影" style="flex:1;background:rgba(0,0,0,0.5);border:1px solid rgba(139,92,246,0.4);padding:8px 14px;border-radius:8px;color:#fff;font-size:12.5px" onkeydown="if(event.key==='Enter')doAssetLibHyperRealGen()">
-      <button class="btn btn-sm" id="btn-asset-gen" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;color:#fff;font-weight:700;white-space:nowrap;padding:8px 16px" onclick="doAssetLibHyperRealGen()">⚡ 普利策级超写实即刻生成</button>
+      <input type="text" id="asset-lib-gen-prompt" placeholder="直接输入任意真实场景（如：老街路边摊冒着热气的炒米粉、雨夜车窗倒影、咖啡馆靠窗看书的青年…），AI 自动注入普利策纪实镜头与自然光影" style="flex:1;background:rgba(0,0,0,0.5);border:1px solid rgba(240,136,62,0.4);padding:8px 14px;border-radius:8px;color:#fff;font-size:12.5px" onkeydown="if(event.key==='Enter')doAssetLibHyperRealGen()">
+      <button class="btn btn-sm" id="btn-asset-gen" style="background:linear-gradient(135deg,#f7a05a,#f0883e);border:none;color:#fff;font-weight:700;white-space:nowrap;padding:8px 16px" onclick="doAssetLibHyperRealGen()">⚡ 普利策级超写实即刻生成</button>
     </div>
 
     <!-- 🗂️ 批量管理操作条 -->
@@ -10949,14 +11226,14 @@ async function deleteUserAccount(uid, username) {
 
 <!-- ✍️ 一幕·YIMU Editor 原创富文本编辑器弹窗 -->
 <div class="mask" id="m-yimu-editor" style="z-index:9999">
-  <div class="modal-box" style="width:94vw;max-width:1240px;height:90vh;max-height:890px;display:flex;flex-direction:column;background:var(--card);border:1px solid rgba(168,85,247,0.35);box-shadow:0 24px 70px rgba(0,0,0,0.85);border-radius:14px;overflow:hidden;padding:0">
+  <div class="modal-box" style="width:94vw;max-width:1240px;height:90vh;max-height:890px;display:flex;flex-direction:column;background:var(--card);border:1px solid rgba(240,136,62,0.35);box-shadow:0 24px 70px rgba(0,0,0,0.85);border-radius:14px;overflow:hidden;padding:0">
     <div style="padding:14px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.02)">
       <div style="display:flex;align-items:center;gap:12px">
         <span style="font-size:22px">✍️</span>
         <div>
           <div style="font-weight:700;font-size:15px;color:#fff;display:flex;align-items:center;gap:8px">
             <span>一幕·YIMU Editor 原创富文本工作台</span>
-            <span class="badge" style="background:linear-gradient(135deg,#f0883e,#a855f7);color:#fff;font-size:10.5px">零依赖·超轻可视化</span>
+            <span class="badge" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;font-size:10.5px">零依赖·超轻可视化</span>
           </div>
           <div style="font-size:11.5px;color:var(--text-muted);margin-top:2px" id="yimu-editor-draft-title">当前编辑：草稿正文</div>
         </div>
@@ -11296,7 +11573,7 @@ async function deleteUserAccount(uid, username) {
 
 <!-- =================== 🌟 全局 IP 角色库 Modal =================== -->
 <div class="mask" id="m-ip-characters" onclick="if(event.target===this)closeModal()">
-  <div class="modal-box" style="max-width:800px;background:#0d1117;border:1px solid rgba(163,113,247,0.3);border-radius:12px;padding:24px">
+  <div class="modal-box" style="max-width:800px;background:#0d1117;border:1px solid rgba(240,136,62,0.3);border-radius:12px;padding:24px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:20px">🌟</span>
@@ -11383,22 +11660,22 @@ async function deleteUserAccount(uid, username) {
 
 <!-- =================== ⚡ 内容工作台：AI 一键深度改写提升 Modal =================== -->
 <div class="mask" id="m-draft-ai-upgrade" onclick="if(event.target===this)closeModal()">
-  <div class="modal-box" style="width:min(740px,94vw);max-height:88vh;overflow-y:auto;background:#0d121c;border:1px solid rgba(168,85,247,0.45);border-radius:12px;padding:22px">
+  <div class="modal-box" style="width:min(740px,94vw);max-height:88vh;overflow-y:auto;background:#0d121c;border:1px solid rgba(240,136,62,0.45);border-radius:12px;padding:22px">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.08)">
       <div style="font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px">
-        <span style="color:#e056fd;font-size:18px">⚡</span> AI 深度改写提升 — 写作风格 &amp; Skill 选择
+        <span style="color:#f79b4a;font-size:18px">⚡</span> AI 深度改写提升 — 写作风格 &amp; Skill 选择
       </div>
       <button class="modal-close" onclick="closeModal()">×</button>
     </div>
 
     <div style="display:flex;flex-direction:column;gap:14px">
-      <div style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text-muted);line-height:1.6">
+      <div style="background:rgba(240,136,62,0.08);border:1px solid rgba(240,136,62,0.2);border-radius:6px;padding:10px 14px;font-size:12px;color:var(--text-muted);line-height:1.6">
         💡 针对草稿进行全方位爆款升级：融入<strong>名家写作风范</strong>，攻坚<strong>黄金3秒Hook</strong>，彻底<strong>去除AI腔</strong>，提炼<strong>高赞金句</strong>，并同步生成全平台矩阵！
       </div>
 
       <!-- ① 写作风格（名家文风指纹） -->
       <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px">
-        <div style="font-size:12.5px;font-weight:700;color:#e056fd;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <div style="font-size:12.5px;font-weight:700;color:#f79b4a;margin-bottom:8px;display:flex;align-items:center;gap:6px">
           <span>① 写作风格</span>
           <span style="font-size:10px;font-weight:normal;color:var(--text-muted);background:rgba(255,255,255,0.07);padding:1px 8px;border-radius:10px">名家文风指纹 · 默认继承工作室配置</span>
         </div>
@@ -11422,28 +11699,28 @@ async function deleteUserAccount(uid, username) {
         <div style="font-size:12.5px;font-weight:700;color:#f0883e;margin-bottom:8px">③ 重点攻坚方向</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:7px">
           <label style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px">
-            <input type="checkbox" id="focus-hook" checked style="margin-top:2px;accent-color:#e056fd">
+            <input type="checkbox" id="focus-hook" checked style="margin-top:2px;accent-color:#f79b4a">
             <div>
               <span style="font-weight:700;color:#fff">🎣 黄金3秒Hook与悬念攻坚</span>
               <div style="font-size:11px;color:var(--text-muted);margin-top:2px">前100字制造反差、认知失调或极端悬念</div>
             </div>
           </label>
           <label style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px">
-            <input type="checkbox" id="focus-de-ai" checked style="margin-top:2px;accent-color:#e056fd">
+            <input type="checkbox" id="focus-de-ai" checked style="margin-top:2px;accent-color:#f79b4a">
             <div>
               <span style="font-weight:700;color:#fff">🧠 深度去除AI味与活人感</span>
               <div style="font-size:11px;color:var(--text-muted);margin-top:2px">严禁"总而言之"，全篇口语化与生活细节</div>
             </div>
           </label>
           <label style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px">
-            <input type="checkbox" id="focus-punchlines" checked style="margin-top:2px;accent-color:#e056fd">
+            <input type="checkbox" id="focus-punchlines" checked style="margin-top:2px;accent-color:#f79b4a">
             <div>
               <span style="font-weight:700;color:#fff">💎 震撼认知金句与干货密度</span>
               <div style="font-size:11px;color:var(--text-muted);margin-top:2px">提炼适合截图发圈的高密度洞察</div>
             </div>
           </label>
           <label style="display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:8px 10px;border-radius:6px;cursor:pointer;font-size:12px">
-            <input type="checkbox" id="focus-cta" checked style="margin-top:2px;accent-color:#e056fd">
+            <input type="checkbox" id="focus-cta" checked style="margin-top:2px;accent-color:#f79b4a">
             <div>
               <span style="font-weight:700;color:#fff">🚀 结尾强转化与品牌收口</span>
               <div style="font-size:11px;color:var(--text-muted);margin-top:2px">自然植入媒体署名，引发高评论欲与关注号召</div>
@@ -11462,7 +11739,7 @@ async function deleteUserAccount(uid, username) {
 
       <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:4px">
         <button type="button" class="btn ghost btn-sm" onclick="closeModal()">取消</button>
-        <button type="button" class="btn" id="btn-do-ai-upgrade" onclick="runAIDraftUpgrade()" style="background:linear-gradient(135deg,#f0883e,#e056fd);border:none;color:#fff;font-weight:700;padding:8px 22px">⚡ 开始 AI 一键深度重塑提分</button>
+        <button type="button" class="btn" id="btn-do-ai-upgrade" onclick="runAIDraftUpgrade()" style="background:linear-gradient(135deg,#f0883e,#f79b4a);border:none;color:#fff;font-weight:700;padding:8px 22px">⚡ 开始 AI 一键深度重塑提分</button>
       </div>
     </div>
   </div>
@@ -13075,8 +13352,8 @@ function newLiteDraft(silent = false) {
     }
     .icon-badge {
       width:68px; height:68px; border-radius:18px;
-      background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(99,102,241,0.15));
-      border:1px solid rgba(139,92,246,0.3);
+      background:linear-gradient(135deg,rgba(240,136,62,0.15),rgba(240,136,62,0.15));
+      border:1px solid rgba(240,136,62,0.3);
       display:inline-flex; align-items:center; justify-content:center;
       font-size:32px; margin-bottom:16px;
     }
@@ -13089,7 +13366,7 @@ function newLiteDraft(silent = false) {
       padding:14px 10px; margin-bottom:24px; text-align:left;
     }
     .step-item { font-size:11.5px; color:#475569; }
-    .step-num { font-weight:800; color:#8b5cf6; margin-bottom:3px; font-size:12px; }
+    .step-num { font-weight:800; color:#f0883e; margin-bottom:3px; font-size:12px; }
 
     .inspire-title {
       font-size:12px; font-weight:800; color:#94a3b8; text-transform:uppercase;
@@ -13103,8 +13380,8 @@ function newLiteDraft(silent = false) {
       cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:space-between;
     }
     .inspire-chip:hover {
-      border-color:#8b5cf6; background:rgba(139,92,246,0.04); color:#7c3aed;
-      transform:translateY(-1px); box-shadow:0 3px 10px rgba(139,92,246,0.1);
+      border-color:#f0883e; background:rgba(240,136,62,0.04); color:#e05a10;
+      transform:translateY(-1px); box-shadow:0 3px 10px rgba(240,136,62,0.1);
     }
     .features { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; }
     .pill {
@@ -13140,15 +13417,15 @@ function newLiteDraft(silent = false) {
     <div class="inspire-list">
       <div class="inspire-chip" onclick="window.parent.fillCopilotInput('帮我写一篇《普通人如何用 AI 建立个人副业闭环？》，结构清晰，包含实操步骤与认知突破')">
         <span>💡《普通人如何用 AI 建立个人副业闭环？》</span>
-        <span style="font-size:11px;color:#8b5cf6;font-weight:700">填入 ➔</span>
+        <span style="font-size:11px;color:#f0883e;font-weight:700">填入 ➔</span>
       </div>
       <div class="inspire-chip" onclick="window.parent.fillCopilotInput('帮我写一篇深度复盘科技趋势的文章，剖析为什么轻量化开源 AI 正在重塑普通人的内容生产力')">
         <span>🚀《深度复盘：为什么开源 AI 正在重塑普通人生产力？》</span>
-        <span style="font-size:11px;color:#8b5cf6;font-weight:700">填入 ➔</span>
+        <span style="font-size:11px;color:#f0883e;font-weight:700">填入 ➔</span>
       </div>
       <div class="inspire-chip" onclick="window.parent.fillCopilotInput('写一篇干货避坑指南《自媒体新手最容易踩的 3 个致命大坑》，文风干练扎心，适合多平台分发')">
         <span>⚠️《自媒体新手最容易踩的 3 个致命大坑》</span>
-        <span style="font-size:11px;color:#8b5cf6;font-weight:700">填入 ➔</span>
+        <span style="font-size:11px;color:#f0883e;font-weight:700">填入 ➔</span>
       </div>
     </div>
 
@@ -13260,7 +13537,7 @@ function openAgentTaskModal(title, subtitle) {
   const bar = $('agent-task-bar');
   if (bar) {
     bar.style.width = '15%';
-    bar.style.background = 'linear-gradient(90deg,#8b5cf6,#ec4899)';
+    bar.style.background = 'linear-gradient(90deg,#f0883e,#e05a10)';
   }
   
   const historyBox = $('agent-task-step-history');
@@ -13508,7 +13785,7 @@ function filterLiteDraftsList(keyword) {
     return `
       <div class="lite-draft-item ${isCur ? 'active' : ''}" onclick="loadLiteDraftById('${d.id}')">
         <div style="font-size:12.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
-          ${isCur ? '<span style="color:#8b5cf6;margin-right:4px">●</span>' : ''}${escapeHtml(d.title || '无标题草稿')}
+          ${isCur ? '<span style="color:#f0883e;margin-right:4px">●</span>' : ''}${escapeHtml(d.title || '无标题草稿')}
         </div>
         <div style="font-size:10.5px;color:var(--text-muted);margin-top:3px">⏱️ ${escapeHtml(timeStr)}</div>
       </div>`;
@@ -13582,7 +13859,7 @@ function filterLiteModalDrafts() {
       <div class="lite-draft-card ${isCur ? 'active' : ''}" onclick="selectDraftFromModal('${d.id}')">
         <div style="flex:1;overflow:hidden">
           <div class="lite-draft-card-title">
-            ${isCur ? '<span style="color:#8b5cf6;margin-right:6px">● 当前生效</span>' : ''}${escapeHtml(d.title || '无标题草稿')}
+            ${isCur ? '<span style="color:#f0883e;margin-right:6px">● 当前生效</span>' : ''}${escapeHtml(d.title || '无标题草稿')}
           </div>
           <div class="lite-draft-card-meta">
             <span>⏱️ ${timeStr}</span>
@@ -13693,7 +13970,7 @@ async function showLiteScoreDetailModal() {
           <div style="font-size:13px;color:#94a3b8;max-width:440px;margin:0 auto 24px;line-height:1.6">
             一幕 7 维爆款体检模型覆盖「标题钩子 (15分)」、「内容价值 (25分)」、「结构逻辑 (15分)」、「语言风格 (15分)」、「图文配合 (15分)」、「排版可读 (10分)」与「互动潜力 (5分)」。
           </div>
-          <button type="button" class="btn btn-sm ok" onclick="reScoreLiteDraft()" style="font-size:13px;padding:8px 24px;font-weight:700;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;box-shadow:0 4px 16px rgba(139,92,246,0.4)">
+          <button type="button" class="btn btn-sm ok" onclick="reScoreLiteDraft()" style="font-size:13px;padding:8px 24px;font-weight:700;background:linear-gradient(135deg,#f7a05a,#f0883e);border:none;box-shadow:0 4px 16px rgba(240,136,62,0.4)">
             🎯 立即开始 7 维深度体检打分
           </button>
         </div>
@@ -13713,7 +13990,7 @@ async function showLiteScoreDetailModal() {
         <div style="font-size:13px;color:#94a3b8;max-width:440px;margin:0 auto 24px;line-height:1.6">
           一幕 7 维爆款体检模型覆盖「标题钩子 (15分)」、「内容价值 (25分)」、「结构逻辑 (15分)」、「语言风格 (15分)」、「图文配合 (15分)」、「排版可读 (10分)」与「互动潜力 (5分)」。
         </div>
-        <button type="button" class="btn btn-sm ok" onclick="reScoreLiteDraft()" style="font-size:13px;padding:8px 24px;font-weight:700;background:linear-gradient(135deg,#8b5cf6,#6366f1);border:none;box-shadow:0 4px 16px rgba(139,92,246,0.4)">
+        <button type="button" class="btn btn-sm ok" onclick="reScoreLiteDraft()" style="font-size:13px;padding:8px 24px;font-weight:700;background:linear-gradient(135deg,#f7a05a,#f0883e);border:none;box-shadow:0 4px 16px rgba(240,136,62,0.4)">
           🎯 立即开始 7 维深度体检打分
         </button>
       </div>
@@ -13771,8 +14048,8 @@ function renderLiteScoreModalContent(sc) {
   let sugHtml = '';
   if (suggestions.length > 0) {
     sugHtml = `
-      <div style="margin-top:16px;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);border-radius:10px;padding:14px 16px">
-        <div style="font-size:13px;font-weight:700;color:#c084fc;margin-bottom:8px">💡 待消除短板与改进建议 (Agent 将按此优化)：</div>
+      <div style="margin-top:16px;background:rgba(240,136,62,0.08);border:1px solid rgba(240,136,62,0.25);border-radius:10px;padding:14px 16px">
+        <div style="font-size:13px;font-weight:700;color:#ff9d55;margin-bottom:8px">💡 待消除短板与改进建议 (Agent 将按此优化)：</div>
         <ul style="margin:0;padding-left:18px;font-size:12.5px;color:#cbd5e1;line-height:1.7">
           ${suggestions.map(s => `<li>${escapeHtml(s)}</li>`).join('')}
         </ul>
@@ -13781,9 +14058,9 @@ function renderLiteScoreModalContent(sc) {
   }
 
   bodyEl.innerHTML = `
-    <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(139,92,246,0.18),rgba(236,72,153,0.12));border:1px solid rgba(139,92,246,0.3);border-radius:12px;padding:16px 20px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,rgba(240,136,62,0.18),rgba(236,72,153,0.12));border:1px solid rgba(240,136,62,0.3);border-radius:12px;padding:16px 20px;margin-bottom:16px">
       <div>
-        <div style="font-size:12px;color:#c084fc;font-weight:700;letter-spacing:1px">COMPREHENSIVE SCORE</div>
+        <div style="font-size:12px;color:#ff9d55;font-weight:700;letter-spacing:1px">COMPREHENSIVE SCORE</div>
         <div style="font-size:32px;font-weight:900;color:#ffffff;line-height:1.1;margin-top:4px">${total} <span style="font-size:15px;color:#94a3b8;font-weight:400">/ 100 分</span></div>
       </div>
       <div style="text-align:right">
@@ -14654,7 +14931,7 @@ function toggleSingleRewriteBar() {
   if (!bar) return;
   const isShowing = bar.style.display !== 'none' && bar.style.display !== '';
   bar.style.display = isShowing ? 'none' : 'flex';
-  if (btn) btn.style.background = isShowing ? '' : 'rgba(139,92,246,0.3)';
+  if (btn) btn.style.background = isShowing ? '' : 'rgba(240,136,62,0.3)';
 }
 
 async function rewriteSinglePlatform(platform) {
@@ -15200,7 +15477,7 @@ async function runOneSentenceViral() {
         if (j.result) {
           let pills = '';
           (j.result.queries || []).forEach(q => {
-            pills += `<span class="badge info" style="font-size:11px;background:rgba(163,113,247,0.25);color:#d2a8ff">🔍 ${escapeHtml(q)}</span>`;
+            pills += `<span class="badge info" style="font-size:11px;background:rgba(240,136,62,0.25);color:#ffd0a6">🔍 ${escapeHtml(q)}</span>`;
           });
           (j.result.references || []).forEach(r => {
             pills += `<span class="badge gray" style="font-size:11px" title="${escapeHtml(r.snippet||'')}">📰 ${escapeHtml(r.title||'')}</span>`;
@@ -15435,7 +15712,7 @@ const PLATFORM_CONFIG = {
   weibo: { name: '微博快讯', badge: '🟡 微博快讯', color: '#d97706' },
   twitter: { name: 'Twitter/𝕏', badge: '𝕏 Twitter/X', color: '#0284c7' },
   analysis: { name: '拆解报告', badge: '🎯 拆解报告', color: '#238636' },
-  score: { name: '7维评分', badge: '⚖️ 7维评分', color: '#8957e5' },
+  score: { name: '7维评分', badge: '⚖️ 7维评分', color: '#e05a10' },
   history: { name: '历史版本', badge: '📜 历史版本', color: '#6e7681' }
 };
 
@@ -16684,7 +16961,7 @@ async function showPlatformScores() {
       weibo: '🟡 微博', zhihu: '🔵 知乎', twitter: '𝕏 推特'
     };
     const gradeColor = {优秀:'#d4a017', 良好:'#3fb950', 合格:'#388bfd', 不合格:'#da3633'};
-    let html = '<div style="padding:16px"><h4 style="margin:0 0 12px;color:#8b5cf6">各平台适配评分（基于通用评分推算）</h4>';
+    let html = '<div style="padding:16px"><h4 style="margin:0 0 12px;color:#f0883e">各平台适配评分（基于通用评分推算）</h4>';
     for (const [plat, data] of Object.entries(scores)) {
       const pname = platNames[plat] || plat;
       const color = gradeColor[data.grade] || '#888';
@@ -16700,7 +16977,7 @@ async function showPlatformScores() {
     html += '</div>';
     // Show in a toast or panel
     const panel = document.createElement('div');
-    panel.style.cssText = 'position:fixed;right:24px;bottom:80px;width:420px;max-width:90vw;background:#1c2128;border:1px solid rgba(139,92,246,0.4);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:9999';
+    panel.style.cssText = 'position:fixed;right:24px;bottom:80px;width:420px;max-width:90vw;background:#1c2128;border:1px solid rgba(240,136,62,0.4);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:9999';
     panel.innerHTML = html + '<div style="padding:0 16px 12px;display:flex;justify-content:flex-end"><button class="btn-close-p-score" style="font-size:12px;color:#888;background:none;border:1px solid #444;border-radius:6px;padding:4px 12px;cursor:pointer">关闭</button></div>';
     document.body.appendChild(panel);
     const cb = panel.querySelector('.btn-close-p-score');
@@ -17606,7 +17883,7 @@ function renderDramaAllPanels() {
                 `}
                 <div style="position:absolute;bottom:10px;right:10px;display:flex;gap:6px;flex-wrap:wrap">
                   ${tUrl ? `<button class="btn btn-sm ghost" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px)" onclick="openFullLightbox('${tUrl}')">🔍 查看大图</button>` : ''}
-                  ${tUrl ? `<button class="btn btn-sm ghost" style="background:rgba(163,113,247,0.3);border-color:rgba(163,113,247,0.5);color:#d2a8ff" onclick="exportCharacterToIPHub('${c.id}')" title="将此角色存入全局 IP 资产库，终身跨剧复用">💾 存入全局 IP 库</button>` : ''}
+                  ${tUrl ? `<button class="btn btn-sm ghost" style="background:rgba(240,136,62,0.3);border-color:rgba(240,136,62,0.5);color:#ffd0a6" onclick="exportCharacterToIPHub('${c.id}')" title="将此角色存入全局 IP 资产库，终身跨剧复用">💾 存入全局 IP 库</button>` : ''}
                   <button class="btn btn-sm ghost" style="background:rgba(59,130,246,0.25);border-color:rgba(59,130,246,0.4);color:#93c5fd" onclick="openIPCharactersModal('${c.id}')" title="从全局 IP 资产库载入已沉淀的角色蓝图">🌟 从 IP 库载入</button>
                   <button class="btn btn-sm ok" style="background:rgba(240,136,62,0.85)" onclick="runDramaGenAsset('character', '${c.id}', true)">🎨 生成四视图蓝图</button>
                 </div>
@@ -17710,7 +17987,7 @@ function renderDramaAllPanels() {
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
             <div style="display:flex;align-items:center;gap:5px">
               <span class="badge info">镜头 #${shot}</span>
-              ${isAiVid ? '<span class="badge" style="background:rgba(139,92,246,0.25);color:#c4b5fd;border:1px solid rgba(139,92,246,0.4)">⚡ 原生AI视频</span>' : '<span class="badge blue">🎬 电影级动态</span>'}
+              ${isAiVid ? '<span class="badge" style="background:rgba(240,136,62,0.25);color:#c4b5fd;border:1px solid rgba(240,136,62,0.4)">⚡ 原生AI视频</span>' : '<span class="badge blue">🎬 电影级动态</span>'}
               ${subOn ? '<span class="badge orange">📝 带字幕</span>' : '<span class="badge" style="background:rgba(34,197,94,0.15);color:#86efac;border:1px solid rgba(34,197,94,0.3)">🚫 纯净无字幕</span>'}
             </div>
             <span class="badge ${vidUrl?'green':'gray'}">${vidUrl?'🟢 切片就绪':'⚪ 待生成'}</span>
@@ -18299,7 +18576,7 @@ function renderDramaScenesUI() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:2px;flex-wrap:wrap;gap:6px">
           <div style="display:flex;gap:6px">
             <button class="btn btn-sm ghost" onclick="previewDramaShotAudio(${shot})">🎧 试听配音</button>
-            <button class="btn btn-sm ghost" style="color:#d2a8ff;border-color:rgba(163,113,247,0.4)" onclick="openRetakeVoiceModal(${shot}, '${(sc.dialogue||sc.script||'').replace(/'/g, "\\'")}')">🎙️ 重录台词</button>
+            <button class="btn btn-sm ghost" style="color:#ffd0a6;border-color:rgba(240,136,62,0.4)" onclick="openRetakeVoiceModal(${shot}, '${(sc.dialogue||sc.script||'').replace(/'/g, "\\'")}')">🎙️ 重录台词</button>
           </div>
           <div style="display:flex;gap:6px">
             <button class="btn btn-sm ghost" style="color:#93c5fd;border-color:rgba(59,130,246,0.4)" onclick="runDramaRerollShot(${shot})" title="对该镜头画面独立重新出图微调">🔄 镜头重绘</button>
@@ -19982,9 +20259,9 @@ function renderSkillsList() {
     if (vBox) {
       vBox.innerHTML = list.map(v => {
         const isMounted = (window._mountedPersona === v.id);
-        const cardBorder = isMounted ? 'border-color: #a371f7; box-shadow: 0 0 14px rgba(163,113,247,0.3); background: rgba(163,113,247,0.06);' : 'background:var(--card);';
+        const cardBorder = isMounted ? 'border-color: #f0883e; box-shadow: 0 0 14px rgba(240,136,62,0.3); background: rgba(240,136,62,0.06);' : 'background:var(--card);';
         const btnClass = isMounted ? 'btn btn-sm' : 'btn btn-sm ghost';
-        const btnStyle = isMounted ? 'background:#a371f7;color:#fff;font-weight:700;' : 'color:#a371f7;border-color:rgba(163,113,247,0.4);';
+        const btnStyle = isMounted ? 'background:#f0883e;color:#fff;font-weight:700;' : 'color:#f0883e;border-color:rgba(240,136,62,0.4);';
         const btnText = isMounted ? '✅ 已挂载 (点击卸载)' : '🎭 挂载此名家';
         const catBadge = v.is_distilled ? '<span class="badge" style="background:#238636;color:#fff;font-size:10px">自蒸馏大师</span>' : '<span class="badge info" style="font-size:10px">经典名家</span>';
 
@@ -20870,7 +21147,7 @@ function renderDashboardRadarChips(topicsList) {
     baidu:   { name: '百度热搜', icon: '🔵', bg: 'rgba(56,139,253,0.15)', color: '#388bfd', border: 'rgba(56,139,253,0.3)' },
     douyin:  { name: '抖音热榜', icon: '🎵', bg: 'rgba(0,242,254,0.12)', color: '#00f2fe', border: 'rgba(0,242,254,0.3)' },
     dailyhotapi: { name: '热榜大盘', icon: '🔥', bg: 'rgba(255,140,0,0.15)', color: '#ff8c00', border: 'rgba(255,140,0,0.3)' },
-    manual:  { name: '手动选题', icon: '💡', bg: 'rgba(168,85,247,0.15)', color: '#a855f7', border: 'rgba(168,85,247,0.3)' }
+    manual:  { name: '手动选题', icon: '💡', bg: 'rgba(240,136,62,0.15)', color: '#f0883e', border: 'rgba(240,136,62,0.3)' }
   };
 
   const selected = [];
@@ -21322,7 +21599,7 @@ function renderImageManagerUI(data) {
         <div style="font-size:32px;margin-bottom:12px">🎨</div>
         <div style="font-size:13px;margin-bottom:10px">暂无配图数据</div>
         <div style="font-size:12px;opacity:0.7;margin-bottom:16px">点击「全文通读·提取要点」让 AI 分析文章并生成提示词，或点击「AI 智能配图」直接生成全套配图</div>
-        <button class="btn btn-sm" style="background:linear-gradient(135deg,#1f6feb,#8957e5);border:none;color:#fff" onclick="runAnalyzeArticlePrompts()">🧠 全文通读·提取要点</button>
+        <button class="btn btn-sm" style="background:linear-gradient(135deg,#1f6feb,#e05a10);border:none;color:#fff" onclick="runAnalyzeArticlePrompts()">🧠 全文通读·提取要点</button>
       </div>`;
     return;
   }
@@ -21356,7 +21633,7 @@ function renderImageManagerUI(data) {
         <label style="font-size:11px;color:var(--text-muted);font-weight:600;letter-spacing:0.3px">🎨 生图提示词（可直接修改后点击重新生成）</label>
         <textarea id="prompt-${img.name}" style="width:100%;height:80px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:#e6edf3;font-size:11.5px;padding:8px 10px;resize:vertical;line-height:1.6;font-family:inherit;box-sizing:border-box;outline:none" onfocus="this.style.borderColor='rgba(240,136,62,0.5)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'" placeholder="输入英文生图提示词，如：cinematic wide shot, golden hour, dramatic lighting, photorealistic…">${displayPrompt}</textarea>
         <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-          <button class="btn btn-sm" style="background:linear-gradient(135deg,#6e40c9,#a855f7);border:none;color:#fff;font-size:12px;font-weight:700;flex:1;min-width:96px;padding:6px 8px" onclick="runRegenSingleImage('${img.name}', '${label}')">🔄 AI 重新生成</button>
+          <button class="btn btn-sm" style="background:linear-gradient(135deg,#f7a05a,#e05a10);border:none;color:#fff;font-size:12px;font-weight:700;flex:1;min-width:96px;padding:6px 8px" onclick="runRegenSingleImage('${img.name}', '${label}')">🔄 AI 重新生成</button>
           <button class="btn ghost btn-sm" style="font-size:11.5px;color:#f0883e;border-color:rgba(240,136,62,0.35);padding:6px 8px" onclick="triggerUploadForSlot('${img.name}')" title="上传外部生成的图片替换此处">📤 上传替换</button>
           <button class="btn ghost btn-sm" style="font-size:11.5px;color:#e3b341;border-color:rgba(212,136,10,0.35);padding:6px 8px" onclick="openAssetLibrary('${img.name}')" title="从历史素材库中挑选图片复用">🗂️ 素材库挑选</button>
         </div>
@@ -22073,7 +22350,7 @@ function switchWorkspaceMode(mode) {
     toast('🚀 已切入【爆款图文工坊】：专注文案生成、排版渲染与全域矩阵分发');
   } else if (mode === 'drama') {
     if (btnDrama) {
-      btnDrama.style.background = 'linear-gradient(135deg, #a855f7, #6366f1)';
+      btnDrama.style.background = 'linear-gradient(135deg, #f0883e, #f0883e)';
       btnDrama.style.color = '#fff';
     }
     if (btnText) {
@@ -22413,16 +22690,16 @@ function getTaskCategory(taskType) {
 
 const TASK_META_MAP = {
   article_gen: { label: '📝 文章创作', color: '#58a6ff', bg: 'rgba(88,166,255,0.14)', border: 'rgba(88,166,255,0.35)' },
-  ai_rewrite: { label: '⚡ 深度改写', color: '#e056fd', bg: 'rgba(224,86,253,0.14)', border: 'rgba(224,86,253,0.35)' },
+  ai_rewrite: { label: '⚡ 深度改写', color: '#f79b4a', bg: 'rgba(247,155,74,0.14)', border: 'rgba(247,155,74,0.35)' },
   omni_derive: { label: '🚀 全域派生', color: '#3fb950', bg: 'rgba(63,185,80,0.14)', border: 'rgba(63,185,80,0.35)' },
-  omni_fission: { label: '🌌 矩阵裂变', color: '#a855f7', bg: 'rgba(168,85,247,0.14)', border: 'rgba(168,85,247,0.35)' },
+  omni_fission: { label: '🌌 矩阵裂变', color: '#f0883e', bg: 'rgba(240,136,62,0.14)', border: 'rgba(240,136,62,0.35)' },
   article_layout: { label: '📰 智能排版', color: '#79c0ff', bg: 'rgba(121,192,255,0.14)', border: 'rgba(121,192,255,0.35)' },
   image_gen: { label: '🎨 智能生图', color: '#f0883e', bg: 'rgba(240,136,62,0.14)', border: 'rgba(240,136,62,0.35)' },
   video_render: { label: '🎬 视频合成', color: '#f43f5e', bg: 'rgba(244,63,94,0.14)', border: 'rgba(244,63,94,0.35)' },
-  drama_pipeline: { label: '🎥 全自动AI短视频', color: '#d946ef', bg: 'rgba(217,70,239,0.14)', border: 'rgba(217,70,239,0.35)' },
+  drama_pipeline: { label: '🎥 全自动AI短视频', color: '#e05a10', bg: 'rgba(217,70,239,0.14)', border: 'rgba(217,70,239,0.35)' },
   ad_video_render: { label: '📢 AI广告短片', color: '#f0883e', bg: 'rgba(240,136,62,0.14)', border: 'rgba(240,136,62,0.35)' },
   audio_tts: { label: '🎧 配音合成', color: '#10b981', bg: 'rgba(16,185,129,0.14)', border: 'rgba(16,185,129,0.35)' },
-  voice_distill: { label: '🧬 文风蒸馏', color: '#8b5cf6', bg: 'rgba(139,92,246,0.14)', border: 'rgba(139,92,246,0.35)' },
+  voice_distill: { label: '🧬 文风蒸馏', color: '#f0883e', bg: 'rgba(240,136,62,0.14)', border: 'rgba(240,136,62,0.35)' },
   crucible: { label: '🔥 提示词熔炉', color: '#ef4444', bg: 'rgba(239,68,68,0.14)', border: 'rgba(239,68,68,0.35)' },
   ticket_exec: { label: '🎫 巡航工单', color: '#06b6d4', bg: 'rgba(6,182,212,0.14)', border: 'rgba(6,182,212,0.35)' },
 };
@@ -22547,7 +22824,7 @@ async function loadTasksList() {
 
           <!-- 发光微细进度条 -->
           <div style="background:rgba(255,255,255,0.08);border-radius:3px;height:4px;overflow:hidden;position:relative;margin-top:-2px">
-            <div style="background:linear-gradient(90deg, ${meta.color}, #a855f7);height:100%;width:${pct}%;border-radius:3px;transition:width 0.3s ease"></div>
+            <div style="background:linear-gradient(90deg, ${meta.color}, #f0883e);height:100%;width:${pct}%;border-radius:3px;transition:width 0.3s ease"></div>
           </div>
 
           ${t.error ? `<div style="font-size:11px;color:#f85149;background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.25);padding:6px 10px;border-radius:6px;word-break:break-all;margin-top:2px">⚠️ 异常信息: ${escapeHtml(t.error)}</div>` : ''}
@@ -24137,7 +24414,7 @@ async function loadCustomPlatformsList() {
             </div>
             ${p.sample_url ? `
               <div style="font-size:11px;color:var(--text-muted);word-break:break-all">
-                <b>排版样例:</b> <span style="color:#a78bfa">${escapeHtml(p.sample_url)}</span>
+                <b>排版样例:</b> <span style="color:#f7a05a">${escapeHtml(p.sample_url)}</span>
               </div>
             ` : ''}
             <div style="display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)">
@@ -24166,7 +24443,7 @@ async function loadCustomPlatformsList() {
       PLATFORM_CONFIG['custom_' + p.id] = {
         name: p.name,
         badge: (p.icon || '🌐') + ' ' + p.name,
-        color: p.layout_mode === 'agent_skill' ? '#8b5cf6' : '#ed4040',
+        color: p.layout_mode === 'agent_skill' ? '#f0883e' : '#ed4040',
         custom: true,
         platformData: p
       };
@@ -24466,7 +24743,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <div id="lite-score-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(10,14,22,0.85);backdrop-filter:blur(10px);z-index:999999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeLiteScoreModal()">
   <div class="lite-score-modal-box" style="width:740px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;position:relative">
     <!-- 弹窗顶栏 -->
-    <div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:rgba(139,92,246,0.06)">
+    <div style="padding:16px 22px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:rgba(240,136,62,0.06)">
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:22px">⚖️</span>
         <div>
@@ -24492,7 +24769,7 @@ document.addEventListener('DOMContentLoaded', () => {
       </button>
       <div style="display:flex;gap:10px">
         <button type="button" class="btn btn-sm ghost" onclick="closeLiteScoreModal()" style="font-size:12.5px">关闭</button>
-        <button type="button" class="btn btn-sm ok" onclick="applyScoreImprovement()" id="btn-lite-auto-upgrade" style="font-size:12.5px;font-weight:700;background:linear-gradient(135deg,#8b5cf6,#ec4899);border:none;box-shadow:0 4px 14px rgba(139,92,246,0.4)">
+        <button type="button" class="btn btn-sm ok" onclick="applyScoreImprovement()" id="btn-lite-auto-upgrade" style="font-size:12.5px;font-weight:700;background:linear-gradient(135deg,#f0883e,#e05a10);border:none;box-shadow:0 4px 14px rgba(240,136,62,0.4)">
           ⚡ 呼唤 Agent 按此建议定向提分
         </button>
       </div>
@@ -24536,15 +24813,15 @@ document.addEventListener('DOMContentLoaded', () => {
   </div>
 <!-- =================== 🚀 v5.3 全局 Agent 任务执行中弹窗 (全能进度视窗) =================== -->
 <div id="agent-task-progress-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.68);backdrop-filter:blur(10px);z-index:9999999;align-items:center;justify-content:center;animation:fadeIn 0.2s ease">
-  <div style="background:linear-gradient(145deg,#161b26,#10141d);border:1.5px solid rgba(139,92,246,0.4);border-radius:18px;width:92%;max-width:540px;padding:24px 26px;box-shadow:0 24px 64px rgba(0,0,0,0.7), 0 0 40px rgba(139,92,246,0.2);position:relative;overflow:hidden">
+  <div style="background:linear-gradient(145deg,#161b26,#10141d);border:1.5px solid rgba(240,136,62,0.4);border-radius:18px;width:92%;max-width:540px;padding:24px 26px;box-shadow:0 24px 64px rgba(0,0,0,0.7), 0 0 40px rgba(240,136,62,0.2);position:relative;overflow:hidden">
     <!-- 顶部标题与呼吸灯 -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:24px;filter:drop-shadow(0 2px 8px rgba(139,92,246,0.5))">🤖</span>
+        <span style="font-size:24px;filter:drop-shadow(0 2px 8px rgba(240,136,62,0.5))">🤖</span>
         <div>
           <div style="font-size:16px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px">
             <span id="agent-task-main-title">爆款 Agent 任务正在进行中</span>
-            <span class="live-pulse" style="background:#8b5cf6"></span>
+            <span class="live-pulse" style="background:#f0883e"></span>
           </div>
           <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px" id="agent-task-subtitle">全能微创改写与生成引擎调度中…</div>
         </div>
@@ -24556,14 +24833,14 @@ document.addEventListener('DOMContentLoaded', () => {
     <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 16px;margin-bottom:14px">
       <div style="font-size:11.5px;color:rgba(255,255,255,0.5);margin-bottom:6px;display:flex;justify-content:space-between">
         <span>当前执行阶段</span>
-        <span id="agent-task-progress-pct" style="color:#a78bfa;font-weight:700">15%</span>
+        <span id="agent-task-progress-pct" style="color:#f7a05a;font-weight:700">15%</span>
       </div>
       <div style="font-size:13.5px;font-weight:600;color:#fff;line-height:1.5" id="agent-task-current-step">
         ⚡ 正在分析指令意图并锁定微创操作靶位…
       </div>
       <!-- 进度条 -->
       <div style="height:6px;background:rgba(255,255,255,0.08);border-radius:3px;margin-top:10px;overflow:hidden">
-        <div id="agent-task-bar" style="height:100%;width:15%;background:linear-gradient(90deg,#8b5cf6,#ec4899);border-radius:3px;transition:width 0.3s ease"></div>
+        <div id="agent-task-bar" style="height:100%;width:15%;background:linear-gradient(90deg,#f0883e,#e05a10);border-radius:3px;transition:width 0.3s ease"></div>
       </div>
     </div>
     
@@ -24583,8 +24860,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <!-- ==================== ⚙️ v4.3 Agent 大模型与技能配置弹窗 ==================== -->
 <div id="copilot-settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);z-index:999999;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closeCopilotSettingsModal()">
-  <div style="background:var(--card-bg);border:1px solid rgba(139,92,246,0.4);border-radius:14px;width:560px;max-width:92vw;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.6);overflow:hidden">
-    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(139,92,246,0.15),rgba(99,102,241,0.2))">
+  <div style="background:var(--card-bg);border:1px solid rgba(240,136,62,0.4);border-radius:14px;width:560px;max-width:92vw;display:flex;flex-direction:column;box-shadow:0 16px 48px rgba(0,0,0,0.6);overflow:hidden">
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(240,136,62,0.15),rgba(240,136,62,0.2))">
       <div style="display:flex;align-items:center;gap:8px">
         <span style="font-size:18px">⚙️</span>
         <span style="font-weight:800;font-size:14.5px;color:var(--text)">爆款创作 Agent 模型与技能配置</span>
@@ -24593,7 +24870,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <div style="padding:20px;display:flex;flex-direction:column;gap:16px;max-height:75vh;overflow-y:auto">
-      <div style="background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text);line-height:1.5">
+      <div style="background:rgba(240,136,62,0.08);border:1px solid rgba(240,136,62,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text);line-height:1.5">
         💡 <strong>默认配置机制</strong>：如不做任何修改，系统将 100% 自动继承后台「控制中心」中配置生效的默认模型服务、对话模型与生图引擎。
       </div>
 
@@ -24682,7 +24959,7 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <div id="wb-floating-agent-window">
-  <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(139,92,246,0.18),rgba(99,102,241,0.25))">
+  <div style="padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(135deg,rgba(240,136,62,0.18),rgba(240,136,62,0.25))">
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-size:16px">🤖</span>
       <span style="font-weight:700;font-size:13px;color:var(--text)">工作台贴身 Copilot</span>
@@ -24722,7 +24999,7 @@ document.addEventListener('DOMContentLoaded', () => {
     <input type="text" id="wb-agent-input" placeholder="输入要求（或点击上方快捷指令）…" 
            style="flex:1;font-size:12px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.25);border:1px solid var(--border);color:var(--text)"
            onkeydown="if(event.key==='Enter')sendWbAgentMessage()">
-    <button type="button" class="btn btn-sm" onclick="sendWbAgentMessage()" style="background:#8b5cf6;color:#fff;border:none;font-weight:700;padding:4px 12px;font-size:12px">发送</button>
+    <button type="button" class="btn btn-sm" onclick="sendWbAgentMessage()" style="background:#f0883e;color:#fff;border:none;font-weight:700;padding:4px 12px;font-size:12px">发送</button>
 </div>
 
 <!-- ==================== 📱 移动端沉浸式 6 Tab 底部导航栏 ==================== -->
@@ -24786,6 +25063,8 @@ function switchMobileNav(panelKey) {
 <!-- V11 三栏外壳：栏宽拖拽 / 右栏资产台 / 专注放大。非 v2 布局下自行空转退出。 -->
 <script src="/static/js/workbench-shell.js"></script>
 <script src="/static/js/workbench-rail.js"></script>
+<!-- V12 右栏舞台：左栏恒定 / 中栏恒定对话 / 功能页在右栏打开并可全屏 -->
+<script src="/static/js/workbench-stage.js"></script>
 
 
 

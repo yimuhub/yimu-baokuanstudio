@@ -199,7 +199,7 @@ tr:hover td {{
 }}
 .badge.orange {{ background: rgba(240,136,62,0.2); color: #f0883e; border: 1px solid rgba(240,136,62,0.3); }}
 .badge.green {{ background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }}
-.badge.purple {{ background: rgba(168,85,247,0.2); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }}
+.badge.purple {{ background: rgba(168,85,247,0.2); color: #ff9d55; border: 1px solid rgba(168,85,247,0.3); }}
 .badge.blue {{ background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }}
 
 /* 时间轴 */
@@ -387,11 +387,28 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V11.1.1 -->
+      <!-- V12.0.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌊 V11.1.1 · 江河曲 (River Rhapsody)</span>
+          <span class="t-ver">🌲 V12.0.0 · 松涛境 (Pinewave Realm)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">交互模型重构：左栏恒定、中栏恒定对话，所有功能页面在右栏打开并可全屏。全站主色收敛为品牌橙。</div>
+        <ul class="t-list">
+          <li><b>🧭 中栏永不切换</b>：极简对话栏被固定，任何菜单点击都不会把它替换掉；</li>
+          <li><b>🪟 右栏成为舞台</b>：点左侧任意功能，对应面板整体搬进右栏，业务事件与状态原样保留；</li>
+          <li><b>⛶ 可全屏</b>：舞台头全屏按钮 / 双击标题 / Esc 三级控制，全屏时左栏与对话栏一并让位；</li>
+          <li><b>🎨 主色统一</b>：清掉 8 种紫色变体共 100+ 处，全部收敛为品牌橙 <code>#f0883e</code>；</li>
+          <li><b>🧩 细节统一</b>：二级树改手风琴、子标签换行不裁切、卡片去高亮描边、按钮不再压成两行。</li>
+        </ul>
+      </div>
+
+      <!-- V11.1.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🌊 V11.1.1 · 江河曲 (River Rhapsody)</span>
+          <span class="badge blue">已归档 · Archived</span>
           <span class="t-date">2026-11-04</span>
         </div>
         <div class="t-desc">实机像素校准：把原型橙还给主按钮，左栏底栏改成两行不再挤压，顶栏在 1280 宽下不再重叠。功能零增减。</div>

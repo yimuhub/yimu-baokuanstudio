@@ -1241,7 +1241,7 @@
     });
 
     var textColors = ["#23221f", "#666666", "#8a8a8a", "#c0392b", "#e67e22", "#f1c40f", "#2ecc71", "#16a085",
-      "#0f766e", "#2980b9", "#2c3e50", "#8e44ad", "#e91e63", "#b03a2e", "#7f8c8d", "#1abc9c",
+      "#0f766e", "#2980b9", "#2c3e50", "#e05a10", "#e91e63", "#b03a2e", "#7f8c8d", "#1abc9c",
       "#ff6b6b", "#ffd93d", "#6bcb77", "#4d96ff"];
     t.get("swatches-text").innerHTML = textColors.map(function (c) {
       return '<button type="button" class="rte-swatch" data-c="' + c + '" style="background:' + c + '"></button>';

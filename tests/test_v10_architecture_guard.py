@@ -13,7 +13,7 @@ def test_v10_single_source_of_truth():
     import json
 
     state = json.loads((ROOT / "release-codenames.json").read_text(encoding="utf-8"))
-    assert version.__version__.startswith("11.")
+    assert version.__version__.startswith(("11.", "12."))
     assert version.__version__ == state["current_version"]
     assert version.__codename__ == state["current_codename_zh"]
     assert version.__codename_en__ == state["current_codename_en"]

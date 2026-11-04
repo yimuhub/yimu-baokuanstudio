@@ -34,8 +34,8 @@ from web.admin import app
 
 def test_v920_version_single_source_of_truth():
     """验证版本单一真源为 10.x / 10.1 / 10.0.1 / 10.0.0"""
-    assert version.__version__.startswith(("10.", "11.")) or version.__version__ in ("10.1", "10.0.1", "10.0.0", "9.4.5")
-    assert getattr(version, "__codename__", "") in ("鸿蒙始", "澄音境", "长风谣", "沧海吟", "山岳赋", "江河曲")
+    assert version.__version__.startswith(("10.", "11.", "12.")) or version.__version__ in ("10.1", "10.0.1", "10.0.0", "9.4.5")
+    assert getattr(version, "__codename__", "") in ("鸿蒙始", "澄音境", "长风谣", "沧海吟", "山岳赋", "江河曲", "松涛境")
 
 
 def test_releases_page_no_pricing_menu_and_has_v920():

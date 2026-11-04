@@ -17,7 +17,7 @@
    --primary: #f0883e;
    --success: #3fb950;
    --info: #58a6ff;
-   --purple: #a855f7;
+   --purple: #f0883e;
    --danger: #f85149;
  }
  *{box-sizing:border-box}
@@ -397,7 +397,7 @@ async function loadPlans(){
         cap.dramas_exact + ' 条）</span>';
     return '<div class="plan' + (p.code === 'pro' ? ' hot' : '') + '">' +
       (p.code === 'pro' ? '<span class="plan-ribbon">🔥 主力推荐</span>' : '') +
-      (p.code === 'studio' ? '<span class="plan-ribbon" style="background:linear-gradient(135deg,#9333ea,#6366f1)">🏢 团队旗舰</span>' : '') +
+      (p.code === 'studio' ? '<span class="plan-ribbon" style="background:linear-gradient(135deg,#e05a10,#f0883e)">🏢 团队旗舰</span>' : '') +
       '<div class="pname">' + esc(p.name) + (isCur ? ' <span class="badge info">当前档位</span>' : '') + '</div>' +
       '<div class="ptag">' + esc(p.tagline) + '</div>' +
       '<div class="price">' + (p.price_yuan > 0 ? '¥' + p.price_yuan : '免费') +

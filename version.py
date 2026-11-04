@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: BUSL-1.1
 """全局版本号定义（单一真源）。"""
 
-__version__ = "11.1.1"
-__codename__ = "江河曲"
-__codename_en__ = "River Rhapsody"
-__slogan__ = "江流不息 河山入曲 · 品牌主色与左 / 中 / 右三栏细节全面修补，实机截图逐像素校准 · 原生安装包 Win/macOS/Linux 开箱即用"
-__slogan_cn__ = "江流不息 河山入曲 · 品牌主色与左 / 中 / 右三栏细节全面修补，实机截图逐像素校准 · 原生安装包 Win/macOS/Linux 开箱即用"
-__slogan_en__ = "Rivers Flow, Verses Follow. · Brand Color and Triple-Pane Details Recalibrated Against Real Screenshots"
+__version__ = "12.0.0"
+__codename__ = "松涛境"
+__codename_en__ = "Pinewave Realm"
+__slogan__ = "松风入座 涛自成章 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · 原生安装包 Win/macOS/Linux 开箱即用"
+__slogan_cn__ = "松风入座 涛自成章 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · 原生安装包 Win/macOS/Linux 开箱即用"
+__slogan_en__ = "Pines in the Wind, Chapters in the Waves · Fixed Rail, Fixed Chat, Every Feature Opens on the Right — Full Screen Ready"
 
 
 def get_version() -> str:

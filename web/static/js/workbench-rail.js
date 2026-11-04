@@ -377,11 +377,17 @@
     for (var i = 0; i < n; i++) {
       var d = ds[i] || {};
       var title = d.title || d.topic || d.name || ('未命名稿件 ' + (i + 1));
+      /* 平台：单值字段优先，其次 platforms 数组与来源平台 */
       var plat = d.platform || d.target_platform || '';
+      if (!plat && d.platforms && d.platforms.length) plat = d.platforms[0];
+      if (!plat) plat = d.source_platform || '';
+      /* 时间：updated_at 优先；草稿表实际只给 created_at（unix 秒，可能是字符串） */
       var when = '';
-      if (d.updated_at) {
+      var stamp = d.updated_at || d.created_at || d.saved_at || '';
+      if (stamp) {
         try {
-          var dt = new Date(d.updated_at);
+          var num = Number(stamp);
+          var dt = (!isNaN(num) && num > 1e9) ? new Date(num * 1000) : new Date(stamp);
           if (!isNaN(dt.getTime())) {
             var diff = (Date.now() - dt.getTime()) / 1000;
             if (diff < 3600) when = Math.max(1, Math.round(diff / 60)) + ' 分钟前';
@@ -393,7 +399,7 @@
       html += '<div class="rail-item' + (d.id === act ? ' on' : '') + '" data-did="' + esc(d.id) + '">' +
         '<div class="t">' + esc(title) + '</div>' +
         '<div class="s">' +
-        (plat ? '<em>' + esc(String(plat)) + '</em>' : '') +
+        (plat ? '<em>' + esc(platName(plat)) + '</em>' : '') +
         (when ? '<span>' + esc(when) + '</span>' : '') +
         '</div></div>';
     }
@@ -480,6 +486,23 @@
 
   // 注入块的固定文案：中英各一份，跟随当前语言
   function t(zh, en) { return isEn() ? en : zh; }
+
+  // 平台键 → 展示名（与 adapters/base.py 的 NAMES 对齐，多平台补齐）
+  var PLAT = {
+    wechat_mp: ['公众号', 'WeChat'],
+    xhs: ['小红书', 'Xiaohongshu'],
+    toutiao: ['今日头条', 'Toutiao'],
+    douyin: ['抖音', 'Douyin'],
+    zhihu: ['知乎', 'Zhihu'],
+    bilibili: ['B站', 'Bilibili'],
+    weibo: ['微博', 'Weibo'],
+    shipinhao: ['视频号', 'Channels']
+  };
+  function platName(key) {
+    var k = String(key || '');
+    var p = PLAT[k];
+    return p ? (isEn() ? p[1] : p[0]) : k;
+  }
 
   function syncHeaderSub() {
     var sub = byId('rail-headsub');

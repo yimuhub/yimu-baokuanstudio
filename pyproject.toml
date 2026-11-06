@@ -1,7 +1,7 @@
 [project]
 name = "yimu-baokuanstudio"
-version = "12.1.0"
-description = "一幕·YIMU 爆款工作室 V12.1.0 (竹韵篇 · Bamboo Rhythm) — 全自主 Multi-Agent 全媒体内容与影视短剧创作系统"
+version = "13.0.0"
+description = "一幕·YIMU 爆款工作室 V13.0.0 (梅雪镜 · Plum-Snow Mirror) — 全自主 Multi-Agent 全媒体内容与影视短剧创作系统"
 readme = "README.md"
 requires-python = ">=3.9"
 

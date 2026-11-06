@@ -89,11 +89,9 @@ def screenshot_batch(items: list[tuple[str, Path]], width: int = 1080, height: i
         return True
     try:
         from playwright.sync_api import sync_playwright
+        from core.browser_path import launch_chromium
         with sync_playwright() as p:
-            try:
-                browser = p.chromium.launch(headless=True, channel="chrome", args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"])
-            except Exception:
-                browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"])
+            browser = launch_chromium(p.chromium, headless=True, channel="chrome", args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"])
             page = browser.new_page(viewport={"width": width, "height": height})
             
             for html_str, out_png in items:

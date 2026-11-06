@@ -41,15 +41,15 @@ Name: "chinesesimp"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
-; 打包源码、资源以及嵌入式 Python runtime
+; 打包 A2 全功能离线 bundle（runtime / site-packages / chromium / app）
 Source: "..\..\dist\bundle_win\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\web\static\favicon.ico"
+Name: "{group}\{#MyAppName}"; Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\app\web\static\favicon.ico"
 Name: "{group}\一键启动(调试控制台)"; Filename: "{app}\一键启动.bat"; WorkingDir: "{app}"
 Name: "{group}\一键升级助手"; Filename: "{app}\一键升级.bat"; WorkingDir: "{app}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\web\static\favicon.ico"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\app\web\static\favicon.ico"
 
 [Run]
 Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent

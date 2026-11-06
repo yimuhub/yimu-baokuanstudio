@@ -15,8 +15,8 @@ import version
 
 def test_v90_version_single_source_of_truth():
     """验证版本单一真源（鸿蒙始 · 动态版本单一真源）"""
-    assert version.__version__.startswith(("10.", "11.", "12.")) or version.__version__ in ("10.1", "10.0.1", "10.0.0", "9.4.5")
-    assert version.__codename__ in ("鸿蒙始", "澄音境", "长风谣", "沧海吟", "山岳赋", "江河曲", "松涛境", "竹韵篇")
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.")) or version.__version__ in ("10.1", "10.0.1", "10.0.0", "9.4.5")
+    assert version.__codename__ in ("鸿蒙始", "澄音境", "长风谣", "沧海吟", "山岳赋", "江河曲", "松涛境", "竹韵篇", "梅雪镜")
 
     from web.admin import get_html_page, get_mobile_html_page
     index_html = get_html_page()
@@ -59,7 +59,7 @@ def test_v90_releases_showcase_page_and_api():
     r_api = client.get("/api/releases")
     assert r_api.status_code == 200
     d = r_api.json()
-    assert d.get("current_version").startswith(("10.", "11.", "12.")) or d.get("current_version") in ("10.1", "10.0.1", "10.0.0")
+    assert d.get("current_version").startswith(("10.", "11.", "12.", "13.")) or d.get("current_version") in ("10.1", "10.0.1", "10.0.0")
     assert d.get("licensor") == "yimu.hyipf.com"
     assert len(d.get("releases", [])) >= 4
 

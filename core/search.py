@@ -125,10 +125,8 @@ def toutiao_search(keyword: str, limit: int = 12) -> list[dict]:
     kw = urllib.parse.quote(keyword)
     out, seen = [], set()
     with sync_playwright() as p:
-        try:
-            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
-        except Exception:
-            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check"])
+        from core.browser_path import launch_chromium
+        browser = launch_chromium(p.chromium, headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
         ctx = browser.new_context(user_agent=UA, viewport={"width": 1440, "height": 900})
         pg = ctx.new_page()
         pg.goto(f"https://so.toutiao.com/search?dvpf=pc&source=input&keyword={kw}",
@@ -195,10 +193,8 @@ def toutiao_detail(url: str) -> str:
         return ""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        try:
-            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
-        except Exception:
-            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check"])
+        from core.browser_path import launch_chromium
+        browser = launch_chromium(p.chromium, headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
         pg = browser.new_context(user_agent=UA).new_page()
         try:
             pg.goto(url, timeout=25000, wait_until="domcontentloaded")

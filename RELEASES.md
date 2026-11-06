@@ -4,6 +4,28 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## ❄️ Version 13.0.0 · A2 Full Offline Installer · 2026-11-06
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "13.0.0"`, `__codename__ = "梅雪镜"`, `__codename_en__ = "Plum-Snow Mirror"`)
+
+The desktop installers used to be 1–3 MB because they were **source archives with an installer shell** —
+no Python runtime, no dependencies, and several required directories were missing entirely.
+On a clean machine the app could not even import `web.admin` (`ModuleNotFoundError: gateway`).
+13.0.0 rebuilds the delivery chain so every prerequisite is installed at build time.
+
+| Area | What changed |
+|---|---|
+| **Self-contained runtime** | Relocatable Python 3.11 (Windows embeddable / `python-build-standalone` on macOS & Linux) plus the full dependency set pre-installed into `runtime/site-packages`. |
+| **Built-in Chromium** | Chrome for Testing ships inside the bundle and serves both the desktop window and Playwright; no system browser needed. |
+| **Complete resources** | `gateway/`, `app/`, `skills/`, `config.yaml`, `installer/` and all other runtime directories are now included. |
+| **Official channel** | Factory config points at the official cloud gateway; bootstrap injects a bundled/claimed credential and never overwrites a user-supplied API Key. |
+| **Fresh factory quota** | Billing, demo calls and usage counters are regenerated from scratch — no developer balances or test users ship to customers. |
+| **Zero-touch installers** | `.exe`, `.dmg`, `.deb` and portable archives all exec the bundled interpreter. No venv, no pip, no Homebrew, no network. |
+| **CI gates** | Offline smoke test (`/api/version` via bundled Python) and a 90 MB archive floor on every platform; a source-only shell can no longer be published. |
+
+Expected compressed size: **roughly 250–320 MB per platform** (up from 1–3 MB), which is what a
+genuinely full-featured, zero-configuration desktop application costs.
+
 ## 🎋 Version 12.1.0 · Page-Enter Data · 2026-11-04
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "12.1.0"`, `__codename__ = "竹韵篇"`, `__codename_en__ = "Bamboo Rhythm"`)

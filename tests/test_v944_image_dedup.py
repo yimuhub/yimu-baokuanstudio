@@ -22,9 +22,9 @@ from adapters import wechat_mp
 
 def test_v944_version_single_source_of_truth():
     """验证全局版本号及代号为 V10.x 鸿蒙始"""
-    assert version.__version__.startswith(("10.", "11.", "12.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5", "9.4.4")
-    assert version.__codename__ in ("鸿蒙始", "澄音境", "澄澈镜", "长风谣", "沧海吟", "山岳赋", "江河曲", "松涛境", "竹韵篇")
-    assert version.__codename_en__ in ("Primordial Dawn", "Pristine Rhythm", "Pristine Mirror", "Longwind Ballad", "Oceanic Ode", "Mountain Hymn", "River Rhapsody", "Pinewave Realm", "Bamboo Rhythm")
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5", "9.4.4")
+    assert version.__codename__ in ("鸿蒙始", "澄音境", "澄澈镜", "长风谣", "沧海吟", "山岳赋", "江河曲", "松涛境", "竹韵篇", "梅雪镜")
+    assert version.__codename_en__ in ("Primordial Dawn", "Pristine Rhythm", "Pristine Mirror", "Longwind Ballad", "Oceanic Ode", "Mountain Hymn", "River Rhapsody", "Pinewave Realm", "Bamboo Rhythm", "Plum-Snow Mirror")
 
 
 def test_dedupe_markdown_images():

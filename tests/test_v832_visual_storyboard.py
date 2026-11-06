@@ -23,7 +23,7 @@ from core.agents import load_config, STAGE_DEFAULT_SKILLS
 
 def test_v8333_version_consistency():
     """验证版本单一真源升级为 10.x，杜绝任何旧版本写死徽章"""
-    assert version.__version__.startswith(("10.", "11.", "12.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0")
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0")
     from web.admin import get_html_page, get_mobile_html_page
     index_html = get_html_page()
     mobile_html = get_mobile_html_page()

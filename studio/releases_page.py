@@ -387,11 +387,27 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V12.1.0 -->
+      <!-- V13.0.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🎋 V12.1.0 · 竹韵篇 (Bamboo Rhythm)</span>
+          <span class="t-ver">❄️ V13.0.0 · 梅雪镜 (Plum-Snow Mirror)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-11-06</span>
+        </div>
+        <div class="t-desc">全功能离线安装包：自带 Python 运行时、全量依赖与浏览器内核，安装后双击即用，配额全新生成。</div>
+        <ul class="t-list">
+          <li><b>📦 A2 完全自给</b>：三平台安装包内置运行时与 Chrome for Testing，客户机零 Python / 零 pip / 零浏览器依赖；</li>
+          <li><b>🧩 全量资源</b>：gateway / app / skills / config.yaml 全部进包，干净机器启动不再报模块缺失；</li>
+          <li><b>🔑 官方通道</b>：内置官方凭证与出厂赠送额度，支持随时添加自定义 API Key；</li>
+          <li><b>🧪 离线验收</b>：断网冒烟 + 包体积下限门禁，杜绝再发出源码壳。</li>
+        </ul>
+      </div>
+
+      <!-- V12.1.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🎋 V12.1.0 · 竹韵篇 (Bamboo Rhythm)</span>
+          <span class="badge blue">已归档 · Archived</span>
           <span class="t-date">2026-11-04</span>
         </div>
         <div class="t-desc">全站进页即取真数据，页面不再停在「加载中」；控制中心工单流程五步可视化。</div>

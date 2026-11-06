@@ -42,6 +42,23 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [13.0.0] - 2026-11-06 · 梅雪镜 (Plum-Snow Mirror) · 全功能离线安装包 (A2 Full Offline Bundle)
+
+> 这次是 major：新增/改进 7 项，按 `VERSION_RULES.md` 第二章 X+1、Y/Z 归零。
+
+### Added
+- **A2 完全自给分发包**：新增 `scripts/build_full_bundle.py`，把所有运行条件在构建机一次装好 —— 自带 Python 3.11 运行时、预装全量依赖、内置 Chrome for Testing、全量源码资源、重新生成的出厂配额。客户机安装后双击即用，不需要 Python、不需要 venv、不需要 pip、不需要浏览器、不需要联网。
+- **内置浏览器内核**：`core/browser_path.py` 统一把内置 Chromium 供给桌面窗口（`desktop.py`）与 Playwright（`core/render_card.py`、`core/search.py`）；开发模式无内置目录时行为完全不变。
+- **内置官方通道与凭证**：出厂配置指向官方云端网关（不再残留开发机 `127.0.0.1:8787`）；`scripts/first_run_bootstrap.py` 首次启动按「随包凭证 → 环境变量 → 官方网关设备试用凭证」注入，用户在设置页填的自定义 API Key 永不覆盖，删除自定义凭证后自动切回官方通道。
+- **出厂配额重新生成**：`billing.json` / `free_demo_calls.json` / `llm_usage.json` 等全新生成（free 档 + 出厂赠送额度、零消费历史），不再携带开发机 999999 余额与测试用户记录。
+- **离线冒烟与体积门禁**：`scripts/verify_bundle.py` 校验全量资源、预装依赖、内置浏览器、出厂配置与配额，并用自带解释器启动服务请求 `/api/version`；压缩产物低于 90 MB 直接判定「退化成源码壳」。
+
+### Fixed
+- **桌面客户端只有几兆、装完起不来**：旧打包器只复制 `core/studio/web/adapters/docs`，`--with-runtime` 默认 False 且函数里没有 `pip install`；`gateway/`、`app/`、`skills/`、`config.yaml` 全都没进包，模拟客户安装后 `from web.admin import app` 直接 `ModuleNotFoundError: No module named 'gateway'`。
+- **客户机现装依赖**：Linux `.deb` 的 `/usr/bin/yimu-studio`、macOS `.dmg` 的 launcher、Windows `一键启动.bat` 全部改为直接 exec 自带解释器；`.deb` 的 `Depends` 去掉 `python3* / python3-pip`，macOS 不再弹窗要求 `brew install python`。
+- **不存在的数据库自愈调用**：`desktop.py` 里 `core.db.auto_heal_all_sqlite_databases` 并不存在、异常被吞掉，改为由首次启动自举统一创建数据目录与 SQLite 占位。
+- **原生窗口永远降级**：`requirements.txt` 缺 `pywebview`，现随包预装；即使系统 WebView 不可用，也由内置 Chromium 以独立应用模式呈现窗口。
+
 ## [12.1.0] - 2026-11-04 · 竹韵篇 (Bamboo Rhythm) · 进页真数据 (Page-Enter Data)
 
 ### Added

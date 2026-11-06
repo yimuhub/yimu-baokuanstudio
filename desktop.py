@@ -24,6 +24,15 @@ sys.path.insert(0, str(ROOT))
 
 import version
 
+# 全功能离线分发包：必须在任何第三方 import 之前完成自举——激活自带 site-packages、
+# 生成出厂配额、写入内置官方凭证、创建数据目录。开发模式没有 runtime/ 时自动跳过。
+try:
+    from scripts.first_run_bootstrap import bootstrap as _first_run_bootstrap
+    BOOTSTRAP = _first_run_bootstrap()
+except Exception as _boot_err:  # 自举失败绝不阻断桌面启动
+    BOOTSTRAP = {}
+    print(f"[首次启动] 自举跳过: {_boot_err}")
+
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = int(os.environ.get("PORT", "8790"))
 APP_URL = f"http://{DEFAULT_HOST}:{DEFAULT_PORT}"
@@ -96,6 +105,15 @@ def try_launch_browser_app_mode(url: str) -> bool:
             "microsoft-edge-stable",
         ])
 
+    # A2 离线包自带 Chrome for Testing，优先于系统浏览器（客户机无需安装任何浏览器）
+    try:
+        from core.browser_path import bundled_chromium
+        _builtin = bundled_chromium()
+        if _builtin:
+            candidates.insert(0, _builtin)
+    except Exception:
+        pass
+
     for exe in candidates:
         if sys.platform.startswith("linux"):
             import shutil
@@ -116,12 +134,8 @@ def try_launch_browser_app_mode(url: str) -> bool:
 
 def start_desktop_app():
     """主桌面启动入口。"""
-    # 1. 确保数据目录与数据库自愈
-    try:
-        from core.db import auto_heal_all_sqlite_databases
-        auto_heal_all_sqlite_databases()
-    except Exception:
-        pass
+    # 1. 数据目录、出厂配额、SQLite 占位与官方凭证由 first_run_bootstrap 在启动时完成
+    #    （原先这里调用的数据库自愈函数并不存在，异常一直被 except 吞掉）。
 
     # 2. 如果服务尚未启动，则拉起 Uvicorn 后台服务线程
     if not is_port_in_use(DEFAULT_PORT):

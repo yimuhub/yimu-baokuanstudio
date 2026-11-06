@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: BUSL-1.1
 """全局版本号定义（单一真源）。"""
 
-__version__ = "12.1.0"
-__codename__ = "竹韵篇"
-__codename_en__ = "Bamboo Rhythm"
-__slogan__ = "竹影筛光 韵自成篇 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · 原生安装包 Win/macOS/Linux 开箱即用"
-__slogan_cn__ = "竹影筛光 韵自成篇 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · 原生安装包 Win/macOS/Linux 开箱即用"
-__slogan_en__ = "Bamboo Light Through the Leaves, Every Page in Its Own Rhythm · Fixed Rail, Fixed Chat, Every Feature Opens on the Right — Full Screen Ready"
+__version__ = "13.0.0"
+__codename__ = "梅雪镜"
+__codename_en__ = "Plum-Snow Mirror"
+__slogan__ = "梅映雪窗 镜里成章 · 全功能离线安装包 自带运行时 全量依赖 内置浏览器 出厂配额 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · Win/macOS/Linux 安装即用"
+__slogan_cn__ = "梅映雪窗 镜里成章 · 全功能离线安装包 自带运行时 全量依赖 内置浏览器 出厂配额 · 左栏恒定 中栏恒定对话 功能全在右栏展开 全屏查看 · Win/macOS/Linux 安装即用"
+__slogan_en__ = "Plum Blossom at the Snow Window, Every Page a Mirror · Fully self-contained offline installer: bundled Python, all dependencies, built-in Chromium, fresh factory quota · Fixed Rail, Fixed Chat, Every Feature on the Right · Install and run on Win/macOS/Linux"
 
 
 def get_version() -> str:

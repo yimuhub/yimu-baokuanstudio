@@ -1,8 +1,8 @@
 {
-  "current_version": "12.1.0",
-  "current_codename_zh": "竹韵篇",
-  "current_codename_en": "Bamboo Rhythm",
-  "next_index": 9,
+  "current_version": "13.0.0",
+  "current_codename_zh": "梅雪镜",
+  "current_codename_en": "Plum-Snow Mirror",
+  "next_index": 10,
   "sequence": [
     {
       "zh": "曦光序",
@@ -389,6 +389,12 @@
       "zh": "竹韵篇",
       "en": "Bamboo Rhythm",
       "date": "2026-11-04"
+    },
+    {
+      "version": "v13.0.0",
+      "zh": "梅雪镜",
+      "en": "Plum-Snow Mirror",
+      "date": "2026-11-06"
     }
   ]
 }

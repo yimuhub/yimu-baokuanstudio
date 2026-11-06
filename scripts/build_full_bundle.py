@@ -238,9 +238,12 @@ def setup_runtime(stage: Path, plat: str, skip: bool) -> dict:
         if not asset:
             raise RuntimeError(f"未找到 {triple} 的 Python 3.11 install_only 构建产物")
         arc = _download(asset["browser_download_url"], DIST / "cache" / asset["name"])
+        # 解压到 dist/cache 而非 stage 内：既不触发批量删除保护，也不会被打进分发包
+        tmp = DIST / "cache" / f"pbs_{plat}_{os.getpid()}"
+        ensure_dir(tmp)
         with tarfile.open(arc) as tf:
-            tf.extractall(stage / "_pbs")
-        inner = stage / "_pbs" / "python"
+            tf.extractall(tmp)
+        inner = tmp / "python"
         if not inner.is_dir():
             raise RuntimeError("python-build-standalone 解压结构异常")
         for item in inner.iterdir():
@@ -249,7 +252,6 @@ def setup_runtime(stage: Path, plat: str, skip: bool) -> dict:
                 shutil.copytree(item, dest, dirs_exist_ok=True)
             else:
                 shutil.copy2(item, dest)
-        shutil.rmtree(stage / "_pbs", ignore_errors=True)
         py = next(p for p in (runtime / "bin" / "python3", runtime / "bin" / "python") if p.exists())
         try:
             py.chmod(py.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -406,10 +408,12 @@ def pack_archive(stage: Path, plat: str) -> Path:
     return out
 
 
-def build(plat: str, skip: bool = False, pack: bool = True) -> dict:
+def build(plat: str, skip: bool = False, pack: bool = True, fresh: bool = False) -> dict:
     ensure_dir(DIST)
     stage = stage_for(plat)
-    if stage.exists():
+    # 默认覆盖式重建（幂等），避免删除上千文件触发托管环境的批量删除保护；
+    # CI 使用全新 runner，本来就没有旧 stage；需要严格干净构建时传 --fresh。
+    if fresh and stage.exists():
         shutil.rmtree(stage)
     ensure_dir(stage)
     log(f"开始构建 {plat} 全功能离线包 (V{version.__version__})")
@@ -435,10 +439,11 @@ def main() -> None:
     ap.add_argument("--platform", choices=["win", "mac", "linux", "all"], default="all")
     ap.add_argument("--skip-download", action="store_true", help="只生成结构（本地门禁测试用）")
     ap.add_argument("--no-pack", action="store_true", help="不生成便携包，由安装器脚本负责")
+    ap.add_argument("--fresh", action="store_true", help="先清空旧 stage 再构建（需允许批量删除）")
     args = ap.parse_args()
     plats = ["win", "mac", "linux"] if args.platform == "all" else [args.platform]
     for p in plats:
-        build(p, skip=args.skip_download, pack=not args.no_pack)
+        build(p, skip=args.skip_download, pack=not args.no_pack, fresh=args.fresh)
 
 
 if __name__ == "__main__":

@@ -15,8 +15,8 @@ cd "$ROOT_DIR"
 
 VERSION="$(python3 -c "import version; print(version.__version__)")"
 APP_NAME="一幕·YIMU 爆款工作室"
-APP_BUNDLE="$DIST_DIR/dmg_stage/$APP_NAME.app"
-DMG_STAGE="$DIST_DIR/dmg_stage"
+DMG_STAGE="$DIST_DIR/dmg_stage_$(date +%s)"
+APP_BUNDLE="$DMG_STAGE/$APP_NAME.app"
 OUTPUT_DMG="$DIST_DIR/YIMU-Studio-macOS-v$VERSION.dmg"
 
 echo "============================================================"
@@ -32,7 +32,6 @@ if ! grep -q 'A2-full-offline' "$FULL_BUNDLE/MANIFEST.json"; then
   exit 1
 fi
 
-rm -rf "$DMG_STAGE"
 mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Resources/bundle"
 
@@ -77,7 +76,10 @@ EOF
 chmod +x "$APP_BUNDLE/Contents/MacOS/yimu-launcher"
 
 echo "正在注入完整离线 bundle ..."
-cp -R "$FULL_BUNDLE"/. "$APP_BUNDLE/Contents/Resources/bundle/"
+python3 - "$FULL_BUNDLE" "$APP_BUNDLE/Contents/Resources/bundle" <<'PYEOF'
+import shutil, sys
+shutil.copytree(sys.argv[1], sys.argv[2], dirs_exist_ok=True)
+PYEOF
 ln -s /Applications "$DMG_STAGE/Applications"
 
 cat <<EOF > "$DMG_STAGE/使用说明.txt"
@@ -91,7 +93,6 @@ EOF
 echo "正在使用 hdiutil 压制原生 DMG 磁盘映像..."
 rm -f "$OUTPUT_DMG"
 hdiutil create -volname "${APP_NAME}" -srcfolder "$DMG_STAGE" -ov -format UDZO "$OUTPUT_DMG"
-rm -rf "$DMG_STAGE"
 
 echo "============================================================"
 echo "macOS 全功能 DMG 安装包构建成功: $OUTPUT_DMG"

@@ -48,8 +48,10 @@ jobs:
 
   build-macos:
     name: Build macOS Full Disk Image (.dmg / .tar.gz)
-    runs-on: macos-14
-    timeout-minutes: 50
+    # 不要用写死的 macos-14：该镜像标签下线后作业会以「零步骤 cancelled」结束
+    # （runner_id=0、started_at == completed_at），发布阶段只拿到 Win/Linux 产物。
+    runs-on: macos-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

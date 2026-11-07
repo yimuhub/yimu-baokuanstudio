@@ -42,6 +42,27 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [14.0.0] - 2026-11-07 · 兰心曲 (Orchid Melody) · 亮色统一与 WorkBuddy 式输入框
+
+> 这次是 major：新增/改进 7 项，按 `VERSION_RULES.md` 第二章 X+1、Y/Z 归零。
+
+### Added
+- **中栏输入框改造为 WorkBuddy 形态**：`cb-composer` 结构落地 —— 附件区、输入区、操作条三段式。左下角 `＋` 传附件、模型下拉直选、`✨ 优化提示词`，右下角字数与圆形发送/停止。附件以 chip 呈现，可单个移除。
+- **附件上传与正文抽取**：新增 `POST /api/copilot/attach` 与 `core/copilot_files.py`。txt/md/csv/json 多编码兜底（utf-8 / gb18030 / utf-16…）、docx 走 zipfile 取 `word/document.xml` 并按段落保留换行、pdf 走 pypdf（缺失时静默返回空正文，不让上传失败）、图片落盘并挂静态路径。单文件 10MB、单次 6 个、正文 12000 字截断。
+- **提示词一键优化**：新增 `POST /api/copilot/polish_prompt` 与 `core/prompt_polish.py`。有可用模型时交给模型改写（保留原意、补全维度），返回 `source="llm"`；模型不可用时按平台结构模板补全，返回 `source="template"` 并在前端如实提示「已按结构模板补全」。
+- **`llm.chat` 支持 `max_tokens`**：交互式短任务终于能限制生成长度。不传时行为完全不变，长文创作链路不受影响。
+- **亮色模式语义 token 体系**：`--card2 / --border2 / --border3 / --text-dim / --active / --hover / --accbg` 七个 token 首次在 `:root` 与 `[data-theme="light"]` 内显式定义。
+
+### Fixed
+- **亮色模式下大片看不清**：这七个 token 此前从未定义，全部落到 `var(--x, 深色兜底)`，导致左栏选中项是「深底压深字」（实测对比度 1.06:1，等于看不见）、空态引导卡与输入条整块发黑。补全 token 后逐页审计，低对比文本从 22/39/57 条收敛到 0–1 条。
+- **发送按钮被压扁**：`#btn-copilot-send` 作为 flex 子项被 textarea 撑成 28×42，`border-radius:50%` 在非正方形上变成椭圆。现锁定 `32×32` + `aspect-ratio: 1/1` + `flex: 0 0 32px`，任何输入高度下都是正圆；文字箭头改为内联 SVG。
+- **提示词优化点了转半分钟没反应**：默认通道解析到推理型模型，不设上限时一路生成到上下文尽头（35–45 秒），设了上限又把 token 全烧在思维链上、正文为空，两种表现合起来就是「转很久、最后什么都没给、静默套模板」。现改为「直出型模型优先 + max_tokens 封顶 + 18 秒总预算 + 10 分钟结果缓存」，实测 45 秒降至约 4 秒，且真正走的是大模型。
+- **白底上的深色强调色不达标**：模板里大量内联 `style="color:#f0883e"` 一类深色主题色，在白底只有 1.4–3.8:1。用属性选择器在亮色主题内统一折算到同色相更深一档，共 40 条规则，不动 HTML 结构。
+- **紫色残留**：14 处 `#ede9fe / #c4b5fd / #e9d5ff / #faf5ff / #4f46e5 / #4338ca` 全部折算到暖橙同明度层级。
+
+### Changed
+- 亮色模式下主按钮与左栏「新建创作」改为白字橙底（`#c2410c`），替代原来的深棕字压橙底（对比度 3.58）。
+
 ## [13.0.0] - 2026-11-06 · 梅雪镜 (Plum-Snow Mirror) · 全功能离线安装包 (A2 Full Offline Bundle)
 
 > 这次是 major：新增/改进 7 项，按 `VERSION_RULES.md` 第二章 X+1、Y/Z 归零。

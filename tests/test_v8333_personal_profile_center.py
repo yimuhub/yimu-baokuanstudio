@@ -22,7 +22,7 @@ from web.admin import app
 
 def test_v8333_version_single_source_of_truth():
     """验证单一真源版本号已升级至 10.x"""
-    assert version.__version__.startswith(("10.", "11.", "12.", "13.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0")
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.", "14.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0")
     from web.admin import get_html_page, get_mobile_html_page
     index_html = get_html_page()
     mobile_html = get_mobile_html_page()

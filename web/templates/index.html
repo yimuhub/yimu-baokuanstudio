@@ -552,7 +552,7 @@ body {
 }
 [data-theme="light"] .extract-hero-card {
   background: linear-gradient(135deg, rgba(243, 232, 255, 0.6) 0%, #ffffff 100%) !important;
-  border: 1px solid #e9d5ff !important;
+  border: 1px solid #f7d3b4 !important;
 }
 [data-theme="light"] .res-card {
   background: #ffffff !important;
@@ -660,7 +660,7 @@ body {
   border-bottom: 1px solid #e2e8f0 !important;
 }
 [data-theme="light"] #stage-furnace-bar {
-  background: linear-gradient(135deg, #fff7ed 0%, #faf5ff 100%) !important;
+  background: linear-gradient(135deg, #fff7ed 0%, #fff3e6 100%) !important;
   border-bottom: 1px solid #fed7aa !important;
 }
 [data-theme="light"] .furnace-pill-group {
@@ -807,7 +807,7 @@ body {
   color: #334155 !important;
 }
 [data-theme="light"] .drama-step-item.active .drama-step-num {
-  background: #ea580c !important;
+  background: #c2410c !important;
   color: #ffffff !important;
 }
 [data-theme="light"] .drama-step-item.done {
@@ -869,7 +869,7 @@ body {
   color: #64748b !important;
 }
 [data-theme="light"] .aspect-pill-btn.active {
-  background: #ea580c !important;
+  background: #c2410c !important;
   color: #ffffff !important;
 }
 [data-theme="light"] .provider-card {
@@ -2710,9 +2710,9 @@ input[type=text]:focus, textarea:focus, select:focus {
   color: #1e293b;
 }
 [data-theme="light"] .copilot-msg.user .copilot-bubble {
-  background: #ede9fe;
-  border-color: #c4b5fd;
-  color: #7c3a10;
+  background: #fdeee2;
+  border-color: #f0a068;
+  color: #8a3a05;
 }
 
 /* 提示词气泡 Chips */
@@ -3143,7 +3143,7 @@ input[type=text]:focus, textarea:focus, select:focus {
   color: #f1f5f9 !important;
 }
 #wb-floating-agent-window .copilot-msg.user .copilot-bubble {
-  background: linear-gradient(135deg, #e05a10, #4f46e5) !important;
+  background: linear-gradient(135deg, #e05a10, #e05a10) !important;
   border: 1px solid #f0883e !important;
   color: #ffffff !important;
 }
@@ -3153,9 +3153,9 @@ input[type=text]:focus, textarea:focus, select:focus {
   color: #0f172a !important;
 }
 [data-theme="light"] #wb-floating-agent-window .copilot-msg.user .copilot-bubble {
-  background: #ede9fe !important;
-  border: 1px solid #c4b5fd !important;
-  color: #4338ca !important;
+  background: #fdeee2 !important;
+  border: 1px solid #f0a068 !important;
+  color: #c2410c !important;
 }
 
 /* =================== 📱 移动端深度重构响应式设计规范 =================== */
@@ -4436,7 +4436,8 @@ body[data-shell="v2"] > .side .side-foot > #side-user-profile-btn #side-user-tit
 body[data-shell="v2"] > .side .side-foot > #side-user-profile-btn #side-auth-badge {
   font-size: 9.5px !important; padding: 1px 6px !important; flex: 0 0 auto;
   display: inline-flex !important; align-items: center;
-  color: #3fb950 !important; background: rgba(63, 185, 80, .12) !important;
+  color: var(--ok-ink, #3fb950) !important;
+  background: var(--ok-soft, rgba(63, 185, 80, .12)) !important;
   border-radius: 5px !important; font-weight: 600 !important;
 }
 body[data-shell="v2"] > .side .side-foot .rail-icobtn { flex: 0 0 27px; }
@@ -4816,6 +4817,544 @@ body[data-shell="v2"] .stage-body { container-type: inline-size; }
 body[data-shell="v2"] .stage-body > .panel > h1:first-child,
 body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !important; }
 
+/* ==========================================================================
+   V14 · 亮色模式统一校正（Light Mode Consistency Pass）
+   --------------------------------------------------------------------------
+   问题根因：三栏壳层大量使用 var(--card2 / --border2 / --border3 / --active /
+   --text-dim) 的「暗色兜底值」，这些变量在亮色主题里从未定义 —— 于是亮色下
+   导航选中态、功能引导卡、输入框整块变成深色，深色文字压在深色底上（实测
+   对比度 1.02，等于看不见）。
+
+   本段做三件事：
+     1. 补齐 v2 专属 token，并为亮色主题给出对应值（含 --primary-ink 文字橙）；
+     2. 统一亮色下的选中态 / 徽章 / 边框对比度，逐条压到 WCAG AA（≥4.5:1）；
+     3. 声明 color-scheme，修正亮色下原生下拉、滚动条仍是深色的问题。
+   ========================================================================== */
+
+:root {
+  --card2: #0f1621;
+  --border2: #26313f;
+  --border3: #33415a;
+  --text-dim: #5c6a7d;
+  --active: #161d29;
+  --hover: rgba(255, 255, 255, .05);
+  --accbg: rgba(240, 136, 62, .12);
+  --primary-ink: #f7a05a;      /* 深色底上用的「文字橙」 */
+  --ok-ink: #3fb950;
+  --ok-soft: rgba(63, 185, 80, .14);
+}
+
+[data-theme="light"] {
+  --card2: #ffffff;
+  --border2: #e2e8f0;
+  --border3: #cbd5e1;
+  --text-dim: #64748b;
+  --active: #fdf1e7;
+  --hover: rgba(15, 23, 42, .045);
+  --accbg: rgba(234, 88, 12, .09);
+  --primary-ink: #b03a08;      /* 浅底上用的「文字橙」，对比度 4.9+ */
+  --danger: #b91c1c;           /* 白底红字 6.3:1，语义不变 */
+  --ok-ink: #166534;
+  --ok-soft: #effbf1;
+  color-scheme: light;
+}
+[data-theme="dark"], :root { color-scheme: dark; }
+
+/* ---------- 左栏：选中态不再是深色块 ---------- */
+[data-theme="light"] body[data-shell="v2"] > .side .nav-item.on {
+  background: var(--active) !important;
+  color: var(--primary-ink) !important;
+  font-weight: 600 !important;
+}
+[data-theme="light"] body[data-shell="v2"] > .side .nav-item.on .nav-icon {
+  filter: none !important;
+  opacity: 1;
+}
+[data-theme="light"] body[data-shell="v2"] > .side .nav-item:hover:not(.on) {
+  background: var(--hover) !important;
+  color: var(--text) !important;
+}
+/* 二级树当前项 */
+[data-theme="light"] body[data-shell="v2"] > .side .rail-sub.on,
+[data-theme="light"] body[data-shell="v2"] > .side .nav-sub.on {
+  background: var(--accbg) !important;
+  color: var(--primary-ink) !important;
+}
+
+/* ---------- 中栏：空态功能引导卡 ---------- */
+[data-theme="light"] body[data-shell="v2"] .rail-guide .rg-card {
+  background: #ffffff;
+  border-color: var(--border2);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+[data-theme="light"] body[data-shell="v2"] .rail-guide .rg-card:hover {
+  background: #fffaf6;
+  border-color: rgba(234, 88, 12, .35);
+}
+[data-theme="light"] body[data-shell="v2"] .rail-guide .rg-card .tx p,
+[data-theme="light"] body[data-shell="v2"] .rail-guide .rg-card .arw {
+  color: var(--text-dim);
+}
+
+/* ---------- 胶囊条 / 徽章 / 绿色状态 ---------- */
+[data-theme="light"] body[data-shell="v2"] .main-wrapper .rail-subbar .sb.on {
+  color: var(--primary-ink) !important;
+}
+[data-theme="light"] #side-auth-badge,
+[data-theme="light"] #side-auth-badge.badge.ok {
+  color: var(--ok-ink) !important;
+  background: var(--ok-soft) !important;
+  border-color: #bbf0c9 !important;
+}
+[data-theme="light"] #top-auth-text,
+[data-theme="light"] #top-auth-icon {
+  color: var(--ok-ink) !important;
+}
+[data-theme="light"] .badge.ok,
+[data-theme="light"] .badge.info {
+  color: var(--ok-ink) !important;
+}
+
+/* ---------- 订阅页内联深色步骤卡 ---------- */
+[data-theme="light"] #inapp-step-2,
+[data-theme="light"] #inapp-step-3,
+[data-theme="light"] #inapp-step-4 {
+  background: #ffffff !important;
+  border-color: var(--border2) !important;
+  color: var(--text) !important;
+}
+
+/* ==========================================================================
+   中栏输入框（V14 · 对齐 WorkBuddy 的 composer 形态）
+   结构：附件条 / 多行输入 / 底部工具条（附件、模型、提示词优化、发送）
+   ========================================================================== */
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-wrap {
+  flex: 0 0 auto;
+  padding: 8px 18px 12px;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-composer {
+  border: 1px solid var(--border2);
+  background: var(--card2);
+  border-radius: 14px;
+  padding: 10px 12px 9px;
+  transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-composer:focus-within {
+  border-color: rgba(240, 136, 62, .55);
+  box-shadow: 0 0 0 3px rgba(240, 136, 62, .12);
+}
+[data-theme="light"] body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-composer {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
+}
+
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-input {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  max-height: 160px;
+  padding: 2px 2px 4px;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px !important;
+  line-height: 1.7 !important;
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-input::placeholder {
+  color: var(--text-dim);
+}
+
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-left,
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-left { flex: 1 1 auto; }
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-right { flex: 0 0 auto; }
+
+/* 附件按钮 */
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-icon {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  padding: 0;
+  border-radius: 9px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-icon:hover {
+  color: var(--primary);
+  border-color: rgba(240, 136, 62, .45);
+  background: var(--accbg);
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-icon svg { display: block; }
+
+/* 模型选择 */
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-model-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 18px 0 8px;
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  color: var(--text-muted);
+  max-width: 210px;
+  min-width: 0;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-model-wrap > svg { flex: 0 0 13px; opacity: .9; }
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-model {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  max-width: 168px;
+  min-width: 0;
+  text-overflow: ellipsis;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-model-wrap::after {
+  content: "▾";
+  position: absolute;
+  right: 7px;
+  font-size: 9px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+
+/* 提示词优化 */
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 9px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11.5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-pill:hover:not(:disabled) {
+  color: var(--primary);
+  border-color: rgba(240, 136, 62, .45);
+  background: var(--accbg);
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-pill:disabled { opacity: .6; cursor: default; }
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-pill .cb-spark { font-size: 11px; }
+
+/* 优化进行中：按钮不换字也能看出在动（避免「点了没反应」的错觉） */
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-pill.is-busy {
+  opacity: 1;
+  cursor: progress;
+  color: var(--primary);
+  border-color: rgba(240, 136, 62, .5);
+  background: var(--accbg);
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-pill.is-busy .cb-spark {
+  animation: cb-polish-pulse 1s ease-in-out infinite;
+}
+@keyframes cb-polish-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.28); opacity: .55; }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-pill.is-busy .cb-spark {
+    animation: none;
+    opacity: .7;
+  }
+}
+
+/* 发送 / 停止：固定 32px 正圆，任何输入高度下都不许被压扁 */
+body[data-shell="v2"] #p-lite-mode .lite-col-left #btn-copilot-send,
+body[data-shell="v2"] #btn-copilot-send.rail-send {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  flex: 0 0 32px;
+  aspect-ratio: 1 / 1;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  font-size: 0 !important;
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+  box-shadow: 0 2px 8px rgba(240, 136, 62, .28);
+}
+body[data-shell="v2"] #btn-copilot-send.rail-send::after { content: none !important; }
+body[data-shell="v2"] #p-lite-mode .lite-col-left #btn-copilot-send:hover { filter: brightness(1.06); }
+body[data-shell="v2"] #p-lite-mode .lite-col-left #btn-copilot-send:active { transform: scale(.94); }
+body[data-shell="v2"] #p-lite-mode .lite-col-left #btn-copilot-send:disabled { opacity: .4; cursor: default; }
+body[data-shell="v2"] #p-lite-mode .lite-col-left #btn-copilot-send svg { display: block; }
+
+body[data-shell="v2"] #p-lite-mode .lite-col-left #btn-copilot-stop {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  flex: 0 0 32px;
+  aspect-ratio: 1 / 1;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 50% !important;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, .3);
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left #btn-copilot-stop svg { display: block; }
+
+/* 字数 / 提示行 */
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-count {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-hint {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 7px;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  min-height: 14px;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-hint #lite-tip {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-hint #copilot-status-indicator {
+  color: var(--primary-ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 附件 chip */
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-attach-list {
+  display: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-attach-list.has { display: flex; }
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 250px;
+  padding: 3px 7px 3px 9px;
+  border-radius: 8px;
+  border: 1px solid rgba(240, 136, 62, .35);
+  background: var(--accbg);
+  color: var(--text);
+  font-size: 11px;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-attach .nm {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-attach .sz { color: var(--text-dim); font-size: 10px; }
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-attach .x {
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 1px;
+  cursor: pointer;
+}
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-attach .x:hover { color: var(--danger); }
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-attach.pending { opacity: .7; }
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-attach.err {
+  border-color: rgba(248, 81, 73, .5);
+  background: rgba(248, 81, 73, .1);
+}
+/* 用户气泡里的附件清单 */
+body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(240, 136, 62, .35);
+  font-size: 11.5px;
+  line-height: 1.6;
+  opacity: .9;
+}
+
+/* ==========================================================================
+   亮色模式：其余高频低对比元素的统一兜底
+   ========================================================================== */
+[data-theme="light"] .btn.danger { color: #b91c1c !important; }
+[data-theme="light"] .badge.blue { color: #1d4ed8 !important; }
+[data-theme="light"] ::-webkit-scrollbar-thumb { background: #cbd5e1; }
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ---------- 第二轮：亮色下仍写死深色/浅色导致错配的组件 ---------- */
+[data-theme="light"] {
+  --primary: #c2410c;        /* 白底上的橙色文字 4.6:1，同时保证橙底白字 4.9:1 */
+  --primary-hover: #ea580c;
+  --success: #15803d;
+  --warn: #a16207;
+  --gold: #a16207;
+  --info: #1d4ed8;
+}
+
+/* 舞台内二级 Tab：原先写死 #f7a05a，浅色底上等于隐形 */
+[data-theme="light"] body[data-shell="v2"] .stage-body .sub-tab {
+  color: var(--text-muted) !important;
+}
+[data-theme="light"] body[data-shell="v2"] .stage-body .sub-tab:hover {
+  background: rgba(15, 23, 42, .05) !important;
+  color: var(--text) !important;
+}
+[data-theme="light"] body[data-shell="v2"] .stage-body .sub-tab.on {
+  background: rgba(194, 65, 12, .1) !important;
+  border-color: rgba(194, 65, 12, .3) !important;
+  color: var(--primary-ink) !important;
+}
+
+/* 顶栏：模式胶囊与登录态（原先用成功绿 #3fb950，白底上 2.3:1） */
+[data-theme="light"] .system-mode-toggle .sys-mode-btn { color: #475569 !important; }
+[data-theme="light"] .system-mode-toggle .sys-mode-btn.active { color: #7c2d12 !important; }
+[data-theme="light"] #top-auth-text,
+[data-theme="light"] #top-auth-icon { color: var(--ok-ink) !important; }
+
+/* 订阅页：账户横幅 / 算力卡 / 套餐卡在亮色下的配色 */
+[data-theme="light"] #p-pricing > .card {
+  background: linear-gradient(135deg, #fff7f1 0%, #ffffff 72%) !important;
+  border-color: rgba(194, 65, 12, .22) !important;
+}
+[data-theme="light"] #p-pricing .billing-plan-card {
+  background: #ffffff !important;
+  border-color: var(--border2) !important;
+  box-shadow: none !important;
+}
+[data-theme="light"] #p-pricing .billing-plan-card.selected {
+  background: #fffaf5 !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 2px 10px rgba(194, 65, 12, .12) !important;
+}
+[data-theme="light"] #inapp-pricing-balance { color: var(--ok-ink) !important; }
+[data-theme="light"] #inapp-pricing-consumed { color: var(--text) !important; }
+[data-theme="light"] #p-pricing [style*="rgba(13,17,23"] {
+  background: #f8fafc !important;
+  border-color: var(--border2) !important;
+}
+[data-theme="light"] #drama-script-stats { color: #0369a1 !important; }
+
+/* 分段控件与气泡描边：亮色下把灰阶压深一档，避免「看着像没有边」 */
+[data-theme="light"] body[data-shell="v2"] .stage-body .aspect-pill-btn { color: #475569 !important; }
+[data-theme="light"] body[data-shell="v2"] .stage-body .aspect-pill-btn.active { color: #ffffff !important; }
+[data-theme="light"] .copilot-msg.assistant .copilot-bubble { border-color: #dbe3ec; }
+[data-theme="light"] .copilot-msg.user .copilot-bubble { border-color: #f0b48a; }
+
+/* 步骤序号：浅橙圆底 + 深橙数字，别再橙压橙 */
+[data-theme="light"] [style*="background:rgba(240,136,62,0.25)"] {
+  background: #fde3d0 !important;
+  color: var(--primary-ink) !important;
+}
+
+/* 深色 toast 在亮色下保留（对比度最高），但描边跟着变浅 */
+[data-theme="light"] #toast { border-color: #334155 !important; }
+
+/* ---------- 第三轮：内联写死的深色主题强调色，在亮色下一律折算到同色系深阶 ---------- */
+/* 深色主题里 #f0883e / #58a6ff 这类亮色当文字色很跳，白底上只有 2.5:1。
+   这些颜色大量写在内联 style 里，改 HTML 风险大，统一在亮色主题内用属性选择器折算。 */
+[data-theme="light"] [style*="color:#f0883e"] { color: #c2410c !important; }
+[data-theme="light"] [style*="color: #f0883e"] { color: #c2410c !important; }
+[data-theme="light"] [style*="color:#f7a05a"] { color: #c2410c !important; }
+[data-theme="light"] [style*="color: #f7a05a"] { color: #c2410c !important; }
+[data-theme="light"] [style*="color:#ff9d55"] { color: #c2410c !important; }
+[data-theme="light"] [style*="color: #ff9d55"] { color: #c2410c !important; }
+[data-theme="light"] [style*="color:#ffd0a6"] { color: #9a3412 !important; }
+[data-theme="light"] [style*="color: #ffd0a6"] { color: #9a3412 !important; }
+[data-theme="light"] [style*="color:#58a6ff"] { color: #1d4ed8 !important; }
+[data-theme="light"] [style*="color: #58a6ff"] { color: #1d4ed8 !important; }
+[data-theme="light"] [style*="color:#388bfd"] { color: #1d4ed8 !important; }
+[data-theme="light"] [style*="color: #388bfd"] { color: #1d4ed8 !important; }
+[data-theme="light"] [style*="color:#38bdf8"] { color: #0369a1 !important; }
+[data-theme="light"] [style*="color: #38bdf8"] { color: #0369a1 !important; }
+[data-theme="light"] [style*="color:#3fb950"] { color: #15803d !important; }
+[data-theme="light"] [style*="color: #3fb950"] { color: #15803d !important; }
+[data-theme="light"] [style*="color:#56d364"] { color: #15803d !important; }
+[data-theme="light"] [style*="color: #56d364"] { color: #15803d !important; }
+[data-theme="light"] [style*="color:#7ee787"] { color: #15803d !important; }
+[data-theme="light"] [style*="color: #7ee787"] { color: #15803d !important; }
+[data-theme="light"] [style*="color:#07c160"] { color: #0a7d43 !important; }
+[data-theme="light"] [style*="color: #07c160"] { color: #0a7d43 !important; }
+[data-theme="light"] [style*="color:#00f2fe"] { color: #0e7490 !important; }
+[data-theme="light"] [style*="color: #00f2fe"] { color: #0e7490 !important; }
+[data-theme="light"] [style*="color:#ff2442"] { color: #c9152f !important; }
+[data-theme="light"] [style*="color: #ff2442"] { color: #c9152f !important; }
+[data-theme="light"] [style*="color:#f04134"] { color: #b91c1c !important; }
+[data-theme="light"] [style*="color: #f04134"] { color: #b91c1c !important; }
+[data-theme="light"] [style*="color:#e6162d"] { color: #b3121f !important; }
+[data-theme="light"] [style*="color: #e6162d"] { color: #b3121f !important; }
+[data-theme="light"] [style*="color:#f85149"] { color: #b91c1c !important; }
+[data-theme="light"] [style*="color: #f85149"] { color: #b91c1c !important; }
+[data-theme="light"] [style*="color:#ff7b72"] { color: #b91c1c !important; }
+[data-theme="light"] [style*="color: #ff7b72"] { color: #b91c1c !important; }
+[data-theme="light"] [style*="color:#e3b341"] { color: #a16207 !important; }
+[data-theme="light"] [style*="color: #e3b341"] { color: #a16207 !important; }
+[data-theme="light"] [style*="color:#d29922"] { color: #a16207 !important; }
+[data-theme="light"] [style*="color: #d29922"] { color: #a16207 !important; }
+[data-theme="light"] [style*="color:#f0b429"] { color: #a16207 !important; }
+[data-theme="light"] [style*="color: #f0b429"] { color: #a16207 !important; }
+
+/* 主按钮：亮色下橙底白字，别再用深棕字压浅橙底（3.58:1） */
+[data-theme="light"] body[data-shell="v2"] .btn.primary,
+[data-theme="light"] body[data-shell="v2"] > .side .rail-new {
+  background: #c2410c !important;
+  border-color: #c2410c !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 12px rgba(194, 65, 12, .26) !important;
+}
+[data-theme="light"] body[data-shell="v2"] > .side .rail-new span,
+[data-theme="light"] body[data-shell="v2"] > .side .rail-new svg {
+  color: #ffffff !important;
+}
+
 </style>
 </head>
 <body>
@@ -5029,7 +5568,7 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
         <span>💎 <span data-i18n="billing_credits">算力:</span></span>
         <span id="nav-token-bal">—</span>
         <span style="color:var(--text-muted);font-size:11px;font-weight:normal">Token</span>
-        <span style="color:rgba(255,255,255,0.25);margin:0 2px">|</span>
+        <span style="color:var(--text-dim);opacity:.75;margin:0 2px">|</span>
         <span class="badge ok" style="padding:2px 7px;font-size:10.5px" id="nav-tier-badge" data-i18n="plan_free">基础版</span>
         <span style="color:var(--primary);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:2px"><span data-i18n="billing_plans_pricing">套餐/价格</span> ▾</span>
       </div>
@@ -5070,8 +5609,8 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
           </div>
           <div style="display:flex;gap:8px;align-items:center">
             <!-- 精致重绘：极简草稿箱 -->
-            <button type="button" class="btn-lite-head-pill" onclick="openLiteDraftsModal()" title="打开极简草稿箱管理中枢，居中弹窗随时调取历史文章" style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:20px;font-size:12px;font-weight:700;color:#c4b5fd;background:linear-gradient(135deg,rgba(240,136,62,0.2),rgba(240,136,62,0.26));border:1px solid rgba(247,160,90,0.45);box-shadow:0 2px 8px rgba(240,136,62,0.22);cursor:pointer;transition:all 0.2s cubic-bezier(0.4,0,0.2,1)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#c4b5fd"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
+            <button type="button" class="btn-lite-head-pill" onclick="openLiteDraftsModal()" title="打开极简草稿箱管理中枢，居中弹窗随时调取历史文章" style="display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:20px;font-size:12px;font-weight:700;color:#f0a068;background:linear-gradient(135deg,rgba(240,136,62,0.2),rgba(240,136,62,0.26));border:1px solid rgba(247,160,90,0.45);box-shadow:0 2px 8px rgba(240,136,62,0.22);cursor:pointer;transition:all 0.2s cubic-bezier(0.4,0,0.2,1)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="color:#f0a068"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path><line x1="12" y1="11" x2="12" y2="17"></line><line x1="9" y1="14" x2="15" y2="14"></line></svg>
               <span>极简草稿箱</span>
             </button>
             <!-- 精致重绘：模型/技能 -->
@@ -5119,24 +5658,58 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
           <span class="copilot-chip" onclick="setCopilotPrompt('⚖️ 帮我对这篇文章进行多维质量评分体检，指出必须提升的要点')">⚖️ 多维质量体检与提分</span>
         </div>
 
-        <!-- 对话输入条 -->
-        <div style="padding:12px;border-top:1px solid var(--border);background:var(--card-bg)">
-          <div style="display:flex;gap:8px;align-items:flex-end">
-            <textarea id="copilot-input" rows="2" placeholder="随时告诉我您的想法（如：写一篇关于苹果AI的文章、让第二段更幽默）… 按 Enter 发送，Shift+Enter 换行" 
-                      style="flex:1;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-size:13px;line-height:1.5;resize:none;outline:none"
-                      onkeydown="handleCopilotKeyDown(event)"></textarea>
-            <button type="button" class="btn" id="btn-copilot-send" onclick="sendCopilotMessage()" 
-                    style="background:linear-gradient(135deg,#f7a05a,#f0883e);color:#fff;border:none;font-weight:700;padding:8px 16px;height:42px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:4px">
-              <span>⚡ 发送</span>
-            </button>
-            <button type="button" class="btn danger" id="btn-copilot-stop" onclick="stopCopilotGeneration()" 
-                    style="display:none;background:#ef4444;color:#fff;border:none;font-weight:700;padding:8px 16px;height:42px;border-radius:8px;cursor:pointer;align-items:center;gap:4px">
-              <span>⏹ 停止</span>
-            </button>
+        <!-- 对话输入条（V14 · 对齐 WorkBuddy 的输入框形态：附件 / 模型 / 提示词优化 / 圆形发送） -->
+        <div class="cb-wrap">
+          <div class="cb-composer" id="copilot-composer">
+            <div class="cb-attach-list" id="copilot-attach-list"></div>
+            <textarea id="copilot-input" rows="1" class="cb-input"
+                      placeholder="描述你想创作的爆款，或点左下角 ＋ 上传参考文档…"
+                      onkeydown="handleCopilotKeyDown(event)"
+                      oninput="syncCopilotInputState()"></textarea>
+            <input type="file" id="copilot-file-input" multiple hidden
+                   accept=".txt,.md,.markdown,.csv,.json,.log,.yaml,.yml,.html,.htm,.xml,.pdf,.docx,.png,.jpg,.jpeg,.webp,.gif"
+                   onchange="onCopilotFilesPicked(this)">
+            <div class="cb-bar">
+              <div class="cb-left">
+                <button type="button" class="cb-icon" id="copilot-attach-btn" onclick="pickCopilotAttachments()"
+                        title="上传附件：文档 / 表格 / 图片，内容会一并送给 Agent" aria-label="上传附件">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                </button>
+                <div class="cb-model-wrap" title="选择本次对话使用的大模型">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 9h6v6H9z"/>
+                  </svg>
+                  <select class="cb-model" id="copilot-model-quick" onchange="onCopilotModelQuickChange(this)"
+                          aria-label="选择大模型">
+                    <option value="__default__">默认模型</option>
+                  </select>
+                </div>
+                <button type="button" class="cb-pill" id="copilot-polish-btn" onclick="polishCopilotPrompt()"
+                        title="把你的想法扩写成结构完整的创作提示词">
+                  <span class="cb-spark">✨</span><span>优化提示词</span>
+                </button>
+              </div>
+              <div class="cb-right">
+                <span class="cb-count" id="copilot-count"></span>
+                <button type="button" class="btn" id="btn-copilot-send" onclick="sendCopilotMessage()"
+                        title="发送（Enter）" aria-label="发送">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                       stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 19V5M5 12l7-7 7 7"/>
+                  </svg>
+                </button>
+                <button type="button" class="btn" id="btn-copilot-stop" onclick="stopCopilotGeneration()"
+                        style="display:none" title="停止生成" aria-label="停止">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>
+                </button>
+              </div>
+            </div>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;font-size:11px;color:var(--text-muted)">
-            <span id="lite-tip">💡 提示：按 Enter 直接对话；点左侧功能，内容在右侧打开，可全屏</span>
-            <span id="copilot-status-indicator" style="display:none;color:#f0883e">AI 正在深度构思中…</span>
+          <div class="cb-hint">
+            <span id="lite-tip">💡 Enter 发送 · Shift+Enter 换行 · 点左侧功能，内容在右侧打开，可全屏</span>
+            <span id="copilot-status-indicator" style="display:none">AI 正在深度构思中…</span>
           </div>
         </div>
       </div>
@@ -8121,8 +8694,8 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
               <span class="badge blue" style="font-size:11px">点击卡片可直接选择</span>
             </div>
             <div id="profile-billing-plan-grid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:10px;margin-bottom:10px">
-              <div class="billing-plan-card" data-plan="free" onclick="selectBillingPlan(this, 'free')" style="background:#121824;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
-                <div data-plan-name="free" style="font-weight:700;color:#fff;margin-bottom:4px">新人体验官 Free</div>
+              <div class="billing-plan-card" data-plan="free" onclick="selectBillingPlan(this, 'free')" style="background:var(--card);padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
+                <div data-plan-name="free" style="font-weight:700;color:var(--text);margin-bottom:4px">新人体验官 Free</div>
                 <div data-plan-price="free" style="font-size:18px;font-weight:800;color:var(--primary)">¥0</div>
                 <div data-plan-feats="free" style="color:var(--text-muted);margin:6px 0;line-height:1.5">
                   • 3,000 点算力额度<br>• 基础爆款仿写与评分<br>• 单镜头短剧体验
@@ -8130,14 +8703,14 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
               </div>
               <div class="billing-plan-card selected" data-plan="pro" onclick="selectBillingPlan(this, 'pro')" style="background:rgba(240,136,62,0.08);padding:12px;border-radius:8px;border:2px solid var(--primary);box-shadow:0 0 12px rgba(240,136,62,0.25);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
                 <span class="badge ok" style="position:absolute;top:-8px;right:6px;font-size:10px">推荐</span>
-                <div data-plan-name="pro" style="font-weight:700;color:#fff;margin-bottom:4px">超级创作者 Pro</div>
+                <div data-plan-name="pro" style="font-weight:700;color:var(--text);margin-bottom:4px">超级创作者 Pro</div>
                 <div data-plan-price="pro" style="font-size:18px;font-weight:800;color:var(--primary)">实时加载中…</div>
                 <div data-plan-feats="pro" style="color:var(--text);margin:6px 0;line-height:1.5">
                   • 30,000 点算力额度<br>• 短剧流水线与卡片排版<br>• 8大名家音色与剪映导出
                 </div>
               </div>
-              <div class="billing-plan-card" data-plan="studio" onclick="selectBillingPlan(this, 'studio')" style="background:#121824;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
-                <div data-plan-name="studio" style="font-weight:700;color:#fff;margin-bottom:4px">MCN 机构矩阵版 Studio</div>
+              <div class="billing-plan-card" data-plan="studio" onclick="selectBillingPlan(this, 'studio')" style="background:var(--card);padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
+                <div data-plan-name="studio" style="font-weight:700;color:var(--text);margin-bottom:4px">MCN 机构矩阵版 Studio</div>
                 <div data-plan-price="studio" style="font-size:18px;font-weight:800;color:var(--purple)">实时加载中…</div>
                 <div data-plan-feats="studio" style="color:var(--text-muted);margin:6px 0;line-height:1.5">
                   • 200,000 点算力额度<br>• 全自动矩阵直发<br>• 深度博主音色/排版蒸馏
@@ -8216,12 +8789,12 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
           <div>
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
               <span style="font-size:22px">💎</span>
-              <h2 style="margin:0;font-size:19px;font-weight:800;color:#fff">套餐与价格 · 商业化订阅与算力充值中枢</h2>
+              <h2 style="margin:0;font-size:19px;font-weight:800;color:var(--text)">套餐与价格 · 商业化订阅与算力充值中枢</h2>
               <span class="badge ok" id="inapp-pricing-tier-badge">当前档位加载中</span>
             </div>
             <div style="font-size:12.5px;color:var(--text-muted);line-height:1.7">
               算力点数通用于 AI 爆款仿写、7 维体检精修、2K 影视级配图、短剧成片与多引擎配音。<br>
-              标准换算：<b style="color:#fff">1 点 = 0.01 元</b>，支持「选购套餐下单 → 订单收银台确认 → 卡密一键核销激活 → 算力实时到账」完整闭环。
+              标准换算：<b style="color:var(--text)">1 点 = 0.01 元</b>，支持「选购套餐下单 → 订单收银台确认 → 卡密一键核销激活 → 算力实时到账」完整闭环。
             </div>
           </div>
           <div style="display:flex;gap:12px;flex-wrap:wrap">
@@ -8258,7 +8831,7 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
       </div>
 
       <!-- 诚实性提示横幅 -->
-      <div style="background:rgba(240,136,62,0.09);border:1px solid rgba(240,136,62,0.35);border-radius:10px;padding:12px 16px;font-size:12.5px;line-height:1.8;margin-bottom:18px;color:#e8ecf8">
+      <div style="background:rgba(240,136,62,0.09);border:1px solid rgba(240,136,62,0.35);border-radius:10px;padding:12px 16px;font-size:12.5px;line-height:1.8;margin-bottom:18px;color:var(--text)">
         <b>⚡ 关于「一条短剧」的真实算力消耗：</b>
         <span id="inapp-pricing-drama-line">加载中…</span>
         这也是为什么 <b>免费体验档跑不完一条完整短剧</b>——我们把真实消耗写在明面上，让您按需透明订阅。
@@ -8287,7 +8860,7 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
           <div>
             <div style="font-size:11.5px;color:var(--text-muted)">应付金额 / 套餐额度</div>
             <div style="font-size:22px;font-weight:800;color:var(--primary);margin-top:3px" id="inapp-co-amount">—</div>
-            <div style="font-size:12px;color:#c8cee0;margin-top:2px" id="inapp-co-credits">—</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px" id="inapp-co-credits">—</div>
           </div>
           <div>
             <div style="font-size:11.5px;color:var(--text-muted)">本单专属兑换卡密</div>
@@ -8298,7 +8871,7 @@ body[data-shell="v2"] .stage-body > .panel > h2:first-child { margin-top: 0 !imp
           </div>
         </div>
 
-        <div id="inapp-co-instructions" style="font-size:12px;color:#c8cee0;line-height:1.85;background:#0d1117;border-radius:8px;padding:12px 14px;margin-bottom:14px"></div>
+        <div id="inapp-co-instructions" style="font-size:12px;color:var(--text-muted);line-height:1.85;background:#0d1117;border-radius:8px;padding:12px 14px;margin-bottom:14px"></div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px">
           <span id="inapp-co-hint" style="font-size:12px;color:var(--text-muted)">💡 付款后请等待运营确认收款；确认完成后本单专属卡密会显示在此处。</span>
@@ -10690,8 +11263,8 @@ async function deleteUserAccount(uid, username) {
       <span id="billing-modal-selected-tag" class="badge ok" style="font-size:11px">已选：超级创作者 (Pro)</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px" id="billing-plan-grid">
-      <div class="billing-plan-card" data-plan="free" onclick="selectBillingPlan(this, 'free')" style="background:#121824;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
-        <div style="font-weight:700;color:#fff;margin-bottom:4px">新人体验官 (Free)</div>
+      <div class="billing-plan-card" data-plan="free" onclick="selectBillingPlan(this, 'free')" style="background:var(--card);padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px">新人体验官 (Free)</div>
         <div style="font-size:18px;font-weight:800;color:var(--primary)">¥0</div>
         <div style="color:var(--text-muted);margin:6px 0;line-height:1.5">
           • 3,000 点算力额度<br>• 基础爆款仿写<br>• 短视频带水印
@@ -10699,14 +11272,14 @@ async function deleteUserAccount(uid, username) {
       </div>
       <div class="billing-plan-card selected" data-plan="pro" onclick="selectBillingPlan(this, 'pro')" style="background:rgba(240,136,62,0.08);padding:12px;border-radius:8px;border:2px solid var(--primary);box-shadow:0 0 12px rgba(240,136,62,0.25);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
         <span class="badge ok" style="position:absolute;top:-8px;right:6px;font-size:10px">推荐</span>
-        <div style="font-weight:700;color:#fff;margin-bottom:4px">超级创作者 (Pro)</div>
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px">超级创作者 (Pro)</div>
         <div style="font-size:18px;font-weight:800;color:var(--primary)">实时同步价格</div>
         <div style="color:var(--text);margin:6px 0;line-height:1.5">
           • 30,000 点算力额度<br>• 解锁12套小红书<br>• 8大名家音色挂载<br>• 导出剪映工程
         </div>
       </div>
-      <div class="billing-plan-card" data-plan="studio" onclick="selectBillingPlan(this, 'studio')" style="background:#121824;padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
-        <div style="font-weight:700;color:#fff;margin-bottom:4px">MCN 机构矩阵 (Studio)</div>
+      <div class="billing-plan-card" data-plan="studio" onclick="selectBillingPlan(this, 'studio')" style="background:var(--card);padding:12px;border-radius:8px;border:1px solid var(--border);font-size:12px;cursor:pointer;transition:all .2s;position:relative">
+        <div style="font-weight:700;color:var(--text);margin-bottom:4px">MCN 机构矩阵 (Studio)</div>
         <div style="font-size:18px;font-weight:800;color:var(--purple)">实时同步价格</div>
         <div style="color:var(--text-muted);margin:6px 0;line-height:1.5">
           • 200,000 点算力额度<br>• 全自动矩阵直发<br>• 全自动AI 短视频<br>• 任意博主深度蒸馏
@@ -10850,7 +11423,7 @@ async function deleteUserAccount(uid, username) {
 
     <!-- 添加新 API 折叠表单 -->
     <div style="background:rgba(240,136,62,0.05);border:1px solid rgba(240,136,62,0.25);border-radius:10px;padding:12px">
-      <div style="font-size:12px;font-weight:700;color:#c4b5fd;margin-bottom:10px">➕ 添加专属模型服务 (Per-User API)</div>
+      <div style="font-size:12px;font-weight:700;color:#f0a068;margin-bottom:10px">➕ 添加专属模型服务 (Per-User API)</div>
       
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <div>
@@ -12320,7 +12893,7 @@ async function showQuotaWallModal(msg) {
       + '<div id="quota-wall-msg" style="font-size:13px;color:var(--text-muted);' +
       'line-height:1.8;margin-bottom:14px"></div>'
       + '<div id="quota-wall-table" style="text-align:left;font-size:12.5px;' +
-      'color:#c8cee0;margin-bottom:16px">套餐加载中…</div>'
+      'color:var(--text-muted);margin-bottom:16px">套餐加载中…</div>'
       + '<div style="display:flex;gap:10px;justify-content:center">'
       + '<button class="btn" onclick="goToPricing()" style="padding:10px 24px">立即购买额度</button>'
       + '<button class="btn ghost" onclick="closeModal()" style="padding:10px 24px">稍后再说</button>'
@@ -13323,6 +13896,240 @@ function openLiteInProMode() {
 }
 
 // 极简 Copilot 对话交互
+/* ===== V14 输入框增强：附件 / 模型直选 / 提示词优化 =====
+   设计口径：
+     · 附件先上传到 /api/copilot/attach（服务端解析正文），发送时把正文拼进消息；
+     · 模型直选写回 yimu_copilot_provider / yimu_copilot_model，与「模型/技能」
+       弹窗共用同一份 localStorage，两处互相同步，不产生第二套真源；
+     · 提示词优化走 /api/copilot/polish_prompt，大模型不可用时由服务端改用
+       结构化模板补全，并在返回里说明来源，前端如实提示。 */
+const COPILOT_ATTACH_LIMIT = 6;
+const COPILOT_ATTACH_MAX_BYTES = 10 * 1024 * 1024;
+let copilotAttachments = [];
+
+function pickCopilotAttachments() {
+  const inp = $('copilot-file-input');
+  if (!inp) return;
+  inp.value = '';
+  inp.click();
+}
+
+function _fmtFileSize(n) {
+  if (!n && n !== 0) return '';
+  if (n < 1024) return n + ' B';
+  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB';
+  return (n / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function renderCopilotAttachments() {
+  const box = $('copilot-attach-list');
+  if (!box) return;
+  if (!copilotAttachments.length) {
+    box.classList.remove('has');
+    box.innerHTML = '';
+    return;
+  }
+  box.classList.add('has');
+  box.innerHTML = copilotAttachments.map(a => {
+    const cls = a.state === 'err' ? ' err' : (a.state === 'pending' ? ' pending' : '');
+    const tip = a.state === 'err' ? (a.error || '上传失败') : (a.text ? `已解析 ${a.text.length} 字` : (a.url || ''));
+    return `<span class="cb-attach${cls}" data-aid="${a.id}" title="${escapeHtml(tip)}">` +
+      `<span class="nm">${escapeHtml(a.name)}</span>` +
+      `<span class="sz">${a.state === 'pending' ? '…' : _fmtFileSize(a.size)}</span>` +
+      `<button type="button" class="x" onclick="removeCopilotAttachment('${a.id}')" aria-label="移除附件">×</button>` +
+      `</span>`;
+  }).join('');
+}
+
+function removeCopilotAttachment(id) {
+  copilotAttachments = copilotAttachments.filter(a => a.id !== id);
+  renderCopilotAttachments();
+}
+
+function clearCopilotAttachments() {
+  copilotAttachments = [];
+  renderCopilotAttachments();
+  const inp = $('copilot-file-input');
+  if (inp) inp.value = '';
+}
+
+async function onCopilotFilesPicked(input) {
+  const files = Array.from((input && input.files) || []);
+  if (!files.length) return;
+  const room = COPILOT_ATTACH_LIMIT - copilotAttachments.length;
+  if (room <= 0) {
+    toast(`最多同时附加 ${COPILOT_ATTACH_LIMIT} 个附件`);
+    return;
+  }
+  const accepted = files.slice(0, room);
+  if (files.length > room) toast(`一次最多 ${COPILOT_ATTACH_LIMIT} 个，已保留前 ${room} 个`);
+  for (const f of accepted) {
+    if (f.size > COPILOT_ATTACH_MAX_BYTES) {
+      toast(`「${f.name}」超过 10MB，已跳过`);
+      continue;
+    }
+    const item = {
+      id: 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name: f.name, size: f.size, state: 'pending', text: '', url: '', kind: '', error: ''
+    };
+    copilotAttachments.push(item);
+    renderCopilotAttachments();
+    await uploadCopilotAttachment(item, f);
+    renderCopilotAttachments();
+  }
+}
+
+async function uploadCopilotAttachment(item, file) {
+  const fd = new FormData();
+  fd.append('file', file, file.name);
+  try {
+    const res = await fetch('/api/copilot/attach', {
+      method: 'POST', credentials: 'same-origin', body: fd
+    });
+    if (!res.ok) {
+      let msg = '';
+      try { const j = await res.json(); msg = (j && j.detail) || ''; } catch (e) { msg = ''; }
+      throw new Error(msg || `上传失败（HTTP ${res.status}）`);
+    }
+    const data = await res.json();
+    item.state = 'ready';
+    item.text = data.text || '';
+    item.url = data.url || '';
+    item.kind = data.kind || '';
+  } catch (e) {
+    item.state = 'err';
+    item.error = (e && e.message) || '上传失败';
+  }
+}
+
+function buildCopilotAttachmentContext() {
+  const ready = copilotAttachments.filter(a => a.state === 'ready');
+  if (!ready.length) return '';
+  const parts = ready.map(a => {
+    if (a.text) return `【附件：${a.name}】\n${a.text}`;
+    if (a.kind === 'image') return `【附件图片：${a.name}】地址：${a.url}`;
+    return `【附件：${a.name}】该格式暂不支持正文解析，请按文件名与用途理解` +
+      (a.url ? `（地址：${a.url}）` : '');
+  });
+  return '以下是用户随消息附上的参考资料，请优先参考：\n\n' + parts.join('\n\n');
+}
+
+function syncCopilotInputState() {
+  const inp = $('copilot-input');
+  if (!inp) return;
+  inp.style.height = 'auto';
+  const h = Math.min(160, Math.max(44, inp.scrollHeight));
+  inp.style.height = h + 'px';
+  const cnt = $('copilot-count');
+  if (cnt) {
+    const n = (inp.value || '').length;
+    cnt.textContent = n ? n + ' 字' : '';
+  }
+}
+
+async function loadCopilotQuickModels() {
+  const sel = $('copilot-model-quick');
+  if (!sel) return;
+  let data = (typeof cachedProvidersData !== 'undefined') ? cachedProvidersData : null;
+  if (!data) {
+    try {
+      data = await api('/api/models/providers');
+      cachedProvidersData = data;
+    } catch (e) {
+      return;
+    }
+  }
+  const providers = (data && data.providers) || {};
+  let html = '<option value="__default__">默认模型</option>';
+  Object.keys(providers).forEach(pid => {
+    const p = providers[pid];
+    if (!p || !p.has_key) return;
+    const models = Array.isArray(p.models) ? p.models : [];
+    let opts = '';
+    models.forEach(m => {
+      const mid = (m && m.id) || m;
+      const nm = (m && (m.name || m.id)) || m;
+      const cat = (m && m.category) || '';
+      if (!mid || cat === 'image' || cat === 'video') return;
+      opts += `<option value="${pid}::${escapeHtml(String(mid))}">${escapeHtml(String(nm))}</option>`;
+    });
+    if (opts) html += `<optgroup label="${escapeHtml(p.name || pid)}">${opts}</optgroup>`;
+  });
+  sel.innerHTML = html;
+
+  const savedP = localStorage.getItem('yimu_copilot_provider') || '__default__';
+  const savedM = localStorage.getItem('yimu_copilot_model') || '__default__';
+  const want = (savedP !== '__default__' && savedM !== '__default__') ? savedP + '::' + savedM : '__default__';
+  if (Array.from(sel.options).some(o => o.value === want)) sel.value = want;
+}
+
+function onCopilotModelQuickChange(sel) {
+  const v = (sel && sel.value) || '__default__';
+  if (v === '__default__') {
+    localStorage.setItem('yimu_copilot_provider', '__default__');
+    localStorage.setItem('yimu_copilot_model', '__default__');
+    toast('已切回默认模型（继承控制中心的当前通道）', 2200);
+  } else {
+    const idx = v.indexOf('::');
+    const pid = idx > 0 ? v.slice(0, idx) : '__default__';
+    const mid = idx > 0 ? v.slice(idx + 2) : v;
+    localStorage.setItem('yimu_copilot_provider', pid);
+    localStorage.setItem('yimu_copilot_model', mid);
+    toast(`本次对话使用：${mid}`, 2200);
+  }
+  if (typeof initCopilotSettingsBadge === 'function') initCopilotSettingsBadge();
+}
+
+async function polishCopilotPrompt() {
+  const inp = $('copilot-input');
+  const btn = $('copilot-polish-btn');
+  if (!inp || !btn) return;
+  if (btn.disabled) return;  // 防连点：进行中的请求不重复发
+  const raw = (inp.value || '').trim();
+  if (!raw) {
+    inp.focus();
+    toast('先写一句话想法，我帮你扩成完整提示词');
+    return;
+  }
+  const label = btn.querySelector('span:last-child');
+  const oldLabel = label ? label.textContent : '';
+  btn.disabled = true;
+  btn.classList.add('on');
+  btn.classList.add('is-busy');
+  if (label) label.textContent = '优化中…';
+
+  // 兜底超时：服务端已有 18s 总预算，这里再留一档，保证按钮绝不会一直转圈。
+  const ac = new AbortController();
+  const watchdog = setTimeout(() => ac.abort(), 25000);
+  try {
+    const data = await api('/api/copilot/polish_prompt', {
+      method: 'POST',
+      body: JSON.stringify({ text: raw, platform: currentLitePlatform }),
+      signal: ac.signal
+    });
+    if (!data || !data.text) throw new Error('未返回优化结果');
+    inp.value = data.text;
+    syncCopilotInputState();
+    inp.focus();
+    toast(data.source === 'llm' ? '✅ 提示词已优化，可直接发送' : '✅ 已按结构模板补全（大模型暂不可用）', 3000);
+  } catch (e) {
+    const aborted = e && (e.name === 'AbortError' || /abort/i.test(String(e.message || '')));
+    toast('提示词优化暂不可用：' + (aborted ? '等待超时，请稍后重试' : ((e && e.message) || '请检查模型服务配置')), 4000);
+  } finally {
+    clearTimeout(watchdog);
+    btn.disabled = false;
+    btn.classList.remove('on');
+    btn.classList.remove('is-busy');
+    if (label) label.textContent = oldLabel || '优化提示词';
+  }
+}
+
+function initCopilotComposer() {
+  renderCopilotAttachments();
+  syncCopilotInputState();
+  loadCopilotQuickModels();
+}
+
 function setCopilotPrompt(text) {
   const input = $('copilot-input');
   if (input) {
@@ -13611,7 +14418,7 @@ function updateAgentTaskStep(stepText, progressPct) {
     item.style.display = 'flex';
     item.style.alignItems = 'center';
     item.style.gap = '6px';
-    item.style.color = '#c4b5fd';
+    item.style.color = '#f0a068';
     item.style.fontSize = '12px';
     item.innerHTML = `<span style="color:#10b981;font-weight:700">✓</span><span>${escapeHtml(stepText)}</span>`;
     historyBox.appendChild(item);
@@ -14270,6 +15077,7 @@ function saveCopilotSettings() {
   localStorage.setItem('yimu_copilot_style', style);
 
   initCopilotSettingsBadge();
+  if (typeof loadCopilotQuickModels === 'function') loadCopilotQuickModels();
   closeCopilotSettingsModal();
   toast(`✅ Agent 配置已生效！对话模型与生图引擎已更新。`, 3000);
 }
@@ -14567,14 +15375,25 @@ async function sendCopilotMessage() {
   const msg = input.value.trim();
   if (!msg) return;
 
+  // V14：附件正文随消息一起送给 Agent，发送后清空 chip；失败时按快照还原
+  const _attachSnapshot = copilotAttachments.slice();
+  const attachCtx = buildCopilotAttachmentContext();
+  const attachNames = copilotAttachments.filter(a => a.state === 'ready').map(a => a.name);
+  const outbound = attachCtx ? (msg + '\n\n' + attachCtx) : msg;
+
   const userBubble = document.createElement('div');
   userBubble.className = 'copilot-msg user';
+  const filesHtml = attachNames.length
+    ? '<div class="cb-bubble-files">' + attachNames.map(n => '📎 ' + escapeHtml(n)).join('<br>') + '</div>'
+    : '';
   userBubble.innerHTML = `
     <div class="copilot-avatar">👤</div>
-    <div class="copilot-bubble">${escapeHtml(msg).replace(/\n/g, '<br>')}</div>
+    <div class="copilot-bubble">${escapeHtml(msg).replace(/\n/g, '<br>')}${filesHtml}</div>
   `;
   chatBox.appendChild(userBubble);
   input.value = '';
+  syncCopilotInputState();
+  clearCopilotAttachments();
   chatBox.scrollTop = chatBox.scrollHeight;
 
   // 状态切换：隐藏发送键，显示停止键
@@ -14610,7 +15429,7 @@ async function sendCopilotMessage() {
         'mediaflow_token': (document.cookie.match(/mediaflow_token=([^;]+)/)||[])[1] || ''
       }, csrfHeaders()),
       body: JSON.stringify({
-        message: msg,
+        message: outbound,
         draft_id: currentLiteDraftId,
         platform: currentLitePlatform,
         provider: savedProvider,
@@ -14707,6 +15526,11 @@ async function sendCopilotMessage() {
       if (typeof refresh === 'function') refresh();
     }
   } catch(e) {
+    // 发送失败/中止：把附件 chip 还原，避免用户重发时要重新选文件
+    if (_attachSnapshot.length) {
+      copilotAttachments = _attachSnapshot;
+      renderCopilotAttachments();
+    }
     if (e.name === 'AbortError') {
       console.log('Copilot generation aborted by user.');
     } else {
@@ -18027,7 +18851,7 @@ function renderDramaAllPanels() {
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px">
             <div style="display:flex;align-items:center;gap:5px">
               <span class="badge info">镜头 #${shot}</span>
-              ${isAiVid ? '<span class="badge" style="background:rgba(240,136,62,0.25);color:#c4b5fd;border:1px solid rgba(240,136,62,0.4)">⚡ 原生AI视频</span>' : '<span class="badge blue">🎬 电影级动态</span>'}
+              ${isAiVid ? '<span class="badge" style="background:rgba(240,136,62,0.25);color:#f0a068;border:1px solid rgba(240,136,62,0.4)">⚡ 原生AI视频</span>' : '<span class="badge blue">🎬 电影级动态</span>'}
               ${subOn ? '<span class="badge orange">📝 带字幕</span>' : '<span class="badge" style="background:rgba(34,197,94,0.15);color:#86efac;border:1px solid rgba(34,197,94,0.3)">🚫 纯净无字幕</span>'}
             </div>
             <span class="badge ${vidUrl?'green':'gray'}">${vidUrl?'🟢 切片就绪':'⚪ 待生成'}</span>
@@ -24009,7 +24833,7 @@ function showUpgradeModal(msg) {
       + '<div style="font-size:44px;margin-bottom:12px">🚀</div>'
       + '<div style="font-size:18px;font-weight:800;color:#fff;margin-bottom:8px">升级 Pro 会员</div>'
       + '<div id="upgrade-modal-msg" style="font-size:13px;color:var(--text-muted);line-height:1.7;margin-bottom:14px"></div>'
-      + '<div id="upgrade-modal-price" style="font-size:12.5px;color:#c8cee0;background:#0d1117;border-radius:8px;padding:10px 12px;margin-bottom:16px;line-height:1.8">价格加载中…</div>'
+      + '<div id="upgrade-modal-price" style="font-size:12.5px;color:var(--text-muted);background:#0d1117;border-radius:8px;padding:10px 12px;margin-bottom:16px;line-height:1.8">价格加载中…</div>'
       + '<div style="display:flex;gap:10px;justify-content:center">'
       + '<button class="btn" onclick="goToPricing()" style="padding:10px 24px">查看价格与购买</button>'
       + '<button class="btn ghost" onclick="closeModal()" style="padding:10px 24px">稍后再说</button>'
@@ -24086,7 +24910,7 @@ async function loadIntegratedPricingPanel() {
           const isHot = p.code === 'pro';
           const isCur = p.code === curTier;
           const dramaTxt = cap.can_run_full_drama
-            ? '🎬 可跑 <b style="color:#fff">' + cap.dramas + '</b> 条完整短剧'
+            ? '🎬 可跑 <b style="color:var(--text)">' + cap.dramas + '</b> 条完整短剧'
             : '<span style="color:#ff7b72">⚠️ 额度不足，<b>跑不完一条完整短剧</b>（约 ' + cap.dramas_exact + ' 条）</span>';
           const feats = (p.highlights || []).map(h => '<li style="margin-bottom:4px">✓ ' + String(h).replace(/^\*\*|\*\*$/g, '') + '</li>').join('');
           return '<div class="card" style="margin-bottom:0;display:flex;flex-direction:column;position:relative;border:' + (isHot ? '2px solid var(--primary)' : '1px solid var(--border)') + ';background:#161c28;padding:22px">'
@@ -24094,9 +24918,9 @@ async function loadIntegratedPricingPanel() {
             + '<div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:4px">' + p.name + (isCur ? ' <span class="badge info" style="margin-left:6px">当前档位</span>' : '') + '</div>'
             + '<div style="font-size:12px;color:var(--text-muted);min-height:34px;line-height:1.6">' + (p.tagline || '') + '</div>'
             + '<div style="font-size:30px;font-weight:800;color:var(--primary);margin:10px 0 4px">' + (p.price_yuan > 0 ? ('¥' + p.price_yuan + '<small style="font-size:12.5px;color:var(--text-muted);font-weight:400"> / ' + p.period_days + ' 天</small>') : '免费') + '</div>'
-            + '<div style="font-size:13px;color:#c8cee0;font-weight:600;margin-bottom:12px">💎 ' + Number(p.credits).toLocaleString() + ' 点算力额度</div>'
-            + '<div style="font-size:12px;color:#9aa3bd;background:#0d1117;border-radius:8px;padding:10px 12px;line-height:1.85;margin-bottom:14px">' + dramaTxt + '<br>📝 可产出 <b style="color:#fff">' + (cap.graphic_posts || 0) + '</b> 篇爆款图文</div>'
-            + '<ul style="list-style:none;padding:0;margin:0 0 18px;font-size:12.5px;line-height:1.9;color:#c8cee0;flex:1">' + feats + '</ul>'
+            + '<div style="font-size:13px;color:var(--text-muted);font-weight:600;margin-bottom:12px">💎 ' + Number(p.credits).toLocaleString() + ' 点算力额度</div>'
+            + '<div style="font-size:12px;color:#9aa3bd;background:#0d1117;border-radius:8px;padding:10px 12px;line-height:1.85;margin-bottom:14px">' + dramaTxt + '<br>📝 可产出 <b style="color:var(--text)">' + (cap.graphic_posts || 0) + '</b> 篇爆款图文</div>'
+            + '<ul style="list-style:none;padding:0;margin:0 0 18px;font-size:12.5px;line-height:1.9;color:var(--text-muted);flex:1">' + feats + '</ul>'
             + (isFree
                 ? '<button class="btn ghost" disabled style="width:100%">免费体验档 · 注册即享</button>'
                 : '<button class="btn" style="width:100%" onclick="inappCreateOrder(\'' + p.code + '\', this)">🚀 立即购买 ' + p.name + '</button>')
@@ -24772,6 +25596,7 @@ ${css}
 document.addEventListener('DOMContentLoaded', () => {
   initSystemMode();
   initCopilotSettingsBadge();
+  initCopilotComposer();
   initWorkspacesUI();
   restoreSelectedDerivePlatforms();
   refreshTierBadge();

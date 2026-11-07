@@ -41,7 +41,7 @@ def shell_js() -> str:
 def test_v1100_version_and_codename():
     """版本单一真源与代号序列状态必须互洽（不硬编码具体版本号，避免补丁版漂移）。"""
     state = json.loads((ROOT / "release-codenames.json").read_text(encoding="utf-8"))
-    assert version.__version__.startswith(("11.", "12.", "13.")), version.__version__
+    assert version.__version__.startswith(("11.", "12.", "13.", "14.")), version.__version__
     assert version.__version__ == state["current_version"]
     assert version.__codename__ == state["current_codename_zh"]
     assert version.__codename_en__ == state["current_codename_en"]

@@ -185,21 +185,21 @@ def classify_model(model_id: str) -> str:
     'video': 视频/影视生成模型
     """
     m = (model_id or "").lower()
-    
+
     # 视频生成特征词
     video_keywords = ["video", "sora", "kling", "runway", "gen-3", "gen3",
                       "cogvideox", "cogvideo", "hailuo", "pika", "luma", "viggle",
                       "wanx-video", "wanx-v2-video", "veo", "pixverse", "seedance"]
     if any(k in m for k in video_keywords) or ("gen-2" in m and "generate" not in m) or ("gen2" in m and "generate" not in m):
         return "video"
-        
+
     # 图片生成特征词
     image_keywords = ["image", "dall-e", "dalle", "flux", "midjourney", "stable-diffusion",
                       "sdxl", "sd-", "sd1", "sd2", "sd3", "imagen", "cogview", "kolors",
                       "wanx", "doubao-image", "qwen-vl-image", "agnes-image"]
     if any(k in m for k in image_keywords):
         return "image"
-        
+
     return "text"
 
 
@@ -804,9 +804,9 @@ def set_active_provider(provider_id: str) -> bool:
 
 def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, user_id: str | None = None) -> tuple[str, str, str, str]:
     """统一模型端点与凭据解析器 (Universal Endpoint Resolver)。
-    
+
     返回四元组：(base_url, api_key, resolved_model, provider_id)
-    
+
     解析机制：
     0. V6 多用户支持：若传入 user_id 且该用户在 API Vault 中配置了自定义生效的 Provider/Key，优先使用该用户的独立配置；
     1. 纯空/跟随全局：直接走当前活动供应商 (active_provider) 的主模型；
@@ -936,8 +936,14 @@ def _get_fallback_candidates(exclude_pid: str) -> list[tuple[str, str, str, str]
 
 
 def chat(messages: list[dict], *, model: str | None = None,
-         temperature: float = 0.8, timeout_s: float | None = None, stage: str | None = None, user_id: str | None = None) -> str:
-    """大模型通用对话调用，全自动跨运营商路由与多通道自动熔断降级。支持 V6 独立用户 API 隔离。"""
+         temperature: float = 0.8, timeout_s: float | None = None, stage: str | None = None,
+         user_id: str | None = None, max_tokens: int | None = None) -> str:
+    """大模型通用对话调用，全自动跨运营商路由与多通道自动熔断降级。支持 V6 独立用户 API 隔离。
+
+    max_tokens：V14 新增。推理型模型（返回 reasoning_content）在不限制上限时会一路生成
+    到上下文上限，交互式短任务（如提示词优化）会因此卡满超时。显式给一个上限可把
+    单次调用从 40 秒级压到 2 秒级；不传则维持原有行为，不影响长文创作链路。
+    """
     if not user_id:
         try:
             from web import admin as _web_admin
@@ -978,6 +984,8 @@ def chat(messages: list[dict], *, model: str | None = None,
             "temperature": temperature,
             "stream": False,
         }
+        if max_tokens:
+            body["max_tokens"] = int(max_tokens)
         headers = {"Content-Type": "application/json"}
         if curr_key:
             headers["Authorization"] = f"Bearer {curr_key}"

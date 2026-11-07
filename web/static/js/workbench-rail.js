@@ -814,5 +814,5 @@
     boot();
   }
 
-  WIN.YIMU_RAIL = { refresh: renderRecent, version: '13.0.0' };
+  WIN.YIMU_RAIL = { refresh: renderRecent, version: '14.0.0' };
 })();

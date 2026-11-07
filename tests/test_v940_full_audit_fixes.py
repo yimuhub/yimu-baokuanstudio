@@ -11,8 +11,8 @@ import version
 
 def test_v940_version_truth():
     """验证 V10.x 版本单一真源与专属代号"""
-    assert version.__version__.startswith(("10.", "11.", "12.", "13.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5")
-    assert version.__codename__ in ("鸿蒙始", "澄音境", "长风谣", "沧海吟", "山岳赋", "江河曲", "松涛境", "竹韵篇", "梅雪镜")
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.", "14.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5")
+    assert version.__codename__ in ("鸿蒙始", "澄音境", "长风谣", "沧海吟", "山岳赋", "江河曲", "松涛境", "竹韵篇", "梅雪镜", "兰心曲")
 
 
 def test_v940_reverse_proxy_loopback_guard():

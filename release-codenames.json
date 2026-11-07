@@ -1,8 +1,8 @@
 {
-  "current_version": "13.0.0",
-  "current_codename_zh": "梅雪镜",
-  "current_codename_en": "Plum-Snow Mirror",
-  "next_index": 10,
+  "current_version": "14.0.0",
+  "current_codename_zh": "兰心曲",
+  "current_codename_en": "Orchid Melody",
+  "next_index": 11,
   "sequence": [
     {
       "zh": "曦光序",
@@ -395,6 +395,12 @@
       "zh": "梅雪镜",
       "en": "Plum-Snow Mirror",
       "date": "2026-11-06"
+    },
+    {
+      "version": "v14.0.0",
+      "zh": "兰心曲",
+      "en": "Orchid Melody",
+      "date": "2026-11-07"
     }
   ]
 }

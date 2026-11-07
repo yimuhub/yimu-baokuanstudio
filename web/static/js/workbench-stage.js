@@ -329,7 +329,7 @@
 
     /* 对外：允许其他模块主动打开某个页面（例如右栏资产台的「去工作台」） */
     WIN.YIMU_STAGE = {
-      version: '13.0.0',
+      version: '14.0.0',
       open: open,
       close: close,
       full: toggleFull,

@@ -378,6 +378,8 @@
 - `POST /api/tasks/clear` → tasks_clear：清理 N 天前的失败/已完成任务（不碰 running/queued）【V7.0】[NEW]
 - `POST /api/copilot/chat` → copilot_chat：Copilot 对话【V7.0】[B→重写]
 - `POST /api/copilot/chat_stream` → copilot_chat_stream：Copilot SSE 流式对话【V7.0】[B→重写]
+- `POST /api/copilot/attach` → copilot_attach：上传附件并抽取正文（txt/docx/pdf/图片，单文件 10MB）【V14.0.0】[NEW]
+- `POST /api/copilot/polish_prompt` → copilot_polish_prompt：提示词一键优化（大模型改写，不可用时降级结构模板）【V14.0.0】[NEW]
 - `POST /api/stream/write` → stream_write：流式写作【V7.0】[B]
 - `POST /api/batch/submit` → batch_submit：批量矩阵生产提交【V7.0】[B]
 - `GET /api/platforms` → platforms_list：平台能力包列表【V7.0】[B]

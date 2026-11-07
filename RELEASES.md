@@ -4,6 +4,28 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🎐 Version 14.0.0 · Light Mode Consistency & WorkBuddy-Style Composer · 2026-11-07
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "14.0.0"`, `__codename__ = "兰心曲"`, `__codename_en__ = "Orchid Melody"`)
+
+Light mode looked broken for one root cause: seven semantic tokens were referenced with dark fallbacks
+(`var(--card2, #0f1621)` and friends) but were **never actually defined**, so light mode inherited dark
+surfaces. The selected left-rail item rendered dark-on-dark at a **1.06 contrast ratio** — effectively
+invisible — and the empty-state guide card and the composer both came out as near-black slabs.
+On top of that the send button was squeezed into an ellipse, and "improve prompt" spun for 45 seconds
+without ever producing text.
+
+| Area | What changed |
+|---|---|
+| **Light mode tokens** | `--card2 / --border2 / --border3 / --text-dim / --active / --hover / --accbg` are now defined in both `:root` and `[data-theme="light"]`. Audited page by page: low-contrast text dropped from 22/39/57 findings to 0–1. |
+| **Inline accent colours** | Hard-coded dark-theme accents (`#f0883e`, `#58a6ff`, `#3fb950`…) only reached 1.4–3.8:1 on white. 40 attribute-selector rules fold them to a deeper shade of the same hue — no HTML restructuring. |
+| **Send button geometry** | The button was a flex child stretched to 28×42 by the textarea, turning `border-radius: 50%` into an ellipse. Now locked to 32×32 with `aspect-ratio: 1/1` and `flex: 0 0 32px` at every input height. |
+| **WorkBuddy-style composer** | Attachments, model picker and one-click prompt polish, laid out in a `cb-composer` three-band structure. Attachment chips are individually removable. |
+| **Attachments** | New `POST /api/copilot/attach` + `core/copilot_files.py`. Multi-encoding text fallbacks, docx paragraphs preserved via `word/document.xml`, pdf via pypdf, images served statically. 10 MB per file, 6 per message, 12 000-char body cap. |
+| **Prompt polish** | New `POST /api/copilot/polish_prompt` + `core/prompt_polish.py`. Uses the model when available (`source="llm"`), falls back to a platform-specific structure template otherwise (`source="template"`), and says which one it used. |
+| **Why polish was slow** | The default channel resolved to a reasoning model: unbounded it generated to the context limit (35–45 s); capped it burned every token on the chain of thought and returned an empty body. Fixed with direct-output models first, a `max_tokens` cap, an 18-second total budget and a 10-minute result cache — **45 s down to ~4 s**, and now actually model-written instead of silently templated. |
+| **`llm.chat(max_tokens=...)`** | New optional parameter. Default `None` keeps every existing long-form call bit-for-bit unchanged. |
+
 ## ❄️ Version 13.0.0 · A2 Full Offline Installer · 2026-11-06
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "13.0.0"`, `__codename__ = "梅雪镜"`, `__codename_en__ = "Plum-Snow Mirror"`)

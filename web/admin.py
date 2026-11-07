@@ -162,6 +162,10 @@ app.router.route_class = DraftOwnerRoute
 _STATIC_UPLOAD_DIR = BASE / "data" / "editor_uploads"
 _STATIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static-img/editor_uploads", StaticFiles(directory=str(_STATIC_UPLOAD_DIR)), name="img")
+# V14 对话附件：只有图片需要回显，单独挂一个目录（文档类附件只在内存里解析，不落盘）
+_COPILOT_UPLOAD_DIR = BASE / "data" / "copilot_uploads"
+_COPILOT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static-img/copilot_uploads", StaticFiles(directory=str(_COPILOT_UPLOAD_DIR)), name="copilot_img")
 app.mount("/static", StaticFiles(directory=str(BASE / "web" / "static")), name="static")
 
 
@@ -6568,6 +6572,54 @@ def get_copilot_history_endpoint(did: str, request: Request):
     guard(request)
     from core import copilot
     return {"history": copilot.get_draft_copilot_history(did)}
+
+
+# ===================== 📎 V14 对话附件与提示词优化 =====================
+
+@app.post("/api/copilot/attach")
+async def copilot_attach_endpoint(request: Request, file: UploadFile = File(...)):
+    """接收对话附件：文档/表格解析成正文，图片落盘后返回可回显地址。"""
+    guard(request)
+    from core import copilot_files
+
+    data = await file.read()
+    if len(data) > copilot_files.MAX_BYTES:
+        raise HTTPException(413, "附件超过 10MB，请压缩后再上传")
+    if not data:
+        raise HTTPException(400, "附件内容为空")
+
+    info = copilot_files.extract(file.filename or "附件", data)
+    url = ""
+    if info["kind"] == "image":
+        ext = Path(file.filename or "").suffix.lower() or ".png"
+        safe = f"cp_{int(time.time())}_{uuid.uuid4().hex[:8]}{ext}"
+        (_COPILOT_UPLOAD_DIR / safe).write_bytes(data)
+        url = f"/static-img/copilot_uploads/{safe}"
+    return {
+        "name": info["name"],
+        "kind": info["kind"],
+        "size": info["size"],
+        "text": info["text"],
+        "truncated": info["truncated"],
+        "url": url,
+    }
+
+
+@app.post("/api/copilot/polish_prompt")
+async def copilot_polish_prompt_endpoint(request: Request):
+    """把一句话想法扩写成结构完整的创作提示词（大模型优先，模板兜底）。"""
+    u = guard(request)
+    body = await request.json()
+    text = (body.get("text") or "").strip()
+    if not text:
+        raise HTTPException(400, "请先输入一句话想法")
+    platform = body.get("platform") or "xhs"
+    from core import prompt_polish
+    res = await asyncio.get_event_loop().run_in_executor(
+        None,
+        lambda: prompt_polish.polish(text, platform=platform, user_id=str(u.get("id") or "")),
+    )
+    return res
 
 
 @app.post("/api/stream/write")

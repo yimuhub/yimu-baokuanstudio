@@ -143,10 +143,18 @@ def test_legacy_builder_forwards_to_full_bundle() -> None:
 
 
 def test_version_and_codename() -> None:
+    """版本三处真源必须一致。
+
+    注意：这里校验的是「一致性」而不是某个固定版本号 —— 写死 13.0.0 会让每次
+    正常升版都把这条门禁打红，反而掩盖真正的不一致。
+    """
     import version
-    assert version.__version__ == "13.0.0"
-    assert version.__codename__ == "梅雪镜"
-    assert version.__codename_en__ == "Plum-Snow Mirror"
     d = json.loads((BASE / "release-codenames.json").read_text(encoding="utf-8"))
-    assert d["current_version"] == "13.0.0" and d["next_index"] == 10
-    assert d["history"][-1]["version"] == "v13.0.0"
+    assert d["current_version"] == version.__version__, "代号表与 version.py 版本号不一致"
+    assert d["current_codename_zh"] == version.__codename__, "代号表中文代号与 version.py 不一致"
+    assert d["current_codename_en"] == version.__codename_en__, "代号表英文代号与 version.py 不一致"
+    assert d["history"][-1]["version"] == f"v{version.__version__}", "history 末条必须对应当前版本"
+    assert d["history"][-1]["zh"] == version.__codename__
+    # 代号只能前进，不许回退或重号
+    assert d["next_index"] >= 1
+    assert d["sequence"][d["next_index"]]["zh"] not in {h["zh"] for h in d["history"]}, "下一个待用代号已被消耗"

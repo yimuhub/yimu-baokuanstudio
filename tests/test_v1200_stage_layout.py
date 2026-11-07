@@ -39,9 +39,28 @@ def js() -> str:
 def _v12_block(html: str) -> str:
     start = html.find("V12 · 右栏舞台")
     assert start > 0, "缺少 V12 样式块"
-    end = html.find("</style>", start)
+    end = _block_end(html, start, ("V14 · 亮色模式统一校正",))
     assert end > start
     return html[start:end]
+
+
+def _block_end(html: str, start: int, later_markers: tuple[str, ...]) -> int:
+    """算出某个版本样式块的结束位置。
+
+    门禁原本一路扫到 </style>，于是后续版本的块都会被算进本节作用域检查里。
+    V14 的亮色统一校正是**有意全局**的（它要定义 :root 与 [data-theme] 的语义 token），
+    不该被「必须是 body[data-shell=\"v2\"] 前缀」这条规则判为越界。
+    因此遇到下一个版本块的起始标记就截止，让每个门禁只校验它自己那一块。
+    """
+    end = len(html)
+    tail = html.find("</style>", start)
+    if tail > 0:
+        end = tail
+    for marker in later_markers:
+        pos = html.find(marker, start + 1)
+        if pos > 0:
+            end = min(end, pos)
+    return end
 
 
 def test_stage_script_exists(js: str) -> None:

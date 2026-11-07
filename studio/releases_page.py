@@ -387,11 +387,28 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V13.0.0 -->
+      <!-- V14.0.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">❄️ V13.0.0 · 梅雪镜 (Plum-Snow Mirror)</span>
+          <span class="t-ver">🎐 V14.0.0 · 兰心曲 (Orchid Melody)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-11-07</span>
+        </div>
+        <div class="t-desc">亮色模式全站视觉统一，中栏输入框改造为 WorkBuddy 形态：附件直传、模型直选、提示词一键优化。</div>
+        <ul class="t-list">
+          <li><b>🌗 亮色统一</b>：七个语义 token 首次显式定义，左栏选中项对比度从 1.06 恢复到可读，逐页审计低对比文本收敛到 0–1 条；</li>
+          <li><b>⭕ 发送键正圆</b>：锁定 32×32 与 aspect-ratio，任何输入高度下都不再被压成椭圆；</li>
+          <li><b>📎 附件直传</b>：支持 txt / md / csv / json / pdf / docx 与图片，正文自动拼进消息，单个 10MB、一次 6 个；</li>
+          <li><b>✨ 提示词优化</b>：模型改写优先，不可用时按平台结构模板补全并如实告知；响应从 45 秒降到约 4 秒；</li>
+          <li><b>🎛 模型直选</b>：输入框内直接切换本次对话使用的大模型，与「模型/技能」弹窗共用同一份配置。</li>
+        </ul>
+      </div>
+
+      <!-- V13.0.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">❄️ V13.0.0 · 梅雪镜 (Plum-Snow Mirror)</span>
+          <span class="badge blue">已归档 · Archived</span>
           <span class="t-date">2026-11-06</span>
         </div>
         <div class="t-desc">全功能离线安装包：自带 Python 运行时、全量依赖与浏览器内核，安装后双击即用，配额全新生成。</div>

@@ -162,7 +162,15 @@ def test_enhancement_css_scoped_to_v2():
     html = _template()
     start = html.find("V11.2 · 与 ui-v2 原型对齐")
     assert start > 0, "缺少 V11.2 样式块"
+    # 只校验本版这一块：遇到后续版本块的起始标记就截止。
+    # 否则后续版本（V12 舞台、V14 亮色统一校正）的样式会被算进本节检查。
+    # V14 尤其必须排除——它要定义 :root / [data-theme] 的全局语义 token，
+    # 这是亮色模式能用的前提，不能加 body[data-shell="v2"] 前缀。
     end = html.find("</style>", start)
+    for marker in ("V12 · 右栏舞台", "V14 · 亮色模式统一校正"):
+        pos = html.find(marker, start + 1)
+        if 0 < pos < end:
+            end = pos
     block = html[start:end]
     assert block.strip(), "V11.2 样式块为空"
 

@@ -32,7 +32,8 @@ if ! grep -q 'A2-full-offline' "$BUNDLE_DIR/MANIFEST.json"; then
 fi
 
 rm -rf "$STAGE_DIR"
-mkdir -p "$STAGE_DIR/DEBIAN" "$STAGE_DIR/opt/yimu-studio" "$STAGE_DIR/usr/bin" "$STAGE_DIR/usr/share/applications"
+mkdir -p "$STAGE_DIR/DEBIAN" "$STAGE_DIR/opt/yimu-studio" "$STAGE_DIR/usr/bin" \
+         "$STAGE_DIR/usr/share/applications" "$STAGE_DIR/usr/share/icons"
 
 # Depends 只保留内置 Chromium 与原生窗口需要的系统图形/音频库；
 # 系统 Python 与 pip 不再是依赖，apt 也不会在客户机上跑任何安装脚本。
@@ -52,6 +53,15 @@ EOF
 echo "正在注入完整离线 bundle ..."
 cp -R "$BUNDLE_DIR"/. "$STAGE_DIR/opt/yimu-studio/"
 
+# 应用图标：hicolor 多尺寸 PNG，桌面环境按需取用
+if [ -d "$ROOT_DIR/installer/icons/hicolor" ]; then
+  mkdir -p "$STAGE_DIR/usr/share/icons/hicolor"
+  cp -R "$ROOT_DIR/installer/icons/hicolor/." "$STAGE_DIR/usr/share/icons/hicolor/"
+  echo "已注入应用图标: hicolor 多尺寸 PNG"
+else
+  echo "警告: 缺少 installer/icons/hicolor，桌面图标会显示为系统占位图" >&2
+fi
+
 cat <<'EOF' > "$STAGE_DIR/usr/bin/yimu-studio"
 #!/usr/bin/env bash
 set -e
@@ -69,7 +79,7 @@ Name=一幕·YIMU 爆款工作室
 GenericName=影视短剧与爆款图文创作平台
 Comment=全自主 Multi-Agent 全媒体内容与影视短剧创作系统
 Exec=/usr/bin/yimu-studio
-Icon=video-x-generic
+Icon=yimu-studio
 Terminal=false
 Categories=AudioVideo;Development;AudioVideoEditing;
 Keywords=YIMU;Video;Studio;MediaFlow;
@@ -81,6 +91,15 @@ cat <<'EOF' > "$STAGE_DIR/DEBIAN/postinst"
 set -e
 chmod -R 777 /opt/yimu-studio/app/data /opt/yimu-studio/app/logs /opt/yimu-studio/app/runs 2>/dev/null || true
 chmod 755 /opt/yimu-studio/runtime/bin/python3 /usr/bin/yimu-studio 2>/dev/null || true
+# 刷新图标缓存，让应用菜单立即显示 logo 而不是占位图
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
+elif command -v update-icon-caches >/dev/null 2>&1; then
+  update-icon-caches /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+fi
 echo "一幕·YIMU 爆款工作室已安装完成，直接在应用菜单启动即可（无需安装 Python 或配置环境）。"
 exit 0
 EOF

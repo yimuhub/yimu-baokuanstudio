@@ -48,6 +48,10 @@ cat <<EOF > "$APP_BUNDLE/Contents/Info.plist"
     <string>yimu-launcher</string>
     <key>CFBundleIdentifier</key>
     <string>com.yimu.baokuanstudio</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
@@ -65,6 +69,14 @@ cat <<EOF > "$APP_BUNDLE/Contents/Info.plist"
 </dict>
 </plist>
 EOF
+
+ICON_SRC="$ROOT_DIR/installer/icons/AppIcon.icns"
+if [ -f "$ICON_SRC" ]; then
+  cp "$ICON_SRC" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+  echo "已注入应用图标: AppIcon.icns"
+else
+  echo "警告: 缺少 installer/icons/AppIcon.icns，应用图标会显示为空白" >&2
+fi
 
 cat <<'EOF' > "$APP_BUNDLE/Contents/MacOS/yimu-launcher"
 #!/bin/bash
@@ -92,7 +104,12 @@ EOF
 
 echo "正在使用 hdiutil 压制原生 DMG 磁盘映像..."
 rm -f "$OUTPUT_DMG"
-hdiutil create -volname "${APP_NAME}" -srcfolder "$DMG_STAGE" -ov -format UDZO "$OUTPUT_DMG"
+# 先出 UDRW 原始映像再转 UDBZ：直接 create -format UDBZ 的 bzip2 块更保守，
+# 实测比两步转换大 45 MB；两步法稳定得到最小体积，挂载内容完全一致。
+RAW_DMG="$DIST_DIR/.dmg_raw_$$.dmg"
+hdiutil create -volname "${APP_NAME}" -srcfolder "$DMG_STAGE" -ov -format UDRW "$RAW_DMG" >/dev/null
+hdiutil convert "$RAW_DMG" -format UDBZ -o "$OUTPUT_DMG" -quiet
+rm -f "$RAW_DMG"
 
 echo "============================================================"
 echo "macOS 全功能 DMG 安装包构建成功: $OUTPUT_DMG"

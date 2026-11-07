@@ -33,6 +33,9 @@ WizardStyle=modern
 PrivilegesRequired=lowest
 DisableProgramGroupPage=auto
 ArchitecturesInstallIn64BitMode=x64compatible
+; 应用图标真源：installer/icons/app.ico（含 256px，由项目 logo 裁出）
+SetupIconFile=..\icons\app.ico
+UninstallDisplayIcon={app}\app\web\static\img\app.ico
 
 [Languages]
 Name: "chinesesimp"; MessagesFile: "compiler:Default.isl"
@@ -45,11 +48,11 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 Source: "..\..\dist\bundle_win\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\app\web\static\favicon.ico"
+Name: "{group}\{#MyAppName}"; Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; IconFilename: "{app}\app\web\static\img\app.ico"
 Name: "{group}\一键启动(调试控制台)"; Filename: "{app}\一键启动.bat"; WorkingDir: "{app}"
 Name: "{group}\一键升级助手"; Filename: "{app}\一键升级.bat"; WorkingDir: "{app}"
 Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\app\web\static\favicon.ico"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; Tasks: desktopicon; IconFilename: "{app}\app\web\static\img\app.ico"
 
 [Run]
 Filename: "wscript.exe"; Parameters: """{app}\一幕桌面客户端.vbs"""; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent

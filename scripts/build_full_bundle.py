@@ -45,6 +45,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 DIST = ROOT / "dist"
+#: 三平台应用图标（由 web/static/img/logo-master.png 裁出纯图形生成）
+ICON_DIR = ROOT / "installer" / "icons"
 
 import version  # noqa: E402
 
@@ -70,12 +72,6 @@ FACTORY_TRIAL_CREDITS = 200000
 #: 全功能包压缩后体积下限（MB）。低于此值说明又退化成源码壳，CI 直接失败。
 MIN_ARCHIVE_MB = 90
 UA = {"User-Agent": "YIMU-Studio-Builder/13.0"}
-
-
-def ensure_dir(p: Path) -> None:
-    """某些托管环境的 sitecustomize 会劫持 Path.mkdir 并忽略 exist_ok，显式判存在最稳。"""
-    if not p.is_dir():
-        p.mkdir(parents=True)
 
 
 def ensure_dir(p: Path) -> None:
@@ -128,6 +124,26 @@ def copy_sources(stage: Path) -> None:
     for sub in ("data/topics", "data/drafts", "data/cards", "logs", "runs"):
         ensure_dir(app / sub)
     log("全量源码与资源已复制（含 gateway / app / skills / config.yaml）")
+
+
+def copy_app_icons(stage: Path) -> None:
+    """把应用图标放进 app/web/static/img，供 Windows 快捷方式 / 便携包 / 窗口图标引用。
+
+    图标真源在 installer/icons/：AppIcon.icns（macOS）、app.ico（Windows，含 256px）、
+    hicolor/*（Linux）。macOS 的 .app 另外使用自己的 Contents/Resources/AppIcon.icns。
+    """
+    dst = stage / "app" / "web" / "static" / "img"
+    ensure_dir(dst)
+    copied = []
+    for name in ("AppIcon.icns", "app.ico", "icon-1024.png"):
+        src = ICON_DIR / name
+        if src.is_file():
+            shutil.copy2(src, dst / name)
+            copied.append(name)
+    if not copied:
+        log("⚠️ 未找到 installer/icons 下的应用图标，安装器图标将保持空白")
+        return
+    log("应用图标已注入: " + ", ".join(copied))
 
 
 def write_factory_config(stage: Path) -> None:
@@ -419,6 +435,7 @@ def build(plat: str, skip: bool = False, pack: bool = True, fresh: bool = False)
     log(f"开始构建 {plat} 全功能离线包 (V{version.__version__})")
 
     copy_sources(stage)
+    copy_app_icons(stage)
     write_factory_config(stage)
     reset_factory_quota(stage)
     key_source = inject_official_key(stage)

@@ -21,13 +21,16 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse  # noqa: E402,F811
+from pathlib import Path  # noqa: E402,F811
 import asyncio  # noqa: E402,F811
+import time  # noqa: E402,F811
+import uuid  # noqa: E402,F811
 
 @router.get('/api/tasks')
 def list_active_tasks(request: Request, active_only: bool=False):
@@ -150,6 +153,38 @@ async def copilot_chat_stream_endpoint(request: Request):
                 break
             yield f'data: {json.dumps(item, ensure_ascii=False)}\n\n'
     return StreamingResponse(event_generator(), media_type='text/event-stream')
+
+@router.post('/api/copilot/attach')
+async def copilot_attach_endpoint(request: Request, file: UploadFile=File(...)):
+    """接收对话附件：文档/表格解析成正文，图片落盘后返回可回显地址。"""
+    _a.guard(request)
+    from core import copilot_files
+    data = await file.read()
+    if len(data) > copilot_files.MAX_BYTES:
+        raise HTTPException(413, '附件超过 10MB，请压缩后再上传')
+    if not data:
+        raise HTTPException(400, '附件内容为空')
+    info = copilot_files.extract(file.filename or '附件', data)
+    url = ''
+    if info['kind'] == 'image':
+        ext = Path(file.filename or '').suffix.lower() or '.png'
+        safe = f'cp_{int(time.time())}_{uuid.uuid4().hex[:8]}{ext}'
+        (_a._COPILOT_UPLOAD_DIR / safe).write_bytes(data)
+        url = f'/static-img/copilot_uploads/{safe}'
+    return {'name': info['name'], 'kind': info['kind'], 'size': info['size'], 'text': info['text'], 'truncated': info['truncated'], 'url': url}
+
+@router.post('/api/copilot/polish_prompt')
+async def copilot_polish_prompt_endpoint(request: Request):
+    """把一句话想法扩写成结构完整的创作提示词（大模型优先，模板兜底）。"""
+    u = _a.guard(request)
+    body = await request.json()
+    text = (body.get('text') or '').strip()
+    if not text:
+        raise HTTPException(400, '请先输入一句话想法')
+    platform = body.get('platform') or 'xhs'
+    from core import prompt_polish
+    res = await asyncio.get_event_loop().run_in_executor(None, lambda: prompt_polish.polish(text, platform=platform, user_id=str(u.get('id') or '')))
+    return res
 
 @router.post('/api/stream/write')
 async def stream_write_endpoint(request: Request):

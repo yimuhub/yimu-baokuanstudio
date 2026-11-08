@@ -4,6 +4,27 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌠 Version 15.1.0 · 万象新 (Grand Renewal) · Two-Line Fusion · 2026-11-08
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.1.0"`, `__codename__ = "万象新"`, `__codename_en__ = "Grand Renewal"`)
+
+### 🎯 Milestone Summary
+
+本版本完成**双线融合**：远端发布线（v10.3.0→v14.0.0 的三栏工作台重构、A2 全功能离线安装包、亮色模式全站统一、存储态/展示态分离、系统诊断日志、文本纯净管线等 24 个提交）与本地商业交付级整改线（在线支付闭环、上传安全守卫、首篇体验券、收入看板、巨石拆分）在 V15 版本线下合流为一线。合并消解 30 个文件冲突，全量 CI 四道门禁跑绿。
+
+### 🔀 Fusion Highlights（双向融合要点）
+
+| # | 内容 | 说明 |
+|---|------|------|
+| 1 | **远端语义改动全量保全** | v10.3 稳定性大修（存储态/展示态分离、`_ensure_core_tables`/`_migrate_columns` 一次性迁移、draft_history 缺列修复）、系统诊断日志、0 元开通漏洞修复（卡密仅 paid 后下发）、`DraftOwnerRoute` v14 强化（未登录 401 + did 形态 400）等全部保留 |
+| 2 | **本地整改增量回植** | 在远端 admin.py 基底上重新应用：支付/续费 6 端点、上传安全守卫、收入看板（API+看板页）、首篇体验券、小白术语减负 |
+| 3 | **巨石拆分在融合基底上重跑** | v14 admin.py（7,629 行/280 路由）整体迁出至 `web/routers/` 18 域；`split_admin.py` 管线自动化，族内顺序保持 |
+| 4 | **测试脚手架升级** | 远端新增 routes_smoke 等测试接入 `iter_effective_routes`（惰性路由展开）；版本锚全面前瞻化（主版本元组含 15.，更新中枢断言脱敏） |
+
+**Full Changelog**: v14.0.0...v15.1.0（版本线统一规范见 [VERSION_POLICY.md](VERSION_POLICY.md)）
+
+---
+
 ## 💳 Version 15.0.0 · 太平令 (Great Peace Edict) · Commerce-Ready Hardening & Version Line Unification · 2026-11-08
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.0.0"`, `__codename__ = "太平令"`, `__codename_en__ = "Great Peace Edict"`)

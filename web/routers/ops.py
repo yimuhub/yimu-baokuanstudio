@@ -21,11 +21,12 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from core.llm import load_config, load_env  # noqa: E402,F811
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
 import asyncio  # noqa: E402,F811
 import json  # noqa: E402,F811
 import time  # noqa: E402,F811
@@ -102,12 +103,10 @@ def admin_metrics(request: Request):
     except Exception:
         days = 30
     fn = analytics.funnel(days)
-    # R10：收入看板（GMV/MRR/ARPU）与到期名单并入运营看板
     revenue = {}
     expiring = []
     try:
         from studio.membership import revenue as _rev
-
         db = _a._r3_session()
         try:
             tenant_id = _a._web_tenant_id(db, _a._current_user_id(_a.get_current_user(request)))
@@ -115,17 +114,15 @@ def admin_metrics(request: Request):
             expiring = _rev.expiring_memberships(db, tenant_id, within_days=7)
         finally:
             db.close()
-    except Exception as _e:  # 收入看板失败不拖垮漏斗看板
+    except Exception as _e:
         revenue = {'ok': False, 'error': str(_e)[:200]}
     return {'ok': True, 'funnel': fn, 'recent_events': analytics.list_recent(20), 'ticket': _sched.ticket_status(), 'account_health': pubguard.health_summary(), 'revenue': revenue, 'expiring_memberships': expiring, 'generated_at': time.time()}
 
-
 @router.post('/api/admin/renewal-reminders/send')
 async def admin_send_renewal_reminders(request: Request):
-    """R10：手动触发续费提醒（7/3/1 天节点，24h 节流幂等；force 重发）。"""
+    """R10：手动触发续费提醒（7/3/1 天节点，24h 节流幂等）。"""
     _a.guard_admin(request)
     from studio.membership import revenue as _rev
-
     db = _a._r3_session()
     try:
         tenant_id = _a._web_tenant_id(db, _a._current_user_id(_a.get_current_user(request)))

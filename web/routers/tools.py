@@ -21,9 +21,9 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from core import db, judge, orchestrator  # noqa: E402,F811
 from core.themes import WECHAT_THEMES, XHS_CARD_STYLES  # noqa: E402,F811
@@ -47,7 +47,8 @@ async def api_render(request: Request):
     if did:
         ddir = db.draft_dir(did)
         if (ddir / 'img').exists():
-            sec_titles = [l[4:].strip() for l in body_md.splitlines() if l.startswith('### ')]
+            from core.text_denoise import extract_section_headings
+            sec_titles = [t.strip('【】').strip() for t, _ in extract_section_headings(body_md)]
             pngs = sorted((ddir / 'img').glob('sec-*.png'))
             images = {t: f'/img/{did}/{p.name}' for t, p in zip(sec_titles, pngs)}
             if (ddir / 'img' / 'cover.png').exists():

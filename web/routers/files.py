@@ -21,9 +21,9 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from core import db, judge, orchestrator  # noqa: E402,F811
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
@@ -135,6 +135,44 @@ def share_poster(token: str):
         raise HTTPException(404, '分享链接无效或已失效')
     svg = _share.build_poster(rec['draft_id'], token)
     return Response(svg, media_type='image/svg+xml')
+
+@router.get('/s/{token}/img/{name}')
+def share_media_img(token: str, name: str):
+    """分享页配图（令牌作用域）。
+
+    ⭐ 为什么要这条路由：`/img/{did}/{name}` 现在是 fail-closed 的，
+       匿名访客会 401。分享页由 :func:`core.share.rewrite_media_urls`
+       把图片地址改写成这里，令牌 → 稿件映射在服务端库，
+       因此「令牌有效」即可读图，无法通过改 did 拿别人的图。
+    """
+    from core import share as _share
+    if '/' in name or '\\' in name or '..' in name:
+        raise HTTPException(400, 'bad name')
+    rec = _share.resolve(token, count_hit=False)
+    if not rec:
+        raise HTTPException(404, '分享链接无效或已失效')
+    f = db.draft_dir(str(rec['draft_id'])) / 'img' / name
+    if not f.is_file():
+        raise HTTPException(404, '图片不存在')
+    resp = FileResponse(f, media_type='image/png')
+    resp.headers['Cache-Control'] = 'public, max-age=600'
+    return resp
+
+@router.get('/s/{token}/card/{name}')
+def share_media_card(token: str, name: str):
+    """分享页卡片图（令牌作用域），语义同 :func:`share_media_img`。"""
+    from core import share as _share
+    if '/' in name or '\\' in name or '..' in name or (not name.startswith('card-')):
+        raise HTTPException(400, 'bad name')
+    rec = _share.resolve(token, count_hit=False)
+    if not rec:
+        raise HTTPException(404, '分享链接无效或已失效')
+    f = db.draft_dir(str(rec['draft_id'])) / name
+    if not f.is_file():
+        raise HTTPException(404, '卡片不存在')
+    resp = FileResponse(f, media_type='image/png')
+    resp.headers['Cache-Control'] = 'public, max-age=600'
+    return resp
 
 @router.get('/card/{did}/{name}')
 def card(did: str, name: str):

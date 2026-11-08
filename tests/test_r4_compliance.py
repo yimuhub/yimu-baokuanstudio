@@ -381,6 +381,14 @@ class TestStaticExposure:
         if not img.exists() or not card.exists():
             pytest.skip("本地无草稿图片产物，跳过直链回归验证")
 
+        # R11 融合:v14 起带 {did} 路由 fail-closed 要求登录,直链回归改在管理员登录态下验证
+        from core import auth as _auth
+        _uid = _auth.register_user("r4imgadmin", "pw-r4img-123")["user"]["id"]
+        _c = _auth._db()
+        _c.execute("UPDATE users SET role='admin' WHERE id=?", (_uid,))
+        _c.commit(); _c.close()
+        guard_client.cookies.set("mf_v6_token", _auth.make_token(
+            {"user_id": _uid, "username": _uid, "role": "admin"}))
         r1 = guard_client.get(f"/img/{did}/cover.png")
         r2 = guard_client.get(f"/card/{did}/card-0.png")
         assert r1.status_code == 200 and r1.headers["content-type"] == "image/png"

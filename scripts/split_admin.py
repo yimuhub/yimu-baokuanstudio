@@ -68,7 +68,7 @@ def family_of(path: str) -> str:
     if head in ("tasks", "jobs", "batch", "copilot", "stream"):
         return "tasks"
     if head in ("schedule", "watermark", "settings", "content", "editor", "share", "platforms",
-                "workspace", "short_drama"):
+                "workspace", "short_drama", "diagnostics"):
         return "workspace"
     if head == "admin" and "renewal" in path:
         return "ops"
@@ -221,7 +221,7 @@ def main() -> None:
         buf.append("                               JSONResponse, Response, StreamingResponse)\n\n")
         buf.append("from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)\n\n")
         buf.append("from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份\n")
-    buf.append("router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类\n\n")
+        buf.append("router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类\n\n")
 
         fam_imports: set[str] = set()
         fam_rewrite: set[str] = set()

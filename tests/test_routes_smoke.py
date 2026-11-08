@@ -104,7 +104,8 @@ def test_did_routes_require_login(anon_client: TestClient):
     """
     bad: list[str] = []
     checked = 0
-    for route in app.routes:
+    from tests.wsb_common import iter_effective_routes  # R11 拆分后路由经 include 惰性挂载
+    for route in iter_effective_routes(app):
         path = getattr(route, "path", "")
         if "{did}" not in path or path.startswith("/s/"):
             continue

@@ -22,9 +22,9 @@ from adapters import wechat_mp
 
 def test_v944_version_single_source_of_truth():
     """验证全局版本号及代号为 V10.x 鸿蒙始"""
-    assert version.__version__.startswith(("9.", "10.", "11.", "15.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5", "9.4.4")
-    assert bool(version.__codename__)  # 代号由 release-codenames.json 序列管理（R11 前瞻化）
-    assert bool(version.__codename_en__)  # 英文代号由序列管理（R11 前瞻化）
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.", "14.", "15.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5", "9.4.4")
+    assert bool(version.__codename__)  # 代号由序列管理(R11 前瞻化)
+    assert bool(version.__codename_en__)  # R11 前瞻化
 
 
 def test_dedupe_markdown_images():
@@ -116,6 +116,12 @@ def test_minimalist_mode_draft_raw_self_healing(tmp_path, monkeypatch):
     from core import db
 
     client = TestClient(app)
+    # ⭐ 带 {did} 的路由现在是 fail-closed 的（未登录 401）。
+    #    这里用「本机管理会话」的等价做法：直接下发与服务端一致的 mf_token，
+    #    模拟管理员已登录后访问自己的草稿。
+    from web import admin as _web_admin
+
+    client.cookies.set("mf_token", _web_admin._token())
 
     # 构造一篇临时草稿与包含双重重复图片的 preview-wechat_mp.html
     draft_id = "dr-test-dedup-944"

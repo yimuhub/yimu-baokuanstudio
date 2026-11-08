@@ -21,9 +21,9 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from core import db, judge, orchestrator  # noqa: E402,F811
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
@@ -125,11 +125,12 @@ def audio_file(did: str, name: str, request: Request):
 
 @router.post('/api/video/upload_bgm')
 async def video_upload_bgm(request: Request, file: UploadFile=File(...)):
-    """上传本地背景音乐（.mp3, .wav 等）。R10.0：经统一上传守卫落盘，修复历史路径穿越。"""
+    """上传本地背景音乐（.mp3, .wav 等）"""
     _a.guard(request)
-    import pathlib
-    from core.upload_guard import AUDIO_EXTS, save_upload
+    import pathlib, shutil
     bgm_dir = pathlib.Path('data/bgm_uploads')
+    bgm_dir.mkdir(parents=True, exist_ok=True)
+    from core.upload_guard import AUDIO_EXTS, save_upload
     try:
         dest, orig_name = await save_upload(file, bgm_dir, 'bgm', AUDIO_EXTS, max_mb=80)
     except HTTPException:
@@ -140,11 +141,12 @@ async def video_upload_bgm(request: Request, file: UploadFile=File(...)):
 
 @router.post('/api/video/upload_material')
 async def video_upload_material(request: Request, file: UploadFile=File(...)):
-    """上传本地图片或视频素材作为画面来源。R10.0：经统一上传守卫落盘，修复历史路径穿越。"""
+    """上传本地图片或视频素材作为画面来源"""
     _a.guard(request)
-    import pathlib
-    from core.upload_guard import IMAGE_EXTS, VIDEO_EXTS, save_upload
+    import pathlib, shutil
     mat_dir = pathlib.Path('data/material_uploads')
+    mat_dir.mkdir(parents=True, exist_ok=True)
+    from core.upload_guard import IMAGE_EXTS, VIDEO_EXTS, save_upload
     try:
         dest, orig_name = await save_upload(file, mat_dir, 'mat', IMAGE_EXTS + VIDEO_EXTS, max_mb=200)
     except HTTPException:
@@ -297,7 +299,7 @@ async def advideo_script_rewrite(request: Request):
         res = ad_video.rewrite_ad_script(product_name=product_name, product_desc=product_desc, selling_points=selling_points, audience=audience, ad_mode=ad_mode, seconds=seconds)
         return res
     except Exception as e:
-        log.exception('[admin] advideo script_rewrite 异常: %s', e)
+        _a.logger.exception('[admin] advideo script_rewrite 异常: %s', e)
         raise HTTPException(500, f'广告话术生成失败: {e}')
 
 @router.post('/api/advideo/create')
@@ -365,7 +367,7 @@ async def aivideo_rewrite(request: Request):
     except ValueError as ve:
         raise HTTPException(400, str(ve))
     except Exception as e:
-        log.exception('[admin] aivideo rewrite 失败: %s', e)
+        _a.logger.exception('[admin] aivideo rewrite 失败: %s', e)
         raise HTTPException(500, f'AI 文案改写失败: {e}')
 
 @router.post('/api/aivideo/upload_avatar')

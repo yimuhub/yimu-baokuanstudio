@@ -77,4 +77,5 @@ def test_check_for_updates_works_tokenless():
     """验证公开仓库在无 Token 情况下检测更新正常工作"""
     res = updater.check_for_updates(force=True)
     assert res.get("ok") is True
-    assert res.get("current_version") in ("10.1.9", "10.1.10", "10.1.11", "10.1.12", "10.2.0", "10.2.1", "15.0.0")
+    import re as _re
+    assert _re.match(r"^\d+(\.\d+){1,3}$", str(res.get("current_version") or ""))  # R11 前瞻化

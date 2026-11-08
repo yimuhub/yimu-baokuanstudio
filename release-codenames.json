@@ -1,8 +1,8 @@
 {
-  "current_version": "15.0.0",
-  "current_codename_zh": "太平令",
-  "current_codename_en": "Great Peace Edict",
-  "next_index": 66,
+  "current_version": "15.1.0",
+  "current_codename_zh": "万象新",
+  "current_codename_en": "Grand Renewal",
+  "next_index": 67,
   "sequence": [
     {
       "zh": "曦光序",
@@ -440,6 +440,12 @@
       "version": "v15.0.0",
       "zh": "太平令",
       "en": "Great Peace Edict",
+      "date": "2026-11-08"
+    },
+    {
+      "version": "v15.1.0",
+      "zh": "万象新",
+      "en": "Grand Renewal",
       "date": "2026-11-08"
     }
   ]

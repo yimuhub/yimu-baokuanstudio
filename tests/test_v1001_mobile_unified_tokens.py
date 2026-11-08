@@ -20,8 +20,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_v1001_version_single_source_of_truth():
     """验证版本单一真源兼容性与动态渲染。"""
-    assert version.__version__.startswith(("9.", "10.", "11.", "15."))
-    assert bool(getattr(version, "__codename__", ""))  # 代号由序列管理（R11 前瞻化）
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.", "14.", "15."))
+    assert bool(version.__codename__)  # R11 前瞻化
 
     # 验证 pyproject.toml
     pyproject_toml = (ROOT / "pyproject.toml").read_text(encoding="utf-8")

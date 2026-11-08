@@ -9,10 +9,14 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_v10_single_source_of_truth():
-    """验证全站版本单一真源已步进至 10.x（鸿蒙始 · Primordial Dawn）。"""
-    assert version.__version__.startswith(("9.", "10.", "11.", "15."))
-    assert bool(getattr(version, "__codename__", ""))  # 代号由序列管理（R11 前瞻化）
-    assert bool(getattr(version, "__codename_en__", ""))  # 英文代号由序列管理（R11 前瞻化）
+    """验证全站版本单一真源已步进至 11.x，且与代号序列状态互洽。"""
+    import json
+
+    state = json.loads((ROOT / "release-codenames.json").read_text(encoding="utf-8"))
+    assert version.__version__.startswith(("11.", "12.", "13.", "14.", "15."))
+    assert version.__version__ == state["current_version"]
+    assert version.__codename__ == state["current_codename_zh"]
+    assert version.__codename_en__ == state["current_codename_en"]
 
     from web.admin import get_html_page
     idx = get_html_page()

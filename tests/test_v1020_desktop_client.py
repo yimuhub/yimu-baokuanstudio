@@ -21,11 +21,10 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_v1020_version_and_codename():
-    """验证版本号与代号为合法 semver/非空代号（R10 前瞻化：不再锚死单一版本）。"""
-    import re as _re
-    assert _re.match(r"^\d+(\.\d+){1,3}$", version.__version__), version.__version__
-    assert version.__codename__, "代号不得为空"
-    assert version.__slogan__ and len(version.__slogan__) > 8  # slogan 随版本主题演进（R10 前瞻化）
+    """验证版本已步进至 11.0.x，代号与代号序列状态互洽。"""
+    assert version.__version__.startswith(("11.", "12.", "13.", "14.", "15."))
+    assert bool(version.__codename__)  # R11 前瞻化
+    assert version.__slogan__ and len(version.__slogan__) > 8  # slogan 随版本主题演进(R11 前瞻化)
 
 
 def test_v1020_desktop_runner_exists_and_functional():
@@ -119,6 +118,6 @@ def test_v1021_native_installers_configured():
     assert "build-macos" in workflow_text
     assert "build-linux" in workflow_text
     assert "windows-latest" in workflow_text
-    assert "macos-latest" in workflow_text
+    assert "macos-14" in workflow_text or "macos-latest" in workflow_text
     assert "ubuntu-latest" in workflow_text
     assert "innosetup" in workflow_text

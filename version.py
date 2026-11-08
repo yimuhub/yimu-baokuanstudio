@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.0.0"
-__codename__ = "太平令"
-__codename_en__ = "Great Peace Edict"
-__slogan__ = "一念起 一幕开 万象生 · 商业交付级整改全量落地，版本线统一对齐 V15"
-__slogan_cn__ = "一念起 一幕开 万象生 · 商业交付级整改全量落地，版本线统一对齐 V15"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Commerce-ready hardening shipped, version line unified at V15"
+__version__ = "15.1.0"
+__codename__ = "万象新"
+__codename_en__ = "Grand Renewal"
+__slogan__ = "一念起 一幕开 万象生 · 双线融合：远端工作台重构与商业交付级整改合流为一线"
+__slogan_cn__ = "一念起 一幕开 万象生 · 双线融合：远端工作台重构与商业交付级整改合流为一线"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Two lines fused: workbench redesign meets commerce-ready hardening"
 
 
 def get_version() -> str:

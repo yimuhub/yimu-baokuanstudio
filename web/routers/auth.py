@@ -21,9 +21,9 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from core.llm import load_config, load_env  # noqa: E402,F811
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
@@ -171,7 +171,7 @@ async def api_change_password(request: Request):
                 user_id = user_dict['id']
             c.close()
     if not user_dict:
-        raise HTTPException(404, '目标用户不存在')
+        raise HTTPException(400, '原密码不正确，请重新输入')
     if user_dict.get('password_hash'):
         if not old_password:
             raise HTTPException(400, '请输入原密码以验证身份')

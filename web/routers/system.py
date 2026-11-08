@@ -21,9 +21,9 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from adapters.base import PLATFORMS, NAMES  # noqa: E402,F811
 from core import agents as AG  # noqa: E402,F811
@@ -32,7 +32,7 @@ from core import layouter  # noqa: E402,F811
 from core.llm import load_config, load_env  # noqa: E402,F811
 from core.themes import WECHAT_THEMES, XHS_CARD_STYLES  # noqa: E402,F811
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
-import time  # noqa: E402,F811
+import asyncio  # noqa: E402,F811
 
 @router.get('/api/health')
 def api_health():
@@ -53,8 +53,13 @@ def api_system_check_update(force: bool=False):
 
 @router.post('/api/system/upgrade')
 def api_system_upgrade(request: Request):
-    """一键从 GitHub 同步升级最新代码（需要管理员权限）。"""
-    _a.guard(request)
+    """一键从 GitHub 同步升级最新代码（**仅管理员**）。
+
+    🔴 注释一直写「需要管理员权限」，代码却是 guard(request)——
+       任何登录用户都能触发 git pull + 重启，等于把服务端代码替换权
+       交给所有注册用户。现已改为 guard_admin。
+    """
+    _a.guard_admin(request)
     from core import updater
     return updater.perform_upgrade()
 
@@ -140,42 +145,68 @@ def status(request: Request):
 
 @router.get('/api/health/services')
 def health_services(request: Request):
+    """本地依赖组件探活。
+
+    前端渲染用的是 `s.status` 与 `s.detail`，而后端此前只回 `ok`，
+    于是界面永远显示「端口/状态: undefined」。这里补齐两个展示字段
+    （status 给中文状态，detail 给实际探测的地址，便于用户排查端口冲突）。
+    """
     _a.guard(request)
     import httpx
     out = []
     for svc in _a.HEALTH_SERVICES:
+        addr = f"127.0.0.1:{svc['port']}{svc['path']}"
         try:
             with httpx.Client(timeout=2, trust_env=False) as client:
-                r = client.get(f"http://127.0.0.1:{svc['port']}{svc['path']}")
+                r = client.get(f'http://{addr}')
                 ok = r.status_code < 500
+                status = f'在线 (HTTP {r.status_code})' if ok else f'异常 (HTTP {r.status_code})'
         except Exception:
             ok = False
-        out.append({**svc, 'ok': ok})
+            status = '未启动 / 无法连接'
+        out.append({**svc, 'ok': ok, 'status': status, 'detail': addr})
     return {'services': out, 'mediaflow': True}
 
 @router.post('/api/health/repair')
 async def health_repair(request: Request):
-    _a.guard(request)
+    """重启某个本地依赖组件（**仅管理员**）。
+
+    ⭐ 修复三件事：
+       1. 原来是 guard() —— 普通用户就能让服务端起/杀本机进程；
+       2. 原代码硬编码了作者本机的 launchd 标签（com.czmj.apipool / com.czmj.wae），
+          在别人机器上 100% 失败且报错不可读；现在从环境变量读标签，
+          没配置就明确回 501（而不是静默失败）；
+       3. 原来的 time.sleep(4/3/1) + subprocess.run 直接跑在 async 路由里，
+          一次点击阻塞事件循环 8 秒以上（期间全站无响应），现在整体丢线程池。
+    """
+    _a.guard_admin(request)
     body = await request.json()
-    name = body.get('name')
-    import subprocess as sp
-    uid = sp.run(['id', '-u'], capture_output=True, text=True).stdout.strip()
-    if name == 'apipool':
-        sp.run(['launchctl', 'kickstart', '-k', f'gui/{uid}/com.czmj.apipool'], capture_output=True)
-        time.sleep(4)
-    elif name == 'exporter':
-        sp.run(['launchctl', 'kickstart', '-k', f'gui/{uid}/com.czmj.wae'], capture_output=True)
-        time.sleep(3)
-    elif name == 'xhsmcp':
-        xb = _a.BASE / 'vendors/xhs-mcp/xiaohongshu-mcp'
-        if xb.exists():
+    name = str(body.get('name') or '')
+
+    def _run() -> dict:
+        import subprocess as sp
+        launchd = {'apipool': ('YIMU_LAUNCHD_APIPOOL', 4), 'exporter': ('YIMU_LAUNCHD_EXPORTER', 3)}
+        if name in launchd:
+            env_name, wait_s = launchd[name]
+            label = (_os.environ.get(env_name) or '').strip()
+            if not label:
+                raise HTTPException(501, f'当前环境未注册该组件的后台服务（缺少 {env_name}），请手动重启对应程序后重试')
+            uid_ = sp.run(['id', '-u'], capture_output=True, text=True).stdout.strip()
+            sp.run(['launchctl', 'kickstart', '-k', f'gui/{uid_}/{label}'], capture_output=True)
+            time.sleep(wait_s)
+            return {'ok': True}
+        if name == 'xhsmcp':
+            xb = BASE / 'vendors/xhs-mcp/xiaohongshu-mcp'
+            if not xb.exists():
+                raise HTTPException(400, '组件未安装')
             sp.run(['pkill', '-f', 'xiaohongshu-mcp'], capture_output=True)
             time.sleep(1)
-            sp.Popen([str(xb), '-headless=true'], cwd=str(xb.parent), stdout=open(_a.BASE / 'logs/xhsmcp.out', 'w'), stderr=sp.STDOUT)
+            log_dir = BASE / 'logs'
+            log_dir.mkdir(parents=True, exist_ok=True)
+            with open(log_dir / 'xhsmcp.out', 'w') as _log:
+                sp.Popen([str(xb), '-headless=true'], cwd=str(xb.parent), stdout=_log, stderr=sp.STDOUT)
             time.sleep(3)
-        else:
-            raise HTTPException(400, '组件未安装')
-    else:
-        raise HTTPException(404, name)
-    return {'ok': True}
+            return {'ok': True}
+        raise HTTPException(404, f'未知组件: {name}')
+    return await asyncio.get_event_loop().run_in_executor(None, _run)
 

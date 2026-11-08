@@ -22,7 +22,7 @@ from web.admin import app
 
 def test_v8333_version_single_source_of_truth():
     """验证单一真源版本号已升级至 10.x"""
-    assert version.__version__.startswith(("9.", "10.", "11.", "15.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0")
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.", "14.", "15.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0")
     from web.admin import get_html_page, get_mobile_html_page
     index_html = get_html_page()
     mobile_html = get_mobile_html_page()
@@ -106,7 +106,10 @@ def test_v8333_auth_change_password_feature():
     assert 'id="change-pwd-old"' in index_html
     assert 'id="change-pwd-new"' in index_html
     assert 'id="change-pwd-confirm"' in index_html
-    assert 'openChangePasswordModal()' in index_html
+    # ⚠️ 函数已改名为 openSelfChangePassword：原实现有两个同名
+    #    openChangePasswordModal（自助改密 / 管理员改他人密码），
+    #    后定义的会覆盖前一个，导致管理员改密弹窗永远打不开。
+    assert 'openSelfChangePassword()' in index_html
     assert 'doChangePassword()' in index_html
 
     # 2. 后端 API 接口契约与逻辑验证

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.1.0] - 万象新 (Grand Renewal) · 2026-11-08
+
+### Added 双线融合
+- 合并远端 v10.3.0→v14.0.0 全部 24 个提交：三栏工作台重构（workbench shell/rail/stage）、A2 全功能离线安装包、亮色模式全站统一、存储态/展示态分离、系统诊断日志、文本纯净管线（core/text_purity）、密钥保管（core/secret_store）、首启引导（scripts/first_run_bootstrap）
+- 远端安全强化并入：0 元开通漏洞修复（卡密仅 paid 后下发）、DraftOwnerRoute fail-closed 401 强化
+- 本地整改增量在融合基底上重新落地（支付/上传守卫/收入看板/首篇券/术语减负）
+- web/admin.py 在 v14 基底（7,629 行/280 路由）上重新拆分为 18 域 router
+
 ## [15.0.0] - 太平令 (Great Peace Edict) · 2026-11-08
 
 商业交付级整改（依据 2026-11-08 五维综合审查报告 P0/P1/P2 路线图）。详见 [RELEASES.md](RELEASES.md)。

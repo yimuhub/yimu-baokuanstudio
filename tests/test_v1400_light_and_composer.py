@@ -160,7 +160,8 @@ def test_composer_accepts_documents_and_images(html: str) -> None:
 def test_copilot_endpoints_registered() -> None:
     from web.admin import app
 
-    paths = {getattr(r, "path", "") for r in app.routes}
+    from tests.wsb_common import iter_effective_routes
+    paths = {getattr(r, "path", "") for r in iter_effective_routes(app)}
     assert "/api/copilot/attach" in paths, "附件解析接口未注册"
     assert "/api/copilot/polish_prompt" in paths, "提示词优化接口未注册"
 

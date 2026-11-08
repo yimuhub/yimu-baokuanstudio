@@ -34,15 +34,15 @@ from core.imagegen import inject_images_to_markdown
 
 def test_v945_version_single_source_of_truth():
     """验证全局版本单一真源为 10.x / 10.0.2 / 10.0.1 / 10.0.0"""
-    assert version.__version__.startswith(("9.", "10.", "11.", "15.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5")
-    assert bool(version.__codename__)  # 代号由 release-codenames.json 序列管理（R11 前瞻化）
-    assert bool(version.__codename_en__)  # 英文代号由序列管理（R11 前瞻化）
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.", "14.", "15.")) or version.__version__ in ("10.0.2", "10.0.1", "10.0.0", "9.4.5")
+    assert bool(version.__codename__)  # 代号由序列管理(R11 前瞻化)
+    assert bool(version.__codename_en__)  # R11 前瞻化
 
     from web.admin import get_html_page, get_mobile_html_page
     index_html = get_html_page()
     mobile_html = get_mobile_html_page()
-    readme_en = Path("README.md").read_text(encoding="utf-8")
-    readme_zh = Path("README_ZH.md").read_text(encoding="utf-8")
+    readme_en = Path("README_EN.md").read_text(encoding="utf-8")  # 默认语言对调：README.md 为中文
+    readme_zh = Path("README.md").read_text(encoding="utf-8")
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
 
@@ -230,10 +230,31 @@ def test_orchestrator_and_xhs_clean_pipeline():
     assert "###" not in cleaned
     assert "关于行业发展" in cleaned
     assert "【核心痛点解析】" in cleaned
+    # ⭐ V10.3：`clean_generated_markdown` 产出的是**存储态**正文（公众号渲染源），
+    #    必须保留 `**加粗**`，否则 md_to_wechat_html 永远转不出 <strong>。
+    #    符号的清除发生在展示出口（clean_xhs_text / 卡片图 / 复制），见下面的断言。
     assert "**重中之重**" in cleaned
+    assert "【核心痛点解析】" in cleaned
     assert "#自媒体 #成长" in cleaned
 
+    # 小红书文案是纯文本成品 → 这里才是"零符号"的验收面
     xhs_output = clean_xhs_text(raw_markdown)
     assert "###" not in xhs_output
     assert "***" not in xhs_output
+    assert "**" not in xhs_output
     assert "#自媒体" in xhs_output
+
+
+def test_extract_leading_title_handles_purified_form():
+    """净化会把 `# 标题` 归一成 `【标题】`，标题提取必须两种都认。
+
+    回归背景：只认 `# ` 的实现会静默失效 —— 小红书标题退回草稿标题，
+    首张卡片标题变成第一小节名，正文全挂错位。
+    """
+    from core.text_denoise import extract_leading_title
+
+    assert extract_leading_title("# 超实用干货\n\n正文") == "超实用干货"
+    assert extract_leading_title("【超实用干货】\n\n正文") == "超实用干货"
+    assert extract_leading_title("\n\n【带空行的标题】\n正文") == "带空行的标题"
+    assert extract_leading_title("正文第一行\n第二行") == ""
+    assert extract_leading_title("") == ""

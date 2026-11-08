@@ -21,11 +21,12 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
+import time  # noqa: E402,F811
 
 @router.get('/api/billing/status')
 def billing_status(request: Request):
@@ -176,7 +177,6 @@ def billing_pay_channels(request: Request):
     from studio.membership import payments
     return {'ok': True, 'channels': payments.available_channels()}
 
-
 @router.post('/api/billing/pay/create')
 async def billing_pay_create(request: Request):
     """R10：为本人待支付订单生成渠道收银台链接（sandbox/xunhu/stripe）。"""
@@ -187,7 +187,6 @@ async def billing_pay_create(request: Request):
     if not order_id:
         raise HTTPException(400, '缺少 order_id')
     from studio.membership import payments
-
     db = _a._r3_session()
     try:
         user_id = _a._current_user_id(u)
@@ -206,7 +205,6 @@ async def billing_pay_create(request: Request):
         db.close()
     return {'ok': True, **r}
 
-
 @router.post('/api/billing/pay/sandbox/{order_id}/confirm')
 async def billing_pay_sandbox_confirm(request: Request, order_id: str):
     """R10：沙箱收银台「模拟支付成功」（仅 YIMU_PAY_SANDBOX!=0 时可用，须登录且须本人订单）。"""
@@ -215,20 +213,14 @@ async def billing_pay_sandbox_confirm(request: Request, order_id: str):
     if _os.environ.get('YIMU_PAY_SANDBOX', '1') in ('0', 'false', 'no'):
         raise HTTPException(403, '沙箱支付已在生产配置中关闭')
     from studio.membership import payments
-
     db = _a._r3_session()
     try:
         user_id = _a._current_user_id(u)
         tenant_id = _a._web_tenant_id(db, user_id)
-        r = payments.settle_paid_order(
-            db, tenant_id, order_id, channel='sandbox',
-            trade_no=f'sandbox-{int(time.time())}',
-        )
-        # 沙箱核销仅限本人订单（settle 内部按租户取单；这里再校验归属）
-        if r.get('order', {}).get('id') and not _a._is_admin_user(u):
+        r = payments.settle_paid_order(db, tenant_id, order_id, channel='sandbox', trade_no=f'sandbox-{int(time.time())}')
+        if r.get('order', {}).get('id') and (not _a._is_admin_user(u)):
             from studio.db_models import Order
-            own = db.query(Order).filter(
-                Order.id == str(order_id), Order.user_id == user_id).first()
+            own = db.query(Order).filter(Order.id == str(order_id), Order.user_id == user_id).first()
             if own is None:
                 raise HTTPException(403, '无权操作他人订单')
     except HTTPException:
@@ -241,13 +233,11 @@ async def billing_pay_sandbox_confirm(request: Request, order_id: str):
         db.close()
     return r
 
-
 @router.api_route('/api/billing/pay/notify/{channel}', methods=['GET', 'POST'])
 async def billing_pay_notify(channel: str, request: Request):
     """R10：支付渠道异步回调（公开端点，渠道验签把关；GET 用于虎皮椒类同步通知兼容）。"""
     from fastapi.responses import JSONResponse, PlainTextResponse
     from studio.membership import payments
-
     if str(channel or '').lower() not in ('xunhu', 'stripe'):
         return JSONResponse({'ok': False, 'error': '未知渠道'}, status_code=400)
     query = dict(request.query_params)
@@ -256,7 +246,6 @@ async def billing_pay_notify(channel: str, request: Request):
     try:
         evt = payments.verify_callback(str(channel).lower(), query=query, body=body, headers=headers)
     except ValueError as e:
-        # 验签失败：4xx 拒绝，渠道会重试或停止；绝不触碰订单
         return JSONResponse({'ok': False, 'error': str(e)}, status_code=400)
     if not evt.get('order_id'):
         return JSONResponse({'ok': False, 'error': '回调缺少订单号'}, status_code=400)
@@ -266,30 +255,24 @@ async def billing_pay_notify(channel: str, request: Request):
         o = db.query(Order).filter(Order.id == evt['order_id']).first()
         if o is None:
             return JSONResponse({'ok': False, 'error': '订单不存在'}, status_code=404)
-        r = payments.settle_paid_order(
-            db, str(o.tenant_id), evt['order_id'], channel=str(channel).lower(),
-            trade_no=evt.get('trade_no', ''), amount_cents=evt.get('amount_cents'),
-        )
+        r = payments.settle_paid_order(db, str(o.tenant_id), evt['order_id'], channel=str(channel).lower(), trade_no=evt.get('trade_no', ''), amount_cents=evt.get('amount_cents'))
     except Exception as e:
         db.rollback()
-        # 返回 5xx 让渠道稍后重试（幂等设计保证重试安全）
         return JSONResponse({'ok': False, 'error': str(e)[:200]}, status_code=500)
     finally:
         db.close()
-    # 虎皮椒约定：输出 success 即视为受理成功
     if str(channel).lower() == 'xunhu':
         return PlainTextResponse('success')
     return {'ok': True, 'idempotent': r.get('idempotent', False)}
-
 
 @router.post('/api/billing/order')
 async def billing_create_order(request: Request):
     """R3-2：用户下单购买套餐 → 生成 CDKey + 返回支付指引。
 
-    R10 收款升级：配置支付渠道（虎皮椒/Stripe，见 studio/membership/payments.py
-    模块头注释）后，收银台出现「在线支付」按钮，回调验签后**自动核销到账**；
-    未配置任何在线渠道时自动回落为「线下转账 + 管理员核销」的 R3 手工链路，
-    两种模式共存，收款永不中断。
+    ⚠️ 收款方式说明（重要，勿误认为已接支付网关）：
+       本项目**没有微信支付/支付宝商户资质**，因此不提供「一键支付」按钮。
+       真实链路是「下单 → 生成卡密 → 线下转账 → 管理员核销 → 用户兑换到账」。
+       这不是临时应付，而是当前资质下**唯一能真实收钱**的通路。
     """
     u = _a.guard(request)
     body = await request.json()
@@ -330,7 +313,7 @@ def billing_my_orders(request: Request):
         tenant_id = _a._web_tenant_id(db, user_id)
         from studio.db_models import Order
         rows = db.query(Order).filter(Order.tenant_id == tenant_id, Order.user_id == user_id).order_by(Order.created_at.desc()).limit(50).all()
-        items = [{'id': r.id, 'plan': r.plan, 'credits': int(r.credits), 'amount_yuan': round(int(r.amount_cents) / 100.0, 2), 'status': r.status, 'cdkey': r.cdkey if r.status != 'refunded' else '', 'created_at': r.created_at.isoformat() if r.created_at else None} for r in rows]
+        items = [{'id': r.id, 'plan': r.plan, 'credits': int(r.credits), 'amount_yuan': round(int(r.amount_cents) / 100.0, 2), 'status': r.status, 'cdkey': r.cdkey if r.status == 'paid' else '', 'created_at': r.created_at.isoformat() if r.created_at else None} for r in rows]
     finally:
         db.close()
     return {'ok': True, 'items': items, 'total': len(items)}
@@ -367,23 +350,29 @@ async def billing_cancel_my_order(request: Request, order_id: str):
 
 @router.post('/api/billing/orders/{order_id}/activate')
 async def billing_activate_order(request: Request, order_id: str):
-    """一键完成订单收款确认与卡密核销到账（完整购买闭环加速通道）。"""
-    u = _a.guard(request)
+    """管理员代客核销：把**已确认收款**订单的卡密兑换到账。
+
+    🔴 这是一个历史漏洞点，改动请勿回退：
+       修复前用的是 ``guard(request)``，且会在 ``status == "pending"`` 时
+       自己调 ``confirm_order_paid``——等于任何注册用户都能把自己的订单
+       一键标记为「已收款」并把卡密兑换成额度（Pro ¥300 / Studio ¥2000 白嫖），
+       同时把假订单写成 paid 污染财务对账。
+       现在：① 仅管理员可调用；② **绝不自助确认收款**，必须已是 paid；
+       ③ 订单查询去掉跨租户兜底。
+    """
+    admin = _a.guard_admin(request)
     from studio.membership import commerce
     from studio import billing_adapter
     from studio.db_models import Order
     db = _a._r3_session()
     try:
-        user_id = _a._current_user_id(u)
-        tenant_id = _a._web_tenant_id(db, user_id)
-        order = db.query(Order).filter(Order.id == str(order_id), Order.tenant_id == tenant_id).first() or db.query(Order).filter(Order.id == str(order_id)).first() or db.query(Order).filter(Order.id == str(order_id)).first() or db.query(Order).filter(Order.id == str(order_id)).first()
+        actor_id = _a._current_user_id(admin)
+        tenant_id = _a._web_tenant_id(db, actor_id)
+        order = db.query(Order).filter(Order.id == str(order_id), Order.tenant_id == tenant_id).first()
         if order is None:
             raise HTTPException(404, '订单不存在')
-        if order.user_id != user_id and (not _a._is_admin_user(u)):
-            raise HTTPException(403, '无权操作他人订单')
-        if order.status == 'pending':
-            commerce.confirm_order_paid(db, tenant_id, order_id, actor=user_id)
-            db.refresh(order)
+        if order.status != 'paid':
+            raise HTTPException(409, f'订单当前状态为 {order.status}，只有已确认收款（paid）的订单才能核销到账')
         cdkey = order.cdkey
         target_uid = order.user_id
     finally:
@@ -391,6 +380,11 @@ async def billing_activate_order(request: Request, order_id: str):
     if not cdkey:
         raise HTTPException(400, '该订单无可用卡密')
     res = billing_adapter.redeem_cdkey_for_user(cdkey, target_uid)
+    try:
+        from core import analytics
+        analytics.track('cdkey_redeemed', actor_id, {'order_id': str(order_id), 'by': 'admin', 'ok': bool(res.get('ok'))})
+    except Exception:
+        pass
     return {'ok': bool(res.get('ok')), 'redeem': res, 'order_id': order_id}
 
 @router.get('/api/admin/orders')

@@ -21,13 +21,13 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
+from core import diagnostics as diag  # noqa: E402,F811
 from core.llm import load_config, load_env  # noqa: E402,F811
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
-from pathlib import Path  # noqa: E402,F811
 import time  # noqa: E402,F811
 import yaml  # noqa: E402,F811
 
@@ -226,10 +226,11 @@ async def save_watermark_settings(request: Request):
 
 @router.post('/api/editor/upload')
 async def editor_upload_file(request: Request, file: UploadFile=File(...)):
-    """编辑器插图上传。R10.0：图片白名单 + 大小上限（历史版本任意扩展名可落盘并被静态托管）。"""
     _a.guard(request)
-    from core.upload_guard import IMAGE_EXTS, save_upload
+    import uuid
     upload_dir = _a.BASE / 'data' / 'editor_uploads'
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    from core.upload_guard import IMAGE_EXTS, save_upload
     try:
         dest, _orig = await save_upload(file, upload_dir, 'ed', IMAGE_EXTS, max_mb=20)
     except HTTPException:
@@ -251,7 +252,7 @@ async def share_revoke(request: Request):
 
 @router.post('/api/settings')
 async def settings(request: Request):
-    _a.guard(request)
+    _a.guard_admin(request)
     body = await request.json()
     cfg = load_config()
     gw = body.get('gateway') or {}
@@ -288,5 +289,25 @@ async def settings(request: Request):
     _a.CFG_PATH.write_text(yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), encoding='utf-8')
     if body.get('apipool_key'):
         _a.write_env('MEDIAFLOW_APIPOOL_KEY', body['apipool_key'].strip())
+    return {'ok': True}
+
+@router.get('/api/diagnostics/stats')
+def diagnostics_stats(request: Request):
+    _a.guard(request)
+    return {'ok': True, **diag.stats()}
+
+@router.get('/api/diagnostics/log')
+def diagnostics_log(request: Request, limit: int=300, only_problems: int=0):
+    """导出诊断日志文本（供「设置 → 系统诊断日志」一键复制）。"""
+    _a.guard(request)
+    limit = max(20, min(int(limit or 300), 2000))
+    text = diag.snapshot(limit=limit, only_problems=bool(only_problems))
+    return {'ok': True, 'text': text, 'stats': diag.stats()}
+
+@router.post('/api/diagnostics/clear')
+def diagnostics_clear(request: Request):
+    _a.guard(request)
+    diag.clear()
+    diag.record('system', 'diagnostics_cleared', status='ok', detail='用户手动清空诊断日志')
     return {'ok': True}
 

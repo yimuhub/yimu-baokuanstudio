@@ -72,15 +72,18 @@ def build_system_prompt(
 
     applied_names: list[str] = []
     if applied_skills:
+        from core.copilot import skill_display_name  # R11 融合:技能中文名映射
+
         skill_lib = agents.list_skills()
         sk_parts = []
         for sk_id in applied_skills:
             sk_obj = skill_lib.get(sk_id)
             if sk_obj and sk_obj.get("body"):
+                _disp = skill_display_name(sk_obj)
                 sk_parts.append(
-                    f"◆ 技能【{sk_obj['name']}】：{sk_obj.get('description', '')}\n{sk_obj['body']}"
+                    f"◆ 技能【{_disp}】：{sk_obj.get('description', '')}\n{sk_obj['body']}"
                 )
-                applied_names.append(sk_obj["name"])
+                applied_names.append(_disp)
         if sk_parts:
             active += ("\n\n【创作者专属爆款创作与改写技能规范（必须严格调用贯彻）】：\n"
                        + "\n\n".join(sk_parts))

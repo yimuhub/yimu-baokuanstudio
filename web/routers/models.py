@@ -21,9 +21,9 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
 
@@ -49,34 +49,50 @@ def get_model_providers(request: Request):
     all_presets = {pid: {'id': pid, 'name': pinfo['name'], 'badge': pinfo.get('badge', ''), 'base_url': pinfo['base_url'], 'default_model': pinfo['default_model'], 'models': pinfo.get('models', []), 'icon': pinfo.get('icon', '⚡')} for pid, pinfo in llm.MODEL_PROVIDERS.items()}
     from core import video_rules
     from studio import llm_metering
+    from studio import first_piece as _fp_mod
+    _fp_status = _fp_mod.first_piece_status
     u_for_demo = _a.get_current_user(request)
     user_id_demo = str(u_for_demo.get('id') or u_for_demo.get('user_id') or '') if u_for_demo else ''
-    from studio import first_piece as _first_piece_mod
-    return {'providers': all_providers, 'all_presets': all_presets, 'current': gw, 'active_provider_id': active_pid, 'configured_models': llm.get_configured_models(), 'cross_models': cross_models, 'env_key_set': has_active_key, 'video_rules': video_rules.load_rules().get('rules', []), 'free_demo': {'daily_calls': llm_metering.pricing.FREE_DEMO_DAILY_CALLS, 'max_output_tokens': llm_metering.pricing.FREE_DEMO_MAX_OUTPUT_TOKENS, 'left_today': llm_metering.free_demo_left_today(user_id_demo), 'first_piece': _first_piece_mod.first_piece_status(user_id_demo)}}
+    return {'providers': all_providers, 'all_presets': all_presets, 'current': gw, 'active_provider_id': active_pid, 'configured_models': llm.get_configured_models(), 'cross_models': cross_models, 'env_key_set': has_active_key, 'video_rules': video_rules.load_rules().get('rules', []), 'free_demo': {'daily_calls': llm_metering.pricing.FREE_DEMO_DAILY_CALLS, 'max_output_tokens': llm_metering.pricing.FREE_DEMO_MAX_OUTPUT_TOKENS, 'left_today': llm_metering.free_demo_left_today(user_id_demo), 'first_piece': _fp_status(user_id_demo)}}
 
 @router.post('/api/models/fetch')
 async def model_fetch(request: Request):
-    _a.guard(request)
+    """拉取远端模型清单（**管理员**：这是全站模型配置的一部分）。
+
+    🔴 安全：修复前是 guard() 且 route 层自己做了
+       ``api_key or MEDIAFLOW_APIPOOL_KEY`` 的兜底——普通用户把 base_url
+       指向自己的服务器就能收到平台主 Key 明文。
+       现在：① 仅管理员；② 平台主 Key 的兜底只在 core.llm 内部、
+       且仅对「平台自有端点」生效（见 llm._is_platform_endpoint）。
+    """
+    _a.guard_admin(request)
     body = await request.json()
     base_url = body.get('base_url', '')
     provider_id = body.get('provider_id', 'custom')
     from core import llm
-    api_key = body.get('api_key') or llm.load_env().get('MEDIAFLOW_APIPOOL_KEY', '')
+    api_key = body.get('api_key') or ''
     return llm.fetch_remote_models(base_url, api_key, provider_id)
 
 @router.post('/api/models/ping')
 async def model_ping(request: Request):
-    _a.guard(request)
+    """连通性测试（**管理员**，原因同 :func:`model_fetch`）。
+
+    ``api_key`` 允许留空：设置页编辑已有模型服务时输入框是故意清空的
+    （留空=不修改已存密钥），此时由 ``llm.resolve_provider_key`` 回退到
+    该服务已保存的 Key，否则「编辑 → 测速」必然 401。
+    """
+    _a.guard_admin(request)
     body = await request.json()
     base_url = body.get('base_url', '')
     from core import llm
-    api_key = body.get('api_key') or llm.load_env().get('MEDIAFLOW_APIPOOL_KEY', '')
+    api_key = body.get('api_key') or ''
     model = body.get('model', '')
-    return llm.ping_provider(base_url, api_key, model)
+    provider_id = body.get('provider_id', '')
+    return llm.ping_provider(base_url, api_key, model, provider_id)
 
 @router.post('/api/models/save')
 async def model_save(request: Request):
-    _a.guard(request)
+    _a.guard_admin(request)
     body = await request.json()
     provider_id = body.get('provider_id', 'custom')
     provider_name = body.get('provider_name', '')
@@ -93,7 +109,7 @@ async def model_save(request: Request):
 
 @router.post('/api/models/provider/set_active')
 async def model_set_active_provider(request: Request):
-    _a.guard(request)
+    _a.guard_admin(request)
     body = await request.json()
     provider_id = body.get('provider_id', '')
     if not provider_id:
@@ -104,7 +120,7 @@ async def model_set_active_provider(request: Request):
 
 @router.post('/api/models/provider/delete')
 async def model_delete_provider(request: Request):
-    _a.guard(request)
+    _a.guard_admin(request)
     body = await request.json()
     provider_id = body.get('provider_id', '')
     provider_ids = body.get('provider_ids', [])

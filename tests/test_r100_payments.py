@@ -113,7 +113,8 @@ class TestSandboxSettle:
         from studio.membership.service import credits_left, ensure_membership
 
         order = _mk_order(pay_env)
-        assert order["status"] == "pending" and order["cdkey"]
+        # R11 融合:远端修复 0 元开通漏洞,paid 前 _order_view 不下发卡密(库内仍有,供自动核销)
+        assert order["status"] == "pending" and order["cdkey"] == ""
         r = payments.settle_paid_order(
             pay_env["db"], pay_env["tenant_id"], order["id"],
             channel="sandbox", trade_no="sb-1", amount_cents=order["amount_cents"])

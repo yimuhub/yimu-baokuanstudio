@@ -21,12 +21,13 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  (稳定类身份,跨 admin reload 不变)
 
-router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类(与拆分前 app.route_class 等效)
+from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from adapters.base import PLATFORMS, NAMES  # noqa: E402,F811
 from core import db, judge, orchestrator  # noqa: E402,F811
+from core import diagnostics as diag  # noqa: E402,F811
 from core.llm import load_config, load_env  # noqa: E402,F811
 from core.themes import WECHAT_THEMES, XHS_CARD_STYLES  # noqa: E402,F811
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
@@ -34,6 +35,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from pathlib import Path  # noqa: E402,F811
 import asyncio  # noqa: E402,F811
 import re  # noqa: E402,F811
+import time  # noqa: E402,F811
 import uuid  # noqa: E402,F811
 
 @router.get('/api/drafts/{did}/images')
@@ -81,10 +83,8 @@ async def draft_images_analyze_prompts(did: str, request: Request):
     if not d:
         raise HTTPException(404, '草稿不存在')
     from core.imagegen import analyze_article_visual_prompts
-    sec_meta = []
-    for line in d['body_md'].splitlines():
-        if line.startswith('### '):
-            sec_meta.append((line[4:].strip(), ''))
+    from core.text_denoise import extract_section_headings
+    sec_meta = [(t.strip('【】').strip(), '') for t, _ in extract_section_headings(d['body_md'])]
     if not sec_meta:
         sec_meta = [('核心看点', d['title'])]
 
@@ -272,9 +272,10 @@ async def draft_save_wechat(did: str, request: Request):
     tf = ddir / 'toutiao.md'
     old_title = '# ' + d['title']
     if tf.exists():
-        first = tf.read_text(encoding='utf-8').splitlines()
-        if first and first[0].startswith('# '):
-            old_title = first[0]
+        from core.text_denoise import extract_leading_title
+        _lead = extract_leading_title(tf.read_text(encoding='utf-8'))
+        if _lead:
+            old_title = _lead
     tf.write_text(f'{old_title}\n\n{body_md}', encoding='utf-8')
     return {'ok': True}
 
@@ -357,9 +358,10 @@ async def draft_ai_layout(did: str, request: Request):
                             xhs_title = _ln_s[2:].strip() or xhs_title
                             break
                 sec_meta, cur = ([], None)
+                from core.text_denoise import is_section_heading
                 for line in body_text.splitlines():
-                    if line.startswith('### ') or line.startswith('## '):
-                        cur = [line.lstrip('#').strip(), []]
+                    if is_section_heading(line):
+                        cur = [line.lstrip('#').strip().strip('【】').strip(), []]
                         sec_meta.append(cur)
                     elif cur is not None and line.strip():
                         cur[1].append(line.strip().lstrip('- '))
@@ -436,6 +438,52 @@ async def draft_switch_title(did: str, request: Request):
     except Exception as e:
         raise HTTPException(500, f'切换标题失败: {e}')
 
+@router.post('/api/drafts/{did}/title')
+async def draft_set_title(did: str, request: Request):
+    """保存标题（极简画布自动存盘用）。
+
+    🔴 补齐缺失端点：前端 saveLiteCanvasEdits 一直在调 `/title` 与 `/body`，
+       后端只有 `/switch_title`，于是两个请求都是 404，而前端是
+       `try{...}catch(e){}` 空捕获——画布永远停在「● 正在存盘…」，
+       用户以为文件一直在保存中。这里与 switch_title 复用同一套重绘逻辑。
+    """
+    _a.guard(request)
+    body = await request.json()
+    title = str(body.get('title') or '').strip()
+    if not title:
+        raise HTTPException(400, '标题不能为空')
+    try:
+        updated = await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.switch_draft_title(did, title))
+        return {'ok': True, 'draft': updated}
+    except Exception as e:
+        raise HTTPException(500, f'保存标题失败: {e}')
+
+@router.post('/api/drafts/{did}/body')
+async def draft_set_body(did: str, request: Request):
+    """保存正文（极简画布自动存盘用），并同步刷新各平台排版产物。
+
+    与 `/title` 成对存在——缺任何一条，前端存盘都会 404 静默失败。
+    """
+    _a.guard(request)
+    body = await request.json()
+    md = body.get('body_md')
+    if md is None:
+        md = body.get('body')
+    if md is None:
+        raise HTTPException(400, '缺少 body_md')
+
+    def _run():
+        d = db.get_draft(did)
+        if not d:
+            raise HTTPException(404, '草稿不存在')
+        db.update_draft_body(did, str(md))
+        try:
+            orchestrator.switch_draft_title(did, d.get('title') or '')
+        except Exception as e:
+            print(f'[存盘] 正文已保存，但重排版失败（不影响正文）: {e}')
+        return {'ok': True, 'chars': len(str(md))}
+    return await asyncio.get_event_loop().run_in_executor(None, _run)
+
 @router.post('/api/drafts/{did}/publish')
 async def draft_publish(did: str, request: Request):
     u = _a.guard(request)
@@ -447,7 +495,7 @@ async def draft_publish(did: str, request: Request):
     _plimit = _a._tier_capability_limit(u, 'publish_platforms')
     if isinstance(_plimit, int) and _plimit > 0 and (len(platforms) > _plimit):
         raise HTTPException(400, f'当前档位单次最多发布到 {_plimit} 个平台，升级 Pro 解锁全平台发布')
-    return orchestrator.approve_and_publish(did, platforms)
+    return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.approve_and_publish(did, platforms))
 
 @router.post('/api/drafts/{did}/rescore')
 async def draft_rescore(did: str, request: Request):
@@ -714,6 +762,7 @@ async def ai_upgrade_draft_endpoint(did: str, request: Request):
         _a.update_async_job(jid, status='done', step=f"改写提升完成！评分由 {old_score} 跃升至 {new_score} (+{res['improvement_delta']}分)", progress=100, result={'score': new_score, 'delta': res['improvement_delta']})
         return res
     except Exception as e:
+        diag.capture_exc('rewrite', 'ai_upgrade_draft', e, draft_id=did, persona=persona, skills=skills, instruction_len=len(instruction or ''))
         _a.update_async_job(jid, status='failed', error=str(e)[:300], step='AI 改写提升失败')
         raise HTTPException(500, f'AI 一键改写提升失败: {e}')
 
@@ -721,9 +770,11 @@ async def ai_upgrade_draft_endpoint(did: str, request: Request):
 async def draft_rewrite(did: str, request: Request):
     _a.guard(request)
     body = await request.json()
+    t0 = time.perf_counter()
     try:
         return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.rewrite_draft_once(did, body.get('instruction', '')))
     except Exception as e:
+        diag.capture_exc('rewrite', 'draft_rewrite', e, elapsed=time.perf_counter() - t0, draft_id=did, instruction_len=len(body.get('instruction') or ''))
         raise HTTPException(500, f'重写失败: {e}')
 
 @router.post('/api/drafts/{did}/rewrite_platform')
@@ -747,6 +798,7 @@ async def draft_rewrite_platform(did: str, request: Request):
         result['platform_name'] = plat_name
         return result
     except Exception as e:
+        diag.capture_exc('rewrite', 'rewrite_single_platform', e, draft_id=did, platform=platform, instruction_len=len(instruction or ''))
         raise HTTPException(500, f'{plat_name} 重写失败: {e}')
 
 @router.post('/api/drafts/{did}/quality_gate')
@@ -822,6 +874,7 @@ async def draft_evolve(did: str, request: Request):
 
 @router.get('/api/drafts/{did}/raw/{platform}')
 def draft_raw(did: str, platform: str):
+    from core.text_purity import purify_body
     d = db.get_draft(did)
     if not d:
         raise HTTPException(404, '草稿不存在')
@@ -835,7 +888,8 @@ def draft_raw(did: str, platform: str):
         from core.layouter import render as layout_render, _dedupe_wechat_html_images
         if not f.exists() or f.stat().st_size < 100 or (has_imgs_on_disk and '<img' not in content):
             images_dict = {f'sec-{i}': u for i, u in enumerate(d_imgs.get('sections', []))}
-            sec_meta = [line[4:].strip() for line in d['body_md'].splitlines() if line.startswith('### ')]
+            from core.text_denoise import extract_section_headings
+            sec_meta = [t.strip('【】').strip() for t, _ in extract_section_headings(d['body_md'])]
             for i, sec_t in enumerate(sec_meta):
                 if i < len(d_imgs.get('sections', [])):
                     images_dict[sec_t] = d_imgs['sections'][i]
@@ -854,11 +908,8 @@ def draft_raw(did: str, platform: str):
         f_md = ddir / 'xhs.md'
         xhs_title = d['title']
         raw_txt = f_md.read_text(encoding='utf-8') if f_md.exists() else d['body_md']
-        for _ln in raw_txt.splitlines():
-            _ln_s = _ln.strip()
-            if _ln_s.startswith('# '):
-                xhs_title = _ln_s[2:].strip() or xhs_title
-                break
+        from core.text_denoise import extract_leading_title
+        xhs_title = extract_leading_title(raw_txt) or xhs_title
         cards = sorted([f'/card/{did}/{p.name}' for p in ddir.glob('card-*.png')])
         if len(cards) < 5:
             try:
@@ -880,6 +931,7 @@ def draft_raw(did: str, platform: str):
         from core.imagegen import inject_images_to_markdown, get_draft_images
         d_imgs = get_draft_images(did)
         text = f_md.read_text(encoding='utf-8') if f_md.exists() else inject_images_to_markdown(d['body_md'], did)
+        text = purify_body(text)
         if not f_md.exists():
             (ddir / 'toutiao.md').write_text(text, encoding='utf-8')
         cur_html = f_html.read_text(encoding='utf-8') if f_html.exists() else ''
@@ -898,6 +950,7 @@ def draft_raw(did: str, platform: str):
         from adapters import zhihu as _zh
         from core.imagegen import inject_images_to_markdown, get_draft_images
         text = f_md.read_text(encoding='utf-8') if f_md.exists() else inject_images_to_markdown(d['body_md'], did)
+        text = purify_body(text)
         if not f_md.exists():
             (ddir / 'zhihu.md').write_text(text, encoding='utf-8')
         if f_html.exists() and f_html.stat().st_size > 100:
@@ -913,6 +966,7 @@ def draft_raw(did: str, platform: str):
         from adapters import weibo as _wb
         from core.imagegen import inject_images_to_markdown, get_draft_images
         text = f_md.read_text(encoding='utf-8') if f_md.exists() else inject_images_to_markdown(d['body_md'], did)
+        text = purify_body(text)
         if not f_md.exists():
             (ddir / 'weibo.md').write_text(text, encoding='utf-8')
         if f_html.exists() and f_html.stat().st_size > 100:
@@ -944,12 +998,14 @@ async def draft_save_platform(did: str, request: Request):
     body = await request.json()
     platform = body.get('platform', 'wechat_mp')
     text = body.get('text', '')
+    from core.text_purity import purify_body, to_storage
     theme = body.get('theme')
     d = db.get_draft(did)
     if not d:
         raise HTTPException(404, '草稿不存在')
     ddir = db.draft_dir(did)
     if platform == 'wechat_mp':
+        text = to_storage(text)
         c = db.conn()
         c.execute('UPDATE drafts SET body_md=? WHERE id=?', (text, did))
         c.commit()
@@ -965,17 +1021,20 @@ async def draft_save_platform(did: str, request: Request):
         (ddir / 'preview-wechat_mp.html').write_text(html, encoding='utf-8')
         return {'ok': True, 'text': text, 'html': html}
     elif platform == 'xhs':
+        text = purify_body(text)
         (ddir / 'xhs.md').write_text(text, encoding='utf-8')
-        xhs_title = d['title']
-        for _ln in text.splitlines():
-            _ln_s = _ln.strip()
-            if _ln_s.startswith('# '):
-                xhs_title = _ln_s[2:].strip() or xhs_title
-                break
+        from core.text_denoise import extract_leading_title, is_section_heading
+        xhs_title = extract_leading_title(text) or d['title']
+        lines = text.splitlines()
+        if extract_leading_title(text):
+            for _i, _l in enumerate(lines):
+                if _l.strip():
+                    lines = lines[_i + 1:]
+                    break
         sec_meta, cur = ([], None)
-        for line in text.splitlines():
-            if line.startswith('### ') or line.startswith('## '):
-                cur = [line.lstrip('#').strip(), []]
+        for line in lines:
+            if is_section_heading(line):
+                cur = [line.lstrip('#').strip().strip('【】').strip(), []]
                 sec_meta.append(cur)
             elif cur is not None and line.strip():
                 cur[1].append(line.strip().lstrip('- '))
@@ -996,6 +1055,7 @@ async def draft_save_platform(did: str, request: Request):
         cards = sorted([f'/card/{did}/{p.name}' for p in ddir.glob('card-*.png')])
         return {'ok': True, 'text': text, 'cards': cards}
     elif platform == 'toutiao':
+        text = purify_body(text)
         (ddir / 'toutiao.md').write_text(text, encoding='utf-8')
         from adapters import toutiao as _tt
         from core.imagegen import get_draft_images
@@ -1004,6 +1064,7 @@ async def draft_save_platform(did: str, request: Request):
         (ddir / 'preview-toutiao.html').write_text(html, encoding='utf-8')
         return {'ok': True, 'text': text, 'html': html}
     elif platform == 'zhihu':
+        text = purify_body(text)
         (ddir / 'zhihu.md').write_text(text, encoding='utf-8')
         from adapters import zhihu as _zh
         from core.imagegen import get_draft_images
@@ -1012,6 +1073,7 @@ async def draft_save_platform(did: str, request: Request):
         (ddir / 'preview-zhihu.html').write_text(html, encoding='utf-8')
         return {'ok': True, 'text': text, 'html': html}
     elif platform == 'weibo':
+        text = purify_body(text)
         (ddir / 'weibo.md').write_text(text, encoding='utf-8')
         from adapters import weibo as _wb
         from core.imagegen import get_draft_images
@@ -1020,6 +1082,7 @@ async def draft_save_platform(did: str, request: Request):
         (ddir / 'preview-weibo.html').write_text(html, encoding='utf-8')
         return {'ok': True, 'text': text, 'html': html}
     elif platform == 'twitter':
+        text = purify_body(text)
         (ddir / 'twitter.md').write_text(text, encoding='utf-8')
         from adapters import twitter as _tw
         html = _tw.render_twitter_html(text, d['title'])
@@ -1164,23 +1227,49 @@ def draft_zip(did: str):
 
 @router.post('/api/drafts/delete')
 async def drafts_delete(request: Request):
-    _a.guard(request)
+    """批量删除草稿（进废纸篓，不物理删除）。
+
+    ⭐ 安全修复（两处，缺一不可）：
+       1. **归属校验**：此前只 guard()，ids 里的 did 不校验归属——
+          任何登录用户传别人的 did 就能删掉他人全部稿件。
+          现在逐条 is_draft_owner，非本人（且非管理员）直接跳过。
+       2. **路径穿越**：此前 `BASE/"data"/"drafts"/did` 直接拼，
+          did="../.." 会让 shutil.move 把整个仓库移进废纸篓。
+          现在先过 id 白名单，再 resolve 校验父子关系。
+       被拒绝的 id 不报错、只进 skipped——避免把「无权」与「不存在」
+       区分开，也不让一次批量操作因为混入一个坏 id 全盘失败。
+    """
+    u = _a.guard(request)
     body = await request.json()
     ids = body.get('ids') or []
     if not ids:
         raise HTTPException(400, '未选择草稿')
     import shutil
+    uid = _a._current_user_id(u)
+    is_admin = _a._is_admin_user(u)
+    root = (_a.BASE / 'data' / 'drafts').resolve()
     trash = Path.home() / '.Trash'
-    removed = []
-    for did in ids:
+    removed: list[str] = []
+    skipped: list[str] = []
+    for raw_did in ids:
+        did = str(raw_did or '').strip()
+        if not _SAFE_DID_RE.match(did):
+            skipped.append(str(raw_did))
+            continue
         d = db.get_draft(did)
+        if d and (not db.is_draft_owner(d, uid, is_admin=is_admin)):
+            skipped.append(did)
+            continue
+        ddir = (root / did).resolve()
+        if root not in ddir.parents:
+            skipped.append(did)
+            continue
         if d:
             c = db.conn()
             c.execute('DELETE FROM drafts WHERE id=?', (did,))
             c.execute('DELETE FROM jobs WHERE draft_id=?', (did,))
             c.commit()
             c.close()
-        ddir = _a.BASE / 'data' / 'drafts' / did
         if ddir.exists():
             try:
                 trash.mkdir(exist_ok=True)
@@ -1188,7 +1277,7 @@ async def drafts_delete(request: Request):
             except Exception:
                 pass
         removed.append(did)
-    return {'removed': removed}
+    return {'removed': removed, 'skipped': skipped}
 
 @router.post('/api/drafts/clean_old')
 async def drafts_clean_old(request: Request):

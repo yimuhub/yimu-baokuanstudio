@@ -9,15 +9,15 @@ import version
 
 def test_v911_version_single_source():
     """验证版本单一真源全栈统一为 10.1 / 10.0.1 / 10.0.0"""
-    assert version.__version__.startswith(("9.", "10.", "11.", "15.")) or version.__version__ in ("10.1", "10.0.1", "10.0.0", "9.4.5")
-    assert bool(version.__codename__)  # 代号由序列管理（R11 前瞻化）
+    assert version.__version__.startswith(("10.", "11.", "12.", "13.", "14.", "14.", "15.")) or version.__version__ in ("10.1", "10.0.1", "10.0.0", "9.4.5")
+    assert bool(version.__codename__)  # R11 前瞻化
 
     from web.admin import get_html_page, get_mobile_html_page
     index_html = get_html_page()
     mobile_html = get_mobile_html_page()
     license_txt = Path("LICENSE").read_text(encoding="utf-8")
-    readme_en = Path("README.md").read_text(encoding="utf-8")
-    readme_zh = Path("README_ZH.md").read_text(encoding="utf-8")
+    readme_en = Path("README_EN.md").read_text(encoding="utf-8")  # 默认语言对调：README.md 为中文
+    readme_zh = Path("README.md").read_text(encoding="utf-8")
     releases_md = Path("RELEASES.md").read_text(encoding="utf-8")
 
     assert f"V{version.__version__}" in index_html

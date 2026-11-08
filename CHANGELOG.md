@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.0.0] - 太平令 (Great Peace Edict) · 2026-11-08
+
+商业交付级整改（依据 2026-11-08 五维综合审查报告 P0/P1/P2 路线图）。详见 [RELEASES.md](RELEASES.md)。
+
+### Added 在线支付闭环
+- 虎皮椒（微信/支付宝扫码）+ Stripe Checkout 双通道适配器与沙箱收银台，回调验签 → 幂等确认收款 → 卡密自动兑换到账（`studio/membership/payments.py`）
+- 新用户「首篇完整体验券」：终身一次，首次长文自动免上限免扣费（`studio/first_piece.py`）
+- 运营收入看板：GMV / MRR / ARPU / 付费转化率 / 日收入序列（`studio/membership/revenue.py`）
+- 付费会员到期前 7/3/1 天自动续费提醒（24h 节流幂等）
+- 头条草稿箱 API 直推通道（`adapters/toutiao_publish.py`，配置 `TOUTIAO_COOKIE` 启用）
+
+### Fixed 安全与性能
+- 修复 BGM/素材上传端点路径穿越漏洞；新增统一上传守卫 `core/upload_guard.py`（服务端命名 + 类型白名单 + 大小上限）覆盖全部 6 个上传端点
+- `draft_dir()` 拒绝 `..`/分隔符穿越 ID
+- 清除 DB 连接税：`conn()` 快速路径改索引探测式自愈，新增 `drafts` 四列索引（2 万行表 1.35ms/conn）
+- 修复更新检查测试硬编码版本白名单导致的存量红灯
+
+### Changed 工程与体验
+- 删除 7 个 AST 核实零引用的死函数；`billing_adapter` 新增公开工厂 `web_session()`（跨层私有调用治理）
+- 967 行上帝函数 `handle_copilot_chat` 拆出上下文组装阶段至 `core/copilot_context.py`（行为一致）
+- 控制中心新增「3 个 API 入口」小白说明卡；Key 相关入口全部补白话悬停提示
+- 新增 43 个回归用例（上传 7 / 支付 12 / 首篇券 5 / 收入 7 / 发布 6 / 小白 UX 5 / 契约锁同步）
+
+---
+
 ## 🧭 Release Evolution & Version Management Philosophy (版本演进与发布规范)
 
 YIMU Studio maintains strict version discipline:

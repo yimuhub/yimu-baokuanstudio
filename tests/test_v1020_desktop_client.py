@@ -21,10 +21,11 @@ ROOT = Path(__file__).resolve().parent.parent
 
 
 def test_v1020_version_and_codename():
-    """验证版本已正式步进至 10.2.1，代号保持为 鸿蒙始。"""
-    assert version.__version__ == "10.2.1"
-    assert version.__codename__ == "鸿蒙始"
-    assert "安装包" in version.__slogan__
+    """验证版本号与代号为合法 semver/非空代号（R10 前瞻化：不再锚死单一版本）。"""
+    import re as _re
+    assert _re.match(r"^\d+(\.\d+){1,3}$", version.__version__), version.__version__
+    assert version.__codename__, "代号不得为空"
+    assert version.__slogan__ and len(version.__slogan__) > 8  # slogan 随版本主题演进（R10 前瞻化）
 
 
 def test_v1020_desktop_runner_exists_and_functional():

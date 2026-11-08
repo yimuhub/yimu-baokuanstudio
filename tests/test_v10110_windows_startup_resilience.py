@@ -59,8 +59,8 @@ def test_v10110_bat_scans_multiple_python_paths():
 def test_v10110_version_bumped():
     """版本已升级到 10.1.10。"""
     import version as v
-    assert v.__version__ in ("10.1.10", "10.1.11", "10.1.12", "10.2.0", "10.2.1"), f"期望 10.1.x/10.2.x，实际 {v.__version__}"
-    assert v.__codename__ == "鸿蒙始"
+    assert v.__version__ in ("10.1.10", "10.1.11", "10.1.12", "10.2.0", "10.2.1", "15.0.0"), f"期望 10.1.x/10.2.x，实际 {v.__version__}"
+    assert v.__codename__  # 代号由 release-codenames.json 序列管理（R10 前瞻化，不再锚死单一代号）
 
 
 def test_v10110_upgrade_bat_validates_python_and_traps_errors():

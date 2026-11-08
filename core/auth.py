@@ -336,26 +336,6 @@ def get_user_by_id(user_id: str) -> dict | None:
 
 # ---------------- 👥 会员管理与账号体系 CRUD ----------------
 
-def list_users_crud(keyword: str = "", limit: int = 50, offset: int = 0) -> dict:
-    """获取系统用户列表（带搜索与分页）"""
-    c = _db()
-    kw = f"%{keyword.strip()}%" if keyword.strip() else "%"
-    total = c.execute(
-        "SELECT COUNT(*) FROM users WHERE username LIKE ? OR email LIKE ?",
-        (kw, kw)
-    ).fetchone()[0]
-    rows = c.execute(
-        "SELECT id, username, email, role, plan, quota_used, quota_max, created_at, last_login, is_active, tenant_id "
-        "FROM users WHERE username LIKE ? OR email LIKE ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-        (kw, kw, limit, offset)
-    ).fetchall()
-    c.close()
-    return {
-        "total": total,
-        "items": [dict(r) for r in rows],
-        "limit": limit,
-        "offset": offset
-    }
 
 
 def create_user_crud(username: str, password: str, email: str = "", role: str = "user", plan: str = "free", quota_max: int = 0) -> dict:

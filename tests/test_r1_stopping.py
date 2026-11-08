@@ -308,8 +308,10 @@ def test_r1_2_redeem_route_uses_adapter_not_legacy():
     import io
     import tokenize
 
-    src = (REPO_ROOT / "web" / "admin.py").read_text(encoding="utf-8")
-    route = src.split('@app.post("/api/billing/redeem")', 1)[1].split("@app.post", 1)[0]
+    from tests.wsb_common import web_routing_source
+    src = web_routing_source()
+    route = re.split(r"@(?:app|router)\.post\(['\"]/api/billing/redeem['\"]\)", src, 1)[1] \
+        .split("@app.post", 1)[0]
 
     #剥离注释
     out = []
@@ -434,8 +436,10 @@ def test_r1_2_failed_grant_refunds_the_card(db_session):
 
 def test_r1_3_gen_keys_requires_admin_role():
     """R1-3 静态+行为护栏：gen_keys 用 guard_admin，普通用户 403。"""
-    src = (REPO_ROOT / "web" / "admin.py").read_text(encoding="utf-8")
-    route = src.split('@app.post("/api/billing/admin/gen_keys")', 1)[1].split("@app.post", 1)[0]
+    from tests.wsb_common import web_routing_source
+    src = web_routing_source()
+    route = re.split(r"@(?:app|router)\.post\(['\"]/api/billing/admin/gen_keys['\"]\)", src, 1)[1] \
+        .split("@app.post", 1)[0]
     assert "guard_admin(request)" in route, "发卡密接口必须校验管理员角色"
     assert re.search(r"guard\(request\)", route) is None or "guard_admin" in route
 
@@ -487,7 +491,8 @@ def test_r1_3_unauthenticated_gets_401(client_for_admin_tests):
 
 def test_r1_4_no_unchecked_check_and_deduct_calls():
     """R1-4 静态护栏：web/admin.py 不得再有裸调用 billing.check_and_deduct。"""
-    src = (REPO_ROOT / "web" / "admin.py").read_text(encoding="utf-8")
+    from tests.wsb_common import web_routing_source
+    src = web_routing_source()
     raw = re.findall(r"^\s*billing\.check_and_deduct\(", src, re.M)
     assert not raw, f"仍有 {len(raw)} 处未检查返回值的扣费调用"
     assert src.count("require_credits(") >= 15, "扣费应统一走 require_credits"
@@ -603,7 +608,8 @@ def test_r1_4_every_billing_call_site_charges_before_side_effect():
     """R1-4 静态护栏：每个扣费点都必须在产生副作用之前调用。"""
     import ast
 
-    src = (REPO_ROOT / "web" / "admin.py").read_text(encoding="utf-8")
+    from tests.wsb_common import web_routing_source
+    src = web_routing_source()
     tree = ast.parse(src)
     side_effects = {
         "start_async_job", "create_custom_draft", "generate_scene_image",
@@ -619,7 +625,10 @@ def test_r1_4_every_billing_call_site_charges_before_side_effect():
         idx_call = None
         for i, st in enumerate(fn.body):
             if (isinstance(st, ast.Expr) and isinstance(st.value, ast.Call)
-                    and getattr(st.value.func, "id", "") == "require_credits"):
+                    and getattr(st.value.func, "id", "") in ("require_credits",)
+                    or (isinstance(st, ast.Expr) and isinstance(st.value, ast.Call)
+                        and getattr(st.value.func, "attr", "") == "require_credits")):
+                # R11 拆分后调用形如 _a.require_credits(...)（Attribute），两种形态都认
                 idx_call = i
         if idx_call is None:
             continue

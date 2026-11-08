@@ -290,11 +290,6 @@ def pre_publish_check(text: str | None, title: str | None = None) -> GuardResult
     return GuardResult(level=level, hits=hits, enabled=True, text_len=len(full))
 
 
-def check_draft(draft: dict | None) -> GuardResult:
-    """对草稿 dict（需含 title / body_md）做发布前检查。"""
-    if not draft:
-        return GuardResult(level=LEVEL_PASS)
-    return pre_publish_check(draft.get("body_md"), draft.get("title"))
 
 
 def check_topic_title(topic_title: str | None) -> GuardResult:

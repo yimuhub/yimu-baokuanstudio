@@ -24,8 +24,9 @@
 ### 核心设计原则
 1. **纯净发布原则 (Pure Release Policy)**：GitHub 仓库主分支与主页仅保留生产级纯净代码与官方文档，所有内部研讨、草稿记录、过程评审一律过滤，保持仓库极致专业。
 2. **单一真源铁律 (Single Source of Truth)**：全仓版本号以根目录 [`version.py`](version.py) 的 `__version__` 为唯一基准，严禁任何业务代码硬编码次级版本。
-3. **影视级分镜铁律 (Cinematic Storyboarding Law)**：AI 视觉生成严禁粗暴盲盒出图，必须坚持“先通读全文、再总结镜头情绪、段落 1:1 精准回填”的视听语言标准。
-4. **全域多语言纯净性 (i18n Purity)**：中英文模式之间绝对纯净切换，英文模式下中文残留数严格为 0，中文模式下还原纯正自然表达。
+3. **版本线锁定铁律 (Version Line Lock，v15.0.0 起生效)**：主版本锁定 **V15**，日常迭代一律在 `15.x.y` 内小版本递增；主版本跳升仅限开发者书面申请并修订 [`VERSION_POLICY.md`](VERSION_POLICY.md)。发版前必须 `git fetch --tags && git pull`，落后工作区禁止发版。详见 [`VERSION_POLICY.md`](VERSION_POLICY.md)《版本号管理规范》。
+4. **影视级分镜铁律 (Cinematic Storyboarding Law)**：AI 视觉生成严禁粗暴盲盒出图，必须坚持“先通读全文、再总结镜头情绪、段落 1:1 精准回填”的视听语言标准。
+5. **全域多语言纯净性 (i18n Purity)**：中英文模式之间绝对纯净切换，英文模式下中文残留数严格为 0，中文模式下还原纯正自然表达。
 
 ---
 

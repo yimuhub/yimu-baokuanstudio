@@ -355,11 +355,19 @@ def get_default_billing_user(db, tenant_name: str = "default"):
 WEB_TENANT_NAME = "default"
 
 
-def _web_session():
-    """web 层取一个 studio DB session（调用方负责 close）。"""
+def web_session():
+    """web 层取一个 studio DB session（调用方负责 close）。
+
+    R10.0 治理：这是对外的公开工厂方法——app/deps.py 等跨层调用方
+    一律走本公开接口，不得再触碰下划线私有名。
+    """
     from studio.membership.capabilities import get_db_session
 
     return get_db_session()
+
+
+# 兼容别名：仓库内部历史调用点仍用旧名（后续版本收敛后移除）
+_web_session = web_session
 
 
 def redeem_cdkey_for_user(code: str, user_id: str,

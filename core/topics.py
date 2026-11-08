@@ -261,7 +261,3 @@ def collect_topics() -> dict:
             "blocked": blocked, "blocked_titles": blocked_titles}
 
 
-def auto_clean_topics(days: int) -> int:
-    """自动清理 days 天前的热榜条目，返回清理数量。"""
-    from core import db
-    return db.delete_old_topics(days)

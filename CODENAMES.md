@@ -121,6 +121,16 @@ def next_codename(state, new_version):
 | 64 | 河清篇 | River Clearing Chapter |
 | 65 | 海晏图 | Calm Sea Scroll |
 | 66 | 太平令 | Great Peace Edict |
+| 67 | 万象新 | Grand Renewal |
+| 68 | 千帆举 | Thousand Sails |
+| 69 | 九霄阔 | Broad Ninth Heaven |
+| 70 | 四海晏 | Four Seas at Peace |
+| 71 | 玉衡明 | Jade Balance Bright |
+| 72 | 星野阔 | Starfield Wide |
+| 73 | 长歌行 | Long Song Journey |
+| 74 | 归帆渡 | Homebound Ferry |
+| 75 | 朝晖颂 | Dawn Glow Ode |
+| 76 | 锦绣程 | Brocade Road |
 
 ## 四、release 标题格式
 

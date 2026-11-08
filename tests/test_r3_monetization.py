@@ -848,7 +848,8 @@ class TestDraftIsolation:
         from web import admin as web_admin
 
         n_did, n_guarded = 0, 0
-        for route in web_admin.app.routes:
+        from tests.wsb_common import iter_effective_routes
+        for route in iter_effective_routes(web_admin.app):
             path = getattr(route, "path", "")
             methods = getattr(route, "methods", None) or set()
             if "{did}" not in path or not methods:
@@ -860,7 +861,7 @@ class TestDraftIsolation:
         assert n_did > 50, f"带 did 的路由数量异常少（{n_did}），护栏可能失效"
         assert n_guarded == n_did, (
             f"有 {n_did - n_guarded} 条带 did 的路由未走归属校验："
-            + str([r.path for r in web_admin.app.routes
+            + str([r.path for r in iter_effective_routes(web_admin.app)
                    if "{did}" in getattr(r, "path", "")
                    and not isinstance(r, web_admin.DraftOwnerRoute)
                    and not getattr(r, "path", "").startswith(("/s/", "/preview/"))])
@@ -886,7 +887,8 @@ def test_all_new_admin_routes_use_guard_admin():
         "/api/admin/audit_actions",
     ]
     by_path = {}
-    for route in web_admin.app.routes:
+    from tests.wsb_common import iter_effective_routes
+    for route in iter_effective_routes(web_admin.app):
         p = getattr(route, "path", "")
         if p in must_guard:
             by_path[p] = getattr(route, "endpoint", None)

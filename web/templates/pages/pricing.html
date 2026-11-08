@@ -281,6 +281,12 @@
 
       <div style="font-size:12.5px;color:#c8cee0;line-height:1.9;background:#0d1117;border-radius:8px;padding:12px 14px;margin-bottom:16px" id="co-instructions"></div>
 
+      <!-- R10 在线支付：渠道由后端 /api/billing/pay/channels 动态下发，无渠道时整块隐藏 -->
+      <div id="co-online-pay" style="display:none;margin-bottom:16px;border:1px solid rgba(255,138,61,0.35);background:rgba(255,138,61,0.06);border-radius:10px;padding:14px">
+        <div style="font-size:13.5px;font-weight:700;color:#ffb25e;margin-bottom:8px">⚡ 在线支付（回调验签后自动到账，无需等待人工核销）</div>
+        <div id="co-online-pay-btns" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+      </div>
+
       <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.08);padding-top:14px">
         <div style="font-size:12px;color:var(--text-muted)">💡 提示：可直接点击右侧按钮完成收款确认与卡密核销，算力将立即注入当前账户。</div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -456,7 +462,59 @@ function showPay(o){
   document.getElementById('co-instructions').innerHTML = inst || '请确认收款后核销卡密完成充值。';
   const input = document.getElementById('redeem-code-input');
   if(input && o.cdkey) input.value = o.cdkey;
+  renderOnlinePayChannels(o);
   if(box && box.scrollIntoView) box.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+/* R10 在线支付：拉取可用渠道并渲染「在线支付」按钮组 */
+let _payChannelsCache = null;
+async function renderOnlinePayChannels(o){
+  const wrap = document.getElementById('co-online-pay');
+  const btns = document.getElementById('co-online-pay-btns');
+  if(!wrap || !btns) return;
+  try{
+    if(!_payChannelsCache){
+      const rc = await fetch('/api/billing/pay/channels');
+      _payChannelsCache = (rc.ok && rc.json ? (await rc.json()).channels : null) || [];
+    }
+    const online = (_payChannelsCache || []).filter(function(c){ return c.online; });
+    if(!online.length){ wrap.style.display = 'none'; return; }
+    btns.innerHTML = online.map(function(c){
+      return '<button class="btn ok sm" onclick="startOnlinePay(\'' + c.code + '\')">💳 ' + esc(c.name) + '</button>';
+    }).join('');
+    wrap.style.display = 'block';
+  }catch(_e){ wrap.style.display = 'none'; }
+}
+
+async function startOnlinePay(channel){
+  const oid = window._curOrderId;
+  if(!oid) return toast('请先创建订单');
+  try{
+    const r = await fetch('/api/billing/pay/create', {
+      method:'POST', headers:{'Content-Type':'application/json','X-CSRF-Token':csrf()},
+      body: JSON.stringify({order_id: oid, channel: channel})
+    });
+    const d = await r.json();
+    if(!r.ok || !d.ok){
+      const msg = (d.detail && d.detail.message) ? d.detail.message : (typeof d.detail === 'string' ? d.detail : '发起支付失败');
+      toast('⚠️ ' + msg, 4500); return;
+    }
+    if(d.mode === 'in-page'){
+      // 沙箱：页内直接模拟支付成功
+      if(!confirm('【沙箱模拟】即将模拟支付成功 ¥' + Number(d.amount_yuan||0).toFixed(2) + ' 并自动到账（不产生真实资金）。继续？')) return;
+      const r2 = await fetch('/api/billing/pay/sandbox/' + encodeURIComponent(oid) + '/confirm', {
+        method:'POST', headers:{'X-CSRF-Token':csrf()}, body:'{}'
+      });
+      const d2 = await r2.json();
+      if(r2.ok && d2.ok){
+        toast(d2.auto_redeem && d2.auto_redeem.redeemed ? '✅ 支付成功，额度已自动到账！' : '✅ 支付成功，请用卡密手动兑换到账', 4500);
+        await loadOrders();
+      } else { toast('⚠️ 沙箱支付失败：' + (d2.detail && d2.detail.message || '请重试'), 4500); }
+    } else if(d.pay_url){
+      window.open(d.pay_url, '_blank');
+      toast('⏳ 已打开收银台，支付完成后本页会自动确认到账（回调验签后自动核销）', 5000);
+    }
+  }catch(e){ toast('⚠️ 支付异常：' + e.message, 4000); }
 }
 
 function copyCurrentOrderKey(){

@@ -75,3 +75,7 @@ docs/AUDIT*.md
 
 # 本项目页面已迁移至文稿根目录 Documents/yimu-site，此目录不再随仓库提交
 deploy/yimu-site/
+
+# 内部审查材料(不入库,纯净发布原则)
+review_20261108/
+nohup.out

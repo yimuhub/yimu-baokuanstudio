@@ -125,6 +125,10 @@ def _scheduler_loop():
             _maybe_run_daily_ticket()
         except Exception as e:
             logger.debug(f"[Scheduler] 每日工单检查异常: {e}")
+        try:
+            _maybe_run_renewal_reminders()
+        except Exception as e:
+            logger.debug(f"[Scheduler] 续费提醒检查异常: {e}")
         time.sleep(15)
 
 
@@ -187,6 +191,49 @@ def ticket_status() -> dict:
         "ran_today": _ticket_ran_on,
         "daemon_running": _daemon_running,
     }
+
+
+#: 续费提醒当日已跑标记（进程内即可：user_notify 侧另有 24h 节流兜底）
+_renewal_ran_on: str = ""
+
+
+def _maybe_run_renewal_reminders() -> None:
+    """R10：每天跑一次续费提醒扫描（到期前 7/3/1 天，幂等，失败绝不影响主调度）。
+
+    默认启用（发送失败/通道未配置只落台账，无副作用）；设
+    ``YIMU_RENEWAL_REMINDER=0`` 可整体关闭。
+    """
+    global _renewal_ran_on
+    import os
+
+    if str(os.environ.get("YIMU_RENEWAL_REMINDER", "1")).strip() in ("0", "false", "no"):
+        return
+    today = datetime.now().strftime("%Y-%m-%d")
+    if _renewal_ran_on == today:
+        return
+    _renewal_ran_on = today
+
+    def _run():
+        try:
+            from studio.membership.capabilities import get_db_session
+        except Exception:
+            return
+        try:
+            from studio import auth as studio_auth
+            from studio.membership import revenue
+
+            db = get_db_session()
+            try:
+                tenant = studio_auth.ensure_default_tenant(db)
+                r = revenue.send_renewal_reminders(db, tenant.id)
+                if r.get("sent"):
+                    logger.info("[Renewal] 续费提醒已发送 %d 封（checked=%s）", r["sent"], r["checked"])
+            finally:
+                db.close()
+        except Exception as e:
+            logger.debug(f"[Renewal] 续费提醒扫描失败（不影响主流程）: {e}")
+
+    threading.Thread(target=_run, name="yimu-renewal-reminders", daemon=True).start()
 
 
 def start_scheduler_daemon():

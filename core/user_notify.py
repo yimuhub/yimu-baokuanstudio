@@ -27,6 +27,8 @@ THROTTLE_WINDOWS = {
     "quota_recall": QUOTA_RECALL_WINDOW_S,
     "welcome": 0,
     "invite_reward": 0,
+    # R10 续费提醒：同用户同档 24h 内最多一封（7/3/1 天三个节点天然错开）
+    "renewal_reminder": 24 * 3600,
 }
 
 

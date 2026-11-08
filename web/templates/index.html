@@ -3441,7 +3441,7 @@ input[type=text]:focus, textarea:focus, select:focus {
       </button>
 
       <!-- 🔑 专属 API 保险箱入口 -->
-      <button class="btn btn-sm" onclick="openUserVaultModal()" style="display:flex;align-items:center;gap:5px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#c084fc;font-weight:600" title="配置我个人的专属 API Key 或切换平台托管服务">
+      <button class="btn btn-sm" onclick="openUserVaultModal()" style="display:flex;align-items:center;gap:5px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.4);color:#c084fc;font-weight:600" title="【进阶可跳过】用你自己的 AI Key 替代系统通道：自备 Key 不扣算力点。新手写稿无需配置，默认官方通道免 Key 可用">
         <span data-i18n="top_my_api">🔑 我的API</span>
       </button>
 
@@ -5729,10 +5729,35 @@ input[type=text]:focus, textarea:focus, select:focus {
         <div class="sub-tab" data-sp="sp-agent-config" onclick="switchSubTab('console','sp-agent-config')">🤖 Agent 配置</div>
         <div class="sub-tab" data-sp="sp-skills" onclick="switchSubTab('console','sp-skills')">📚 技能库</div>
         <div class="sub-tab" data-sp="sp-health" onclick="switchSubTab('console','sp-health')">⛑ 服务健康自检</div>
-        <div class="sub-tab" data-sp="sp-settings" onclick="switchSubTab('console','sp-settings')">⚙ 系统与 API 配置</div>
-        <div class="sub-tab" data-sp="sp-gateway" data-pro-only="1" onclick="switchSubTab('console','sp-gateway')">🔌 API 网关服务</div>
+        <div class="sub-tab" data-sp="sp-settings" onclick="switchSubTab('console','sp-settings')" title="给系统自带的 AI 通道填 Key（小白只需关心这里）">⚙ 系统与 API 配置</div>
+        <div class="sub-tab" data-sp="sp-gateway" data-pro-only="1" onclick="switchSubTab('console','sp-gateway')" title="把本系统的 AI 能力转售/开放给其他软件调用（进阶功能，写稿排版用不到）">🔌 API 网关服务</div>
         <div class="sub-tab" data-sp="sp-user-admin" onclick="switchSubTab('console','sp-user-admin')">👥 用户与会员管理</div>
         <div class="sub-tab" data-sp="sp-video-config" onclick="switchSubTab('console','sp-video-config')">🎬 视频合成配置</div>
+      </div>
+
+      <!-- R10 小白术语减负：Key 入口统一说明卡（折叠，不打扰老手） -->
+      <div class="card" id="key-guide-card" style="border:1px solid rgba(64,184,190,.35);background:rgba(64,184,190,.05)">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+          <div style="font-size:14px;font-weight:700;color:#40b8be">🔑 写稿前要配 Key 吗？30 秒看懂 3 个「API」入口的区别</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn ok btn-sm" onclick="switchSubTab('console','sp-settings')">小白点这里配置 →</button>
+            <button class="btn ghost btn-sm" onclick="document.getElementById('key-guide-card').style.display='none'">我知道了</button>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:12px;font-size:12.5px;line-height:1.7">
+          <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px">
+            <b style="color:#40b8be">① 系统与 API 配置</b><br>
+            <span style="color:var(--text-muted)">给「本系统」的 AI 充值大脑：填一次 Key，写稿/配图/排版全都用。<b>99% 的用户只需要这里。</b>不填也行——默认官方通道每日 3 次免 Key 体验。</span>
+          </div>
+          <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px">
+            <b style="color:#ffb25e">② 个人中心 · 我的 API</b><br>
+            <span style="color:var(--text-muted)">用你自己的 Key 替代系统通道（自备 Key 不扣算力点）。属于进阶省钱玩法，可以以后再管。</span>
+          </div>
+          <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px">
+            <b style="color:#58a6ff">③ API 网关服务</b><br>
+            <span style="color:var(--text-muted)">反向操作：把本系统的 AI 能力开放给别的软件调用（团队/转售用）。写稿排版完全用不到，可无视。</span>
+          </div>
+        </div>
       </div>
 
       <!-- 子视图：每日工单 -->
@@ -6689,6 +6714,10 @@ input[type=text]:focus, textarea:focus, select:focus {
         </div>
 
         <div id="inapp-co-instructions" style="font-size:12px;color:#c8cee0;line-height:1.85;background:#0d1117;border-radius:8px;padding:12px 14px;margin-bottom:14px"></div>
+        <div id="inapp-online-pay" style="display:none;margin-bottom:14px;border:1px solid rgba(255,138,61,0.35);background:rgba(255,138,61,0.06);border-radius:10px;padding:12px 14px">
+          <div style="font-size:13px;font-weight:700;color:#ffb25e;margin-bottom:8px">⚡ 在线支付（回调验签后自动到账，无需等待人工核销）</div>
+          <div id="inapp-online-pay-btns" style="display:flex;gap:10px;flex-wrap:wrap"></div>
+        </div>
 
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px">
           <span style="font-size:12px;color:var(--text-muted)">💡 可直接点击右侧按钮完成订单收款核销与卡密兑换，算力与会员等级将实时到账：</span>
@@ -9262,10 +9291,18 @@ async function deleteUserAccount(uid, username) {
           </div>
         </div>
         <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:6px">🎁 首篇完整体验券（终身一次 · 自动生效）</div>
+          <div style="font-size:12.5px;color:var(--text);line-height:1.6;margin-bottom:10px">
+            当你第一次写<b style="color:#ffb25e">超过轻量额度的长文</b>时自动启用：该次生成
+            <b>不限 512 tokens、不占每日次数、不扣算力点</b>——保证每个新用户都能
+            <b style="color:#40b8be">免费完整产出第一篇作品</b>，先看到成果再谈升级。
+          </div>
+          <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:14px">
           <div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:6px">📦 同时赠送 3000 算力点（≈30 元）</div>
           <div style="font-size:12.5px;color:var(--text);line-height:1.6">
             注册即得的免费算力点可用于完整短剧分镜、2K 级配图生成等深度功能。
             一条短剧完整渲染约 12,000 点；3000 点足够体验 1/4 短剧与完整图文爆款。
+          </div>
           </div>
         </div>
       </div>
@@ -22199,7 +22236,48 @@ function inappShowCheckout(o) {
     $('inapp-co-instructions').innerHTML = (o.payment_instructions || []).map(s => '<div>' + s + '</div>').join('');
   }
   if ($('inapp-pricing-cdkey-input') && o.cdkey) $('inapp-pricing-cdkey-input').value = o.cdkey;
+  inappRenderOnlinePay(o);
   if (box && box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* R10 在线支付：收银台内联渠道按钮（回调验签后自动到账） */
+let _inappPayChannels = null;
+async function inappRenderOnlinePay(o) {
+  const wrap = $('inapp-online-pay'), btns = $('inapp-online-pay-btns');
+  if (!wrap || !btns) return;
+  try {
+    if (!_inappPayChannels) {
+      const rc = await api('/api/billing/pay/channels');
+      _inappPayChannels = (rc && rc.channels) || [];
+    }
+    const online = _inappPayChannels.filter(c => c.online);
+    if (!online.length) { wrap.style.display = 'none'; return; }
+    btns.innerHTML = online.map(c =>
+      '<button class="btn ok sm" onclick="inappStartOnlinePay(\'' + c.code + '\')">💳 ' + c.name + '</button>').join('');
+    wrap.style.display = 'block';
+  } catch (_e) { wrap.style.display = 'none'; }
+}
+
+async function inappStartOnlinePay(channel) {
+  const oid = window._inappCurOrderId;
+  if (!oid) return toast('请先创建订单');
+  try {
+    const d = await api('/api/billing/pay/create', {
+      method: 'POST', body: JSON.stringify({ order_id: oid, channel })
+    });
+    if (!d || !d.ok) return toast('⚠️ ' + ((d && d.detail && d.detail.message) || '发起支付失败'), 4500);
+    if (d.mode === 'in-page') {
+      if (!confirm('【沙箱模拟】即将模拟支付成功 ¥' + Number(d.amount_yuan || 0).toFixed(2) + ' 并自动到账（不产生真实资金）。继续？')) return;
+      const d2 = await api('/api/billing/pay/sandbox/' + encodeURIComponent(oid) + '/confirm', { method: 'POST', body: '{}' });
+      if (d2 && d2.ok) {
+        toast(d2.auto_redeem && d2.auto_redeem.redeemed ? '✅ 支付成功，额度已自动到账！' : '✅ 支付成功，请用卡密手动兑换到账', 4500);
+        await loadInappPricingOrders();
+      } else toast('⚠️ 沙箱支付失败，请重试', 4000);
+    } else if (d.pay_url) {
+      window.open(d.pay_url, '_blank');
+      toast('⏳ 已打开收银台，支付完成后自动确认到账（回调验签后自动核销）', 5000);
+    }
+  } catch (e) { toast('⚠️ 支付异常：' + e.message, 4000); }
 }
 
 function inappCopyOrderKey() {

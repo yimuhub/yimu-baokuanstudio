@@ -91,6 +91,24 @@ def consume_free_demo_call(user_id: str, completion_tokens: int) -> dict:
             result["reason"] = f"tier_{tier}"
             return result
         if int(completion_tokens or 0) > pricing.FREE_DEMO_MAX_OUTPUT_TOKENS:
+            # R10 新用户首篇完整体验券：第一次想写长文的时刻自动用券，
+            # 本次不受 512 上限限制、不占每日免费次数、不扣算力点。
+            try:
+                from studio import first_piece as _fp
+
+                if _fp.consume_first_piece(
+                    user_id, {"completion_tokens": int(completion_tokens or 0)}
+                ):
+                    result["eligible"] = True
+                    result["left_today"] = int(pricing.FREE_DEMO_DAILY_CALLS)
+                    result["first_piece"] = True
+                    log.info(
+                        "[llm_metering] 首篇完整体验券生效 user=%s out_tokens=%d（免上限免扣费）",
+                        user_id, int(completion_tokens or 0),
+                    )
+                    return result
+            except Exception as exc:  # noqa: BLE001
+                log.warning("[llm_metering] 首篇体验券判定失败: %s", exc)
             result["reason"] = "too_long_output"
             return result
     except Exception as exc:  # noqa: BLE001

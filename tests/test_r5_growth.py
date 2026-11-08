@@ -189,8 +189,11 @@ class TestTicketScheduler:
         )
         assert "plist" not in code, "工单路由仍直接操作 plist"
         assert "launchctl" not in code, "工单路由仍调用 launchctl"
-        # ④ 必须已改为应用内模式
-        assert "in_app" in src, "工单调度未标记为应用内模式"
+        # ④ 必须已改为应用内模式(R11 拆分后扫描范围含 web/routers/ 全部路由域)
+        all_src = src + "".join(
+            f.read_text(encoding="utf-8") for f in sorted(
+                (REPO_ROOT / "web" / "routers").glob("*.py"))) if (REPO_ROOT / "web" / "routers").exists() else src
+        assert "in_app" in all_src, "工单调度未标记为应用内模式"
         # ⑤ 清理函数只在 macOS 上动 plist，云端直接跳过
         cleanup = src[src.find("def _unload_legacy_launchd"):
                       src.find('@app.get("/api/ticket/schedule")')]

@@ -1,8 +1,8 @@
 {
-  "current_version": "10.1.3",
-  "current_codename_zh": "星河纪",
-  "current_codename_en": "Starfall Chronicle",
-  "next_index": 3,
+  "current_version": "15.0.0",
+  "current_codename_zh": "太平令",
+  "current_codename_en": "Great Peace Edict",
+  "next_index": 66,
   "sequence": [
     {
       "zh": "曦光序",
@@ -267,6 +267,46 @@
     {
       "zh": "太平令",
       "en": "Great Peace Edict"
+    },
+    {
+      "zh": "万象新",
+      "en": "Grand Renewal"
+    },
+    {
+      "zh": "千帆举",
+      "en": "Thousand Sails"
+    },
+    {
+      "zh": "九霄阔",
+      "en": "Broad Ninth Heaven"
+    },
+    {
+      "zh": "四海晏",
+      "en": "Four Seas at Peace"
+    },
+    {
+      "zh": "玉衡明",
+      "en": "Jade Balance Bright"
+    },
+    {
+      "zh": "星野阔",
+      "en": "Starfield Wide"
+    },
+    {
+      "zh": "长歌行",
+      "en": "Long Song Journey"
+    },
+    {
+      "zh": "归帆渡",
+      "en": "Homebound Ferry"
+    },
+    {
+      "zh": "朝晖颂",
+      "en": "Dawn Glow Ode"
+    },
+    {
+      "zh": "锦绣程",
+      "en": "Brocade Road"
     }
   ],
   "history": [
@@ -353,6 +393,54 @@
       "zh": "星河纪",
       "en": "Starfall Chronicle",
       "date": "2026-10-16"
+    },
+    {
+      "version": "v11.0.0",
+      "zh": "长风谣",
+      "en": "Longwind Ballad",
+      "date": "2026-11-08"
+    },
+    {
+      "version": "v11.0.1",
+      "zh": "沧海吟",
+      "en": "Oceanic Ode",
+      "date": "2026-10~11(远端发布线)"
+    },
+    {
+      "version": "v11.1.0",
+      "zh": "山岳赋",
+      "en": "Mountain Hymn",
+      "date": "2026-10~11(远端发布线)"
+    },
+    {
+      "version": "v11.1.1",
+      "zh": "江河曲",
+      "en": "River Rhapsody",
+      "date": "2026-10~11(远端发布线)"
+    },
+    {
+      "version": "v12.1.0",
+      "zh": "竹韵篇",
+      "en": "Bamboo Rhythm",
+      "date": "2026-10~11(远端发布线)"
+    },
+    {
+      "version": "v13.0.0",
+      "zh": "梅雪镜",
+      "en": "Plum-Snow Mirror",
+      "date": "2026-10~11(远端发布线)"
+    },
+    {
+      "version": "v14.0.0",
+      "zh": "兰心曲",
+      "en": "Orchid Melody",
+      "date": "2026-10~11(远端发布线)"
+    },
+    {
+      "version": "v15.0.0",
+      "zh": "太平令",
+      "en": "Great Peace Edict",
+      "date": "2026-11-08"
     }
   ]
 }

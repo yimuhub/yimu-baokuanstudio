@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import os
 import uuid
 
@@ -159,3 +161,37 @@ def mint_session_cookie(db, tenant_id: str, username: str) -> str:
 def cookie_headers(cookie: str) -> dict:
     """Cookie 会话的请求头（网关管理接口的 session 管理员通道用）。"""
     return {"Cookie": f"yimu_session={cookie}"}
+
+
+def iter_effective_routes(app):
+    """递归展开 FastAPI include_router 的惰性 _IncludedRouter,产出全部 APIRoute。
+
+    ⭐ R11 拆分后路由经 include_router 挂载(懒物化),直接遍历 app.routes
+       只能看到 _IncludedRouter 包装对象——所有需要按 path/endpoint 断言的
+       测试必须经由本函数取路由。
+    """
+    seen = set()
+    stack = [r for r in getattr(app, "routes", [])]
+    while stack:
+        r = stack.pop(0)
+        orig = getattr(r, "original_router", None)  # FastAPI _IncludedRouter
+        if orig is not None and id(orig) not in seen:
+            seen.add(id(orig))
+            stack = list(orig.routes) + stack
+            continue
+        yield r
+
+
+def web_routing_source() -> str:
+    """R11 拆分后的「web 路由合并源」:web/admin.py + web/routers/*.py 拼接。
+
+    供按源码文本做静态护栏的测试使用——拆分后路由分散在多个模块,
+    单扫 admin.py 会漏。路由函数体内引用的 admin helper 均写作 `_a.X`,
+    拼接视图对子串/正则类断言与拆分前语义一致。
+    """
+    root = Path(__file__).resolve().parent.parent
+    parts = [(root / "web" / "admin.py").read_text(encoding="utf-8")]
+    rdir = root / "web" / "routers"
+    if rdir.exists():
+        parts.extend(f.read_text(encoding="utf-8") for f in sorted(rdir.glob("*.py")))
+    return "\n\n".join(parts)

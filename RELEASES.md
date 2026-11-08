@@ -4,6 +4,60 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 💳 Version 15.0.0 · 太平令 (Great Peace Edict) · Commerce-Ready Hardening & Version Line Unification · 2026-11-08
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.0.0"`, `__codename__ = "太平令"`, `__codename_en__ = "Great Peace Edict"`)
+
+### 🎯 Milestone Summary
+
+依据《五维综合审查报告》(2026-11-08) 的 P0/P1/P2 整改路线图，本版本完成 **9 项功能新增 + 4 项安全/性能加固**，将产品从「有条件达标」推进到「商业交付级达标线」：支付闭环打通、上传攻击面清零、新用户首篇完整体验保障、收入看板与续费提醒落地。
+
+### 💰 Commerce & Monetization (P0)
+
+| # | Feature | Detail |
+|---|---------|--------|
+| 1 | **在线支付闭环（双通道 + 沙箱）** | 新增 `studio/membership/payments.py`：虎皮椒（微信/支付宝扫码，MD5 验签）+ Stripe Checkout（Webhook HMAC-SHA256 验签）+ 沙箱模拟收银台。回调验签 → `settle_paid_order` 幂等确认收款 → **卡密自动兑换到下单用户**，7×24 无人值守收款漏斗成立；金额不符拒绝自动核销留人工。密钥走环境变量，未配置时自动回落线下核销链路，收款永不中断 |
+| 2 | **新用户首篇完整体验券** | 新增 `studio/first_piece.py`：每个账号终身一次，首次产出超 512 tokens 长文时自动启用——不限长度、不占每日免费次数、不扣算力点，保证新用户免费完整产出第一篇作品后再谈转化 |
+| 3 | **收入看板（GMV/MRR/ARPU）** | 新增 `studio/membership/revenue.py` + `/api/admin/metrics` 扩展：累计实收、MRR（按套餐周期折算 30 天）、ARPU、付费转化率、按套餐分布、近 N 天日收入序列、退款单列；运营看板页新增收入卡片区 |
+| 4 | **续费提醒自动化** | 付费会员到期前 7/3/1 天经既有通知通道自动提醒（24h 节流幂等，通道未配置只落台账）；调度引擎每日扫描，支持管理端手动触发 |
+
+### 🔐 Security & Performance Hardening (P0/P1)
+
+| # | Fix | Detail |
+|---|-----|--------|
+| 5 | **上传攻击面清零** | 新增 `core/upload_guard.py` 统一上传守卫：服务端生成文件名（路径穿越免疫）+ 扩展名白名单 + 大小上限；修复 BGM/素材上传历史路径穿越漏洞（web/admin.py）、编辑器上传任意扩展名落盘；补齐广告片参考图/音频/数字人照片大小限制；`draft_dir()` 拒绝 `..`/分隔符穿越 ID |
+| 6 | **DB 连接税清除** | `core/db.py conn()` 快速路径改为**索引探测式自愈**：干净库 3 次索引 seek 即返回（实测 2 万行草稿表 1.35ms/conn，与表大小解耦），坏数据自愈语义完整保留；`drafts(user_id/platform/tenant_id/updated_at)` 四索引迁移化落地 |
+| 7 | **发布闭环补齐（头条 API）** | 新增 `adapters/toutiao_publish.py`：配置 `TOUTIAO_COOKIE` 后头条直进草稿箱（宽松解析，接口变化自动回落人工队列）；小红书排队文案改为可行动指引（明示组件状态与替代动作） |
+
+### 🧹 Engineering Debt (P2)
+
+| # | Change | Detail |
+|---|--------|--------|
+| 8 | **死代码清理** | AST 全仓交叉引用核实后删除 7 个零引用函数（`delete_scheduled_post`/`list_users_crud`/`auto_clean_topics`/`detect_intent`/`check_draft`/`format_pure_twitter_export`/`prepare_cards`） |
+| 9 | **上帝函数开始拆解** | 967 行 `handle_copilot_chat` 的上下文组装阶段抽出为 `core/copilot_context.py`（人设/文风/技能注入 + 模型解析 + LLM 工厂，行为逐字节一致）；`billing_adapter` 新增公开工厂 `web_session()`，跨层私有调用治理起步（app/deps.py 已切换） |
+| 10 | **小白术语减负** | 控制中心新增「3 个 API 入口」通俗说明卡（含直达配置按钮）；我的API/系统配置/网关服务三入口悬停提示全部改为可行动白话 |
+| 11 | **版本断言脱敏** | 更新检查测试不再硬编码版本白名单（线上发 14.0.0 即红灯的历史教训），改为 semver 合法性 + 比较逻辑一致性校验 |
+
+### 🏗️ Monolith Decomposition（R11 · 巨石拆分完成）
+
+| # | Change | Detail |
+|---|--------|--------|
+| 12 | **web/admin.py 7,162 行 → 1,929 行（-73%）** | 271 条路由按路径前缀族整体迁出至 `web/routers/` 17 个域模块（drafts 54 / media 52 / billing 22 / workspace 22 / skills 22 / auth / system / topics / tools / assets / ops / models / tasks / admin_users / files / pages），`scripts/split_admin.py` AST 自动化搬迁，族内注册顺序保持不变（参数路由永不吞并字面路由） |
+| 13 | **归属校验路由类稳定化** | `DraftOwnerRoute` 抽出至 `web/draft_guard.py` 独立模块——修复 admin reload 场景下「类对象换新导致 82 条 {did} 路由归属校验失效」的隐患，`{did}` fail-closed 语义与拆分前逐字节一致（TestDraftIsolation 全绿护栏） |
+| 14 | **拆分等价性保障** | 契约锁死测试（CONTRACT.md ↔ app 双向）+ 578 用例全量回归 + CI 四道门禁全绿；测试侧新增 `iter_effective_routes`（兼容 FastAPI 惰性 `_IncludedRouter`）与 `web_routing_source`（合并路由源视图）两个共享脚手架 |
+
+**Full Changelog**: v14.0.0...v15.0.0（版本线自本版起统一对齐 V15，见 VERSION_POLICY.md）
+
+### 🔖 Version Line Unification（版本线统一裁定，随本版生效）
+
+远端发布线曾独立演进至 v14.0.0，而部分工作区停在 v10.2.1，造成版本号与代号双漂移（一次未推送的本地 v11.0.0「长风谣」与远端 v11.0.0 撞号）。经裁定：
+
+- 全线跳过 v11~v14 占用段，统一对齐 **V15**；
+- **此后所有日常迭代只在 15.x.y 内小版本递增**；主版本跳升仅限开发者书面申请并修订 [VERSION_POLICY.md](VERSION_POLICY.md)；
+- 代号序列登记簿已补记远端实际消耗（长风谣/沧海吟/山岳赋/江河曲/竹韵篇/梅雪镜/兰心曲）并扩容至 76 号，下一号「万象新」。 · 测试：533 存量 + 43 新增回归用例（上传守卫 7 / 支付 12 / 首篇券 5 / 收入 7 / 发布 6 / 小白 UX 5 / 契约锁 1）
+
+---
+
 ## 🚀 Version 10.2.1 · Native Application Installers (.exe, .dmg, .deb) · 2026-10-23
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.2.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

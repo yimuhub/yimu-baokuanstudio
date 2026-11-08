@@ -155,12 +155,6 @@ def parse_twitter_thread(content: str) -> list[dict]:
     return result
 
 
-def format_pure_twitter_export(content: str) -> str:
-    """导出用于一键复制的完整纯净推文串（无任何 Markdown 噪音或头尾包装）"""
-    thread = parse_twitter_thread(content)
-    if not thread:
-        return clean_twitter_text(content)
-    return "\n\n---\n\n".join(t["content"] for t in thread)
 
 
 def render_twitter_html(content: str, title: str = "") -> str:

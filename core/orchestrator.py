@@ -1614,9 +1614,46 @@ def approve_and_publish(draft_id: str, platforms: list[str]) -> list[dict]:
                 db.set_job(jid, "done", f"草稿箱 media_id={media['media_id']}")
                 results.append({"platform": p, "ok": True,
                                 "detail": f"已进公众号草稿箱 {media['media_id']}"})
+            elif p == "toutiao" and cfg.get("toutiao_mode") == "api":
+                # R10 发布闭环：头条 API 直进草稿箱（未配置 Cookie 或接口变化时自动回落人工队列，不中断主流程）
+                from adapters import toutiao_publish
+                ok_api, why = toutiao_publish.available()
+                if not ok_api:
+                    detail = f"头条 API 未就绪（{why}）；Markdown 已备好，待粘贴发布"
+                    db.set_job(jid, "queued", detail)
+                    results.append({"platform": p, "ok": True, "detail": f"已排队：{detail}"})
+                else:
+                    db.set_job(jid, "running")
+                    try:
+                        html_out = toutiao.render_preview(
+                            draft.get("body_md", ""), draft.get("title", ""), draft_id=draft_id)
+                        r = toutiao_publish.push_draft(draft["title"], html_out)
+                    except Exception as _te:
+                        r = {"ok": False, "detail": str(_te)[:200]}
+                    if r.get("ok"):
+                        db.set_job(jid, "done", r["detail"])
+                        results.append({"platform": p, "ok": True, "detail": r["detail"]})
+                    else:
+                        detail = f"{r.get('detail', '头条推送失败')}；Markdown 已备好，待粘贴发布"
+                        db.set_job(jid, "queued", detail)
+                        results.append({"platform": p, "ok": True, "detail": f"已排队：{detail}"})
             else:
-                detail = {"xhs": f"卡片图 {len(list(ddir.glob('card-*.png')))} 张，待发布",
-                          "toutiao": "Markdown 已备好，待粘贴发布"}.get(p, "待发布")
+                if p == "xhs":
+                    # R10 兜底文案：明示组件状态与下一步动作，不让用户猜
+                    try:
+                        from core import xhspub as _xhspub
+                        _auto = _xhspub.available()
+                    except Exception:
+                        _auto = False
+                    n_cards = len(list(ddir.glob("card-*.png")))
+                    detail = (f"卡片图 {n_cards} 张已就绪。" +
+                              ("可在发布弹窗使用「自动发布」（扫码登录后自动提交）。"
+                               if _auto else
+                               "自动发布组件未安装：请在发布弹窗使用「一键复制图文」粘贴到小红书 App 发布；"
+                               "或安装 vendors/XiaohongshuSkills 组件后重启以解锁自动发布。"))
+                else:
+                    detail = {"toutiao": "Markdown 已备好，待粘贴发布（配置 TOUTIAO_COOKIE 可直进草稿箱）",
+                             }.get(p, "待发布")
                 db.set_job(jid, "queued", detail)
                 results.append({"platform": p, "ok": True, "detail": f"已排队：{detail}"})
         except Exception as e:

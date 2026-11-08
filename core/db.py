@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS drafts (
   guard_reason TEXT DEFAULT '',
   updated_at TEXT DEFAULT ''
 );
+-- R10.0 性能整改说明：drafts 过滤列索引统一在 conn() 迁移块中创建
+-- （user_id/platform/tenant_id 在旧库可能缺列，SCHEMA 阶段建索引会炸迁移）。
 CREATE TABLE IF NOT EXISTS draft_history (
   id TEXT PRIMARY KEY,
   draft_id TEXT,
@@ -591,11 +593,25 @@ def conn() -> sqlite3.Connection:
         except Exception:
             has_drafts = False
     if has_drafts:
-        auto_heal_drafts_check_constraint(c)
-        c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
-        c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
-        c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
-        c.commit()
+        # R10.0 性能整改（审查报告 P1「DB 连接税」）：
+        #   历史版本在这里每次建连都无条件执行 3 条无索引全表 UPDATE + commit。
+        #   现改为「索引探测式自愈」：先走 ix_drafts_* 索引探测是否存在坏数据
+        #   （NULL/空值），仅探测命中才写——干净库上 3 次索引 seek 即返回，
+        #   自愈语义完整保留（迁移期坏数据仍会被修复），全表扫描税清除。
+        try:
+            dirty = (
+                c.execute("SELECT 1 FROM drafts WHERE user_id IS NULL OR user_id='' LIMIT 1").fetchone()
+                or c.execute("SELECT 1 FROM drafts WHERE platform IS NULL OR platform='' LIMIT 1").fetchone()
+                or c.execute("SELECT 1 FROM drafts WHERE tenant_id IS NULL OR tenant_id='' LIMIT 1").fetchone()
+            )
+        except sqlite3.OperationalError:
+            dirty = True  # 旧库缺列/缺索引：交给下方迁移路径全量自愈
+        if dirty:
+            auto_heal_drafts_check_constraint(c)
+            c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
+            c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
+            c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
+            c.commit()
         return c
 
     c.executescript(SCHEMA)
@@ -613,6 +629,17 @@ def conn() -> sqlite3.Connection:
     c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
     c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
     c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
+    # R10.0 性能整改：迁移完成后统一补建 drafts 过滤列索引（新库/旧库都安全）
+    for _idx_sql in (
+        "CREATE INDEX IF NOT EXISTS ix_drafts_user ON drafts (user_id)",
+        "CREATE INDEX IF NOT EXISTS ix_drafts_platform ON drafts (platform)",
+        "CREATE INDEX IF NOT EXISTS ix_drafts_tenant ON drafts (tenant_id)",
+        "CREATE INDEX IF NOT EXISTS ix_drafts_updated ON drafts (updated_at)",
+    ):
+        try:
+            c.execute(_idx_sql)
+        except Exception:
+            pass  # 极旧库缺列时静默跳过，下轮迁移补齐后再建
     c.commit()
     # 旧库迁移：topics 新字段
     tcols = {r["name"] for r in c.execute("PRAGMA table_info(topics)")}
@@ -866,6 +893,10 @@ def count_topics() -> dict:
 
 
 def draft_dir(draft_id: str) -> Path:
+    # R10.0 加固：draft_id 来自 URL 路径参数，拒绝 ".."、分隔符与绝对路径，防目录穿越
+    if (not draft_id) or draft_id in (".", "..") or any(s in draft_id for s in ("/", "\\", "..")) \
+            or draft_id.startswith("~"):
+        raise ValueError(f"非法草稿ID: {draft_id!r}")
     d = DATA / "drafts" / draft_id
     d.mkdir(parents=True, exist_ok=True)
     return d
@@ -1539,12 +1570,6 @@ def update_scheduled_post_status(pid: str, status: str, detail: str = "") -> Non
     c.close()
 
 
-def delete_scheduled_post(pid: str) -> bool:
-    c = conn()
-    c.execute("DELETE FROM scheduled_posts WHERE id=?", (pid,))
-    c.commit()
-    c.close()
-    return True
 
 
 # ---------- workspaces (品牌工作区) ----------

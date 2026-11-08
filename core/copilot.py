@@ -11,7 +11,7 @@ import logging
 import re
 from typing import Optional, Callable, Any, Dict, List
 
-from core import agents, db, judge, llm, orchestrator
+from core import agents, copilot_context, db, judge, llm, orchestrator
 from core.title_forge import generate_candidate_titles
 
 logger = logging.getLogger(__name__)
@@ -239,10 +239,6 @@ def detect_intent_and_target(message: str, has_draft: bool) -> tuple[str, dict]:
     return "CHAT", meta
 
 
-def detect_intent(message: str, has_draft: bool) -> str:
-    """兼容旧接口的轻量意图识别"""
-    intent, _ = detect_intent_and_target(message, has_draft)
-    return intent
 
 
 def get_draft_copilot_history(draft_id: str) -> list[dict]:
@@ -317,55 +313,17 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
     intent, target_meta = detect_intent_and_target(message, has_draft)
     logger.info(f"Copilot message: '{message[:30]}' -> Intent: {intent}, Meta: {target_meta} (has_draft={has_draft})")
 
-    # 1. 解析文风与人设 (名家蒸馏音色 / 创作调性)
-    active_sys_prompt = COPILOT_SYSTEM_PROMPT
-    if persona:
-        voice_content = orchestrator.get_voice_content(persona)
-        if voice_content:
-            active_sys_prompt += f"\n\n【名家大师人设与文风指纹（强制遵循）】\n{voice_content}"
-    elif style and style != "default":
-        style_map = {
-            "wangxiaobo": "【文风调性：王小波幽默犀利】用幽默、清醒、反讽、极度真诚的口吻写作，善用日常生活比喻，彻底破除AI套话与官腔。",
-            "xhs_seed": "【文风调性：小红书爆款短句种草】短句成行，高密度emoji，突出痛点场景与即时获得感，文末附带热门互动话题标签。",
-            "deep_resonance": "【文风调性：深度情感共鸣】叙事细腻，直击当代人内心孤独与焦虑，层层递进，金句频出，引发强烈共鸣与转发欲。",
-            "dry_goods": "【文风调性：避坑干货清单】条理极度清晰，拒绝废话，提炼核心要点、避坑法则与即拿即用的SOP清单。",
-            "story_conflict": "【文风调性：电影级戏剧冲突】强悬念开场，节奏跌宕起伏，通过具体的场景、动作和对白展现反转与冲突。"
-        }
-        if style in style_map:
-            active_sys_prompt += f"\n\n{style_map[style]}"
-
-    # 1.5 爆款技能库注入 (如黄金钩子、去AI味、反差认知洞察、金句提炼等)
-    from core import workspace
-    active_ws = workspace.get_active_workspace()
-    ws_cfg = (active_ws.get("config") if active_ws else {}) or {}
-    applied_skills = skills or ws_cfg.get("skills") or ["viral-formulas", "de-ai", "contrarian-insight", "title-forge"]
-    
-    skills_applied_names = []
-    if applied_skills:
-        skill_lib = agents.list_skills()
-        sk_parts = []
-        for sk_id in applied_skills:
-            sk_obj = skill_lib.get(sk_id)
-            if sk_obj and sk_obj.get("body"):
-                sk_parts.append(f"◆ 技能【{sk_obj['name']}】：{sk_obj.get('description', '')}\n{sk_obj['body']}")
-                skills_applied_names.append(sk_obj["name"])
-        if sk_parts:
-            active_sys_prompt += "\n\n【创作者专属爆款创作与改写技能规范（必须严格调用贯彻）】：\n" + "\n\n".join(sk_parts)
-
-    # 2. 目标模型解析：若配置了供应商与模型且非 __default__，组合为 target_model
-    target_model = None
-    if provider and provider != "__default__":
-        if model and model != "__default__":
-            target_model = f"{provider}/{model}"
-        else:
-            target_model = f"{provider}"
-    elif model and model != "__default__":
-        target_model = model
-
-    def _call_llm(msgs: list[dict], temp: float = 0.75) -> str:
-        if target_model:
-            return llm.chat(msgs, model=target_model, temperature=temp, user_id=user_id)
-        return agents.chat_for("write", msgs, temperature=temp, user_id=user_id)
+    # 1+2. 文风/人设/技能注入 与 目标模型解析（R10.0：抽出至 core/copilot_context.py，
+    #   行为与历史版本逐字节一致，见该模块头注释；此处仅组装调用）
+    _ctx = copilot_context.build_chat_context(
+        COPILOT_SYSTEM_PROMPT,
+        persona=persona, style=style, skills=skills,
+        provider=provider, model=model, user_id=user_id,
+    )
+    active_sys_prompt = _ctx["sys_prompt"]
+    skills_applied_names = _ctx["skills_applied_names"]
+    target_model = _ctx["target_model"]
+    _call_llm = _ctx["call_llm"]
 
     # ================== 1. 标题赛马优化 ==================
     if intent == "TITLE" and cur_draft:

@@ -4,7 +4,7 @@
 ; ==============================================================================
 
 #define MyAppName "一幕·YIMU 爆款工作室"
-#define MyAppVersion "10.2.1"
+#define MyAppVersion "15.0.0"
 #define MyAppPublisher "YIMU Studio Team"
 #define MyAppURL "https://yimu.hyipf.com"
 #define MyAppExeName "一幕桌面客户端.vbs"

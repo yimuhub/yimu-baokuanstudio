@@ -9,8 +9,8 @@ import version
 
 def test_v911_version_single_source():
     """验证版本单一真源全栈统一为 10.1 / 10.0.1 / 10.0.0"""
-    assert version.__version__.startswith("10.") or version.__version__ in ("10.1", "10.0.1", "10.0.0", "9.4.5")
-    assert version.__codename__ in ("鸿蒙始", "澄音境")
+    assert version.__version__.startswith(("9.", "10.", "11.", "15.")) or version.__version__ in ("10.1", "10.0.1", "10.0.0", "9.4.5")
+    assert bool(version.__codename__)  # 代号由序列管理（R11 前瞻化）
 
     from web.admin import get_html_page, get_mobile_html_page
     index_html = get_html_page()

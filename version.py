@@ -1,12 +1,17 @@
 # SPDX-License-Identifier: BUSL-1.1
-"""全局版本号定义（单一真源）。"""
+"""全局版本号定义（单一真源）。
 
-__version__ = "10.2.1"
-__codename__ = "鸿蒙始"
-__codename_en__ = "Primordial Dawn"
-__slogan__ = "一念起 一幕开 万象生 · 原生安装包发布，Windows .exe / macOS .dmg / Linux .deb 开箱即用"
-__slogan_cn__ = "一念起 一幕开 万象生 · 原生安装包发布，Windows .exe / macOS .dmg / Linux .deb 开箱即用"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Native Installers for Win (.exe), Mac (.dmg) & Linux (.deb)"
+版本线规范（v15.0.0 起，见 VERSION_POLICY.md）：
+主版本锁定 V15，日常迭代一律在 15.x.y 内做小版本递增；
+主版本跳升仅限开发者书面申请并修订本规范。
+"""
+
+__version__ = "15.0.0"
+__codename__ = "太平令"
+__codename_en__ = "Great Peace Edict"
+__slogan__ = "一念起 一幕开 万象生 · 商业交付级整改全量落地，版本线统一对齐 V15"
+__slogan_cn__ = "一念起 一幕开 万象生 · 商业交付级整改全量落地，版本线统一对齐 V15"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Commerce-ready hardening shipped, version line unified at V15"
 
 
 def get_version() -> str:

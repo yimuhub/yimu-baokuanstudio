@@ -20,7 +20,7 @@ class RequestContext:
 def build_request_context(request: Request, user: dict) -> RequestContext:
     uid = str((user or {}).get("id") or "u-admin")
     role = str((user or {}).get("role") or "user")
-    db = billing_adapter._web_session()
+    db = billing_adapter.web_session()  # R10.0：走公开工厂方法，不再触碰私有名
     try:
         tid = billing_service.ensure_user_context(db, uid, user)
     finally:

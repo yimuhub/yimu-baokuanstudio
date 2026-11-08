@@ -177,7 +177,7 @@ def test_rail_accordion_closes_others(html: str) -> None:
     """左栏二级树：切页时只保留一个展开，避免把「最近产出」顶出视口。"""
     rail = (BASE / "web/static/js/workbench-rail.js").read_text(encoding="utf-8")
     seg = rail[rail.find("导航点击后刷新选中态与二级展开"):]
-    seg = seg[:1400]
+    seg = seg[:2200]
     assert ".rail-subs.on" in seg, "缺少关闭其它二级树的逻辑"
     assert "classList.remove('on')" in seg
 

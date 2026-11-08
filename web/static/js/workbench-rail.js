@@ -179,9 +179,12 @@
     btn.type = 'button';
     btn.className = 'rail-mini-toggle';
     btn.title = t('一键折叠 / 展开左侧菜单', 'Collapse / expand the menu');
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
-      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-      '<path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>';
+    /* 通用侧栏折叠图标(panel-left),随状态翻转 */
+    var collapsed = DOC.body.getAttribute('data-railmini') === 'on';
+    btn.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ' +
+      'style="transform:scaleX(' + (collapsed ? '-1' : '1') + ')">' +
+      '<rect x="3" y="3" width="18" height="18" rx="2.5"/><path d="M9.5 3v18"/><path d="M15 12h.01"/></svg>';
     btn.addEventListener('click', function (ev) {
       ev.stopPropagation();
       var on = DOC.body.getAttribute('data-railmini') === 'on';
@@ -192,6 +195,9 @@
         DOC.body.setAttribute('data-railmini', 'on');
         if (WIN.localStorage) WIN.localStorage.setItem('yimu_rail_mini', 'on');
       }
+      var collapsed = DOC.body.getAttribute('data-railmini') === 'on';
+      var svg = btn.querySelector('svg');
+      if (svg) svg.style.transform = 'scaleX(' + (collapsed ? '-1' : '1') + ')';
     });
     var logo = side.querySelector('.logo-box');
     if (logo) logo.appendChild(btn);
@@ -807,12 +813,17 @@
            切回其它页面自动还原。 */
         if (DOC.body.getAttribute('data-shell') === 'v2') {
           if (key === 'drafts') {
-            DOC.body.setAttribute('data-stage', 'drafts');
             DOC.body.setAttribute('data-railmini', 'on');
-          } else {
-            DOC.body.removeAttribute('data-stage');
-            if (WIN.localStorage) WIN.localStorage.removeItem('yimu_rail_mini');
-            DOC.body.removeAttribute('data-railmini');
+            /* R15.3:工作台全屏形态——舞台打开后自动进入全屏,左栏保持图标可见 */
+            setTimeout(function () {
+              if (byId('workStage') && byId('workStage').getAttribute('aria-hidden') === 'false') {
+                DOC.body.setAttribute('data-stage-full', '1');
+                var fb = byId('stageFull');
+                if (fb) fb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+                  'stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' +
+                  '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+              }
+            }, 60);
           }
         }
         var box = DOC.querySelector('.rail-subs[data-for="' + key + '"]');

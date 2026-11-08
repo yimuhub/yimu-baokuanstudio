@@ -3716,18 +3716,30 @@ body[data-shell="v2"][data-railmini="on"] .side #side-user-profile-btn .badge,
 body[data-shell="v2"][data-railmini="on"] .side .side-version-bar,
 body[data-shell="v2"][data-railmini="on"] .side .side-foot > div:last-child,
 body[data-shell="v2"][data-railmini="on"] .side #rail-headsub { display: none !important; }
-/* 收窄:个人中心钮/状态胶囊在图标栏内居中 */
-body[data-shell="v2"][data-railmini="on"] .side #side-user-profile-btn,
 body[data-shell="v2"][data-railmini="on"] .side .side-foot .gw-pill { justify-content: center; }
+/* logo 区只留图标;登录态只留绿点 */
+body[data-shell="v2"][data-railmini="on"] .side .logo-box .logo-title,
+body[data-shell="v2"][data-railmini="on"] .side .logo-box .logo-badge,
+body[data-shell="v2"][data-railmini="on"] .side .logo-box .version-badge,
+body[data-shell="v2"][data-railmini="on"] .side .logo-box > div:not(.logo-title) { display: none !important; }
+body[data-shell="v2"][data-railmini="on"] #side-user-profile-btn { position: relative; padding: 9px 0 !important; }
+body[data-shell="v2"][data-railmini="on"] #side-user-profile-btn::after {
+  content: ""; position: absolute; top: 50%; right: 50%; transform: translate(50%, -50%);
+  width: 9px; height: 9px; border-radius: 50%; background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, .9);
+}
+/* 通用侧栏折叠图标(方向由 JS 控制,不再用 CSS 翻转) */
 body[data-shell="v2"][data-railmini="on"] .rail-mini-toggle svg { transform: scaleX(-1); }
 
-/* ---------- R15.3 内容工作台全屏形态（左栏图标 + 中栏隐藏 + 右栏全屏） ---------- */
-body[data-shell="v2"][data-stage="drafts"] { --railw: 62px; grid-template-columns: var(--railw) minmax(0, 1fr); }
-body[data-shell="v2"][data-stage="drafts"] > .main-wrapper,
-body[data-shell="v2"][data-stage="drafts"] > .rz-r { display: none !important; }
-body[data-shell="v2"][data-stage="drafts"] > .assets { grid-column: 2 / -1; border-left: 1px solid var(--border); }
-body[data-shell="v2"][data-stage="drafts"] #wb-float-agent-btn { display: flex !important; }
-body[data-shell="v2"][data-stage="drafts"] .assets-body { padding: 14px 18px 90px; }
+/* ═══ R15.3 系统设置/个人中心 固定左下角 ═══ */
+body[data-shell="v2"] > .side { display: flex; flex-direction: column; }
+body[data-shell="v2"] > .side .nav-group { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+body[data-shell="v2"] > .side .nav-group-bottom { margin-top: auto; flex: 0 0 auto; }
+
+/* ---------- R15.3 工作台全屏形态：舞台原生全屏 + 图标栏可见 ---------- */
+body[data-shell="v2"][data-railmini="on"][data-stage-full="1"] .assets > .stage { left: 62px; }
+body[data-shell="v2"][data-stage-full="1"] #wb-float-agent-btn { display: flex !important; z-index: 9700; }
+body[data-shell="v2"][data-railmini="on"][data-stage-full="1"] .rail-mini-toggle { z-index: 9800; }
 
 /* ---------- R15.3 去重：v2 下去掉 极简/全能 模式切换（新外壳下无差异） ---------- */
 body[data-shell="v2"] .system-mode-toggle { display: none !important; }
@@ -5461,6 +5473,8 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
         <small data-i18n="nav_studio_sub">口播 TTS · 竖版短视频</small>
       </div>
     </div>
+  </nav>
+  <nav class="nav-group nav-group-bottom">
     <div class="nav-item" data-p="console">
       <span class="nav-icon">⚙️</span>
       <div class="nav-txt">

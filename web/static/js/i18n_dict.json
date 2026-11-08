@@ -2045,5 +2045,14 @@
   "本页配置": "This page configures the ",
   "的上游模型服务。定位区分：\n          个人自备 Key 请用「个人中心 → 我的 API」；对外提供 API 服务请去「控制中心 → API 网关服务」。": " upstream services powering all creation. Scope: for your own key use Personal Center → My API; to serve APIs externally use Console → API Gateway.",
   "驱动全站创作能力": "upstream model services",
-  "💾 仅保存": "💾 Save Only"
+  "💾 仅保存": "💾 Save Only",
+  "nav_console": "系统设置",
+  "nav_console_sub": "工单 · 技能 · 模型服务",
+  "系统设置": "System Settings",
+  "工单 · 技能 · 模型服务": "Tickets · Skills · Model services",
+  "会员与算力（套餐与价格）": "Membership & Credits (Plans & Pricing)",
+  "订阅套餐 · 算力充值 · 卡密一键核销 · 邀请返佣 · 收支明细": "Subscriptions · Credit top-up · CDKEY redemption · referral rewards · ledger",
+  "打开 →": "Open →",
+  "的上游模型服务。定位区分：\n          个人自备 Key 请用「个人中心 → 我的 API」；对外提供 API 服务请去「系统设置 → API 网关服务」。": " upstream services powering all creation. Scope: personal keys in Personal Center → My API; external API serving in System Settings → API Gateway.",
+  "卡密兑换": "CDKEY redemption"
 }

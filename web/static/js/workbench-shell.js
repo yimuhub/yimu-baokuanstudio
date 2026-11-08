@@ -417,6 +417,25 @@
     var m = draftMeta(id) || {};
     var score = (m.score != null && m.score !== '') ? Math.round(Number(m.score)) : null;
 
+    /* R15.3:小红书成稿 → 5 张磨砂卡片预览(灯箱放大)+ 单张下载 + 打包下载 */
+    var nCards = parseInt(m.cards || 0, 10) || 0;
+    var cardUrls = [];
+    if (nCards > 0) {
+      for (var ci = 0; ci < nCards; ci++) {
+        cardUrls.push('/card/' + encodeURIComponent(id) + '/card-' + ci + '.png');
+      }
+    }
+    ST.xhsCards = cardUrls;
+    var xhsBlock = (cardUrls.length && ST.plat === 'xhs') ?
+      '<div class="a-label">小红书卡片 · ' + cardUrls.length + ' 张<span class="sp"></span>' +
+        '<span class="r" data-act="zip" title="打包下载全部卡片图">⬇ 打包下载</span></div>' +
+        '<div class="a-thumbs">' + cardUrls.map(function (u, i) {
+          return '<div class="a-thumb" data-act="card" data-idx="' + i + '" title="点击放大预览">' +
+            '<img src="' + u + '" alt="卡片 ' + (i + 1) + '" loading="lazy">' +
+            '<a href="' + u + '" download="小红书卡片-' + (i + 1) + '.png" ' +
+              'title="下载这张卡片" onclick="event.stopPropagation()">⬇</a></div>';
+        }).join('') + '</div>' : '';
+
     box.innerHTML =
       '<div class="a-score">' +
         '<div class="n">' + (score == null ? '—' : score) + (score == null ? '' : '<small>/100</small>') + '</div>' +
@@ -425,6 +444,7 @@
           ' · ' + (m.imgs || 0) + ' 图 · ' + (m.cards || 0) + ' 卡</div>' +
       '</div>' +
       platBar() +
+      xhsBlock +
       '<div class="a-paper"><div class="loading">排版渲染中…</div></div>' +
       '<div class="a-meta"><span>平台预览与左侧工作台完全同源</span>' +
         '<span class="sp" style="flex:1"></span>' +
@@ -762,8 +782,18 @@
     if (!box) return;
 
     box.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('a[download]')) return; // 下载锚直下,不进灯箱
       var t = e.target.closest('[data-act]');
       if (!t) return;
+      if (t.getAttribute('data-act') === 'card') {
+        var ci = parseInt(t.getAttribute('data-idx'), 10) || 0;
+        openLB(ST.xhsCards || [], ci);
+        return;
+      }
+      if (t.getAttribute('data-act') === 'zip') {
+        window.open('/api/drafts/' + encodeURIComponent(ST.draft) + '/zip/xhs');
+        return;
+      }
       var act = t.getAttribute('data-act');
       if (act === 'open-drafts') { gotoPanel('drafts'); return; }
       if (act === 'open-inspire') { gotoPanel('inspire'); return; }

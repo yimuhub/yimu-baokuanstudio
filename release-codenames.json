@@ -1,8 +1,8 @@
 {
-  "current_version": "15.2.0",
-  "current_codename_zh": "千帆举",
-  "current_codename_en": "Thousand Sails",
-  "next_index": 68,
+  "current_version": "15.3.0",
+  "current_codename_zh": "九霄阔",
+  "current_codename_en": "Broad Ninth Heaven",
+  "next_index": 69,
   "sequence": [
     {
       "zh": "曦光序",
@@ -452,6 +452,12 @@
       "version": "v15.2.0",
       "zh": "千帆举",
       "en": "Thousand Sails",
+      "date": "2026-11-08"
+    },
+    {
+      "version": "v15.3.0",
+      "zh": "九霄阔",
+      "en": "Broad Ninth Heaven",
       "date": "2026-11-08"
     }
   ]

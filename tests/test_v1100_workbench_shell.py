@@ -181,7 +181,8 @@ def test_v1100_all_business_panels_preserved(html):
     """七个业务面板与八个一级导航一个都不能少。"""
     for pid in ("dashboard", "inspire", "drafts", "studio", "console", "profile", "pricing"):
         assert f'id="p-{pid}"' in html, f"面板 p-{pid} 丢失"
-    assert html.count('class="nav-item') >= 8
+    # R15.3:套餐与价格并入个人中心,主导航从 8 项收敛为 7 项(用户裁定)
+    assert html.count('class="nav-item') >= 7
     assert 'id="p-lite-mode"' in html
 
 

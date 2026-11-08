@@ -96,17 +96,8 @@
   /* --------------------- 一级页 → 二级入口（真实可点） --------------------- */
   // sp：真实的 switchSubTab 目标；kw：面板内滚动定位用的关键词
   var SUBS = {
-    dashboard: [
-      { n: '数据总览', en: 'Data Overview', kw: '产能' },
-      { n: '7 天走势', en: '7-Day Trend' },
-      { n: '发布排期', en: 'Publishing Schedule', kw: '排期' },
-      { n: '矩阵空间', en: 'Matrix Space', kw: '矩阵' }
-    ],
-    lite: [
-      { n: '对话成稿', en: 'Chat to Draft' },
-      { n: '一句话成爆款', en: 'One-line Hit', sp: 'inspire::sp-oneshot' },
-      { n: '批量矩阵生产', en: 'Batch Matrix', sp: 'inspire::sp-batch' }
-    ],
+    /* R15.3 导航减肥：dashboard/drafts 的二级项在 v2 外壳下无落点(点击无反应)，
+       lite 的二级项与 inspire 重复——全部移除，只保留真正可用的子页跳转。 */
     inspire: [
       { n: '实时热榜抓取', en: 'Hot List Scraper', sp: 'inspire::sp-hot' },
       { n: '万能爆款链接采集', en: 'Link Collector', sp: 'inspire::sp-extract' },
@@ -114,14 +105,6 @@
       { n: '粘贴文案改编', en: 'Paste Adapt', sp: 'inspire::sp-paste' },
       { n: '一句话成爆款', sp: 'inspire::sp-oneshot' },
       { n: '批量矩阵生产', sp: 'inspire::sp-batch' }
-    ],
-    drafts: [
-      { n: '多平台成稿与排版', en: 'Multi-platform Layout', kw: '多平台' },
-      { n: '单平台改写', en: 'Single-platform Rewrite', kw: '改写' },
-      { n: '口播稿生成', en: 'Voice Script', kw: '口播' },
-      { n: 'AI 配图与风格', en: 'AI Images', kw: '配图' },
-      { n: '质量体检提分', en: 'Quality Check', kw: '评分' },
-      { n: '一键多平台发布', en: 'Publish Everywhere', kw: '发布' }
     ],
     studio: [
       { n: '全自动 AI 短剧', en: 'Auto Short Drama', sp: 'studio::sp-drama' },
@@ -189,6 +172,31 @@
   };
 
   /* ------------------------------ 左栏 ------------------------------ */
+
+  function buildRailToggle(side) {
+    if (side.querySelector('.rail-mini-toggle')) return;
+    var btn = DOC.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rail-mini-toggle';
+    btn.title = t('一键折叠 / 展开左侧菜单', 'Collapse / expand the menu');
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/></svg>';
+    btn.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var on = DOC.body.getAttribute('data-railmini') === 'on';
+      if (on) {
+        DOC.body.removeAttribute('data-railmini');
+        if (WIN.localStorage) WIN.localStorage.removeItem('yimu_rail_mini');
+      } else {
+        DOC.body.setAttribute('data-railmini', 'on');
+        if (WIN.localStorage) WIN.localStorage.setItem('yimu_rail_mini', 'on');
+      }
+    });
+    var logo = side.querySelector('.logo-box');
+    if (logo) logo.appendChild(btn);
+    else side.insertBefore(btn, side.firstChild);
+  }
 
   function buildNewButton(side) {
     var box = side.querySelector('.logo-box');
@@ -735,8 +743,24 @@
     if (!isV2()) return;
     var side = DOC.querySelector('body > .side');
     if (!side) return;
+    /* R15.3:恢复上次的一键折叠记忆态 */
+    if (WIN.localStorage && WIN.localStorage.getItem('yimu_rail_mini') === 'on') {
+      DOC.body.setAttribute('data-railmini', 'on');
+    }
+    /* 图标栏模式下,导航项悬停显示名称提示 */
+    var syncTitles = function () {
+      var mini = DOC.body.getAttribute('data-railmini') === 'on';
+      var items = side.querySelectorAll('.nav-item');
+      for (var i = 0; i < items.length; i++) {
+        var txtEl = items[i].querySelector('.nav-txt span');
+        items[i].title = mini ? (txtEl ? txtEl.textContent : '') : '';
+      }
+    };
+    syncTitles();
+    new MutationObserver(syncTitles).observe(DOC.body, { attributes: true, attributeFilter: ['data-railmini'] });
 
     buildNewButton(side);
+    buildRailToggle(side);
     buildSubs(side);
     buildRecent(side);
     buildFoot(side);
@@ -779,6 +803,18 @@
       if (!item) return;
       setTimeout(function () {
         var key = item.getAttribute('data-p');
+        /* R15.3 内容工作台全屏形态：左栏收缩成图标栏 + 中栏对话隐藏 + 右栏工作台全屏；
+           切回其它页面自动还原。 */
+        if (DOC.body.getAttribute('data-shell') === 'v2') {
+          if (key === 'drafts') {
+            DOC.body.setAttribute('data-stage', 'drafts');
+            DOC.body.setAttribute('data-railmini', 'on');
+          } else {
+            DOC.body.removeAttribute('data-stage');
+            if (WIN.localStorage) WIN.localStorage.removeItem('yimu_rail_mini');
+            DOC.body.removeAttribute('data-railmini');
+          }
+        }
         var box = DOC.querySelector('.rail-subs[data-for="' + key + '"]');
         /* 手风琴：切页时先收起其它已展开的二级树，否则连点几次会全摊开把「最近产出」顶下去 */
         var others = DOC.querySelectorAll('.rail-subs.on');

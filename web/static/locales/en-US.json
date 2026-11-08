@@ -1,6 +1,6 @@
 {
-  "version": "15.2.0",
-  "codename": "Thousand Sails",
+  "version": "15.3.0",
+  "codename": "Broad Ninth Heaven",
   "brand_title": "🎬 YIMU Studio",
   "brand_badge": "Viral Studio",
   "nav_dashboard": "Dashboard",
@@ -8,8 +8,9 @@
   "nav_inspire": "Inspirations",
   "nav_drafts": "Workbench",
   "nav_studio": "Media Studio",
-  "nav_console": "Control Center",
+  "nav_console": "System Settings",
   "nav_pricing": "Plans & Pricing",
   "nav_pricing_sub": "Subscriptions · Credits",
-  "nav_profile": "Profile Center"
+  "nav_profile": "Profile Center",
+  "nav_console_sub": "Tickets · Skills · Model services"
 }

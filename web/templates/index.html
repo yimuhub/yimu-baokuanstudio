@@ -3699,6 +3699,44 @@ body[data-shell="v2"][data-focus="on"] .a-thumbs {
 }
 body[data-shell="v2"][data-focus="on"] .a-row { max-width: 940px; margin: 0 auto; }
 
+/* ---------- R15.3 左栏一键折叠（图标栏） ---------- */
+body[data-shell="v2"][data-railmini="on"] { --railw: 62px; }
+/* 隐藏:文字与列表(图标栏只留图标) */
+body[data-shell="v2"][data-railmini="on"] .side .nav-item .nav-txt,
+body[data-shell="v2"][data-railmini="on"] .side .nav-txt,
+body[data-shell="v2"][data-railmini="on"] .rail-subs,
+body[data-shell="v2"][data-railmini="on"] .rail-chev,
+body[data-shell="v2"][data-railmini="on"] .rail-new span,
+body[data-shell="v2"][data-railmini="on"] .side .rail-head,
+body[data-shell="v2"][data-railmini="on"] .side .rail-headsub,
+body[data-shell="v2"][data-railmini="on"] .side .rail-list,
+body[data-shell="v2"][data-railmini="on"] .side .side-foot .gw-pill #gw-status-text,
+body[data-shell="v2"][data-railmini="on"] .side #side-user-profile-btn span,
+body[data-shell="v2"][data-railmini="on"] .side #side-user-profile-btn .badge,
+body[data-shell="v2"][data-railmini="on"] .side .side-version-bar,
+body[data-shell="v2"][data-railmini="on"] .side .side-foot > div:last-child,
+body[data-shell="v2"][data-railmini="on"] .side #rail-headsub { display: none !important; }
+/* 收窄:个人中心钮/状态胶囊在图标栏内居中 */
+body[data-shell="v2"][data-railmini="on"] .side #side-user-profile-btn,
+body[data-shell="v2"][data-railmini="on"] .side .side-foot .gw-pill { justify-content: center; }
+body[data-shell="v2"][data-railmini="on"] .rail-mini-toggle svg { transform: scaleX(-1); }
+
+/* ---------- R15.3 内容工作台全屏形态（左栏图标 + 中栏隐藏 + 右栏全屏） ---------- */
+body[data-shell="v2"][data-stage="drafts"] { --railw: 62px; grid-template-columns: var(--railw) minmax(0, 1fr); }
+body[data-shell="v2"][data-stage="drafts"] > .main-wrapper,
+body[data-shell="v2"][data-stage="drafts"] > .rz-r { display: none !important; }
+body[data-shell="v2"][data-stage="drafts"] > .assets { grid-column: 2 / -1; border-left: 1px solid var(--border); }
+body[data-shell="v2"][data-stage="drafts"] #wb-float-agent-btn { display: flex !important; }
+body[data-shell="v2"][data-stage="drafts"] .assets-body { padding: 14px 18px 90px; }
+
+/* ---------- R15.3 去重：v2 下去掉 极简/全能 模式切换（新外壳下无差异） ---------- */
+body[data-shell="v2"] .system-mode-toggle { display: none !important; }
+/* R15.3:窄中栏时 header 防挤压(标题与胶囊不重叠) */
+body[data-shell="v2"] .main-wrapper > header { flex-wrap: wrap; row-gap: 6px; }
+body[data-shell="v2"] .main-wrapper > header .page-title { min-width: 0; }
+body[data-shell="v2"] .main-wrapper > header .page-title #header-title {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 26vw; }
+
 #shell-fab {
   position: fixed;
   right: 22px;
@@ -5377,7 +5415,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
 
 <!-- 全局侧边栏 -->
 <aside class="side">
-  <div class="logo-box" style="padding:14px 16px;display:flex;flex-direction:column;gap:6px">
+  <div class="logo-box" style="position:relative;padding:14px 16px;display:flex;flex-direction:column;gap:6px">
     <div class="logo-title" style="display:flex;align-items:center;gap:8px;font-size:16px;font-weight:800;letter-spacing:0.5px">
       <img src="/static/img/logo-icon.png" style="width:26px;height:26px;border-radius:6px;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(56,189,248,0.4))" alt="Logo">
       <span data-i18n="brand_title">一幕·YIMU</span>
@@ -5426,15 +5464,8 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
     <div class="nav-item" data-p="console">
       <span class="nav-icon">⚙️</span>
       <div class="nav-txt">
-        <span data-i18n="nav_console">控制中心</span>
-        <small data-i18n="nav_console_sub">每日工单 · 技能 · 平台治理</small>
-      </div>
-    </div>
-    <div class="nav-item" data-p="pricing" id="nav-item-pricing">
-      <span class="nav-icon">💎</span>
-      <div class="nav-txt">
-        <span data-i18n="nav_pricing">套餐与价格</span>
-        <small data-i18n="nav_pricing_sub">会员订阅 · 算力充值</small>
+        <span data-i18n="nav_console">系统设置</span>
+        <small data-i18n="nav_console_sub">工单 · 技能 · 模型服务</small>
       </div>
     </div>
     <div class="nav-item" data-p="profile" id="nav-item-profile">
@@ -5532,12 +5563,6 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
       <!-- 🏷️ 优雅水印自由设置 -->
       <button class="btn btn-sm ghost" onclick="openWatermarkModal()" style="display:flex;align-items:center;gap:5px;border:1px solid rgba(255,255,255,0.12)" title="品牌与输出水印自由设置（默认开启，可自主关闭）">
         <span>🏷️ 水印设置</span>
-      </button>
-
-      <!-- 🌓 界面外观主题模式切换 (跟随系统 / 亮色 / 暗色) -->
-      <button class="btn btn-sm ghost" id="btn-theme-mode-toggle" onclick="cycleThemeMode()" style="display:flex;align-items:center;gap:5px;border:1px solid rgba(255,255,255,0.12)" title="切换界面外观主题：跟随系统(默认) / 浅色明亮 / 深色暗黑">
-        <span id="theme-mode-icon">🌓</span>
-        <span id="theme-mode-text" data-i18n="theme_system">跟随系统</span>
       </button>
 
       <!-- 🌐 中英双语切换入口 (i18n Multi-Language) -->
@@ -8475,6 +8500,18 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
 
     <!-- ================== 5. 个人中心独立面板 (Personal Center) ================== -->
     <section class="panel" id="p-profile">
+  <!-- R15.3:套餐与价格并入个人中心(主导航减肥) -->
+  <div onclick="switchToPage('pricing')" style="cursor:pointer;margin:0 0 16px;background:linear-gradient(135deg,rgba(240,136,62,.16),rgba(56,189,248,.08));border:1px solid rgba(240,136,62,.4);border-radius:14px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px" title="会员订阅 · 算力充值 · 卡密兑换">
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:22px">💎</span>
+      <div>
+        <div style="font-weight:800;font-size:14.5px;color:#fff">会员与算力（套餐与价格）</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:3px">订阅套餐 · 算力充值 · 卡密一键核销 · 邀请返佣 · 收支明细</div>
+      </div>
+    </div>
+    <span style="font-size:13px;color:#ffb25e;font-weight:700">打开 →</span>
+  </div>
+
       <!-- 个人中心头部概览横幅 -->
       <div class="card" style="margin-bottom:16px;background:radial-gradient(ellipse at top left, rgba(240,136,62,0.18), rgba(15,23,42,0.7));border:1px solid rgba(240,136,62,0.35);padding:22px">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
@@ -10980,7 +11017,7 @@ async function deleteUserAccount(uid, username) {
         </h3>
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
           本页配置<b style="color:#ffb25e">驱动全站创作能力</b>的上游模型服务。定位区分：
-          个人自备 Key 请用「个人中心 → 我的 API」；对外提供 API 服务请去「控制中心 → API 网关服务」。
+          个人自备 Key 请用「个人中心 → 我的 API」；对外提供 API 服务请去「系统设置 → API 网关服务」。
         </div>
       </div>
       <button class="btn btn-sm ghost" onclick="closeModal()">✕</button>
@@ -13321,6 +13358,13 @@ document.querySelectorAll('.nav-item').forEach(item => {
 });
 
 /* ==================== 👤 个人中心导航与设置管理 ==================== */
+function switchToPage(key) {
+  var nav = document.querySelector('.nav-item[data-p="' + key + '"]');
+  if (nav) nav.click();
+  var target = document.getElementById('p-' + key);
+  if (target) { document.querySelectorAll('.panel').forEach(function (p) { p.classList.remove('on'); }); target.classList.add('on'); }
+}
+
 function switchToProfileCenter() {
   if (typeof currentSystemMode !== 'undefined' && currentSystemMode === 'lite') {
     switchSystemMode('pro');
@@ -13328,7 +13372,13 @@ function switchToProfileCenter() {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
   const profileNav = document.querySelector('.nav-item[data-p="profile"]');
-  if (profileNav) profileNav.classList.add('on');
+  // R15.3:v2 外壳下必须走与手动点击完全一致的链路(rail 接管了导航点击),
+  // 直接改 class 会被外壳忽略——表现为"点了没反应"。
+  if (profileNav && document.body.getAttribute('data-shell') === 'v2') {
+    profileNav.click();
+  } else if (profileNav) {
+    profileNav.classList.add('on');
+  }
   const profilePanel = $('p-profile');
   if (profilePanel) {
     profilePanel.classList.add('on');

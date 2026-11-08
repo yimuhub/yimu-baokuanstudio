@@ -4,6 +4,27 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 15.3.0 · 九霄阔 (Broad Ninth Heaven) · Shell UX Overhaul · 2026-11-08
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.3.0"`, `__codename__ = "九霄阔"`, `__codename_en__ = "Broad Ninth Heaven"`)
+
+### 🎯 Milestone Summary
+
+三栏外壳交互大修（2026-11-08 用户实测反馈 11 项全部落地）：导航减肥、一键折叠、工作台全屏形态、重复入口清障。
+
+### 🖥️ Shell UX Overhaul
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **导航减肥** | 移除「操盘大屏/内容工作台/极简模式」的无效二级菜单（v2 外壳下无落点/重复）；「套餐与价格」并入个人中心顶部入口卡，主导航 8→7 项 |
+| 2 | **左栏一键折叠** | 折叠按钮一键收成图标栏（记忆态持久化），图标悬停显名称；清除折叠态下的文字残留与 logo 重叠 |
+| 3 | **内容工作台全屏形态** | 点击「内容工作台」→ 左栏自动收成图标 + 中栏对话隐藏 + 右栏工作台全屏；切回其它页面自动还原 |
+| 4 | **小红书卡片进右栏** | 成稿页选择小红书 → 5 张磨砂卡片预览（点击灯箱放大）+ 单张下载 + ⬇ 打包下载 |
+| 5 | **重复入口清障** | 去掉中栏「极简/全能」模式切换（新外壳下无差异）；去掉顶栏「跟随系统」主题循环（与左下角明暗开关重复）；修复左下角「个人中心」在 v2 外壳下点击无反应 |
+| 6 | **「控制中心」更名「系统设置」** | 导航/面板/i18n 三处同步（中文+英文词条） |
+
+**Full Changelog**: v15.2.0...v15.3.0
+
 ## ⛵ Version 15.2.0 · 千帆举 (Thousand Sails) · Provider Unification & Settings 2.0 · 2026-11-08
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.2.0"`, `__codename__ = "千帆举"`, `__codename_en__ = "Thousand Sails"`)

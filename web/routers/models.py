@@ -101,7 +101,8 @@ async def model_save(request: Request):
     model = body.get('model', '')
     agent_routing = body.get('agent_routing', {})
     configured_models = body.get('configured_models')
-    is_set_active = body.get('is_set_active', True)
+    # R12：默认不激活(保存≠激活);激活走显式 set_active 或前端「设为主网关」
+    is_set_active = bool(body.get('is_set_active', False))
     params = body.get('params', {})
     from core import llm
     ok = llm.save_provider_config(provider_id, base_url, api_key, model, agent_routing, params, configured_models=configured_models, provider_name=provider_name, is_set_active=is_set_active)

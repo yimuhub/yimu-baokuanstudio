@@ -8033,103 +8033,132 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
 
       <!-- 子视图：系统设置 -->
       <div id="sp-settings" class="sub-view" style="display:none">
-        <div class="card" style="display:flex;flex-direction:column;gap:14px">
-          <!-- 个人配置迁移直达引导 -->
-          <div style="background:linear-gradient(135deg,rgba(240,136,62,0.12),rgba(56,189,248,0.08));border:1px solid rgba(240,136,62,0.35);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-            <div style="display:flex;align-items:center;gap:12px">
-              <span style="font-size:24px">👤</span>
-              <div>
-                <div style="font-weight:700;font-size:14px;color:#ffd0a6">创作者个人专属偏好已独立归纳至「个人中心」</div>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">
-                  包含：创作者6维数字画像、个人模型 API Vault、日夜外观、输出水印、矩阵渠道派生预设、GitHub 图床等。
-                </div>
+        <style>
+          .set20{display:grid;gap:16px}
+          .set20-hero{position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(240,136,62,.14),rgba(56,189,248,.08));border:1px solid rgba(240,136,62,.35);border-radius:16px;padding:20px 22px}
+          .set20-hero h2{margin:0;font-size:17px;color:#fff;display:flex;align-items:center;gap:8px}
+          .set20-hero p{margin:6px 0 0;font-size:12.5px;color:var(--text-muted);max-width:640px;line-height:1.7}
+          .set20-tier{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-top:14px}
+          .set20-tier .t{background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+          .set20-tier .t b{display:flex;align-items:center;gap:6px;font-size:13px;color:#fff}
+          .set20-tier .t span{display:block;font-size:11.5px;color:var(--text-muted);margin-top:5px;line-height:1.6}
+          .set20-tier .t .go{display:inline-block;margin-top:8px;font-size:12px;color:#ffb25e;cursor:pointer}
+          .set20-sec{margin-top:4px}
+          .set20-sec>h3{margin:18px 0 10px;font-size:13px;letter-spacing:.08em;color:var(--text-muted);display:flex;align-items:center;gap:8px}
+          .set20-sec>h3::after{content:"";flex:1;height:1px;background:var(--border)}
+          .set20-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+          .set20-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:8px;transition:border-color .18s,transform .18s}
+          .set20-card:hover{border-color:rgba(240,136,62,.45);transform:translateY(-2px)}
+          .set20-card .hd{display:flex;align-items:center;gap:10px}
+          .set20-card .ic{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(240,136,62,.12);border:1px solid rgba(240,136,62,.25)}
+          .set20-card .tt{font-weight:700;font-size:14px;color:#fff}
+          .set20-card .ds{font-size:12px;color:var(--text-muted);line-height:1.7;flex:1}
+          .set20-card .ft{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid rgba(255,255,255,.05)}
+          .set20-card .meta{font-size:11.5px;color:var(--text-muted)}
+          .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#34d399;margin-right:5px;box-shadow:0 0 6px rgba(52,211,153,.8)}
+        </style>
+
+        <div class="set20">
+          <!-- ══ AI 连接 · 三层架构总览 ══ -->
+          <div class="set20-hero">
+            <h2>⚡ AI 连接与模型服务</h2>
+            <p>平台采用「三层通道」架构，各层职责独立、互不干扰：配置前先确认你要改的是哪一层。</p>
+            <div class="set20-tier">
+              <div class="t">
+                <b>① 运营层 · 模型服务（上游）</b>
+                <span>驱动全站创作能力的官方大模型通道。配置 Key 后所有 Agent（写稿/配图/视频）自动可用，官方通道按 Token 计量扣费。</span>
+                <span class="go" onclick="modal('m-gateway')">配置模型服务 →</span>
+              </div>
+              <div class="t">
+                <b>② 用户层 · 个人专属 Key</b>
+                <span>用你自己的 Key 替代系统通道（BYOK）：自备 Key 不扣算力点，AES-256 加密存于个人保险箱。</span>
+                <span class="go" onclick="openUserVaultModal()">管理我的 API →</span>
+              </div>
+              <div class="t">
+                <b>③ 网关层 · 对外 API 转售</b>
+                <span>反向操作：把平台 AI 能力以 OpenAI 兼容接口开放给外部软件调用（团队/二次分销），与创作链路完全隔离。</span>
+                <span class="go" onclick="switchSubTab('console','sp-gateway')">进入 API 网关服务 →</span>
               </div>
             </div>
-            <button class="btn btn-sm" style="background:linear-gradient(135deg,#f7a05a,#f0883e);color:#fff;border:none;font-weight:700" onclick="switchToProfileCenter()">👉 进入个人中心</button>
           </div>
 
-          <!-- 企业级 AI 模型中枢 -->
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-weight:700;font-size:14px;color:#fff;display:flex;align-items:center;gap:6px"><span>⚡</span> 企业级 AI 大模型服务与 API 中枢</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-gw-info"></div>
-            </div>
-            <button class="btn btn-sm" style="background:linear-gradient(135deg,#1f6feb,#e05a10);color:#fff;border:none;font-weight:700" onclick="modal('m-gateway')">⚙️ 配置模型服务与API</button>
-          </div>
-
-          <!-- 使用量统计 -->
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div style="flex:1">
-              <div style="font-weight:600;font-size:14px">📊 各模型服务使用量统计</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px">🎭 一幕官方通道按 Token 扣额度；其他模型服务自备 Key，仅统计不计费</div>
-              <div id="llm-usage-table" style="margin-top:8px;font-size:12px;color:var(--text-muted)">加载中…</div>
-            </div>
-            <button class="btn btn-sm ghost" onclick="loadLlmUsage()">↻ 刷新统计</button>
-          </div>
-
-          <!-- 热点关键词白名单 -->
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-weight:600;font-size:14px">热点关键词白名单</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-kw-info"></div>
-            </div>
-            <button class="btn btn-sm ghost" onclick="modal('m-keywords')">设置关键词</button>
-          </div>
-
-          <!-- AI 质量考核与自动迭代 -->
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-weight:600;font-size:14px">AI 质量考核与自动迭代</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-quality-info"></div>
-            </div>
-            <button class="btn btn-sm ghost" onclick="modal('m-quality')">配置考核</button>
-          </div>
-
-          <!-- 草稿箱自动过期清理 -->
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border)">
-            <div>
-              <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px"><span>⏳</span> 草稿箱自动过期清理</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-draft-expire-info">当前设置：默认永不过期 · 自动保留全部历史草稿</div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <select id="pc-set-draft-expire-sel" class="m-input" style="font-size:12px;padding:4px 8px;background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px" onchange="savePcDraftExpireSettings()">
-                <option value="0">♾️ 永不过期 (默认)</option>
-                <option value="3">超过 3 天自动清理</option>
-                <option value="7">超过 7 天自动清理</option>
-                <option value="15">超过 15 天自动清理</option>
-                <option value="30">超过 30 天自动清理</option>
-                <option value="60">超过 60 天自动清理</option>
-                <option value="90">超过 90 天自动清理</option>
-              </select>
-              <button class="btn btn-sm ghost" style="color:#ef4444;border-color:rgba(239,68,68,0.4)" onclick="runPcDraftCleanNow()">🧹 立即清理</button>
-            </div>
-          </div>
-
-          <!-- 系统诊断日志 -->
-          <div style="padding-top:12px;border-top:1px solid var(--border)">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-              <div style="flex:1;min-width:240px">
-                <div style="font-weight:700;font-size:14px;display:flex;align-items:center;gap:6px"><span>🩺</span> 系统诊断日志</div>
-                <div style="font-size:12px;color:var(--text-muted);margin-top:3px" id="st-diag-info">
-                  遇到「改写失败 / 生成失败 / 发布失败」时，先复现一次，再点右侧导出，把文本发给我们即可精确定位。日志会自动打码 API Key。
-                </div>
-              </div>
-              <button class="btn btn-sm" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;font-weight:700" onclick="diagOpen()">🩺 查看并复制诊断日志</button>
-            </div>
-          </div>
-
-          <!-- GitHub 仓库在线升级与同步 -->
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--border);background:rgba(56,189,248,0.03);padding:14px;border-radius:10px;margin-top:12px;border:1px solid rgba(56,189,248,0.2)">
-            <div>
-              <div style="font-weight:700;font-size:14px;color:#38bdf8;display:flex;align-items:center;gap:6px"><span>🔄</span> GitHub 仓库在线升级与同步</div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:4px" id="st-updater-status">
-                当前版本：<code style="color:var(--primary);font-weight:700" data-app-version="prefix">{{ APP_VERSION_FULL }}</code> · 绑定仓库：<code>yimuhub/yimu-baokuanstudio</code>
+          <!-- ══ 模型服务与用量 ══ -->
+          <div class="set20-sec"><h3>模型服务</h3></div>
+          <div class="set20-grid">
+            <div class="set20-card">
+              <div class="hd"><div class="ic">🧠</div><div><div class="tt">模型服务与模型池（上游）</div></div></div>
+              <div class="ds" id="st-gw-info">加载中…</div>
+              <div class="ft">
+                <span class="meta"><span class="dot"></span>保存与激活已分离：新增模型服务不再抢占当前主通道</span>
+                <button class="btn btn-sm ok" style="font-weight:700" onclick="modal('m-gateway')">⚙️ 配置模型服务</button>
               </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center">
-              <button class="btn btn-sm ghost" id="btn-check-update" onclick="checkSystemUpdate(true)">🔍 检查更新</button>
-              <button class="btn btn-sm ok" id="btn-do-upgrade" style="display:none;background:#238636" onclick="performSystemUpgrade()">⚡ 立即升级</button>
+            <div class="set20-card">
+              <div class="hd"><div class="ic">📊</div><div><div class="tt">各模型服务使用量统计</div></div></div>
+              <div class="ds" id="llm-usage-table">加载中…</div>
+              <div class="ft">
+                <span class="meta">🎭 官方通道按 Token 扣额度 · 自备 Key 仅统计不计费</span>
+                <button class="btn btn-sm ghost" onclick="loadLlmUsage()">↻ 刷新</button>
+              </div>
             </div>
+          </div>
+
+          <!-- ══ 内容与质量 ══ -->
+          <div class="set20-sec"><h3>内容与质量</h3></div>
+          <div class="set20-grid">
+            <div class="set20-card">
+              <div class="hd"><div class="ic">🔑</div><div><div class="tt">热点关键词白名单</div></div></div>
+              <div class="ds" id="st-kw-info"></div>
+              <div class="ft"><span class="meta">命中白名单的选题优先入库</span><button class="btn btn-sm ghost" onclick="modal('m-keywords')">设置关键词</button></div>
+            </div>
+            <div class="set20-card">
+              <div class="hd"><div class="ic">🎯</div><div><div class="tt">AI 质量考核与自动迭代</div></div></div>
+              <div class="ds" id="st-quality-info"></div>
+              <div class="ft"><span class="meta">未达标自动重写</span><button class="btn btn-sm ghost" onclick="modal('m-quality')">配置考核</button></div>
+            </div>
+          </div>
+
+          <!-- ══ 系统维护 ══ -->
+          <div class="set20-sec"><h3>系统维护</h3></div>
+          <div class="set20-grid">
+            <div class="set20-card">
+              <div class="hd"><div class="ic">⏳</div><div><div class="tt">草稿箱自动过期清理</div></div></div>
+              <div class="ds" id="st-draft-expire-info">当前设置：默认永不过期 · 自动保留全部历史草稿</div>
+              <div class="ft">
+                <select id="pc-set-draft-expire-sel" class="m-input" style="font-size:12px;padding:4px 8px;background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px" onchange="savePcDraftExpireSettings()">
+                  <option value="0">♾️ 永不过期 (默认)</option>
+                  <option value="3">超过 3 天自动清理</option>
+                  <option value="7">超过 7 天自动清理</option>
+                  <option value="15">超过 15 天自动清理</option>
+                  <option value="30">超过 30 天自动清理</option>
+                  <option value="60">超过 60 天自动清理</option>
+                  <option value="90">超过 90 天自动清理</option>
+                </select>
+                <button class="btn btn-sm ghost" style="color:#ef4444;border-color:rgba(239,68,68,0.4)" onclick="runPcDraftCleanNow()">🧹 立即清理</button>
+              </div>
+            </div>
+            <div class="set20-card">
+              <div class="hd"><div class="ic">🩺</div><div><div class="tt">系统诊断日志</div></div></div>
+              <div class="ds" id="st-diag-info">遇到「改写 / 生成 / 发布失败」先复现一次再导出，日志自动打码 API Key。</div>
+              <div class="ft"><span class="meta">私密信息自动打码</span><button class="btn btn-sm" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;font-weight:700" onclick="diagOpen()">查看并复制</button></div>
+            </div>
+            <div class="set20-card">
+              <div class="hd"><div class="ic">🔄</div><div><div class="tt">GitHub 在线升级</div></div></div>
+              <div class="ds" id="st-updater-status">当前版本：<code style="color:var(--primary);font-weight:700" data-app-version="prefix">{{ APP_VERSION_FULL }}</code> · 绑定仓库 <code>yimuhub/yimu-baokuanstudio</code></div>
+              <div class="ft">
+                <span class="meta">升级前自动备份数据库</span>
+                <span style="display:flex;gap:8px">
+                  <button class="btn btn-sm ghost" id="btn-check-update" onclick="checkSystemUpdate(true)">🔍 检查更新</button>
+                  <button class="btn btn-sm ok" id="btn-do-upgrade" style="display:none;background:#238636" onclick="performSystemUpgrade()">⚡ 升级</button>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 个人偏好迁移提示 -->
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:12px;padding:14px 18px">
+            <div style="font-size:12.5px;color:var(--text-muted)">👤 6 维画像 / 个人模型 API Vault / 水印 / 图床等个人偏好已归至「个人中心」</div>
+            <button class="btn btn-sm ghost" onclick="switchToProfileCenter()">进入个人中心 →</button>
           </div>
         </div>
       </div>
@@ -10947,10 +10976,11 @@ async function deleteUserAccount(uid, username) {
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:16px">
       <div>
         <h3 style="margin:0;font-size:17px;display:flex;align-items:center;gap:8px;color:#fff">
-          <span style="color:#f0883e">⚡</span> 模型服务配置（上游）
+          <span style="color:#f0883e">⚡</span> 模型服务配置（运营层 · 上游）
         </h3>
         <div style="font-size:12px;color:var(--text-muted);margin-top:4px">
-          配置驱动各 Agent 的大模型 Key（上游）。对外提供 API 服务请去「控制中心 → API 网关服务」。
+          本页配置<b style="color:#ffb25e">驱动全站创作能力</b>的上游模型服务。定位区分：
+          个人自备 Key 请用「个人中心 → 我的 API」；对外提供 API 服务请去「控制中心 → API 网关服务」。
         </div>
       </div>
       <button class="btn btn-sm ghost" onclick="closeModal()">✕</button>
@@ -11111,8 +11141,8 @@ async function deleteUserAccount(uid, username) {
     <div class="modal-acts" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
       <button class="btn ghost" onclick="closeModal()">关闭取消</button>
       <div style="display:flex;gap:10px">
-        <button class="btn ghost" style="color:var(--text);border-color:var(--border)" onclick="saveModelProviderConfig(false)" title="仅更新并保存此模型服务参数与模型池，不改变当前活动主网关">💾 仅保存此模型服务配置</button>
-        <button class="btn ok" style="font-weight:700" onclick="saveModelProviderConfig(true)" title="保存此模型服务并将其设为系统当前活动主网关">🌟 保存并设为主网关</button>
+        <button class="btn ghost" style="color:var(--text);border-color:var(--border)" onclick="saveModelProviderConfig(false)" title="仅保存参数与模型池；不改变当前生效通道（保存≠激活）">💾 仅保存</button>
+        <button class="btn ok" style="font-weight:700" onclick="saveModelProviderConfig(true)" title="保存并将其设为全站生效的主通道">🌟 保存并设为主通道</button>
       </div>
     </div>
   </div>
@@ -22130,7 +22160,6 @@ async function refreshDashboardRadar() {
     }
   }
 }
-function saveGateway() { saveModelProviderConfig(); }
 async function saveKeywords() {
   const kws = $('kw-input').value.split(/\s+/).filter(Boolean);
   await api('/api/settings', {

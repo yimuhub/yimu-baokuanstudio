@@ -4,6 +4,32 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## ⛵ Version 15.2.0 · 千帆举 (Thousand Sails) · Provider Unification & Settings 2.0 · 2026-11-08
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.2.0"`, `__codename__ = "千帆举"`, `__codename_en__ = "Thousand Sails"`)
+
+### 🎯 Milestone Summary
+
+供应商三层能力统一整改（2026-11-08 复查裁定）：消除「上游模型服务 / 个人专属 Key / API 网关」三条能力线的互相制约，设置中心 UI 现代化重构。
+
+### 🔀 Provider Unification（矛盾消除）
+
+| # | Fix | Detail |
+|---|-----|--------|
+| 1 | **保存≠激活** | `save_provider_config` 默认 `is_set_active=False`：为交叉路由配置第二家模型服务不再静默抢占全站主通道；激活走显式「🌟 保存并设为主通道」或 `set_active` 接口（首次配置仍自动兜底生效） |
+| 2 | **BYOK 能力匹配** | 用户专属 Key 不再劫持一切请求：未指定模型 → 用户 Key；显式模型 ∈ 用户能力池（预设/配置池/custom 聚合透传）→ 用户 Key；超出能力（如运营网关 agnes-*）→ 自动回落平台通道。修复「用户配了 Key 反而把运营路由的模型发往错误供应商必然 404」的隐性 Bug |
+| 3 | **计量去重** | chat 与 chat_stream 双份计量实现合并为 `_meter_call` 统一入口；移除死代码 `saveGateway`（默认激活语义隐患） |
+
+### 🎨 Settings 2.0（设置中心现代化）
+
+| # | Change | Detail |
+|---|--------|--------|
+| 4 | **三层架构总览** | 设置页顶部新增「AI 连接」定位卡：运营层（模型服务）/ 用户层（个人 Key）/ 网关层（对外转售）三层职责与入口一目了然 |
+| 5 | **分组卡片网格** | 设置项重组为「模型服务 / 内容与质量 / 系统维护」三组现代化卡片（状态徽章 + hover 反馈 + 底部操作条），全量兼容既有 JS 绑定 |
+| 6 | **文案纯净** | 面向用户文案中「供应商」等内部黑话全部改为用户语言，i18n 英文词条同步补齐 |
+
+**Full Changelog**: v15.1.0...v15.2.0
+
 ## 🌠 Version 15.1.0 · 万象新 (Grand Renewal) · Two-Line Fusion · 2026-11-08
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.1.0"`, `__codename__ = "万象新"`, `__codename_en__ = "Grand Renewal"`)

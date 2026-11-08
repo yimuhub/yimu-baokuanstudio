@@ -1,8 +1,8 @@
 {
-  "current_version": "15.1.0",
-  "current_codename_zh": "万象新",
-  "current_codename_en": "Grand Renewal",
-  "next_index": 67,
+  "current_version": "15.2.0",
+  "current_codename_zh": "千帆举",
+  "current_codename_en": "Thousand Sails",
+  "next_index": 68,
   "sequence": [
     {
       "zh": "曦光序",
@@ -446,6 +446,12 @@
       "version": "v15.1.0",
       "zh": "万象新",
       "en": "Grand Renewal",
+      "date": "2026-11-08"
+    },
+    {
+      "version": "v15.2.0",
+      "zh": "千帆举",
+      "en": "Thousand Sails",
       "date": "2026-11-08"
     }
   ]

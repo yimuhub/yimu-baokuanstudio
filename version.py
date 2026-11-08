@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.1.0"
-__codename__ = "万象新"
-__codename_en__ = "Grand Renewal"
-__slogan__ = "一念起 一幕开 万象生 · 双线融合：远端工作台重构与商业交付级整改合流为一线"
-__slogan_cn__ = "一念起 一幕开 万象生 · 双线融合：远端工作台重构与商业交付级整改合流为一线"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Two lines fused: workbench redesign meets commerce-ready hardening"
+__version__ = "15.2.0"
+__codename__ = "千帆举"
+__codename_en__ = "Thousand Sails"
+__slogan__ = "一念起 一幕开 万象生 · 供应商三层能力统一：解析链能力匹配、保存激活分离、设置中心现代化"
+__slogan_cn__ = "一念起 一幕开 万象生 · 供应商三层能力统一：解析链能力匹配、保存激活分离、设置中心现代化"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Provider unification: capability-matched resolver, save/activate split, modern settings hub"
 
 
 def get_version() -> str:

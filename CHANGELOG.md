@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.2.0] - 千帆举 (Thousand Sails) · 2026-11-08
+
+### Changed 供应商三层能力统一
+- 保存≠激活：`save_provider_config` 默认不抢占主通道，激活显式化（修复多供应商互相覆盖）
+- BYOK 能力匹配：用户 Key 仅服务其能力池内模型，运营显式路由不再被劫持（修复跨供应商 404 隐患）
+- 计量实现去重（`_meter_call` 统一入口）；移除死代码 `saveGateway`
+- 设置中心 UI 现代化：三层架构总览卡 + 分组卡片网格，i18n 词条同步
+
 ## [15.1.0] - 万象新 (Grand Renewal) · 2026-11-08
 
 ### Added 双线融合

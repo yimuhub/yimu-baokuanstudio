@@ -637,14 +637,22 @@ def save_provider_config(provider_id: str, base_url: str, api_key: str, model: s
                          agent_routing: dict | None = None, params: dict | None = None,
                          configured_models: list[dict] | None = None,
                          provider_name: str | None = None,
-                         is_set_active: bool = True) -> bool:
-    """持久化保存供应商配置至 config.yaml 与 .env，同时维护多供应商配置池。"""
+                         is_set_active: bool = False) -> bool:
+    """持久化保存供应商配置至 config.yaml 与 .env，同时维护多供应商配置池。
+
+    ⭐ R12 矛盾修复：``is_set_active`` 默认 **False**（保存≠激活）。
+       旧默认 True 导致「为交叉路由配置第二家供应商」时**静默覆盖全局活动
+       供应商**——这正是多供应商能力互相制约的根源。激活必须显式：
+       前端走「🌟 保存并设为主网关」按钮或 /api/models/provider/set_active。
+       兼容性：老调用方若依赖旧的"保存即激活"，需显式传 is_set_active=True。
+    """
     pid = (provider_id or "custom").strip()
     cfg_file = BASE / "config.yaml"
     cfg = load_config()
     gw = cfg.setdefault("gateway", {})
 
-    should_activate = is_set_active or gw.get("provider_id") == pid or not gw.get("provider_id")
+    # R12：仅当显式要求激活，或系统尚无任何活动供应商（首次配置兜底）时才接管全局
+    should_activate = is_set_active or not gw.get("provider_id")
     if should_activate:
         gw["provider_id"] = pid
         gw["base_url"] = base_url.strip()
@@ -825,7 +833,14 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
                 user_id = str(_u["id"])
         except Exception:
             pass
-    # V6 用户专属 API Key 优先
+    # V6 用户专属 API Key 优先（R12 融合：能力匹配制，修复跨供应商劫持）
+    #   旧行为：用户配了 BYOK 就劫持**一切**请求——运营为 Agent 显式路由的
+    #   模型（如 apipool 的 agnes-image）会被发往用户 Key 的供应商，必然 404。
+    #   新规则（能力匹配制）：
+    #   a) 未显式指定模型 → 用用户 Key + 用户默认模型（BYOK 本意，免扣费）；
+    #   b) 显式模型 ∈ 用户供应商能力池（预设 models / 配置池 / custom 聚合透传）→ 用户 Key；
+    #   c) 显式模型超出用户能力（如 agnes-* 指名要运营网关）→ 跳过 BYOK，
+    #      走平台层解析——运营路由意志优先，用户不因配了 Key 而失去能力。
     if user_id:
         try:
             from core import auth
@@ -834,8 +849,18 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
                 u_pid = user_key_info.get("provider", "custom")
                 pinfo = MODEL_PROVIDERS.get(u_pid, {})
                 u_base = (user_key_info.get("base_url") or pinfo.get("base_url") or "https://api.deepseek.com").rstrip("/")
-                u_model = (model or "").strip() or user_key_info.get("model_id") or pinfo.get("default_model") or "deepseek-chat"
-                return u_base, user_key_info["plain_api_key"], u_model, u_pid
+                req_model = (model or "").strip()
+                if not req_model:
+                    u_model = user_key_info.get("model_id") or pinfo.get("default_model") or "deepseek-chat"
+                    return u_base, user_key_info["plain_api_key"], u_model, u_pid
+                # 能力池判定
+                u_pool = set(pinfo.get("models") or [])
+                u_pool.update(user_key_info.get("configured_models") or [])
+                u_pool.add(user_key_info.get("model_id") or "")
+                if u_pid == "custom" or req_model in u_pool:
+                    return u_base, user_key_info["plain_api_key"], req_model, u_pid
+                logger.info(
+                    f"[LLM] 用户 BYOK [{u_pid}] 不支持模型 {req_model}，回落平台通道（运营路由优先）")
         except Exception as e:
             logger.warning(f"[LLM] 解析用户专属 API 异常，回退至系统托管: {e}")
 
@@ -997,25 +1022,17 @@ def chat(messages: list[dict], *, model: str | None = None,
                 if r.status_code == 200:
                     payload = r.json()
                     content = payload["choices"][0]["message"]["content"]
-                    # 双轨制计量：提取 usage，全 provider 记统计，官方通道扣费
-                    try:
-                        from studio import llm_metering as _metering
-
-                        _u = payload.get("usage") or {}
-                        _pt = int(_u.get("prompt_tokens") or 0)
-                        _ct = int(_u.get("completion_tokens") or 0)
-                        _tt = int(_u.get("total_tokens") or 0) or (_pt + _ct)
-                        _prompt_text = "\n".join(
-                            str(m.get("content", "")) for m in messages if isinstance(m, dict)
-                        )
-                        _metering.record_llm_call(
-                            curr_pid, curr_model, _pt, _ct, _tt, user_id=user_id,
-                            prompt_text=_prompt_text, completion_text=content or "",
-                        )
-                    except _metering.InsufficientCreditsError:
-                        raise
-                    except Exception as _me:  # noqa: BLE001
-                        logger.warning(f"[LLM] 用量计量失败（不阻塞返回）: {_me}")
+                    # 双轨制计量：提取 usage，全 provider 记统计，官方通道扣费（R12 共用 helper）
+                    _u = payload.get("usage") or {}
+                    _pt = int(_u.get("prompt_tokens") or 0)
+                    _ct = int(_u.get("completion_tokens") or 0)
+                    _tt = int(_u.get("total_tokens") or 0) or (_pt + _ct)
+                    _meter_call(
+                        curr_pid, curr_model, _pt, _ct, _tt, user_id=user_id,
+                        prompt_text="\n".join(str(m.get("content", "")) for m in messages
+                                               if isinstance(m, dict)),
+                        completion_text=content or "",
+                    )
                     return content
                 else:
                     last_err = RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
@@ -1088,23 +1105,35 @@ def chat_stream(messages: list[dict], *, model: str | None = None,
                             yield content
                     except Exception:
                         pass
-            # 流结束：双轨制计量
-            try:
-                from studio import llm_metering as _metering
+            # 流结束：双轨制计量（R12 共用 helper）
+            if not _s_tt:
+                _s_tt = _s_pt + _s_ct
+            _meter_call(
+                provider_id, target_model, _s_pt, _s_ct, _s_tt, user_id=user_id,
+                prompt_text="\n".join(str(m.get("content", "")) for m in messages
+                                       if isinstance(m, dict)),
+                completion_text="".join(_s_text_parts),
+            )
 
-                if not _s_tt:
-                    _s_tt = _s_pt + _s_ct
-                _prompt_text = "\n".join(
-                    str(m.get("content", "")) for m in messages if isinstance(m, dict)
-                )
-                _metering.record_llm_call(
-                    provider_id, target_model, _s_pt, _s_ct, _s_tt, user_id=user_id,
-                    prompt_text=_prompt_text, completion_text="".join(_s_text_parts),
-                )
-            except _metering.InsufficientCreditsError:
-                raise
-            except Exception as _me:  # noqa: BLE001
-                logger.warning(f"[LLM] 流式用量计量失败（不阻塞返回）: {_me}")
+
+def _meter_call(provider_id: str, model: str, prompt_tokens: int, completion_tokens: int,
+                total_tokens: int, *, user_id: str | None, prompt_text: str,
+                completion_text: str) -> None:
+    """双轨制计量统一入口（R12：chat 与 chat_stream 共用，消除重复实现）。
+
+    官方通道扣额度，自备 Key 仅统计；失败只告警不阻塞返回。
+    """
+    try:
+        from studio import llm_metering as _metering
+
+        _metering.record_llm_call(
+            provider_id, model, prompt_tokens, completion_tokens, total_tokens,
+            user_id=user_id, prompt_text=prompt_text, completion_text=completion_text,
+        )
+    except _metering.InsufficientCreditsError:
+        raise
+    except Exception as me:  # noqa: BLE001
+        logger.warning(f"[LLM] 用量计量失败（不阻塞返回）: {me}")
 
 
 def available() -> bool:

@@ -4,6 +4,26 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌊 Version 15.4.0 · 四海晏 (Four Seas at Peace) · Toolbar 2.0 · 2026-11-09
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.4.0"`, `__codename__ = "四海晏"`, `__codename_en__ = "Four Seas at Peace"`)
+
+### 🎯 Milestone Summary
+
+内容工作台工具条 2.0（用户圈注反馈整改）：**19 个彩色按钮收纳为 6 个常驻动作 + 3 个分组菜单**，编辑/预览核心内容大面积回归视野；功能一项不少。
+
+### 🧰 Toolbar 2.0
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **主条 6 动作** | ⚡AI 改写提升 · 🎨AI 智能配图 · 🖼️配图▾ · 📋复制/导出▾ · 📢多端发布 · ⋯更多▾ |
+| 2 | **三个收纳菜单** | 配图▾（10 风格预设+换风格+配图管理）；复制/导出▾（公众号/头条/知乎/微博/卡片包）；更多▾（五端裂变/富文本/口播稿/素材库/评分×2/定向重写/单平台重写栏/侧边编辑/Agent 协作） |
+| 3 | **进阶面板折叠** | 爆款基因溯源条 + 保底巡航熔炉条默认收纳为「进阶面板」细条开关，内容照常填充 |
+| 4 | **编辑条去重** | 富文本/AI 改写提升的重复按钮移除（保留主条入口）；footer 只留「💾 保存并重新渲染」+ AI 改写提升 |
+| 5 | **i18n 同步** | 新工具条全部词条入英文字典 |
+
+**Full Changelog**: v15.3.0...v15.4.0
+
 ## 🌌 Version 15.3.0 · 九霄阔 (Broad Ninth Heaven) · Shell UX Overhaul · 2026-11-08
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.3.0"`, `__codename__ = "九霄阔"`, `__codename_en__ = "Broad Ninth Heaven"`)

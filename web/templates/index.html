@@ -6542,51 +6542,79 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
           </div>
 
           <div class="stage-top-bar" id="stage-action-bar" style="display:none">
+            <style>
+              .tb-dd{position:relative}
+              .tb-dd-btn{display:inline-flex;align-items:center;gap:4px}
+              .tb-menu{position:absolute;top:calc(100% + 6px);right:0;min-width:216px;background:#151b29;
+                border:1px solid var(--border);border-radius:12px;padding:6px;z-index:600;display:none;
+                box-shadow:0 14px 40px rgba(0,0,0,.5)}
+              .tb-dd.on .tb-menu{display:flex;flex-direction:column;gap:2px}
+              .tb-dd.on .tb-dd-btn{border-color:var(--primary);color:var(--primary)}
+              .tb-menu .btn{width:100%;justify-content:flex-start;background:transparent;border:none;
+                color:var(--text);font-weight:600;padding:7px 10px;border-radius:8px}
+              .tb-menu .btn:hover{background:rgba(240,136,62,.12);color:#ffb25e}
+              .tb-menu .tb-sep{height:1px;background:rgba(255,255,255,.07);margin:4px 2px}
+              .tb-menu .tb-label{font-size:10.5px;color:var(--text-muted);padding:4px 8px 2px}
+              .tb-menu select{width:100%;margin:2px 0 6px}
+            </style>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-              <button class="btn" style="background:linear-gradient(135deg,#1f6feb,#e05a10);border:none;color:#fff;font-weight:700" onclick="triggerOmniFission()">🚀 一键全域五端裂变</button>
+              <button class="btn btn-sm" id="btn-stage-ai-upgrade" style="background:linear-gradient(135deg,#f0883e,#f79b4a);border:none;color:#fff;font-weight:800" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI 改写提升</button>
               <button class="btn ok btn-sm" id="btn-ai-images" style="background:#2ea043;border-color:#2ea043;color:#fff;font-weight:700" onclick="triggerAutoImages()">🎨 AI 智能配图</button>
-              <!-- 🎨 一键修改配图风格核心功能区 -->
-              <div style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:6px;border:1px solid rgba(240,136,62,0.35)" title="选择配图视觉风格并一键重塑全篇配图">
-                <span style="font-size:12px">🎨</span>
-                <select id="stage-image-style-sel" class="studio-model-select" style="max-width:136px;font-size:11.5px;padding:3px 4px;background:#161b22;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:4px;outline:none">
-                  <option value="ancient_chinese">🏛️ 古风·东方意境</option>
-                  <option value="tech_cyber">🤖 科技风·赛博未来</option>
-                  <option value="city_urban">🏙️ 城市风·现代都市</option>
-                  <option value="swiss_minimal">💼 职场风·极简商务</option>
-                  <option value="magazine_editorial">✨ 杂志风·高端美学</option>
-                  <option value="documentary">📷 纪实风·真实人文</option>
-                  <option value="cinematic_movie">🎬 影视风·电影光影</option>
-                  <option value="commercial_premium">💎 商业风·品牌广告</option>
-                  <option value="anime_cinematic">🌅 动漫风·新海诚光影</option>
-                  <option value="minimalist_3d">🎨 3D风·极简轻拟物</option>
-                </select>
-                <button class="btn btn-sm" id="btn-change-image-style" style="background:linear-gradient(135deg,#f7a05a,#f0883e);border:none;color:#fff;font-weight:700;padding:3px 9px;font-size:11.5px;border-radius:4px" onclick="triggerChangeImageStyle()" title="根据所选风格一键重新提炼与生成全套专属配图">⚡ 一键换风格配图</button>
+              <div class="tb-dd">
+                <button class="btn btn-sm ghost tb-dd-btn" onclick="tbToggle(this)">🖼️ 配图 ▾</button>
+                <div class="tb-menu">
+                  <div class="tb-label">配图视觉风格（一键重塑全篇）</div>
+                  <select id="stage-image-style-sel" class="studio-model-select" style="font-size:11.5px;padding:4px 6px;background:#161b22;color:#fff;border:1px solid rgba(255,255,255,0.15);border-radius:6px;outline:none">
+                    <option value="ancient_chinese">🏛️ 古风·东方意境</option>
+                    <option value="tech_cyber">🤖 科技风·赛博未来</option>
+                    <option value="city_urban">🏙️ 城市风·现代都市</option>
+                    <option value="swiss_minimal">💼 职场风·极简商务</option>
+                    <option value="magazine_editorial">✨ 杂志风·高端美学</option>
+                    <option value="documentary">📷 纪实风·真实人文</option>
+                    <option value="cinematic_movie">🎬 影视风·电影光影</option>
+                    <option value="commercial_premium">💎 商业风·品牌广告</option>
+                    <option value="anime_cinematic">🌅 动漫风·新海诚光影</option>
+                    <option value="minimalist_3d">🎨 3D风·极简轻拟物</option>
+                  </select>
+                  <button class="btn" onclick="triggerChangeImageStyle()">⚡ 一键换风格配图</button>
+                  <button class="btn" onclick="openImageManagerDrawer()">🖼️ 配图管理</button>
+                </div>
               </div>
-              <button class="btn btn-sm" style="background:linear-gradient(135deg,#f7a05a,#e05a10);border:none;color:#fff;font-weight:700" onclick="openImageManagerDrawer()">🖼️ 配图管理</button>
-              <button class="btn btn-sm" style="background:linear-gradient(135deg,#f0883e,#e05a10);border:none;color:#fff;font-weight:700" onclick="openYimuRichEditor()" title="打开全功能一幕原创富文本编辑器(零依赖可视化图文混排与排版)">✍️ 一幕·富文本</button>
-              <button class="btn btn-sm" style="background:linear-gradient(135deg,#2ea043,#1a7431);border:none;color:#fff;font-weight:700" onclick="genVoiceoverScript()">🎙️ 口播稿</button>
-              <button class="btn btn-sm" style="background:linear-gradient(135deg,#d4880a,#b86a00);border:none;color:#fff;font-weight:700" onclick="openAssetLibrary()">🗂️ 素材库</button>
-              <button class="btn ok btn-sm" onclick="copyCurrentRich('wechat_mp')">📋 复制公众号</button>
-              <button class="btn ok btn-sm" onclick="copyCurrentRich('toutiao')">📋 复制头条</button>
-              <button class="btn info btn-sm" onclick="copyCurrentRich('zhihu')">📋 复制知乎</button>
-              <button class="btn warn btn-sm" onclick="copyCurrentRich('weibo')">📋 复制微博</button>
-              <button class="btn ghost btn-sm" onclick="dlXhsZip()">📦 下载卡片包</button>
-              <button class="btn btn-sm" onclick="openPublishModal()">📢 多端发布</button>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px">
-              <button class="btn btn-sm" id="btn-stage-ai-upgrade" style="background:linear-gradient(135deg,#f0883e,#f79b4a);border:none;color:#fff;font-weight:700" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI 改写提升</button>
-              <button class="btn btn-sm ghost" onclick="rescoreCurrent()">⚡ 重新评分</button>
-              <button class="btn btn-sm" style="background:rgba(240,136,62,0.15);border-color:rgba(240,136,62,0.4);color:#f0883e;font-size:12px" onclick="showPlatformScores()">📊 各平台评分</button>
-              <button class="btn btn-sm" id="btn-wb-top-copilot" onclick="toggleWbAgentModal()" style="background:linear-gradient(135deg,#f7a05a,#f0883e);color:#fff;border:none;font-weight:700;box-shadow:0 2px 10px rgba(240,136,62,0.35);display:flex;align-items:center;gap:5px" title="召唤贴身爆款创作 Agent 协作修改与提分">
-                <span>🤖 爆款 Agent 协作</span>
-              </button>
-              <button class="btn btn-sm info" onclick="openRewriteModal()">🎯 定向重写</button>
-              <button class="btn btn-sm ghost" id="btn-toggle-editor" onclick="toggleEditorDrawer()">✏️ 侧边编辑</button>
-              <button class="btn btn-sm" style="background:rgba(240,136,62,0.18);border-color:rgba(240,136,62,0.5);color:#f0883e;font-size:12px" onclick="toggleSingleRewriteBar()" id="btn-toggle-single-rewrite">🎯 单平台重写</button>
+              <div class="tb-dd">
+                <button class="btn btn-sm ghost tb-dd-btn" onclick="tbToggle(this)">📋 复制 / 导出 ▾</button>
+                <div class="tb-menu">
+                  <button class="btn" onclick="copyCurrentRich('wechat_mp')">📋 复制公众号</button>
+                  <button class="btn" onclick="copyCurrentRich('toutiao')">📋 复制头条</button>
+                  <button class="btn" onclick="copyCurrentRich('zhihu')">📋 复制知乎</button>
+                  <button class="btn" onclick="copyCurrentRich('weibo')">📋 复制微博</button>
+                  <div class="tb-sep"></div>
+                  <button class="btn" onclick="dlXhsZip()">📦 下载卡片包</button>
+                </div>
+              </div>
+              <button class="btn ok btn-sm" style="background:linear-gradient(135deg,#2ea043,#1a7431)" onclick="openPublishModal()">📢 多端发布</button>
+              <div class="tb-dd">
+                <button class="btn btn-sm ghost tb-dd-btn" onclick="tbToggle(this)">⋯ 更多 ▾</button>
+                <div class="tb-menu">
+                  <div class="tb-label">进阶能力</div>
+                  <button class="btn" onclick="triggerOmniFission()">🚀 一键全域五端裂变</button>
+                  <button class="btn" onclick="openYimuRichEditor()">✍️ 一幕·富文本编辑器</button>
+                  <button class="btn" onclick="genVoiceoverScript()">🎙️ 口播稿</button>
+                  <button class="btn" onclick="openAssetLibrary()">🗂️ 素材库</button>
+                  <div class="tb-sep"></div>
+                  <div class="tb-label">评分与改写</div>
+                  <button class="btn" onclick="rescoreCurrent()">⚡ 重新评分</button>
+                  <button class="btn" onclick="showPlatformScores()">📊 各平台评分</button>
+                  <button class="btn" onclick="openRewriteModal()">🎯 定向重写</button>
+                  <button class="btn" onclick="toggleSingleRewriteBar();tbCloseAll()" id="btn-toggle-single-rewrite">🎯 单平台重写栏</button>
+                  <button class="btn" onclick="toggleEditorDrawer()">✏️ 侧边编辑</button>
+                  <div class="tb-sep"></div>
+                  <button class="btn" onclick="toggleWbAgentModal()">🤖 爆款 Agent 协作</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- 📕 小红书爆款创作者专属工具栏 (AI视觉生图 / 卡片风格 / AI重排 / Zip打包 / 直发小号) -->
+
 
           <!-- v3.33 单平台专属重写工具栏 -->
           <div id="stage-single-rewrite-bar" style="display:none;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(240,136,62,0.06);align-items:center;gap:10px;flex-wrap:wrap">
@@ -6644,6 +6672,11 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
           </div>
 
           <!-- 爆款基因溯源与标题五式赛马池 -->
+          <div id="stage-adv-toggle" style="display:none;padding:5px 16px;border-bottom:1px solid var(--border);gap:8px;align-items:center">
+            <span style="font-size:11px;color:var(--text-muted)">进阶面板：</span>
+            <button class="btn btn-xs ghost" onclick="advToggle('stage-benchmark-bar')" title="爆款基因溯源与标题五式赛马池">🧬 基因溯源</button>
+            <button class="btn btn-xs ghost" onclick="advToggle('stage-furnace-bar')" title="爆款达标保底巡航熔炉">🔥 保底巡航熔炉</button>
+          </div>
           <div id="stage-benchmark-bar" style="display:none;padding:12px 20px;border-bottom:1px solid var(--border);background:rgba(22, 27, 34, 0.4);flex-direction:column;gap:10px">
             <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
               <div style="display:flex;align-items:center;gap:10px" id="stage-gene-source">
@@ -6718,8 +6751,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                   <button type="button" class="wb-tool-btn" onclick="wbInsertImagePlaceholder()" title="插入配图标记">🖼️ 插入配图</button>
                   <select id="ed-theme-select" onchange="triggerThemeChange()" style="font-size:11px;padding:2px 6px;background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:4px" title="公众号排版美学主题（切换即时生效，一字不改）"></select>
                   <button type="button" id="btn-pure-theme-switch" class="wb-tool-btn" style="color:#34d399;border-color:rgba(52,211,153,0.45);font-weight:600" onclick="triggerPureThemeSwitch()" title="纯规则CSS换肤：100%不调用AI、不改一字，毫秒级即时刷新公众号预览">🎨 纯排版换肤</button>
-                  <button type="button" class="wb-tool-btn" style="color:#ff9d55;border-color:rgba(240,136,62,0.5);font-weight:700;background:rgba(240,136,62,0.12)" onclick="openYimuRichEditor()" title="打开全功能一幕原创富文本编辑器(零依赖可视化图文混排与排版)">✍️ 一幕·富文本</button>
-                  <button type="button" class="wb-tool-btn" style="color:#f79b4a;border-color:rgba(247,155,74,0.5);font-weight:700;background:rgba(247,155,74,0.12)" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI改写提升</button>
+                  <button type="button" class="wb-tool-btn" onclick="openYimuRichEditor()" title="打开全功能一幕原创富文本编辑器(零依赖可视化图文混排与排版)">✍️ 富文本</button>
                 </div>
 
                 <!-- 编辑输入框 -->
@@ -6731,8 +6763,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                 <div class="wb-editor-footer">
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <button class="btn ok btn-sm" id="btn-wb-save" onclick="saveCurrentPlatformContent()">💾 保存并重新渲染 (Ctrl+S)</button>
-                    <button class="btn btn-sm" id="btn-wb-ai-upgrade" style="background:linear-gradient(135deg,#f0883e,#f79b4a);border:none;color:#fff;font-weight:700" onclick="openAIUpgradeModal()" title="融合名家文风、黄金3秒钩子与去AI味一键深度重塑提升">⚡ AI 一键改写提升</button>
-                    <button class="btn ghost btn-sm" style="color:#f0883e;border-color:rgba(240,136,62,0.3)" onclick="triggerAutoImages()">🎨 一键生成插图</button>
+                    <button class="btn btn-sm ghost" onclick="openAIUpgradeModal()">⚡ AI 改写提升</button>
                   </div>
                   <!-- V3.3 自定义派生目标平台按需勾选胶囊 -->
                   <div style="margin-top:8px;padding:6px 9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px">
@@ -16615,7 +16646,8 @@ function selectDraft(id) {
   const wb = $('split-workbench');
   if(wb) wb.style.display = 'flex';
   $('stage-action-bar').style.display = 'flex';
-  if($('stage-furnace-bar')) $('stage-furnace-bar').style.display = 'flex';
+  const advT = $('stage-adv-toggle');
+  if (advT) advT.style.display = 'flex';
   if($('stage-xhs-bar')) $('stage-xhs-bar').style.display = (currentPlatformTab === 'xhs' ? 'flex' : 'none');
 
   initThemeSelectOptions();
@@ -16631,10 +16663,27 @@ function selectDraft(id) {
   switchPlatformTab(targetTab);
 }
 
+/* R15.4 工具条收纳菜单 */
+function tbToggle(btn) {
+  const dd = btn.parentElement;
+  const on = dd.classList.toggle('on');
+  document.querySelectorAll('.tb-dd.on').forEach(x => { if (x !== dd) x.classList.remove('on'); });
+}
+function tbCloseAll() {
+  document.querySelectorAll('.tb-dd.on').forEach(x => x.classList.remove('on'));
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.tb-dd')) tbCloseAll();
+});
+function advToggle(id) {
+  const b = document.getElementById(id);
+  if (b) b.style.display = (b.style.display === 'flex') ? 'none' : 'flex';
+}
+
 function renderBenchmarkAndTitleForge(d) {
   const bar = $('stage-benchmark-bar');
   if(!bar) return;
-  bar.style.display = 'flex';
+  /* R15.4:基因条默认折叠,内容照常填充,由「🧬 基因溯源」开关控制展开 */
 
   // 1. 爆款血统溯源
   const geneText = $('stage-gene-text');

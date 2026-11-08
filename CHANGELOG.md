@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.4.0] - 四海晏 (Four Seas at Peace) · 2026-11-09
+
+### Changed 工作台工具条 2.0
+- 主条 19 钮归 6：AI 改写提升 / AI 智能配图 / 配图▾ / 复制导出▾ / 多端发布 / 更多▾
+- 三个收纳菜单承载全部次级能力（零功能删减）；编辑条与 footer 去重
+- 基因溯源条与保底巡航熔炉条默认收纳为「进阶面板」细条开关
+
 ## [15.3.0] - 九霄阔 (Broad Ninth Heaven) · 2026-11-08
 
 ### Changed 三栏外壳交互大修

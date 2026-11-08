@@ -1,8 +1,8 @@
 {
-  "current_version": "15.3.0",
-  "current_codename_zh": "九霄阔",
-  "current_codename_en": "Broad Ninth Heaven",
-  "next_index": 69,
+  "current_version": "15.4.0",
+  "current_codename_zh": "四海晏",
+  "current_codename_en": "Four Seas at Peace",
+  "next_index": 70,
   "sequence": [
     {
       "zh": "曦光序",
@@ -459,6 +459,12 @@
       "zh": "九霄阔",
       "en": "Broad Ninth Heaven",
       "date": "2026-11-08"
+    },
+    {
+      "version": "v15.4.0",
+      "zh": "四海晏",
+      "en": "Four Seas at Peace",
+      "date": "2026-11-09"
     }
   ]
 }

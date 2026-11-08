@@ -6759,35 +6759,29 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                   <textarea id="wb-editor-input" class="wb-textarea" placeholder="在此随时微调当前平台的正文或 Markdown 内容，实时联动右侧预览 (按 Ctrl+S / ⌘S 快速存盘)…" oninput="handleEditorInput()"></textarea>
                 </div>
 
-                <!-- 底部保存与智能微调条 -->
-                <div class="wb-editor-footer">
-                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                    <button class="btn ok btn-sm" id="btn-wb-save" onclick="saveCurrentPlatformContent()">💾 保存并重新渲染 (Ctrl+S)</button>
-                    <button class="btn btn-sm ghost" onclick="openAIUpgradeModal()">⚡ AI 改写提升</button>
-                  </div>
-                  <!-- V3.3 自定义派生目标平台按需勾选胶囊 -->
-                  <div style="margin-top:8px;padding:6px 9px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
-                      <span style="font-size:11px;font-weight:600;color:var(--text-muted)">🎯 派生目标平台（按需勾选）：</span>
-                      <span style="font-size:10.5px;color:var(--primary);cursor:pointer;user-select:none" onclick="toggleAllDerivePlatforms()">全选/反选</span>
+                  <!-- 底部保存与派生条(R15.4 协调化重排) -->
+                  <div class="wb-editor-footer" style="display:flex;flex-direction:column;gap:8px;padding:10px 12px;border-top:1px solid var(--border)">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                      <button class="btn ok btn-sm" id="btn-wb-save" onclick="saveCurrentPlatformContent()">💾 保存并重新渲染 (Ctrl+S)</button>
+                      <button class="btn btn-sm ghost" onclick="openAIUpgradeModal()">⚡ AI 改写提升</button>
                     </div>
-                    <div id="wb-derive-platforms-capsules" style="display:flex;flex-wrap:wrap;gap:4px">
-                      <div class="derive-chip on" data-plat="wechat_mp" onclick="toggleDeriveChip(this)">🟢 公众号</div>
-                      <div class="derive-chip on" data-plat="xhs" onclick="toggleDeriveChip(this)">📕 小红书</div>
-                      <div class="derive-chip on" data-plat="toutiao" onclick="toggleDeriveChip(this)">🔴 今日头条</div>
-                      <div class="derive-chip on" data-plat="zhihu" onclick="toggleDeriveChip(this)">🔵 知乎</div>
-                      <div class="derive-chip on" data-plat="weibo" onclick="toggleDeriveChip(this)">🟡 微博</div>
-                      <div class="derive-chip on" data-plat="twitter" onclick="toggleDeriveChip(this)">𝕏 Twitter/X</div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                      <span style="font-size:11px;font-weight:600;color:var(--text-muted);white-space:nowrap">🎯 派生到</span>
+                      <div id="wb-derive-platforms-capsules" style="display:flex;flex-wrap:wrap;gap:4px;flex:1;min-width:0">
+                        <div class="derive-chip on" data-plat="wechat_mp" onclick="toggleDeriveChip(this)">🟢 公众号</div>
+                        <div class="derive-chip on" data-plat="xhs" onclick="toggleDeriveChip(this)">📕 小红书</div>
+                        <div class="derive-chip on" data-plat="toutiao" onclick="toggleDeriveChip(this)">🔴 头条</div>
+                        <div class="derive-chip on" data-plat="zhihu" onclick="toggleDeriveChip(this)">🔵 知乎</div>
+                        <div class="derive-chip on" data-plat="weibo" onclick="toggleDeriveChip(this)">🟡 微博</div>
+                        <div class="derive-chip on" data-plat="twitter" onclick="toggleDeriveChip(this)">𝕏</div>
+                      </div>
+                      <span style="font-size:10.5px;color:var(--primary);cursor:pointer;user-select:none;white-space:nowrap" onclick="toggleAllDerivePlatforms()">全选/反选</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <button id="btn-derive-omni" onclick="deriveAllPlatformsFromCurrent()" title="以当前左侧编辑区内容为唯一母稿，按上方勾选平台精准派生（节省算力与Token）" style="flex:1;padding:6px 0;border-radius:8px;border:none;background:linear-gradient(135deg,#1f6feb,#3fb950,#f79b4a);color:#fff;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.3px;white-space:nowrap;box-shadow:0 1px 8px rgba(31,111,235,.25)">🚀 按需派生所选平台</button>
+                      <span style="font-size:10px;color:var(--text-muted);white-space:nowrap">Ctrl+S 即存即渲 · 按勾选生成</span>
                     </div>
                   </div>
-
-                  <!-- V3.3 母稿派生按钮 -->
-                  <div style="display:flex;gap:6px;margin-top:7px">
-                    <button id="btn-derive-omni" onclick="deriveAllPlatformsFromCurrent()" title="以当前左侧编辑区内容为唯一母稿，按上方勾选平台精准派生（节省算力与Token）" style="flex:1;padding:6px 0;border-radius:6px;border:none;background:linear-gradient(135deg,#1f6feb,#3fb950,#f79b4a);color:#fff;font-weight:700;font-size:12px;cursor:pointer;letter-spacing:.3px;box-shadow:0 1px 8px rgba(31,111,235,.25)">🚀 母稿按需派生所选平台</button>
-                    <button onclick="triggerOmniFission()" title="旧版：AI重写后裂变全端" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:var(--text-muted);font-size:11px;cursor:pointer">裂变</button>
-                  </div>
-                  <span style="font-size:10px;color:var(--text-muted);margin-top:3px;display:block">Ctrl+S 即存即渲 · 勾选平台按需生成</span>
-
                 </div>
               </div>
 

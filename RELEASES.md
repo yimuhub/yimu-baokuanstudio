@@ -4,6 +4,21 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## ⚖️ Version 15.5.0 · 玉衡明 (Jade Balance Bright) · Editor Footer Realigned · 2026-11-09
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.5.0"`, `__codename__ = "玉衡明"`, `__codename_en__ = "Jade Balance Bright"`)
+
+### 🎨 Editor Footer Realigned（用户圈注协调化整改）
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **按钮行协调** | 💾保存并重新渲染 + ⚡AI 改写提升 一行排布 |
+| 2 | **派生平台横排胶囊** | 「🎯派生到」+ 6 平台胶囊（公众号/小红书/头条/知乎/微博/𝕏）横排 + 全选/反选右置；消灭竖排文字与错位 |
+| 3 | **派生 CTA 全宽** | 「🚀按需派生所选平台」全宽按钮（nowrap 防挤压），提示语「Ctrl+S 即存即渲 · 按勾选生成」右置 |
+| 4 | **i18n** | 新底栏全部词条入英文字典 |
+
+**Full Changelog**: v15.4.0...v15.5.0
+
 ## 🌊 Version 15.4.0 · 四海晏 (Four Seas at Peace) · Toolbar 2.0 · 2026-11-09
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.4.0"`, `__codename__ = "四海晏"`, `__codename_en__ = "Four Seas at Peace"`)

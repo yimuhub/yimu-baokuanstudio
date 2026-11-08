@@ -1,8 +1,8 @@
 {
-  "current_version": "15.4.0",
-  "current_codename_zh": "四海晏",
-  "current_codename_en": "Four Seas at Peace",
-  "next_index": 70,
+  "current_version": "15.5.0",
+  "current_codename_zh": "玉衡明",
+  "current_codename_en": "Jade Balance Bright",
+  "next_index": 71,
   "sequence": [
     {
       "zh": "曦光序",
@@ -464,6 +464,12 @@
       "version": "v15.4.0",
       "zh": "四海晏",
       "en": "Four Seas at Peace",
+      "date": "2026-11-09"
+    },
+    {
+      "version": "v15.5.0",
+      "zh": "玉衡明",
+      "en": "Jade Balance Bright",
       "date": "2026-11-09"
     }
   ]

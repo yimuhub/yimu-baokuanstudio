@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.5.0] - 玉衡明 (Jade Balance Bright) · 2026-11-09
+
+### Fixed 编辑器底栏协调化
+- 保存/AI 改写按钮一行排布；派生平台改横排胶囊 + 全选/反选右置
+- 派生 CTA 全宽防挤压；提示语归位；i18n 词条同步
+
 ## [15.4.0] - 四海晏 (Four Seas at Peace) · 2026-11-09
 
 ### Changed 工作台工具条 2.0

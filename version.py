@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.4.0"
-__codename__ = "四海晏"
-__codename_en__ = "Four Seas at Peace"
-__slogan__ = "一念起 一幕开 万象生 · 工作台工具条 2.0：19 钮归 6，收纳有序，核心内容大面积呈现"
-__slogan_cn__ = "一念起 一幕开 万象生 · 工作台工具条 2.0：19 钮归 6，收纳有序，核心内容大面积呈现"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Toolbar 2.0: 19 buttons into 6 + menus, content first"
+__version__ = "15.5.0"
+__codename__ = "玉衡明"
+__codename_en__ = "Jade Balance Bright"
+__slogan__ = "一念起 一幕开 万象生 · 编辑器底栏协调化重排：派生平台横排胶囊、按钮全宽、提示归位"
+__slogan_cn__ = "一念起 一幕开 万象生 · 编辑器底栏协调化重排：派生平台横排胶囊、按钮全宽、提示归位"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Editor footer realigned: horizontal derive chips, full-width CTA"
 
 
 def get_version() -> str:

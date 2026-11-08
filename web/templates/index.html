@@ -1961,7 +1961,8 @@ input[type=text]:focus, textarea:focus, select:focus {
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 90;
+  /* R15.5:必须高于舞台全屏层(9600)与悬浮 Agent(9700),否则弹窗被压在下面"闪现即逝" */
+  z-index: 9800;
 }
 .mask.on { display: flex; }
 
@@ -7949,7 +7950,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
           <div style="font-size:14px;font-weight:700;color:#40b8be">🔑 写稿前要配 Key 吗？30 秒看懂 3 个「API」入口的区别</div>
           <div style="display:flex;gap:8px">
-            <button class="btn ok btn-sm" onclick="switchSubTab('console','sp-settings')">小白点这里配置 →</button>
+            <button class="btn ok btn-sm" onclick="switchSubTab('console','sp-settings');modal('m-gateway')">小白点这里配置 →</button>
             <button class="btn ghost btn-sm" onclick="document.getElementById('key-guide-card').style.display='none'">我知道了</button>
           </div>
         </div>

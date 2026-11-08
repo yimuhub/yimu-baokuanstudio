@@ -1,5 +1,5 @@
 {
-  "current_version": "15.5.0",
+  "current_version": "15.5.1",
   "current_codename_zh": "玉衡明",
   "current_codename_en": "Jade Balance Bright",
   "next_index": 71,
@@ -468,6 +468,12 @@
     },
     {
       "version": "v15.5.0",
+      "zh": "玉衡明",
+      "en": "Jade Balance Bright",
+      "date": "2026-11-09"
+    },
+    {
+      "version": "v15.5.1",
       "zh": "玉衡明",
       "en": "Jade Balance Bright",
       "date": "2026-11-09"

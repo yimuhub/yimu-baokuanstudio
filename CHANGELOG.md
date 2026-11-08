@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.5.1] - 玉衡明 (Jade Balance Bright) · 2026-11-09
+
+### Fixed 弹窗层级修复
+- `.mask` z-index 90 → 9800:修复全屏工作台(舞台层 9600)打开时,所有弹窗被压在舞台后方"闪现即逝"的问题
+- 「小白点这里配置」一步到位:切换子视图同时直接弹出模型服务配置窗
+
 ## [15.5.0] - 玉衡明 (Jade Balance Bright) · 2026-11-09
 
 ### Fixed 编辑器底栏协调化

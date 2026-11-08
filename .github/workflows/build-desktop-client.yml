@@ -9,122 +9,136 @@ on:
 permissions:
   contents: write
 
+# A2 完全自给：每个平台产物都自带 Python 运行时、预装全量依赖与 Chromium。
+# 客户机上不装 Python、不建 venv、不跑 pip、不联网即可启动。
+env:
+  PYTHONIOENCODING: utf-8
+  PYTHONUTF8: "1"
+  YIMU_OFFICIAL_BOOTSTRAP_KEY: ${{ secrets.YIMU_OFFICIAL_BOOTSTRAP_KEY }}
+
 jobs:
   build-windows:
-    name: Build Windows Setup (.exe)
+    name: Build Windows Full Installer (.exe / .zip)
     runs-on: windows-latest
+    timeout-minutes: 50
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install Inno Setup
-        run: choco install innosetup --no-progress
-
-      - name: Install Python dependencies
+      - name: Install build-side dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
-      - name: Build Windows Installer (.exe) & Portable Zip
-        run: |
-          python scripts/build_desktop_client.py --platform win
-          python scripts/build_windows_installer.py
-
-      - name: Upload Windows Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Install Inno Setup
+        run: choco install innosetup --no-progress
+      - name: Build A2 full offline bundle (runtime + deps + Chromium + resources)
+        run: python scripts/build_full_bundle.py --platform win
+      - name: Offline smoke test and size gate
+        run: python scripts/verify_bundle.py --platform win
+      - name: Build Windows Setup (.exe)
+        run: python scripts/build_windows_installer.py
+      - uses: actions/upload-artifact@v4
         with:
           name: windows-installers
           path: |
             dist/*.exe
             dist/*.zip
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   build-macos:
-    name: Build macOS Disk Image (.dmg)
+    name: Build macOS Full Disk Image (.dmg / .tar.gz)
+    # 不要用写死的 macos-14：该镜像标签下线后作业会以「零步骤 cancelled」结束
+    # （runner_id=0、started_at == completed_at），发布阶段只拿到 Win/Linux 产物。
     runs-on: macos-latest
+    timeout-minutes: 60
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install Python dependencies
+      - name: Install build-side dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
+      - name: Build A2 full offline bundle (runtime + deps + Chromium + resources)
+        run: python scripts/build_full_bundle.py --platform mac
+      - name: Offline smoke test and size gate
+        run: python scripts/verify_bundle.py --platform mac --strict-chromium
       - name: Build macOS DMG (.dmg)
-        run: |
-          python scripts/build_desktop_client.py --platform mac
-          bash scripts/build_macos_dmg.sh
-
-      - name: Upload macOS Artifacts
-        uses: actions/upload-artifact@v4
+        run: bash scripts/build_macos_dmg.sh
+      - uses: actions/upload-artifact@v4
         with:
           name: macos-installers
           path: |
             dist/*.dmg
             dist/*.tar.gz
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   build-linux:
-    name: Build Linux Package (.deb)
+    name: Build Linux Full Package (.deb / .tar.gz)
     runs-on: ubuntu-latest
+    timeout-minutes: 50
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Install Linux build tools
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y dpkg
-
-      - name: Install Python dependencies
+      - name: Install build-side dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
+          sudo apt-get update
+          sudo apt-get install -y dpkg
+      - name: Build A2 full offline bundle (runtime + deps + Chromium + resources)
+        run: python scripts/build_full_bundle.py --platform linux
+      - name: Offline smoke test and size gate
+        run: python scripts/verify_bundle.py --platform linux
       - name: Build Linux DEB (.deb)
-        run: |
-          python scripts/build_desktop_client.py --platform linux
-          bash scripts/build_linux_deb.sh
-
-      - name: Upload Linux Artifacts
-        uses: actions/upload-artifact@v4
+        run: bash scripts/build_linux_deb.sh
+      - uses: actions/upload-artifact@v4
         with:
           name: linux-installers
           path: |
             dist/*.deb
             dist/*.tar.gz
-          if-no-files-found: ignore
+          if-no-files-found: error
 
   publish-release:
-    name: Publish Installers to GitHub Releases
+    name: Publish Full Installers to GitHub Releases
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    # 某个平台作业被取消（例如 macOS runner 排队拿不到机器）时不连坐：
+    # 只要拿到了产物就发布，缺失的平台在日志与发布说明里注明。
+    if: always() && startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download all built artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
           path: release-assets
           merge-multiple: true
-
-      - name: Release to GitHub Releases
-        uses: softprops/action-gh-release@v2
+      - name: Report missing platforms and enforce full-bundle size
+        run: |
+          cd release-assets
+          miss=""
+          for pat in '*.dmg:macOS' '*.exe:Windows' '*.deb:Linux'; do
+            glob="${pat%%:*}"; name="${pat##*:}"
+            ls $glob > /dev/null 2>&1 || miss="$miss $name"
+          done
+          if [ -n "$miss" ]; then
+            echo "::warning::本次缺少平台产物:$miss"
+          else
+            echo "三平台全功能产物齐全"
+          fi
+          for f in *.exe *.zip *.dmg *.deb *.tar.gz; do
+            [ -f "$f" ] || continue
+            mb=$(du -m "$f" | cut -f1)
+            echo "$f : ${mb} MB"
+            if [ "$mb" -lt 90 ]; then
+              echo "::error::$f 仅 ${mb} MB，疑似退化成源码壳（下限 90 MB）"
+              exit 1
+            fi
+          done
+      - uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
           generate_release_notes: true

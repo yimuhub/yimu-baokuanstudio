@@ -199,7 +199,7 @@ tr:hover td {{
 }}
 .badge.orange {{ background: rgba(240,136,62,0.2); color: #f0883e; border: 1px solid rgba(240,136,62,0.3); }}
 .badge.green {{ background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }}
-.badge.purple {{ background: rgba(168,85,247,0.2); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }}
+.badge.purple {{ background: rgba(168,85,247,0.2); color: #ff9d55; border: 1px solid rgba(168,85,247,0.3); }}
 .badge.blue {{ background: rgba(56,189,248,0.2); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); }}
 
 /* 时间轴 */
@@ -387,11 +387,143 @@ footer {{
     </div>
 
     <div class="timeline">
-      <!-- V10.1 -->
+      <!-- V14.0.0 -->
       <div class="timeline-item active">
         <div class="t-head">
-          <span class="t-ver">🌌 V10.1 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="t-ver">🎐 V14.0.0 · 兰心曲 (Orchid Melody)</span>
           <span class="badge orange">当前最新版 · Latest</span>
+          <span class="t-date">2026-11-07</span>
+        </div>
+        <div class="t-desc">亮色模式全站视觉统一，中栏输入框改造为 WorkBuddy 形态：附件直传、模型直选、提示词一键优化。</div>
+        <ul class="t-list">
+          <li><b>🌗 亮色统一</b>：七个语义 token 首次显式定义，左栏选中项对比度从 1.06 恢复到可读，逐页审计低对比文本收敛到 0–1 条；</li>
+          <li><b>⭕ 发送键正圆</b>：锁定 32×32 与 aspect-ratio，任何输入高度下都不再被压成椭圆；</li>
+          <li><b>📎 附件直传</b>：支持 txt / md / csv / json / pdf / docx 与图片，正文自动拼进消息，单个 10MB、一次 6 个；</li>
+          <li><b>✨ 提示词优化</b>：模型改写优先，不可用时按平台结构模板补全并如实告知；响应从 45 秒降到约 4 秒；</li>
+          <li><b>🎛 模型直选</b>：输入框内直接切换本次对话使用的大模型，与「模型/技能」弹窗共用同一份配置。</li>
+        </ul>
+      </div>
+
+      <!-- V13.0.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">❄️ V13.0.0 · 梅雪镜 (Plum-Snow Mirror)</span>
+          <span class="badge blue">已归档 · Archived</span>
+          <span class="t-date">2026-11-06</span>
+        </div>
+        <div class="t-desc">全功能离线安装包：自带 Python 运行时、全量依赖与浏览器内核，安装后双击即用，配额全新生成。</div>
+        <ul class="t-list">
+          <li><b>📦 A2 完全自给</b>：三平台安装包内置运行时与 Chrome for Testing，客户机零 Python / 零 pip / 零浏览器依赖；</li>
+          <li><b>🧩 全量资源</b>：gateway / app / skills / config.yaml 全部进包，干净机器启动不再报模块缺失；</li>
+          <li><b>🔑 官方通道</b>：内置官方凭证与出厂赠送额度，支持随时添加自定义 API Key；</li>
+          <li><b>🧪 离线验收</b>：断网冒烟 + 包体积下限门禁，杜绝再发出源码壳。</li>
+        </ul>
+      </div>
+
+      <!-- V12.1.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🎋 V12.1.0 · 竹韵篇 (Bamboo Rhythm)</span>
+          <span class="badge blue">已归档 · Archived</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">全站进页即取真数据，页面不再停在「加载中」；控制中心工单流程五步可视化。</div>
+        <ul class="t-list">
+          <li><b>🔌 进页钩子补齐</b>：订阅、内容工作台、控制中心、操盘大屏 四页进入即拉取真实数据；</li>
+          <li><b>🧭 舞台改道修正</b>：业务跳转先跑完钩子再搬面板，页面不会停在自己的加载态；</li>
+          <li><b>🎋 工单流程可视化</b>：抓热榜 → 挑选优质题 → AI 成稿 → 制作短视频 → 钉钉卡片 五步横向流程；</li>
+          <li><b>♻️ 同页复用</b>：重复触发同一次打开不再重复搬运，滚动位置与输入焦点得以保留。</li>
+        </ul>
+      </div>
+
+      <!-- V12.0.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🌲 V12.0.0 · 松涛境 (Pinewave Realm)</span>
+          <span class="badge blue">已归档 · Archived</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">交互模型重构：左栏恒定、中栏恒定对话，所有功能页面在右栏打开并可全屏。全站主色收敛为品牌橙。</div>
+        <ul class="t-list">
+          <li><b>🧭 中栏永不切换</b>：极简对话栏被固定，任何菜单点击都不会把它替换掉；</li>
+          <li><b>🪟 右栏成为舞台</b>：点左侧任意功能，对应面板整体搬进右栏，业务事件与状态原样保留；</li>
+          <li><b>⛶ 可全屏</b>：舞台头全屏按钮 / 双击标题 / Esc 三级控制，全屏时左栏与对话栏一并让位；</li>
+          <li><b>🎨 主色统一</b>：清掉 8 种紫色变体共 100+ 处，全部收敛为品牌橙 <code>#f0883e</code>；</li>
+          <li><b>🧩 细节统一</b>：二级树改手风琴、子标签换行不裁切、卡片去高亮描边、按钮不再压成两行。</li>
+        </ul>
+      </div>
+
+      <!-- V11.1.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🌊 V11.1.1 · 江河曲 (River Rhapsody)</span>
+          <span class="badge blue">已归档 · Archived</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">实机像素校准：把原型橙还给主按钮，左栏底栏改成两行不再挤压，顶栏在 1280 宽下不再重叠。功能零增减。</div>
+        <ul class="t-list">
+          <li><b>🎨 主色回归原型橙</b>：基础层曾用 <code>!important</code> 把主按钮钉成紫色渐变，现以更高权重改回 <code>#f0883e</code>，模式胶囊一并收敛；</li>
+          <li><b>🧩 底栏不再挤压</b>：用户卡曾被压到 50px 宽、文字与图标重叠，现拆成「图标行 + 整宽个人中心卡」两行；</li>
+          <li><b>🎛 控制中心图标</b>：换成控制滑杆造型，15px 下不再像太阳；</li>
+          <li><b>📐 窄屏顶栏</b>：≤1400px 收起副标题、收紧胶囊内边距，1280 / 1366 / 1512 三档零重叠、零横向溢出。</li>
+        </ul>
+      </div>
+
+      <!-- V11.1.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🏔 V11.1.0 · 山岳赋 (Mountain Hymn)</span>
+          <span class="badge blue">已归档 · Archived</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">三栏逐项对齐原型：左栏重建（新建创作 / 二级树 / 最近产出 / 紧凑底栏），中栏加副标题、胶囊条与空态引导，右栏补复制·导出·发布动作条。功能一个不少，经典版原样保留。</div>
+        <ul class="t-list">
+          <li><b>🧭 左栏重建</b>：品牌块改 logo + 两行文字；橙色「＋ 新建创作」；30px 单行导航配线性图标；8 个一级页可展开 35 个二级入口，全部指向真实子视图；</li>
+          <li><b>🗂 最近产出</b>：直连草稿数据，点一条即切到内容工作台并载入该稿；底部收为主题 / 算力 / 用户 / 经典版 / 控制中心一行；</li>
+          <li><b>💬 中栏</b>：标题下加页面副标题；快捷胶囊条接管原快捷芯片，两个入口图标并排右侧；输入框改圆角卡片 + 圆形发送；空对话时给「从这里开始」三张引导卡；</li>
+          <li><b>🗂 右栏动作条</b>：底部新增「复制 / 导出 / 发布」，分别接既有复制、导出压缩包、发布弹窗；</li>
+          <li><b>🕰 隔离如常</b>：所有增强规则都挂在 <code>body[data-shell="v2"]</code> 下，经典版与窄屏回落一行未改；</li>
+          <li><b>🌐 中英双语</b>：注入文案与 35 个二级入口全部中英成对，英文模式下不残留中文。</li>
+        </ul>
+      </div>
+
+      <!-- V11.0.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🩹 V11.0.1 · 沧海吟 (Oceanic Ode)</span>
+          <span class="badge blue">历史版本 · Archived</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">质量门禁修复：术语扫描与版本门禁双双转绿，三栏工作台功能零改动。</div>
+        <ul class="t-list">
+          <li><b>🔤 术语门禁</b>：改正一段 V11 外壳 CSS 注释里的内部用词，面向用户文案扫描恢复通过；</li>
+          <li><b>🔒 版本门禁自洽</b>：版本与代号改由 <code>release-codenames.json</code> 交叉校验，补丁版不再逐处改测试；</li>
+          <li><b>🏷 代号推进</b>：<code>next_index</code> 4 → 5，下一代号「山岳赋 / Mountain Hymn」。</li>
+        </ul>
+      </div>
+
+      <!-- V11.0.0 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🧭 V11.0.0 · 长风谣 (Longwind Ballad)</span>
+          <span class="badge blue">历史版本 · Archived</span>
+          <span class="t-date">2026-11-04</span>
+        </div>
+        <div class="t-desc">三栏工作台外壳重构：左功能栏 / 中主台 / 右资产台，栏宽可拖拽、资产实时跟随、专注态整屏放大、经典版一键往返。</div>
+        <ul class="t-list">
+          <li><b>🧱 三栏工作台</b>：左右两条拖拽带实时改宽（左 200–420 / 右 300–680，中栏保底 460），双击复位并按屏宽自适应默认值；</li>
+          <li><b>🗂️ 右栏资产台</b>：成稿 / 图片 / 视频 / 数据四页全部接真实接口，成稿真排版预览、版本历史一键回滚、图片点击放大灯箱、成片直接播放；</li>
+          <li><b>⛶ 专注态</b>：右栏一键铺满整屏阅读稿件，Esc 或浮标退出；</li>
+          <li><b>🕰 经典版往返</b>：<code>?legacy=1</code> 直达原版界面，右下角常驻返程浮标，低于 1280px 自动回落；</li>
+          <li><b>🧩 业务零改动</b>：7 个业务面板、约 400 个函数、117 个接口原样复用，仅更换容器与视口分配。</li>
+        </ul>
+      </div>
+
+      <!-- V10.1 -->
+      <div class="timeline-item">
+        <div class="t-head">
+          <span class="t-ver">🌌 V10.1 · 鸿蒙始 (Primordial Dawn)</span>
+          <span class="badge blue">历史版本 · Archived</span>
           <span class="t-date">2026-10-15</span>
         </div>
         <div class="t-desc">全页面动态版本提取架构重构、统一前端版本同步管理库 (version-sync.js)、彻底消除硬编码与静态版本漂移。</div>

@@ -2,18 +2,55 @@
 """SQLite 存储层：选题 / 草稿 / 发布任务。"""
 from __future__ import annotations
 import json
+import logging
+import os
+import re
 import shutil
 import sqlite3
 import time
 import uuid
+from contextvars import ContextVar
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # R2-1：额度数字的唯一真源（core.auth 也从这里取，避免两处硬编码）
 from studio.pricing import TIER_CREDITS
 
 BASE = Path(__file__).resolve().parent.parent
 DATA = BASE / "data"
-DB_PATH = DATA / "mediaflow.db"
+
+#: 数据库文件位置。默认 data/mediaflow.db；可用 YIMU_DB_PATH 覆盖。
+#: 用途：① 测试时指向临时库，避免多个测试用例共享一份真库互相污染
+#:      （改口令、加余额这类用例会把状态留给后面的用例）；
+#:      ② 运维需要把库放到别的磁盘/卷时不必改代码。
+DB_PATH = Path(os.environ.get("YIMU_DB_PATH") or (DATA / "mediaflow.db"))
+
+#: 草稿 id / 工作区 id 等「会拼进文件路径」的标识符的合法形态。
+#: 只允许字母数字下划线短横：足以覆盖 uuid4().hex[:12] 与历史数据，
+#: 同时天然排除 "/"、"\""、".."、":"（Windows 盘符）等穿越字符。
+_SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+# ---------------------------------------------------------------------------
+# 当前请求的用户上下文（ContextVar）
+# ---------------------------------------------------------------------------
+# 为什么 db 层需要知道"谁在请求"：
+#   「当前活动工作区」原本是全库单例（UPDATE workspaces SET is_active=0 全表置零），
+#   于是 A 切工作区，B 的草稿箱立刻跟着变；并发切换还会留下两行 is_active=1，
+#   LIMIT 1 取哪行看物理顺序 → 刷新后工作区随机跳。
+#   现在按 user_id 存偏好（workspace_active 表），db 层从 ContextVar 取当前用户。
+#   web 层在 guard() 里 set_request_user()，后台任务不设值 → 沿用全局默认，
+#   行为与历史一致。
+_CURRENT_USER_ID: ContextVar[str] = ContextVar("yimu_db_user", default="")
+
+
+def set_request_user(user_id: str) -> None:
+    """由 web 层在每个请求的鉴权入口调用。"""
+    _CURRENT_USER_ID.set(str(user_id or ""))
+
+
+def current_request_user() -> str:
+    return _CURRENT_USER_ID.get() or ""
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS topics (
@@ -570,6 +607,164 @@ def _connect_sqlite(path: Path) -> sqlite3.Connection:
 
 _INITIALIZED_DB_PATHS: dict[str, int] = {}
 
+#: 已做过「存量数据自愈」的数据库文件（path → inode）。
+#: 为什么需要：自愈是 3 条全表 UPDATE，且 WHERE 里带 TRIM() 会让索引失效，
+#: 等于每次建连都全表扫 + 开写事务。修复前它挂在 conn() 的**常规路径**上，
+#: 而一次请求会调 2-4 次 conn()（get_active_workspace 里还再叠一层），
+#: 并发时互相等写锁（busy_timeout 30s），接口被拖到秒级甚至超时。
+_HEALED_DB_INODES: dict[str, int] = {}
+
+
+def _heal_empty_defaults(c: sqlite3.Connection) -> None:
+    """把历史数据里的空默认值补齐（**每个库文件只跑一次**）。
+
+    只补 NULL / 空串，属于一次性迁移：跑完之后新写入的行走 NOT NULL DEFAULT，
+    不会再产生空值，因此无需重复执行。
+    """
+    c.execute("CREATE TABLE IF NOT EXISTS workspace_active ("
+              "user_id TEXT PRIMARY KEY, "
+              "workspace_id TEXT NOT NULL, "
+              "updated_at REAL)")
+    _ensure_owner_backfill_trigger(c)
+    c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
+    c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
+    c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
+    c.commit()
+
+
+def _ensure_owner_backfill_trigger(c: sqlite3.Connection) -> None:
+    """建库级触发器：新插入的草稿若没有归属，自动记为 u-admin。
+
+    为什么用触发器而不是在 add_draft 里写死默认值：
+      * 语义要保留「add_draft 传空 = 这条稿件暂时无归属」的返回值，
+        但又不能让库里长期存在 user_id='' 的行（历史实现是每次 conn()
+        全表 UPDATE 回填，代价高且会开写事务）；
+      * 触发器只在**插入那一行**上跑一次，零查询开销、无并发写锁问题，
+        且对任何写入路径（含 ORM）都成立。
+    """
+    c.execute(
+        "CREATE TRIGGER IF NOT EXISTS trg_drafts_owner_backfill "
+        "AFTER INSERT ON drafts FOR EACH ROW "
+        "WHEN NEW.user_id IS NULL OR TRIM(NEW.user_id) = '' "
+        "BEGIN UPDATE drafts SET user_id='u-admin' WHERE id = NEW.id; END"
+    )
+
+
+#: core 自己会直接读写的表。旧库 / 半迁移库（例如 studio 建过库、
+#: 或从很早的版本升级上来）可能缺其中某些表，而 conn() 的快速路径
+#: 只认 `drafts` 一张表，缺的表不会被补出来。
+_CORE_TABLES = (
+    "topics", "drafts", "draft_history", "jobs", "async_tasks",
+    "ip_characters", "scheduled_posts", "workspaces", "users",
+    "user_api_keys", "tenants", "memberships", "gateway_keys", "ledger",
+    "invites", "user_events", "user_notifications", "invite_referrals",
+    "publish_attempts", "account_health", "share_links",
+)
+
+
+def _ensure_core_tables(c: sqlite3.Connection) -> list[str]:
+    """快速路径下补齐缺失的核心表（幂等；SCHEMA 全是 IF NOT EXISTS）。
+
+    真实事故：``drafts`` 存在但 ``draft_history`` 不存在时，conn() 直接 return，
+    ``add_history`` 抛 "no such table: draft_history"。而**新建草稿不写历史表**，
+    于是现象是「新建正常，所有改写方式全部失败」——正是 Windows 端反馈的形态。
+    """
+    try:
+        missing = [
+            t for t in _CORE_TABLES
+            if not c.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (t,)
+            ).fetchone()
+        ]
+        if missing:
+            c.executescript(SCHEMA)
+            c.commit()
+            logger.warning("已自动补齐缺失的数据表: %s", ", ".join(missing))
+        return missing
+    except Exception as e:  # pragma: no cover - 补表失败不应阻断业务
+        logger.warning("补齐数据表失败（忽略，继续运行）: %s", e)
+        return []
+
+
+def _migrate_columns(c: sqlite3.Connection) -> None:
+    """幂等补列：``CREATE TABLE IF NOT EXISTS`` 不会给**已存在**的表补列。
+
+    ⭐ 必须在 conn() 的**快速路径**也执行。
+    真实事故：studio 建过的库 ``draft_history`` 有 ``version`` 但没有
+    ``title`` / ``body_md`` / ``score``，而补列代码只写在"首次建库"分支里，
+    只要 ``drafts`` 表存在就永远走不到 —— 于是 ``add_history`` 恒报
+    ``table draft_history has no column named title``。
+    新建草稿不写历史表，改写要写，表现就是「新建正常、所有改写方式全失败」。
+    """
+    try:
+        # ---- drafts ----
+        cols = {r["name"] for r in c.execute("PRAGMA table_info(drafts)")}
+        for col in ("source_platform", "source_url", "source_title", "analysis",
+                    "score", "score_detail", "score_round", "candidate_titles",
+                    "source_stats", "workspace_id", "user_id",
+                    "topic_id", "platforms", "platform", "tenant_id",
+                    "needs_review", "guard_reason", "updated_at"):
+            if col not in cols:
+                t = {"score": "REAL", "score_detail": "TEXT", "score_round": "INTEGER DEFAULT 0",
+                     "needs_review": "INTEGER DEFAULT 0",
+                     "tenant_id": "TEXT DEFAULT 'default'"}.get(col, "TEXT DEFAULT ''")
+                c.execute(f"ALTER TABLE drafts ADD COLUMN {col} {t}")
+
+        # ---- topics ----
+        tcols = {r["name"] for r in c.execute("PRAGMA table_info(topics)")}
+        for col, typ in (("content", "TEXT DEFAULT ''"),
+                         ("content_fetched", "INTEGER DEFAULT 0"),
+                         ("freshness_score", "REAL DEFAULT 0"),
+                         ("user_id", "TEXT DEFAULT ''"),
+                         ("blocked_reason", "TEXT DEFAULT ''"),
+                         ("workspace_id", "TEXT DEFAULT ''"),
+                         ("tenant_id", "TEXT DEFAULT 'default'")):
+            if col not in tcols:
+                c.execute(f"ALTER TABLE topics ADD COLUMN {col} {typ}")
+
+        # ---- draft_history：改写链路赖以存活的三个列 ----
+        _hcols = {r["name"] for r in c.execute("PRAGMA table_info(draft_history)")}
+        for _col, _typ in (("title", "TEXT"), ("body_md", "TEXT"),
+                           ("score", "REAL"), ("created_at", "REAL"),
+                           ("tenant_id", "TEXT DEFAULT 'default'")):
+            if _col not in _hcols:
+                try:
+                    c.execute(f"ALTER TABLE draft_history ADD COLUMN {_col} {_typ}")
+                except sqlite3.OperationalError:
+                    pass
+
+        # ---- 其它后加列 ----
+        wcols = {r["name"] for r in c.execute("PRAGMA table_info(workspaces)")}
+        if "user_id" not in wcols:
+            c.execute("ALTER TABLE workspaces ADD COLUMN user_id TEXT DEFAULT ''")
+        _icols = {r["name"] for r in c.execute("PRAGMA table_info(invites)")}
+        if "inviter_id" not in _icols:
+            c.execute("ALTER TABLE invites ADD COLUMN inviter_id TEXT NOT NULL DEFAULT ''")
+
+        # ---- 租户隔离：给业务表补 tenant_id ----
+        for _t in ("drafts", "draft_history", "jobs", "async_tasks",
+                   "ip_characters", "scheduled_posts", "workspaces",
+                   "users", "user_api_keys"):
+            try:
+                _cols = {r["name"] for r in c.execute(f"PRAGMA table_info({_t})")}
+            except Exception:
+                continue
+            if _cols and "tenant_id" not in _cols:
+                c.execute(f"ALTER TABLE {_t} ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
+
+        try:
+            ensure_users_columns(c)
+        except Exception:
+            pass
+
+        # ---- 存量数据自愈 ----
+        c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
+        c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
+        c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
+        c.commit()
+    except Exception as e:  # pragma: no cover - 迁移失败不应阻断业务
+        logger.warning("补列迁移失败（忽略，继续运行）: %s", e)
+
 
 def conn() -> sqlite3.Connection:
     DATA.mkdir(parents=True, exist_ok=True)
@@ -593,11 +788,18 @@ def conn() -> sqlite3.Connection:
         except Exception:
             has_drafts = False
     if has_drafts:
-        # R10.0 性能整改（审查报告 P1「DB 连接税」）：
-        #   历史版本在这里每次建连都无条件执行 3 条无索引全表 UPDATE + commit。
-        #   现改为「索引探测式自愈」：先走 ix_drafts_* 索引探测是否存在坏数据
-        #   （NULL/空值），仅探测命中才写——干净库上 3 次索引 seek 即返回，
-        #   自愈语义完整保留（迁移期坏数据仍会被修复），全表扫描税清除。
+        # ⭐ R11 双线融合：
+        #   ① 远端设计——重迁移只在本进程首次接触该库时做一次
+        #     （补表+补列：drafts 存在不代表 draft_history 等表/列也存在，
+        #      老库 draft_history 缺列会一直报错）；
+        #   ② 本地 R10.0 连接税整改——运行期坏数据自愈走索引探测，
+        #     干净库 3 次索引 seek 即返回，不背全表扫描税。
+        if _HEALED_DB_INODES.get(db_key) != db_ino:
+            auto_heal_drafts_check_constraint(c)
+            _heal_empty_defaults(c)
+            _ensure_core_tables(c)
+            _migrate_columns(c)
+            _HEALED_DB_INODES[db_key] = db_ino
         try:
             dirty = (
                 c.execute("SELECT 1 FROM drafts WHERE user_id IS NULL OR user_id='' LIMIT 1").fetchone()
@@ -605,7 +807,7 @@ def conn() -> sqlite3.Connection:
                 or c.execute("SELECT 1 FROM drafts WHERE tenant_id IS NULL OR tenant_id='' LIMIT 1").fetchone()
             )
         except sqlite3.OperationalError:
-            dirty = True  # 旧库缺列/缺索引：交给下方迁移路径全量自愈
+            dirty = False  # 缺列/缺索引场景已由上方一次性迁移补齐
         if dirty:
             auto_heal_drafts_check_constraint(c)
             c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
@@ -683,6 +885,18 @@ def conn() -> sqlite3.Connection:
             continue
         if "tenant_id" not in _cols:
             c.execute(f"ALTER TABLE {_t} ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
+
+    # 版本历史：老库 draft_history 可能缺 title / body_md / score（这些列是后加的，
+    # 而 CREATE TABLE IF NOT EXISTS 不会给「已存在」的表补列），这里幂等补齐。
+    # 否则 add_history / list_history 会因「no column named title」直接 500，
+    # 「外科手术定点精修 / 批量切除」等功能全部瘫痪。
+    _hcols = {r["name"] for r in c.execute("PRAGMA table_info(draft_history)")}
+    for _col, _typ in (("title", "TEXT"), ("body_md", "TEXT"), ("score", "REAL")):
+        if _col not in _hcols:
+            try:
+                c.execute(f"ALTER TABLE draft_history ADD COLUMN {_col} {_typ}")
+            except sqlite3.OperationalError:
+                pass
     ensure_users_columns(c)
 
     # 确保默认租户行存在
@@ -695,6 +909,14 @@ def conn() -> sqlite3.Connection:
     c.execute(
         "UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''"
     )
+
+    # 工作区偏好按用户隔离（见 get_active_workspace / set_active_workspace）
+    c.execute("CREATE TABLE IF NOT EXISTS workspace_active ("
+              "user_id TEXT PRIMARY KEY, "
+              "workspace_id TEXT NOT NULL, "
+              "updated_at REAL)")
+    # 新建的草稿若没归属，由触发器自动记为 u-admin（见 _ensure_owner_backfill_trigger）
+    _ensure_owner_backfill_trigger(c)
 
     c.commit()
     try:
@@ -893,11 +1115,21 @@ def count_topics() -> dict:
 
 
 def draft_dir(draft_id: str) -> Path:
-    # R10.0 加固：draft_id 来自 URL 路径参数，拒绝 ".."、分隔符与绝对路径，防目录穿越
-    if (not draft_id) or draft_id in (".", "..") or any(s in draft_id for s in ("/", "\\", "..")) \
-            or draft_id.startswith("~"):
-        raise ValueError(f"非法草稿ID: {draft_id!r}")
-    d = DATA / "drafts" / draft_id
+    """草稿的资源目录（不存在则创建）。
+
+    ⚠️ 安全：``draft_id`` 会被拼进文件路径，因此必须校验形态。
+       修复前这里直接 ``DATA / "drafts" / draft_id``，调用方若把
+       ``did="../../etc"`` 传进来（例如 /api/drafts/delete 直接取 body 的 ids），
+       就能把仓库任意目录当作草稿目录读写甚至 shutil.move 走。
+       现在非法 id 直接抛错，路由层返回 400。
+    """
+    did = str(draft_id or "").strip()
+    if not _SAFE_ID_RE.match(did):
+        raise ValueError(f"非法草稿 id: {draft_id!r}")
+    root = (DATA / "drafts").resolve()
+    d = (root / did).resolve()
+    if d != root and root not in d.parents:
+        raise ValueError(f"非法草稿 id（越界）: {draft_id!r}")
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -919,6 +1151,14 @@ def add_draft(topic_id: str, title: str, body_md: str, platforms: list[str], *,
        无论数据库由 studio ORM 先创建还是由 SQLite 原生 DDL 先创建，均 100% 满足约束并支持双层互访。
     """
     c = conn()
+    # ⭐ 落库总闸（存储态）：正文保留 Markdown 排版标记，只清结构性垃圾。
+    #    公众号的加粗/小节标题全靠 `**`、`##` 在渲染时转成 HTML——源头剥掉就等于
+    #    永久丢弃排版能力。符号的清除统一放在展示出口（卡片图 / 复制 / 纯文本平台）。
+    #    标题没有排版需求，且要在列表页单行展示，仍走 purify_title。
+    from core.text_purity import purify_title, to_storage
+
+    title = purify_title(title or "")
+    body_md = to_storage(body_md or "")
     cand_json = json.dumps(candidate_titles or [], ensure_ascii=False)
     stats_json = json.dumps(source_stats or {}, ensure_ascii=False)
     ws_id = workspace_id or get_active_workspace().get("id", "ws-default")
@@ -1033,15 +1273,42 @@ def get_draft(draft_id: str) -> dict | None:
     """
     c = conn()
     r = c.execute("SELECT * FROM drafts WHERE id=?", (draft_id,)).fetchone()
-    c.close()
     if not r:
+        c.close()
         return None
     d = dict(r)
+    # 历史草稿（user_id 为空串）在**首次被读取时**回填给本机管理员。
+    # 为什么放这里而不是 conn()：conn() 是每次建连都跑的常规路径，
+    # 在那里做全表 UPDATE 会让每次请求都开写事务、并发互相等锁；
+    # 而单行回填只在真的读到无归属稿件时发生一次，代价可忽略。
+    if not str(d.get("user_id") or "").strip():
+        try:
+            c.execute("UPDATE drafts SET user_id='u-admin' WHERE id=? AND (user_id IS NULL OR TRIM(user_id)='')",
+                      (draft_id,))
+            c.commit()
+            d["user_id"] = "u-admin"
+        except Exception:
+            pass
+    c.close()
     for k in ("platforms", "candidate_titles", "source_stats"):
         try:
             d[k] = json.loads(d[k]) if d.get(k) else ([] if k != "source_stats" else {})
         except Exception:
             d[k] = [] if k != "source_stats" else {}
+    # ⭐ 读取侧兜底（存储态）：只清结构性垃圾，**保留** `**`/`##` 等排版标记。
+    #    老稿件的噪音由展示出口（卡片渲染、纯文本接口）负责清除。
+    try:
+        from core.text_purity import purify_title, to_storage
+
+        d["title"] = purify_title(d.get("title") or "")
+        d["body_md"] = to_storage(d.get("body_md") or "")
+        if isinstance(d.get("candidate_titles"), list):
+            d["candidate_titles"] = [
+                ({**t, "title": purify_title(t.get("title", ""))} if isinstance(t, dict) else t)
+                for t in d["candidate_titles"]
+            ]
+    except Exception:
+        pass
     return d
 
 
@@ -1162,28 +1429,45 @@ def list_drafts(user_id: str = "", *, is_admin: bool = False, workspace_id: str 
             d["source_stats"] = json.loads(d["source_stats"]) if d.get("source_stats") else {}
         except Exception:
             d["source_stats"] = {}
+        # ⭐ 列表页标题同样不能带 ** / ## / #话题
+        from core.text_purity import purify_title
+
+        d["title"] = purify_title(d.get("title") or "")
         out.append(d)
     return out
 
 
 def update_draft_title(draft_id: str, new_title: str) -> None:
+    # ⭐ 落库总闸：标题里绝不能出现 **、##、#话题 之类的标记噪音
+    from core.text_purity import purify_title
+
     c = conn()
-    c.execute("UPDATE drafts SET title=? WHERE id=?", (new_title, draft_id))
+    c.execute("UPDATE drafts SET title=? WHERE id=?", (purify_title(new_title), draft_id))
     c.commit()
     c.close()
 
 
 def update_draft_body(draft_id: str, new_body: str) -> None:
+    # ⭐ 落库总闸（存储态）：保留 Markdown 排版标记，符号在展示出口清除
+    from core.text_purity import to_storage
+
     c = conn()
-    c.execute("UPDATE drafts SET body_md=? WHERE id=?", (new_body, draft_id))
+    c.execute("UPDATE drafts SET body_md=? WHERE id=?", (to_storage(new_body), draft_id))
     c.commit()
     c.close()
 
 
 def update_draft_candidate_titles(draft_id: str, candidate_titles: list[dict]) -> None:
+    from core.text_purity import purify_title
+
+    # 赛马标题会直接展示给用户挑，同样不允许带 ** / ## / #话题
+    cleaned = [
+        ({**t, "title": purify_title(t.get("title", ""))} if isinstance(t, dict) else t)
+        for t in (candidate_titles or [])
+    ]
     c = conn()
     c.execute("UPDATE drafts SET candidate_titles=? WHERE id=?",
-              (json.dumps(candidate_titles, ensure_ascii=False), draft_id))
+              (json.dumps(cleaned, ensure_ascii=False), draft_id))
     c.commit()
     c.close()
 
@@ -1277,17 +1561,53 @@ def sweep_drafts_needs_review(apply: bool = False) -> dict:
 def add_history(draft_id: str, title: str, body_md: str, score) -> str:
     c = conn()
     hid = uid("hs")
-    c.execute("INSERT INTO draft_history (id, draft_id, created_at, title, body_md, score) VALUES (?,?,?,?,?,?)",
-              (hid, draft_id, now(), title, body_md, score))
-    c.commit(); c.close()
-    # 每篇最多保留 10 个历史版本
-    c = conn()
-    rows = c.execute("SELECT id FROM draft_history WHERE draft_id=? ORDER BY created_at DESC",
-                     (draft_id,)).fetchall()
-    for old in rows[10:]:
-        c.execute("DELETE FROM draft_history WHERE id=?", (old["id"],))
-    c.commit(); c.close()
-    return hid
+    try:
+        # draft_history 存在两套建表来源：core 建表无 version 列，studio 建表有 version 且 NOT NULL。
+        # add_history 必须兼容两者：version 列存在就自增写入，不存在就省略，
+        # 否则在 studio 建表的库上会因 NOT NULL 约束直接 500（与缺 title 同源）。
+        _hcols = {r[1] for r in c.execute("PRAGMA table_info(draft_history)")}
+        if not _hcols:
+            # 表根本不存在（旧库 / 半迁移库）：先补建再继续，避免
+            # "no such table: draft_history" 让整次改写失败
+            _ensure_core_tables(c)
+            _hcols = {r[1] for r in c.execute("PRAGMA table_info(draft_history)")}
+        # ⭐ 最后一米：表存在但缺 title（studio 建表版本只有 version）时，
+        #   就地补齐，不依赖 conn() 的一次性迁移 —— 多进程并存或迁移失败都可能漏掉。
+        for _need, _typ in (("title", "TEXT"), ("body_md", "TEXT"),
+                            ("score", "REAL"), ("created_at", "REAL")):
+            if _need not in _hcols:
+                try:
+                    c.execute(f"ALTER TABLE draft_history ADD COLUMN {_need} {_typ}")
+                    _hcols.add(_need)
+                except sqlite3.OperationalError:
+                    pass
+        if "version" in _hcols:
+            _row = c.execute("SELECT MAX(version) FROM draft_history WHERE draft_id=?", (draft_id,)).fetchone()
+            _next_v = (int(_row[0]) if _row and _row[0] is not None else 0) + 1
+            c.execute(
+                "INSERT INTO draft_history (id, draft_id, created_at, title, body_md, score, version) "
+                "VALUES (?,?,?,?,?,?,?)",
+                (hid, draft_id, now(), title, body_md, score, _next_v),
+            )
+        else:
+            c.execute(
+                "INSERT INTO draft_history (id, draft_id, created_at, title, body_md, score) VALUES (?,?,?,?,?,?)",
+                (hid, draft_id, now(), title, body_md, score),
+            )
+        # 每篇最多保留 10 个历史版本（同一连接内完成，少开一次库、少一次锁竞争）
+        rows = c.execute("SELECT id FROM draft_history WHERE draft_id=? ORDER BY created_at DESC",
+                         (draft_id,)).fetchall()
+        for old in rows[10:]:
+            c.execute("DELETE FROM draft_history WHERE id=?", (old["id"],))
+        c.commit()
+        return hid
+    finally:
+        # ⭐ 必须 finally 关闭：异常路径漏关连接会让 SQLite 长期持有写锁，
+        #    Windows 上比 Unix 更容易演变成 "database is locked"。
+        try:
+            c.close()
+        except Exception:
+            pass
 
 
 def list_history(draft_id: str) -> list[dict]:
@@ -1598,29 +1918,87 @@ def _format_workspace_row(r) -> dict | None:
 
 
 def list_workspaces() -> list[dict]:
+    """列出工作区。
+
+    有当前用户上下文时只返回「他自己的 + 无归属的公共工作区」，
+    避免多用户互相看到对方的品牌工作区配置。
+    """
     init_workspaces()
+    uid = current_request_user()
     c = conn()
-    rows = c.execute("SELECT * FROM workspaces ORDER BY created_at ASC").fetchall()
+    if uid:
+        rows = c.execute(
+            "SELECT * FROM workspaces WHERE user_id=? OR user_id IS NULL OR user_id='' "
+            "ORDER BY created_at ASC", (uid,)).fetchall()
+        if not rows:  # 用户还没有自己的工作区，且历史数据都挂在别人名下
+            rows = c.execute("SELECT * FROM workspaces ORDER BY created_at ASC").fetchall()
+    else:
+        rows = c.execute("SELECT * FROM workspaces ORDER BY created_at ASC").fetchall()
     c.close()
     return [_format_workspace_row(r) for r in rows]
 
 
 def get_active_workspace() -> dict:
+    """当前活动工作区（**按用户隔离**）。
+
+    查找顺序：
+      1. 当前用户在 workspace_active 里的偏好；
+      2. 该用户自己的 / 无归属的第一个工作区；
+      3. 历史全局 is_active（后台任务、CLI、单机模式走这里）。
+    """
     init_workspaces()
+    uid = current_request_user()
     c = conn()
-    r = c.execute("SELECT * FROM workspaces WHERE is_active=1 LIMIT 1").fetchone()
-    c.close()
-    if r:
-        return _format_workspace_row(r)
+    try:
+        if uid:
+            row = c.execute(
+                "SELECT workspace_id FROM workspace_active WHERE user_id=?", (uid,)
+            ).fetchone()
+            if row:
+                ws = c.execute(
+                    "SELECT * FROM workspaces WHERE id=?", (row["workspace_id"],)
+                ).fetchone()
+                if ws:
+                    return _format_workspace_row(ws)
+            ws = c.execute(
+                "SELECT * FROM workspaces WHERE user_id=? OR user_id IS NULL OR user_id='' "
+                "ORDER BY created_at ASC LIMIT 1", (uid,)).fetchone()
+            if ws:
+                return _format_workspace_row(ws)
+        r = c.execute("SELECT * FROM workspaces WHERE is_active=1 LIMIT 1").fetchone()
+        if r:
+            return _format_workspace_row(r)
+    finally:
+        c.close()
     return {"id": "ws-default", "name": "默认创作者工作室", "desc": "", "is_active": 1, "config": {}}
 
 
 def set_active_workspace(wid: str) -> None:
+    """切换当前用户的活动工作区。
+
+    ⭐ 修复：不再 `UPDATE workspaces SET is_active=0`（全表置零）。
+       那等于「A 切工作区，全站用户跟着换」，并发切换还会留下多行
+       is_active=1，`LIMIT 1` 取哪行取决于物理顺序 → 刷新后随机跳。
+       有用户上下文时写 workspace_active（一用户一行）；
+       无上下文（后台任务/CLI）才保留历史的全局标记。
+    """
+    wid = str(wid or "").strip()
+    if not _SAFE_ID_RE.match(wid):
+        raise ValueError(f"非法工作区 id: {wid!r}")
+    uid = current_request_user()
     c = conn()
-    c.execute("UPDATE workspaces SET is_active=0")
-    c.execute("UPDATE workspaces SET is_active=1 WHERE id=?", (wid,))
-    c.commit()
-    c.close()
+    try:
+        if uid:
+            c.execute(
+                "INSERT OR REPLACE INTO workspace_active (user_id, workspace_id, updated_at) "
+                "VALUES (?,?,?)", (uid, wid, time.time()))
+            c.commit()
+            return
+        c.execute("UPDATE workspaces SET is_active=0")
+        c.execute("UPDATE workspaces SET is_active=1 WHERE id=?", (wid,))
+        c.commit()
+    finally:
+        c.close()
 
 
 def create_workspace(name: str, desc: str = "", config: dict | None = None) -> dict:
@@ -1628,11 +2006,13 @@ def create_workspace(name: str, desc: str = "", config: dict | None = None) -> d
     wid = uid("ws")
     cfg_dict = config or {}
     cfg_json = json.dumps(cfg_dict, ensure_ascii=False)
-    c.execute("INSERT INTO workspaces (id, name, desc, config_json, created_at, is_active) "
-              "VALUES (?,?,?,?,?,0)", (wid, name, desc, cfg_json, now()))
+    owner = current_request_user()
+    c.execute("INSERT INTO workspaces (id, name, desc, config_json, created_at, is_active, user_id) "
+              "VALUES (?,?,?,?,?,0,?)", (wid, name, desc, cfg_json, now(), owner))
     c.commit()
     c.close()
-    return {"id": wid, "name": name, "desc": desc, "config_json": cfg_json, "config": cfg_dict, "is_active": 0}
+    return {"id": wid, "name": name, "desc": desc, "config_json": cfg_json,
+            "config": cfg_dict, "is_active": 0, "user_id": owner}
 
 
 def get_workspace(wid: str) -> dict | None:

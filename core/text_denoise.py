@@ -178,6 +178,30 @@ def denoise_body_text(text: str) -> str:
     return cleaned_text.strip()
 
 
+def extract_leading_title(text: str, max_lines: int = 5) -> str:
+    """从成品文本开头提取标题。
+
+    ⭐ 必须同时兼容 `# 标题` 与净化后的 `【标题】`。
+       净化引擎会把 `# 标题` 归一成 `【标题】`（中文符号，读者不该看到 `#`），
+       只认 `# ` 的实现会静默失效：小红书标题退回草稿标题，
+       首张卡片标题变成第一小节名，排版就乱了。
+
+    开头第一行非空内容不是标题时返回空串（交由调用方回退）。
+    """
+    for line in (text or "").splitlines()[:max_lines]:
+        s = line.strip()
+        if not s:
+            continue
+        if s.startswith("# "):
+            return s[2:].strip()
+        if s.startswith("## ") or s.startswith("### "):
+            return ""
+        if s.startswith("【") and s.endswith("】") and len(s) <= 45:
+            return s.strip("【】").strip()
+        return ""
+    return ""
+
+
 def extract_section_headings(body_md: str) -> list[tuple[str, list[str]]]:
     """通读正文，提取所有小节及其正文段落列表（支持自然序号、方头括号与 Markdown 标题）。"""
     if not body_md:

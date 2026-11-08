@@ -73,10 +73,24 @@ def ensure_membership(db: Session, tenant_id: str, user_id: str) -> Membership:
     )
     if m is None:
         m = db.query(Membership).filter(Membership.user_id == user_id).first()
-        if m is not None and tenant_id:
-            m.tenant_id = tenant_id
-            db.commit()
-            db.refresh(m)
+        if m is not None:
+            # 命中「同一用户、不同租户」的历史行，只有两种正确处理：
+            #   ① 行上的 tenant_id 是历史默认标记值（'' / 'default'）→ 对齐到真实租户；
+            #   ② 行属于另一个真实租户 → 以**用户真实租户**为准，绝不搬家、也绝不新建。
+            #
+            # ⚠️ 不能像旧实现那样「直接新建一行」：memberships.user_id 上有唯一约束，
+            #    新建必然撞 UNIQUE constraint failed，整个请求 500（V10.2.1 回归就是这条）。
+            # ⚠️ 也不能无条件改写 tenant_id：调用方传什么租户行就搬到哪，
+            #    等于给了「把会员行搬进别人租户」的口子。
+            _u = db.query(User).filter(User.id == user_id).first()
+            _owner_tenant = str(getattr(_u, "tenant_id", "") or "") if _u else ""
+            if _owner_tenant in ("", "default") or _owner_tenant == str(tenant_id):
+                m.tenant_id = tenant_id
+                db.commit()
+                db.refresh(m)
+            else:
+                # 用户真实归属另一个租户 —— 这里调用方给的租户是错的，以真实租户继续。
+                tenant_id = _owner_tenant
     if m is not None:
         if reset_period_if_expired(db, m):
             db.commit()

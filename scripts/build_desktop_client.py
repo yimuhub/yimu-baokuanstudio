@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import shutil
 import zipfile
@@ -20,6 +21,20 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
+
+def _ensure_utf8_stdio() -> None:
+    """Windows 控制台默认 cp1252 / cp936，打印中文或 emoji 会抛 UnicodeEncodeError，
+    整个打包流程当场中断（CI 上表现为 Build Windows Setup 恒定失败）。
+    这里把标准输出/错误切到 UTF-8 并允许替换，宁可掉一个字符也不能让构建挂掉。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
+
+
+_ensure_utf8_stdio()
 
 import version
 
@@ -110,7 +125,8 @@ def build_windows_portable_bundle(output_dir: Path | None = None, with_runtime: 
         "pyproject.toml",
         "requirements.txt",
         ".env.example",
-        "README_ZH.md",
+        "README.md",
+        "README_EN.md",
         "一键启动.bat",
         "一键升级.bat",
         "一幕桌面客户端.vbs",
@@ -188,7 +204,8 @@ def build_unix_portable_bundle(platform_name: str) -> Path:
         "pyproject.toml",
         "requirements.txt",
         ".env.example",
-        "README_ZH.md",
+        "README.md",
+        "README_EN.md",
         "一键启动.sh",
         "一键升级.sh",
         "一键启动.command",
@@ -248,26 +265,28 @@ def try_build_native_installer(platform_name: str):
 
 
 def main():
+    """兼容入口：一律转发到 A2 全功能离线打包器。
+
+    旧实现只复制源码（``--with-runtime`` 默认 False 且函数里也没有 pip install），
+    产出的 1–3 MB 包在干净客户机上连服务都起不来。保留下面的历史函数仅供回溯，
+    实际打包统一走 ``scripts/build_full_bundle.py``。
+    """
     import argparse
-    import subprocess
-    parser = argparse.ArgumentParser(description="一幕 Studio 全平台桌面客户端打包工具")
+    from scripts.build_full_bundle import build as build_full_bundle
+    parser = argparse.ArgumentParser(description="一幕 Studio 全功能离线桌面客户端打包工具")
     parser.add_argument("--platform", choices=["win", "mac", "linux", "all"], default="all", help="目标操作系统")
-    parser.add_argument("--with-runtime", action="store_true", help="是否下载并嵌入独立 Python 运行时环境 (100%% 零配置)")
+    parser.add_argument("--with-runtime", action="store_true", help="兼容参数：全功能包恒自带运行时")
     parser.add_argument("--with-installers", action="store_true", help="是否同时生成原生安装包 (.exe / .dmg / .deb)")
+    parser.add_argument("--skip-download", action="store_true", help="只生成结构，用于本地门禁测试")
     args = parser.parse_args()
 
-    if args.platform in ("win", "all"):
-        build_windows_portable_bundle(with_runtime=args.with_runtime)
-        if args.with_installers:
-            try_build_native_installer("Windows")
-    if args.platform in ("mac", "all"):
-        build_unix_portable_bundle("macOS")
-        if args.with_installers:
-            try_build_native_installer("macOS")
-    if args.platform in ("linux", "all"):
-        build_unix_portable_bundle("Linux")
-        if args.with_installers:
-            try_build_native_installer("Linux")
+    plats = ["win", "mac", "linux"] if args.platform == "all" else [args.platform]
+    for plat in plats:
+        build_full_bundle(plat, skip=args.skip_download, pack=not args.skip_download)
+    if args.with_installers and not args.skip_download:
+        for plat, fn in (("win", "Windows"), ("mac", "macOS"), ("linux", "Linux")):
+            if plat in plats:
+                try_build_native_installer(fn)
 
 
 if __name__ == "__main__":

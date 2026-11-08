@@ -255,7 +255,8 @@
 | id | String(32) | PK | |
 | tenant_id | String(32) | FK, NOT NULL | |
 | draft_id | String(32) | FK→drafts.id, NOT NULL, 索引 | 所属草稿 |
-| version | Integer | NOT NULL | 同一草稿内从 1 递增 |
+| title | String(512) | NULL | 版本标题（core 层 add_history 写入，历史列表直接展示） |
+| version | Integer | NULL, 默认 1 | 同一草稿内从 1 递增；core 侧建表可能无此列，add_history 按需写入 |
 | body_md | Text | NOT NULL, 默认 '' | 该版本正文 |
 | score | Float | NULL | 该版本评分 |
 | created_at | DateTime(tz) | NOT NULL | |

@@ -87,8 +87,8 @@
   --border-focus: rgba(240, 136, 62, 0.5);
   --primary: #f0883e;
   --primary-grad: linear-gradient(135deg, #f0883e 0%, #ff9d55 100%);
-  --purple: #a855f7;
-  --purple-grad: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+  --purple: #f0883e;
+  --purple-grad: linear-gradient(135deg, #f0883e 0%, #f0883e 100%);
   --success: #10b981;
   --danger: #ef4444;
   --info: #3b82f6;
@@ -2545,7 +2545,7 @@ async function loadMobileXhsCards(did) {
     let cards = (rawRes && rawRes.cards) || [];
 
     if (!cards.length) {
-      const imgRes = await api(`/api/drafts/${did}/images/detail`);
+      const imgRes = await api(`/api/drafts/${did}/images_detail`);
       if (imgRes && imgRes.images && imgRes.images.length > 0) {
         cards = imgRes.images.map(img => `/img/${did}/${img.name}`);
       }
@@ -2658,7 +2658,7 @@ async function switchMobileXhsStyle(style) {
   if (!activeDraftId) return;
   toast(`🎨 正在应用「${style}」小红书排版风格…`, 2500);
   try {
-    const res = await api(`/api/drafts/${activeDraftId}/style/xhs`, {
+    const res = await api(`/api/drafts/${activeDraftId}/xhs_style`, {
       method: 'POST',
       body: JSON.stringify({ style: style })
     });

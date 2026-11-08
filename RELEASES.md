@@ -58,6 +58,210 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🎐 Version 14.0.0 · Light Mode Consistency & WorkBuddy-Style Composer · 2026-11-07
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "14.0.0"`, `__codename__ = "兰心曲"`, `__codename_en__ = "Orchid Melody"`)
+
+Light mode looked broken for one root cause: seven semantic tokens were referenced with dark fallbacks
+(`var(--card2, #0f1621)` and friends) but were **never actually defined**, so light mode inherited dark
+surfaces. The selected left-rail item rendered dark-on-dark at a **1.06 contrast ratio** — effectively
+invisible — and the empty-state guide card and the composer both came out as near-black slabs.
+On top of that the send button was squeezed into an ellipse, and "improve prompt" spun for 45 seconds
+without ever producing text.
+
+| Area | What changed |
+|---|---|
+| **Light mode tokens** | `--card2 / --border2 / --border3 / --text-dim / --active / --hover / --accbg` are now defined in both `:root` and `[data-theme="light"]`. Audited page by page: low-contrast text dropped from 22/39/57 findings to 0–1. |
+| **Inline accent colours** | Hard-coded dark-theme accents (`#f0883e`, `#58a6ff`, `#3fb950`…) only reached 1.4–3.8:1 on white. 40 attribute-selector rules fold them to a deeper shade of the same hue — no HTML restructuring. |
+| **Send button geometry** | The button was a flex child stretched to 28×42 by the textarea, turning `border-radius: 50%` into an ellipse. Now locked to 32×32 with `aspect-ratio: 1/1` and `flex: 0 0 32px` at every input height. |
+| **WorkBuddy-style composer** | Attachments, model picker and one-click prompt polish, laid out in a `cb-composer` three-band structure. Attachment chips are individually removable. |
+| **Attachments** | New `POST /api/copilot/attach` + `core/copilot_files.py`. Multi-encoding text fallbacks, docx paragraphs preserved via `word/document.xml`, pdf via pypdf, images served statically. 10 MB per file, 6 per message, 12 000-char body cap. |
+| **Prompt polish** | New `POST /api/copilot/polish_prompt` + `core/prompt_polish.py`. Uses the model when available (`source="llm"`), falls back to a platform-specific structure template otherwise (`source="template"`), and says which one it used. |
+| **Why polish was slow** | The default channel resolved to a reasoning model: unbounded it generated to the context limit (35–45 s); capped it burned every token on the chain of thought and returned an empty body. Fixed with direct-output models first, a `max_tokens` cap, an 18-second total budget and a 10-minute result cache — **45 s down to ~4 s**, and now actually model-written instead of silently templated. |
+| **`llm.chat(max_tokens=...)`** | New optional parameter. Default `None` keeps every existing long-form call bit-for-bit unchanged. |
+
+## ❄️ Version 13.0.0 · A2 Full Offline Installer · 2026-11-06
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "13.0.0"`, `__codename__ = "梅雪镜"`, `__codename_en__ = "Plum-Snow Mirror"`)
+
+The desktop installers used to be 1–3 MB because they were **source archives with an installer shell** —
+no Python runtime, no dependencies, and several required directories were missing entirely.
+On a clean machine the app could not even import `web.admin` (`ModuleNotFoundError: gateway`).
+13.0.0 rebuilds the delivery chain so every prerequisite is installed at build time.
+
+| Area | What changed |
+|---|---|
+| **Self-contained runtime** | Relocatable Python 3.11 (Windows embeddable / `python-build-standalone` on macOS & Linux) plus the full dependency set pre-installed into `runtime/site-packages`. |
+| **Built-in Chromium** | Chrome for Testing ships inside the bundle and serves both the desktop window and Playwright; no system browser needed. |
+| **Complete resources** | `gateway/`, `app/`, `skills/`, `config.yaml`, `installer/` and all other runtime directories are now included. |
+| **Official channel** | Factory config points at the official cloud gateway; bootstrap injects a bundled/claimed credential and never overwrites a user-supplied API Key. |
+| **Fresh factory quota** | Billing, demo calls and usage counters are regenerated from scratch — no developer balances or test users ship to customers. |
+| **Zero-touch installers** | `.exe`, `.dmg`, `.deb` and portable archives all exec the bundled interpreter. No venv, no pip, no Homebrew, no network. |
+| **CI gates** | Offline smoke test (`/api/version` via bundled Python) and a 90 MB archive floor on every platform; a source-only shell can no longer be published. |
+
+Expected compressed size: **roughly 250–320 MB per platform** (up from 1–3 MB), which is what a
+genuinely full-featured, zero-configuration desktop application costs.
+
+## 🎋 Version 12.1.0 · Page-Enter Data · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "12.1.0"`, `__codename__ = "竹韵篇"`, `__codename_en__ = "Bamboo Rhythm"`)
+
+Patch release on top of the right-pane stage. The stage itself was right; the pages inside it were
+still opening without their data, so several of them sat on their own loading state forever.
+
+| Area | What changed |
+|---|---|
+| **Page-enter hooks** | A single `pageLoaders` table now runs the right loader for Dashboard, Workspace, Console and Pricing the moment a page opens. Pricing no longer shows 「正在从定价中心加载套餐与权益」 forever. |
+| **Stage re-routing** | The `switchToPage` wrapper executed the stage and returned early, skipping the page's own bootstrap. It now runs the original first — hooks, data, sub-view, highlight — then moves the panel. |
+| **Re-open** | Opening the page that is already on stage reuses it instead of moving it again, so scroll position and input focus survive. |
+| **Console pipeline** | The one-line mechanism note became a five-step flow: trending sweep → pick winners → AI draft → short video → DingTalk card. |
+
+## 🌲 Version 12.0.0 · Right-Pane Stage · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "12.0.0"`, `__codename__ = "松涛境"`, `__codename_en__ = "Pinewave Realm"`)
+
+Major release. The interaction model is rebuilt around one rule: **the rail never moves,
+the conversation never moves, every feature opens on the right — and the right pane goes full screen.**
+
+| Area | What changed |
+|---|---|
+| **Middle pane** | `#p-lite-mode` is pinned. No menu click can replace the conversation. The seven feature panels are hidden from `<main>` by CSS. |
+| **Right pane** | Becomes a real stage. Clicking a rail item moves that panel into the right pane — DOM relocation, not a rewrite, so every onclick, listener, scroll position and form state survives. |
+| **Layout pivot** | Opening a feature flips the three columns: the chat shrinks to 340–400px, the stage takes the rest. |
+| **Full screen** | Button, double-click on the title, or `Esc`. `.assets` is a stacking context, so it is raised together with the stage — otherwise the rail would cover it. |
+| **Routing** | `switchToPage()` is redirected to the stage while it is open, so pages never switch in an invisible `<main>`. |
+| **Color** | Eight purple variants (100+ occurrences) collapsed into the brand orange `#f0883e`. |
+| **Detail fixes** | Rail sub-trees became an accordion; sub-tabs wrap instead of clipping; cards lost their glow borders; page headings lost their rainbow gradients; buttons no longer break into two lines. |
+
+## 🌊 Version 11.1.1 · Pixel Fixes · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.1.1"`, `__codename__ = "江河曲"`, `__codename_en__ = "River Rhapsody"`)
+
+Patch release. Four visual deviations left over from 11.1.0, found by comparing real
+screenshots against the prototype block by block. Zero feature change.
+
+| Area | What changed |
+|---|---|
+| **Brand color** | The base stylesheet pinned `.btn.primary` to a purple gradient with `!important`. Primary buttons (发布, save, generate) now use the prototype orange `#f0883e`, and the 极简 / 全能 mode pills were brought along. |
+| **Left rail footer** | The user card used to be squeezed to 50px, so 个人中心 overlapped the gear icon. Now row one holds theme / gateway / classic / control center, row two holds the full-width 个人中心 · 已登录 card. |
+| **Icon** | 控制中心 switched from a sun-like glyph to a sliders glyph, readable at 15px. |
+| **Header at narrow widths** | Below 1400px the page subtitle collapses and the mode pills tighten up. 1280 / 1366 / 1512 all measure zero overlap and `scrollWidth === innerWidth`. |
+
+## 🏔 Version 11.1.0 · Prototype Parity · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.1.0"`, `__codename__ = "山岳赋"`, `__codename_en__ = "Mountain Hymn"`)
+
+Minor release. The three-pane shell from 11.0.x only had the frame — the left rail was still the old
+two-line nav, the center was still two panels side by side, and the header had overlapping elements.
+This release rebuilds all three panes to match the prototype, with zero feature loss.
+
+| Area | What changed |
+|---|---|
+| **Left rail** | Brand block (logo + two lines) · orange **＋ 新建创作** · 30px single-line nav with line icons · expandable sub-tree (35 real entries across 8 pages) · **最近产出** list bound to live drafts · compact bottom bar |
+| **Center** | Page subtitle under the title · pill strip replacing the old chip row, with two entry icons docked right · rounded composer with circular send · "从这里开始" guide cards that disappear once the conversation starts |
+| **Right panel** | New bottom action bar: **复制 / 导出 / 发布**, wired to existing copy / zip / publish functions |
+| **Isolation** | Every new rule is scoped under `body[data-shell="v2"]`; classic mode and <1280px fallback are untouched |
+| **i18n** | All injected strings ship in Chinese and English, including the 35 sub-entries |
+
+**Verification** — full `pytest` green; ruff `F821,E9` clean; 8 pages × 1512px with zero horizontal
+overflow and zero console errors; classic mode screenshot-compared against 11.0.1.
+
+---
+
+## 🩹 Version 11.0.1 · Quality Gate Fix · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.0.1"`, `__codename__ = "沧海吟"`, `__codename_en__ = "Oceanic Ode"`)
+
+Patch release. The v11.0.0 three-pane shell is functionally unchanged — this only turns the project's own quality gates back to green.
+
+### 🔧 Fixed
+
+- **Jargon gate**: a CSS comment added during the V11 layout pass contained the internal word 「占位」, which the user-facing copy scanner (`tests/test_no_internal_jargon.py`) bans. Reworded to 「提示文案」. No behavioural change.
+- **Version-gate churn**: `tests/test_v1100_workbench_shell.py` no longer hard-codes `11.0.0` / 「长风谣」; it now cross-validates `version.py` against `release-codenames.json` (version, both codenames, last history row, no duplicate in sequence). `test_v1002` / `test_v1020` now read the expected version from `version.py` instead of repeating a literal, so future patch releases stop touching tests.
+
+### 🏷 Codename
+
+`沧海吟 / Oceanic Ode` — sequence index 4 consumed; `next_index` is now 5 (「山岳赋 / Mountain Hymn」).
+
+---
+
+## 🧭 Version 11.0.0 · Three-Pane Workbench Shell · 2026-11-04
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "11.0.0"`, `__codename__ = "长风谣"`, `__codename_en__ = "Longwind Ballad"`)
+
+The main screen is now a real workbench: **left rail (functions) · center stage (the work) · right rail (the assets)**. Nothing was rewritten — the seven existing panels, ~400 functions and 117 endpoints are untouched; the shell only re-allocates the viewport.
+
+### 🧱 Shell
+
+| # | Capability | Detail |
+|---|-----------|--------|
+| 1 | **Three columns, freely resizable** | Two 11px drag handles between the panes. Left 200–420px, right 300–680px, center never below 460px. Double-click a handle to reset; widths are remembered in `localStorage` and default sensibly by screen width (248/400 → 224/360 → 210/340). |
+| 2 | **Right rail = real assets, not a mock** | Four tabs bound to live data: **Draft** (platform switch, genuine typeset preview in a sandboxed iframe, version history with one-click rollback), **Images** (draft artwork, click-to-zoom lightbox, ← → navigation), **Videos** (`/api/video/tasks`, playable finished cuts), **Analytics** (current draft score, background tasks, asset totals). |
+| 3 | **Selection follows you** | Picking a draft in the Workbench or finishing one in Lite Mode updates the right rail instantly; navigating to the Media Studio flips it to the video tab. |
+| 4 | **Focus mode** | "⛶ Expand" fills the screen with the draft at a 940px measure; `Esc` or the floating badge returns. |
+| 5 | **Header auto-collapse** | When the center column narrows, low-priority header actions move into a "⋯ More" menu by importance, keeping the header a single 57px row on every width — no feature is dropped. |
+| 6 | **Classic mode round-trip** | `?legacy=1` / `?classic=1` renders the original interface verbatim, with a persistent "⚡ New Workbench" pill to come back. Below 1280px the app falls back to classic automatically. |
+
+### 📐 Layout Fixes Brought by the Narrower Center Column
+
+- Lite Mode's two columns compress instead of overflowing; panel sub-tabs scroll horizontally instead of wrapping into two rows.
+- Verified at 1920×1080, 1512×945, 1440×900 and 1280×800: zero horizontal overflow on all seven panels, zero console errors.
+
+---
+
+## 🩹 Version 10.3.2 · Provider Ping Auth Fix · 2026-11-03
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.3.2"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🔌 Model Service Connectivity Test
+
+| # | Fix | Detail |
+|---|-----|--------|
+| 1 | **"Test connection" always returned HTTP 401 when editing a saved model service** | The settings form deliberately clears the API-key field when you open an existing service (its placeholder says "leave blank to keep the current key"). The ping endpoint, however, used that blank field verbatim and therefore sent **no `Authorization` header at all**: the official channel answered `401 invalid api key`, a self-hosted / AgnesAI endpoint answered `401 Token not provided`. The key was never wrong — replaying the same saved key returns 200. `core/llm.resolve_provider_key()` now resolves the credential as *typed key → saved key for this service → platform key on platform endpoints*, and reports which one was used (`key_source`). |
+| 2 | **"Fetch models" had the same blind spot** | It now shares the same resolver, so testing and model discovery can no longer drift apart. `/api/models/ping` forwards `provider_id` so the backend knows which saved key to use. |
+| 3 | **Keys copied with a `Bearer ` prefix, quotes, or zero-width characters failed** | `clean_api_key()` strips prefixes, wrapping quotes, full-width spaces and zero-width junk before the header is built — no more `Bearer Bearer sk-...`. |
+| 4 | **401 messages were unactionable** | The UI now states whether a blank field will fall back to the saved key, shows which credential was validated, and on 401 says either "no API key was sent" or "this key was rejected upstream". |
+
+### 🔒 Security Boundary (unchanged)
+
+A saved key is only reused when the `base_url` you are testing matches the one stored for that service, and the platform master key is only attached to platform-owned endpoints. Pointing `base_url` at your own server still yields **no credential at all** — verified by regression tests.
+
+---
+
+## 🩹 Version 10.3.1 · Onboarding Wizard Fixes · 2026-11-03
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.3.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🚪 First-Run Onboarding
+
+| # | Fix | Detail |
+|---|-----|--------|
+| 1 | **✕ / Next / Finish did nothing** | `closeWizard()` called `modal('m-wizard').classList…` while `modal()` returned `undefined` → guaranteed `TypeError`. The dialog could never be dismissed and `POST /api/onboarding/done` was never sent, so new users were trapped in a wizard that reappeared on every reload. `modal()` now returns the element; `closeWizard()` is defensive and always persists the "done" flag. |
+| 2 | **Backdrop click / Esc didn't persist dismissal** | Both paths now route through `closeWizard()`, so closing by any means stops the wizard from coming back. |
+| 3 | **Bottom button pushed outside the viewport** | On 1366×768 laptops (and 125% scaling), `max-height:88vh` + inner scrolling hid "下一步 / 完成引导" below the fold — it looked like a dead button. The overlay now starts top-aligned with its own scroll, and each step's action bar is a sticky, opaque footer that is always visible. |
+| 4 | **Step chips were inert** | Clicking a chip now jumps back to any step already reached; not-yet-reached steps stay locked. |
+| 5 | **Failed key save still showed "done"** | Saving a self-hosted API key now aborts on failure with the button in a "saving…" state; an empty key focuses and highlights the input instead of just toasting. |
+| 6 | **Default admin never saw the wizard** | The auto-login path evaluated `wizard.show` from the pre-login response (always `false`). Status is fetched again after login, and register/login now raise the wizard immediately. |
+
+---
+
+## 🛠️ Version 10.3.0 · Stability Overhaul & Diagnostics · 2026-11-03
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.3.0"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)
+
+### 🔧 Reliability & Output Quality
+
+| # | Fix | Detail |
+|---|-----|--------|
+| 1 | **Windows rewrite always failed** | `draft_history` column migration only ran on first-time DB creation, so existing databases never received the `title` column. New drafts worked (no history row), every rewrite failed (needs history row). Migration now runs on the fast path plus a last-metre `ALTER TABLE` fallback. |
+| 2 | **Storage vs. display separation** | Body text keeps Markdown in the database so WeChat HTML can render real `<strong>`; symbols are stripped only at plain-text exits (card images, XHS/Weibo/Toutiao/Zhihu, copy, raw). |
+| 3 | **Stray `**` printed on card images** | The Pillow kicker was drawn without sanitising, so `**核心痛点**` landed on the PNG. Fixed, plus card HTML now maps `**bold**` to `<b>bold</b>`. |
+| 4 | **Silent regressions from normalisation** | `# 标题` / `### 标题` normalised to `【标题】` broke every `startswith("# ")` / `startswith("### ")` parser — XHS title lost, card sections degraded. New `extract_leading_title()` and unified `is_section_heading()`; 9 call sites fixed. |
+| 5 | **System diagnostics log** | Settings → 🩺 System Diagnostics: ring buffer + rotating file, env snapshot (OS/Python/encoding/writable dirs/`draft_history` columns), step-by-step rewrite tracing, auto-redaction of secrets, copy/save/filter/clear in the UI. |
+| 6 | **Windows CI packaging** | Build scripts printed Chinese/emoji to a `cp1252` console and crashed the installer build. Stdout now reconfigured to UTF-8; installer version is injected via `/DMyAppVersion` instead of being hard-coded in the `.iss`. |
+
+---
+
 ## 🚀 Version 10.2.1 · Native Application Installers (.exe, .dmg, .deb) · 2026-10-23
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "10.2.1"`, `__codename__ = "鸿蒙始"`, `__codename_en__ = "Primordial Dawn"`)

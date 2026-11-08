@@ -75,12 +75,12 @@ creation:
   wechat_theme: spring-fresh
 gateway:
   agent_routing: &id001
-    analyzer: agnes-3.0-flash
-    critic: agnes-3.0-flash
-    drama: agnes-3.0-flash
+    analyzer: Sage-A1.5
+    critic: Atria-Dawn
+    drama: Agents-A1
     image: agnes-image-2.5-flash
     video: agnes-video-2.5-flash
-    writer: agnes-3.0-flash
+    writer: Atria-Dawn
   base_url: http://127.0.0.1:8787/v1
   configured_models: &id002
   - category: text
@@ -92,25 +92,77 @@ gateway:
     is_enabled: true
     name: agnes-3.0-flash
   - category: image
+    id: agnes-image-2.1-flash
+    is_enabled: true
+    name: agnes-image-2.1-flash
+  - category: image
     id: agnes-image-2.5-flash
     is_enabled: true
     name: agnes-image-2.5-flash
   - category: video
-    id: agnes-video-v2.0
-    is_enabled: false
-    name: agnes-video-v2.0
-  - category: video
     id: agnes-video-2.5-flash
     is_enabled: true
     name: agnes-video-2.5-flash
+  - category: text
+    id: intern-s2
+    is_enabled: true
+    name: intern-s2
+  - category: text
+    id: Atria-Dawn
+    is_enabled: true
+    name: Atria-Dawn
+  - category: text
+    id: Agents-A1
+    is_enabled: true
+    name: Agents-A1
+  - category: text
+    id: Sage-A1.5
+    is_enabled: true
+    name: Sage-A1.5
+  - category: text
+    id: deepseek-v4.1-flash-1017
+    is_enabled: true
+    name: deepseek-v4.1-flash-1017
+  - category: text
+    id: deepseek-v4-pro-0813
+    is_enabled: true
+    name: deepseek-v4-pro-0813
+  - category: text
+    id: glm-5.3
+    is_enabled: true
+    name: glm-5.3
+  - category: text
+    id: kimi-k2.6
+    is_enabled: true
+    name: kimi-k2.6
+  - category: text
+    id: minimax-m3
+    is_enabled: true
+    name: minimax-m3
+  - category: text
+    id: qwen3.8-27b
+    is_enabled: true
+    name: qwen3.8-27b
+  - category: text
+    id: Atria-Dawn-Preview
+    is_enabled: true
+    name: Atria-Dawn-Preview
+  - category: text
+    id: deepseek-v4-flash-0731
+    is_enabled: true
+    name: deepseek-v4-flash-0731
+  - category: text
+    id: deepseek-v4-flash-vision
+    is_enabled: true
+    name: deepseek-v4-flash-vision
   deleted_providers:
   - spark
   - hunyuan
-  model: agnes-3.0-flash
+  model: Sage-A1.5
   provider_id: yimu_official
   providers:
     custom:
-      base_url: http://127.0.0.1:8787/v1
+      base_url: https://gateway.yimu.studio/v1
       configured_models:
       - category: text
         id: agnes-2.5-flash
@@ -145,7 +197,7 @@ gateway:
       agent_routing: *id001
       base_url: http://127.0.0.1:8787/v1
       configured_models: *id002
-      model: agnes-3.0-flash
+      model: Sage-A1.5
       name: 一幕·YIMU 官方
   timeout_s: 180
 image:
@@ -154,9 +206,9 @@ image:
   cover: true
   enabled: true
   model: agnes-image-2.5-flash
+  resolution: 2k
   sections: true
   size: 2048x1152
-  resolution: 2k
 platforms:
   toutiao:
     enabled: true

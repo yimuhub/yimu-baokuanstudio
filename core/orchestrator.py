@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from core import agents, db, judge, llm             # noqa: E402
+from core import diagnostics as diag                # noqa: E402
 from core.topics import collect_topics              # noqa: E402
 from core.render_card import render_draft_cards     # noqa: E402
 from core.imagegen import decorate_draft, img_dir   # noqa: E402
@@ -25,6 +26,10 @@ from adapters.base import save_preview              # noqa: E402
 from core.layouter import render as layout_render   # noqa: E402
 from core.themes import DEFAULT_CARD_STYLE, DEFAULT_THEME  # noqa: E402
 from core.title_forge import generate_candidate_titles     # noqa: E402
+# V10.2.1 修复：小红书卡片 / 长文拆段两处调用了 is_section_heading，
+# 但 import 在某次重构里被删掉了。生效路径是「LLM 提炼卖点不足 2 条」的兜底分支
+# ——也就是**很常见**的情况，一进就 NameError，小红书图文生成直接 500。
+from core.text_denoise import is_section_heading           # noqa: E402
 
 VIRAL_FORMULAS = (
     "爆款公式（参考全网百篇万赞爆款蒸馏的七式）：\n"
@@ -123,16 +128,25 @@ REVISION_PROMPT = (
 
 
 def clean_generated_markdown(text: str) -> str:
-    """全面消毒 LLM 生成的正文：剔除 think 标签、剔除代码块围栏标记、剔除 YAML frontmatter，并执行全系统级正文去噪（V9.4.5）。"""
+    """消毒 LLM 生成的正文（**存储态**）：剔除 think 标签、代码块围栏、YAML frontmatter，
+    再走系统级去噪（`denoise_body_text`）与结构性清洗（`to_storage`）。
+
+    ⭐ V10.3 架构纠偏：这里**不再剥掉 `**加粗**`**。
+       `denoise_body_text` 已把 `### 标题` 归一为`【标题】`、把 `***x***` 降为 `**x**`，
+       而 `**` 必须留给渲染层转 `<strong>`——否则公众号成品永远做不出加粗。
+       符号噪声在各展示出口（卡片图 / 小红书文案 / 复制 / raw 接口）统一清除。
+    """
     if not text:
         return ""
     from core.text_denoise import denoise_body_text
+    from core.text_purity import to_storage
     text = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.I)
     text = re.sub(r"^\s*---[\s\S]*?---\s*\n?", "", text)
     # 剥离前缀 ```markdown 或 ```
     text = re.sub(r"^\s*```(?:markdown|md|html)?\s*\n?", "", text, flags=re.I)
     text = re.sub(r"\n?\s*```\s*$", "", text)
     text = denoise_body_text(text)
+    text = to_storage(text)
     return text.strip()
 
 
@@ -280,6 +294,25 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
                        media_name: str = "一幕·YIMU 爆款工作室", platforms: list[str] | None = None,
                        generate_images: bool = True, image_style: str = ""):
     """按选中的目标平台极速重渲染产物（支持按需少生成，后续在工作台按需补充）。"""
+    # ⭐ V10.3：入口按「形态」分流，不再一刀切净化。
+    #    · BODY_WX 是公众号**正文源**（存 drafts.body_md 并渲染 HTML）→ 保留排版标记，
+    #      加粗/小节标题才能由 md_to_wechat_html 转成 <strong>/<h3>。
+    #    · BODY_XHS / BODY_TT / BODY_ZH / TEXT_WB 等是**纯文本成品**（直接粘贴发布）→ 剥掉全部标记。
+    from core.text_purity import purify_body, purify_title, to_storage
+
+    parsed = dict(parsed or {})
+    for _k, _v in list(parsed.items()):
+        if not isinstance(_v, str):
+            continue
+        if _k.startswith("TITLE"):
+            parsed[_k] = purify_title(_v)
+        elif _k in ("BODY_WX", "BODY_CORE", "body", "body_md"):
+            parsed[_k] = to_storage(_v)
+        elif _k.startswith("BODY") or _k.startswith("TEXT"):
+            parsed[_k] = purify_body(_v)
+    fallback_title = purify_title(fallback_title)
+    fallback_body = to_storage(fallback_body)
+
     selected_platforms = platforms if platforms is not None else ["wechat_mp", "xhs", "toutiao"]
     theme, card_style = _cfg_theme()
     title = (parsed.get("TITLE_WX") or fallback_title)[:40]
@@ -426,6 +459,10 @@ def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆
 
     selected_platforms = platforms if platforms is not None else ["wechat_mp", "xhs"]
 
+    # 是否退化成"占位稿"（LLM 不可用 / 调用失败）。用于埋点口径：
+    # 占位稿不能计入 first_draft_created，否则运营看到的「首次成稿率」是假的。
+    used_placeholder = False
+
     if llm.available():
         try:
             from core.search import fetch_topic_multisource_references
@@ -451,8 +488,10 @@ def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆
         except Exception:
             traceback.print_exc()
             title, body = _placeholder(topic["title"])
+            used_placeholder = True
     else:
         title, body = _placeholder(topic["title"])
+        used_placeholder = True
 
     emit(f"排版渲染与配图 [{', '.join(selected_platforms)}]…")
     cand_titles = generate_candidate_titles(title, body)
@@ -460,7 +499,13 @@ def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆
                          candidate_titles=cand_titles, user_id=user_id)
     try:
         from core import analytics
-        analytics.track("first_draft_created", str(user_id or ""), {"draft_id": draft["id"], "source": "topic"})
+        # ⭐ 口径修正：占位稿（LLM 不可用时的模板文本）单独记事件，
+        #   不再冒充 first_draft_created——否则漏斗第一级就是虚高的。
+        analytics.track(
+            "draft_created" if used_placeholder else "first_draft_created",
+            str(user_id or ""),
+            {"draft_id": draft["id"], "source": "topic", "placeholder": used_placeholder},
+        )
     except Exception:
         pass
     parsed = {"TITLE_WX": title, "BODY_WX": body,
@@ -497,6 +542,9 @@ def switch_draft_title(draft_id: str, new_title: str) -> dict:
     if not d:
         raise RuntimeError(f"草稿不存在: {draft_id}")
     new_title = (new_title or "").strip()[:80]
+    from core.text_purity import purify_title
+
+    new_title = purify_title(new_title)
     db.update_draft_title(draft_id, new_title)
     ddir = db.draft_dir(draft_id)
     theme, card_style = _cfg_theme()
@@ -634,43 +682,77 @@ def benchmark_and_rewrite(source_platform: str, source_title: str, source_url: s
 
 
 def rewrite_draft_once(draft_id: str, instruction: str = "") -> dict:
-    """按评审意见（+可选人工指令）重写一篇，并重新评分一次。"""
-    d = db.get_draft(draft_id)
-    if not d:
-        raise RuntimeError(f"草稿不存在: {draft_id}")
-    sc = judge.get_score(draft_id)
-    pre_score = (sc or {}).get("total") or 0.0  # v5.302: 记录改写前分数基线
-    feedback = ""
-    if sc:
-        feedback = (f"【上轮得分】{sc['total']}（{sc.get('grade','')}）\n"
-                    "【各维度点评】\n" +
-                    "\n".join(f"- {k}: {v}" for k, v in (sc.get("reasons") or {}).items()) +
-                    "\n【必须改进】\n" +
-                    "\n".join(f"- {x}" for x in (sc.get("improvements") or [])))
-    if instruction:
-        feedback += f"\n【人工定向要求】{instruction}"
-    db.add_history(draft_id, d["title"], d["body_md"], pre_score)
-    raw = agents.chat_for("write", [
-        {"role": "system", "content": REVISION_PROMPT},
-        {"role": "user", "content":
-            f"【原稿】\n标题：{d['title']}\n{d['body_md'][:4000]}\n\n{feedback}"}],
-        temperature=0.8)
-    parsed = _parse_rewrite(raw)
-    if not parsed.get("BODY_WX"):
-        clean_raw = clean_generated_markdown(raw)
-        if clean_raw and len(clean_raw.strip()) > 10:
-            parsed["BODY_WX"] = clean_raw
-            parsed["TITLE_WX"] = d["title"]
-        else:
-            raise RuntimeError("重写返回内容过短或为空，请检查模型连接")
-    _refresh_artifacts(draft_id, parsed, d["title"], d["body_md"], generate_images=False)
-    # v5.302: 传入 min_score=pre_score，确保打分结果不低于改写前
+    """按评审意见（+可选人工指令）重写一篇，并重新评分一次。
+
+    ⭐ 整条链路带诊断埋点：失败时日志能指出卡在第几步（读稿/写历史/调模型/
+    解析/重建产物/评分），不必再靠猜。这也是 Windows 端"改写失败"的定位依据。
+    """
+    t0 = time.perf_counter()
+
+    def _s(name: str, **kw):
+        diag.step("rewrite", "draft_rewrite_once", name, draft_id=draft_id, **kw)
+
     try:
-        score = judge.judge_draft(draft_id, min_score=pre_score)
-    except Exception as je:
-        logger.warning(f"改写后打分提示: {je}")
-        score = judge.get_score(draft_id) or {"total": max(pre_score + 2.0, 85.0), "grade": "良好"}
-    return {"score": score, "draft": db.get_draft(draft_id)}
+        _s("读取草稿")
+        d = db.get_draft(draft_id)
+        if not d:
+            raise RuntimeError(f"草稿不存在: {draft_id}")
+        title = d.get("title") or ""
+        body_md = d.get("body_md") or ""
+        _s("读取上一轮评分", body_len=len(body_md))
+        sc = judge.get_score(draft_id)
+        pre_score = (sc or {}).get("total") or 0.0  # v5.302: 记录改写前分数基线
+        feedback = ""
+        if sc:
+            feedback = (f"【上轮得分】{sc['total']}（{sc.get('grade','')}）\n"
+                        "【各维度点评】\n" +
+                        "\n".join(f"- {k}: {v}" for k, v in (sc.get("reasons") or {}).items()) +
+                        "\n【必须改进】\n" +
+                        "\n".join(f"- {x}" for x in (sc.get("improvements") or [])))
+        if instruction:
+            feedback += f"\n【人工定向要求】{instruction}"
+        _s("写入历史版本")
+        try:
+            db.add_history(draft_id, title, body_md, pre_score)
+        except Exception as he:
+            # ⭐ 历史版本只用于回滚，存不下不该让整次改写失败。
+            #   真实事故：Windows 端旧库 schema 未迁移 → add_history 抛
+            #   "no column named title"，而新建草稿不调它 → 表现为
+            #   「新建正常、所有改写方式全失败」。这里降级为告警并继续。
+            logger.warning("改写前历史版本保存失败（不阻断改写）: %s", he)
+            diag.record("rewrite", "draft_rewrite_once", status="warn",
+                        detail=f"add_history 失败，已跳过: {he}", draft_id=draft_id)
+        _s("调用大模型重写")
+        raw = agents.chat_for("write", [
+            {"role": "system", "content": REVISION_PROMPT},
+            {"role": "user", "content":
+                f"【原稿】\n标题：{title}\n{body_md[:4000]}\n\n{feedback}"}],
+            temperature=0.8)
+        _s("解析模型返回", raw_len=len(raw or ""))
+        parsed = _parse_rewrite(raw)
+        if not parsed.get("BODY_WX"):
+            clean_raw = clean_generated_markdown(raw)
+            if clean_raw and len(clean_raw.strip()) > 10:
+                parsed["BODY_WX"] = clean_raw
+                parsed["TITLE_WX"] = title
+            else:
+                raise RuntimeError("重写返回内容过短或为空，请检查模型连接")
+        _s("重建多端产物")
+        _refresh_artifacts(draft_id, parsed, title, body_md, generate_images=False)
+        _s("重新评分")
+        # v5.302: 传入 min_score=pre_score，确保打分结果不低于改写前
+        try:
+            score = judge.judge_draft(draft_id, min_score=pre_score)
+        except Exception as je:
+            logger.warning(f"改写后打分提示: {je}")
+            score = judge.get_score(draft_id) or {"total": max(pre_score + 2.0, 85.0), "grade": "良好"}
+        diag.record("rewrite", "draft_rewrite_once", status="ok",
+                    elapsed=time.perf_counter() - t0, draft_id=draft_id)
+        return {"score": score, "draft": db.get_draft(draft_id)}
+    except Exception as exc:
+        diag.capture_exc("rewrite", "draft_rewrite_once", exc,
+                         elapsed=time.perf_counter() - t0, draft_id=draft_id)
+        raise
 
 
 # 各平台专属重写提示词
@@ -729,11 +811,20 @@ PLATFORM_REWRITE_PROMPTS = {
 def rewrite_single_platform(draft_id: str, platform: str, instruction: str = "") -> dict:
     """对单个平台进行专属重写/重排，只更新该平台文件，不影响其他平台。
     
-    v3.33新增功能。
+    v3.33新增功能。整条链路带诊断埋点，失败时能看出卡在哪一步。
     """
+    t0 = time.perf_counter()
+
+    def _s(name: str, **kw):
+        diag.step("rewrite", "rewrite_single_platform", name,
+                  draft_id=draft_id, platform=platform, **kw)
+
+    _s("读取草稿")
     d = db.get_draft(draft_id)
     if not d:
         raise RuntimeError(f"草稿不存在: {draft_id}")
+    title = d.get("title") or ""
+    body_md = d.get("body_md") or ""
     
     prompt = PLATFORM_REWRITE_PROMPTS.get(platform)
     if not prompt:
@@ -742,28 +833,38 @@ def rewrite_single_platform(draft_id: str, platform: str, instruction: str = "")
     # 构建上下文：原标题+原正文+可选指令
     extra = f"\n\n【创作定向要求】{instruction}" if instruction else ""
     user_content = (
-        f"【原草稿主题/标题】{d['title']}\n"
-        f"【原正文内容】\n{d['body_md'][:3000]}"
+        f"【原草稿主题/标题】{title}\n"
+        f"【原正文内容】\n{body_md[:3000]}"
         f"{extra}"
     )
     
     # 保存历史版本
-    db.add_history(draft_id, d["title"], d["body_md"],
-                   (judge.get_score(draft_id) or {}).get("total"))
+    _s("写入历史版本", body_len=len(body_md))
+    try:
+        db.add_history(draft_id, title, body_md,
+                       (judge.get_score(draft_id) or {}).get("total"))
+    except Exception as he:
+        # 同 rewrite_draft_once：历史版本写不进去不能导致改写整体失败
+        logger.warning("改写前历史版本保存失败（不阻断改写）: %s", he)
+        diag.record("rewrite", "rewrite_single_platform", status="warn",
+                    detail=f"add_history 失败，已跳过: {he}",
+                    draft_id=draft_id, platform=platform)
     
     ddir = db.draft_dir(draft_id)
     updated = {}
     if platform == "xhs" and not (instruction or "").strip():
+        _s("小红书卡片流水线")
         _, card_style = _cfg_theme()
         res = ai_xhs_upgrade_pipeline(draft_id, style=card_style or "ai_visual_dark", emit=None)
-        updated = {"xhs_title": res.get("title", d["title"]), "xhs_body": res.get("text", "")}
+        updated = {"xhs_title": res.get("title", title), "xhs_body": res.get("text", "")}
         return {"ok": True, "platform": platform, "updated": updated, "draft": db.get_draft(draft_id)}
 
+    _s("调用大模型改写")
     raw = agents.chat_for("write", [
         {"role": "system", "content": prompt},
         {"role": "user", "content": user_content}],
         temperature=0.85)
-    
+    _s("解析并写入平台文件", raw_len=len(raw or ""))
     # 解析并写入对应平台文件
     if platform == "wechat_mp":
         parsed = _parse_rewrite(raw)
@@ -1196,10 +1297,9 @@ def save_xhs_history_snapshot(draft_id: str, note: str = "") -> dict | None:
     if xhs_file.exists():
         xhs_content = xhs_file.read_text(encoding="utf-8")
         shutil.copy2(xhs_file, target_dir / "xhs.md")
-        for l in xhs_content.splitlines():
-            if l.strip().startswith("# "):
-                title = l.strip()[2:].strip()
-                break
+        # 兼容 `# 标题` 与净化后的 `【标题】`
+        from core.text_denoise import extract_leading_title
+        title = extract_leading_title(xhs_content)
     if not title:
         d = db.get_draft(draft_id)
         title = (d or {}).get("title", "小红书图文")
@@ -1521,8 +1621,21 @@ def change_xhs_style(draft_id: str, style: str = "magazine") -> dict:
     xhs_f = ddir / "xhs.md"
     text = xhs_f.read_text(encoding="utf-8") if xhs_f.exists() else d["body_md"]
 
+    # ⭐ 首行可能是 `# 标题`，也可能是净化后的 `【标题】`——两种都要认。
+    #    若把主标题当小节（`【标题】` 会被 is_section_heading 命中），
+    #    首张卡片标题就会变成主标题、正文却挂在小节下，版面直接错位。
+    from core.text_denoise import extract_leading_title
+    leading = extract_leading_title(text)
+    if leading:
+        title = leading
+
     sections = []
     lines = text.splitlines()
+    if leading:
+        for _i, _l in enumerate(lines):
+            if _l.strip():
+                lines = lines[_i + 1:]
+                break
     cur_title = None
     cur_paras = []
 
@@ -2074,4 +2187,7 @@ def clean_xhs_text(text: str, title: str = "") -> str:
             unique_tags.append(t_clean)
 
     tag_str = " ".join([f"#{t}" for t in unique_tags[:5]])
-    return f"{body_res}\n\n{tag_str}"
+    # 统一净化兜底：清掉链接语法、表格竖线、引用符号等上面没覆盖的标记
+    from core.text_purity import purify_body
+
+    return purify_body(f"{body_res}\n\n{tag_str}")

@@ -79,7 +79,7 @@ yimu-baokuanstudio/
 ├── ci.sh                   # ⭐ 一键 CI 四道门禁检验脚本
 ├── LICENSE                 # BSL 1.1 开源代码源许可证
 ├── README.md               # 官方纯英文说明文档
-└── README_ZH.md            # 官方简体中文说明文档
+└── README_EN.md            # English documentation（README.md 为中文默认）
 ```
 
 ---

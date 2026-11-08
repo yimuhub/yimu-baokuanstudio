@@ -63,11 +63,23 @@ def generate_candidate_titles(current_title: str, body_text: str, model: Optiona
             if isinstance(items, list) and len(items) >= 3:
                 for it in items:
                     it["type_name"] = it.get("type", "爆款公式")
-                return items[:5]
+                return _purify_titles(items[:5])
     except Exception:
         pass
 
     fallback = _fallback_titles(current_title)
     for it in fallback:
         it["type_name"] = it.get("type", "爆款公式")
-    return fallback
+    return _purify_titles(fallback)
+
+
+def _purify_titles(items: list[dict]) -> list[dict]:
+    """赛马标题会直接展示给用户挑，不能带 `**`、`##`、`#话题` 之类的标记。"""
+    from core.text_purity import purify_title
+
+    out = []
+    for it in items:
+        if isinstance(it, dict):
+            it = {**it, "title": purify_title(str(it.get("title") or ""))}
+        out.append(it)
+    return out

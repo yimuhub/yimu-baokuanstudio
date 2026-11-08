@@ -117,14 +117,16 @@ def create_order(
         actor: 操作者（用户自助下单时为 user_id，管理员代下单为管理员 id）。
 
     Returns:
-        含订单 id / 金额 / CDKey / 支付指引的 dict。
+        含订单 id / 金额 / 支付指引的 dict（**不含卡密**，见下方说明）。
 
-    ⚠️ 关键设计：**卡密在「下单」时就生成并返回给用户**（而不是等付款后才给）。
-       因为卡密额度只在「兑换」时才真正发放到 memberships，
-       即用户付款前自己把卡密兑换掉也不损失什么（那相当于他已付费却没付款，
-       是平台营收损失；因此 :func:`confirm_order_paid` 之前的兑换应视为
-       「预支额度」，运营核销时务必先确认是否已收到款）。
-       这是手工核销方案的固有取舍，已在价格页与下单页明示。
+    ⚠️ 为什么下单时生成卡密却**不返回**给用户：
+       卡密与 redeem 同源（都写 invites 表），下单时就必须生成，
+       否则「付款后立刻拿码兑换」这条链路无处可取码。
+       但若在下单响应里就下发卡密，用户可以不付钱直接兑换——
+       这曾是 0 元开通漏洞的一半（另一半是用户可自助 activate 确认收款，
+       已改为仅管理员且必须 paid）。
+       现在卡密只在订单 ``status == "paid"`` 时通过
+       :func:`_order_view` 下发，用户到「我的订单」自取。
     """
     from ..pricing import _sync_from_disk
     _sync_from_disk()
@@ -188,7 +190,15 @@ def create_order(
 
 
 def _order_view(db: Session, order: Order) -> dict:
-    """订单对外视图（含卡密；退款后不再返回卡密明文）。"""
+    """订单对外视图。
+
+    🔴 卡密只在 ``status == "paid"`` 时下发。修复前是
+    ``status != "refunded"``——意味着**下单瞬间**用户就拿到了卡密，
+    可以不付钱直接兑换（卡密额度在兑换时才真正发放），配合当时
+    用户可自助调用 activate 确认收款，构成完整的 0 元开通链路。
+    现在：付款前返回空串，运营在后台确认收款后用户再到
+    「我的订单」里取码兑换。
+    """
     return {
         "id": order.id,
         "plan": order.plan,
@@ -196,7 +206,7 @@ def _order_view(db: Session, order: Order) -> dict:
         "amount_cents": int(order.amount_cents),
         "amount_yuan": round(int(order.amount_cents) / 100.0, 2),
         "status": order.status,
-        "cdkey": order.cdkey if order.status != "refunded" else "",
+        "cdkey": order.cdkey if order.status == "paid" else "",
         "refunded_credits": int(order.refunded_credits),
         "note": order.note,
         "created_at": _iso(order.created_at),

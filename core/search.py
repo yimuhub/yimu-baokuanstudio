@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 import json
+import re
 import subprocess
 import sys
 import urllib.parse
@@ -124,10 +125,8 @@ def toutiao_search(keyword: str, limit: int = 12) -> list[dict]:
     kw = urllib.parse.quote(keyword)
     out, seen = [], set()
     with sync_playwright() as p:
-        try:
-            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
-        except Exception:
-            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check"])
+        from core.browser_path import launch_chromium
+        browser = launch_chromium(p.chromium, headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
         ctx = browser.new_context(user_agent=UA, viewport={"width": 1440, "height": 900})
         pg = ctx.new_page()
         pg.goto(f"https://so.toutiao.com/search?dvpf=pc&source=input&keyword={kw}",
@@ -194,10 +193,8 @@ def toutiao_detail(url: str) -> str:
         return ""
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
-        try:
-            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
-        except Exception:
-            browser = p.chromium.launch(headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check"])
+        from core.browser_path import launch_chromium
+        browser = launch_chromium(p.chromium, headless=True, args=["--headless=new", "--no-sandbox", "--disable-gpu", "--mute-audio", "--no-first-run", "--no-default-browser-check", "--window-position=-32000,-32000"])
         pg = browser.new_context(user_agent=UA).new_page()
         try:
             pg.goto(url, timeout=25000, wait_until="domcontentloaded")
@@ -371,10 +368,62 @@ def search_all(keyword: str, sources: list[str], limit: int = 12) -> dict:
     return res
 
 
+# ── 参考源质量闸门 ─────────────────────────────────────────────────
+# 线上事故：极简模式把百度广告位/站群里的「扒开让我 蜜桃视频/网站最新版下载…
+# 2265安卓网」当成"全网真实爆款文章"，既展示给用户，又被当作"唯一事实蓝本"塞进
+# 提示词，导致整篇稿子跑题写成山寨 APP。参考源必须过滤——宁缺毋滥。
+_SPAM_TOKENS = (
+    "安卓网", "安卓版", "apk", "破解版", "免费版", "绿色版",
+    "蜜桃", "激情", "少妇", "午夜", "撸", "色情", "黄片",
+)
+_SPAM_HOSTS = (
+    "2265.com", "99danji", "pc6.com", "duote.com", "ddooo.com",
+    "xiazaiba", "cr173", "onlinedown", "downxia", "xiazai",
+)
+_VER_RE = re.compile(r"[vV]\.?\d+\.\d+\.\d+")
+
+
+def _accept_reference(title: str, url: str, snippet: str, keyword: str) -> bool:
+    """判断一条检索结果是否值得作为创作参考。
+
+    两道闸：
+    ① 明显是软件下载站 / SEO 站群 / 软色情引流的标题直接丢弃；
+    ② 与检索主题无任何字面交集（≥2 字连续片段）的丢弃。
+       关键词没命中却把广告位填满，是本次事故的直接成因。
+    """
+    t = (title or "").strip()
+    if not t:
+        return False
+    if "百度百科" in t:
+        return False
+
+    lowered = t.lower()
+    if any(tok in lowered for tok in _SPAM_TOKENS):
+        return False
+    if any(h in (url or "").lower() for h in _SPAM_HOSTS):
+        return False
+    # 「v1.2.3」+「下载/版」是软件下载页的典型签名
+    if _VER_RE.search(t) and ("下载" in t or "版" in t):
+        return False
+    if "下载" in t and ("安卓" in t or "安装包" in t):
+        return False
+
+    kw = re.sub(r"\s+", "", keyword or "")
+    if len(kw) >= 2:
+        hay = (t + " " + (snippet or "")).lower()
+        grams = {kw[i:i + 2] for i in range(len(kw) - 1)}
+        if not any(g in hay for g in grams):
+            return False
+    return True
+
+
 def fetch_topic_multisource_references(query: str, limit: int = 5) -> list[dict]:
     """根据主题关键词，从全网检索并深度抓取 3~5 篇主流网页的真实标题、正文摘要与核心论点。
     支持微信公众号、百度全网深度文章、今日头条，返回结构：
     [{"title": ..., "source": ..., "snippet": ..., "url": ...}, ...]
+
+    返回前会过 ``_accept_reference`` 两道闸：与主题无关、或属于下载站/站群的条目
+    一律不进结果集。全部被滤掉时返回空列表——调用方必须能处理"没有参考源"。
     """
     import urllib.parse
     import httpx
@@ -409,9 +458,11 @@ def fetch_topic_multisource_references(query: str, limit: int = 5) -> list[dict]
                 text_block = res.get_text(" ", strip=True)
                 # 清洗多余空格和常见标签
                 text_clean = " ".join(text_block.split())
-                seen_titles.add(title)
                 a_tag = t_el.select_one("a")
                 target_url = a_tag.get("href", "") if a_tag else ""
+                if not _accept_reference(title, target_url, text_clean, kw):
+                    continue
+                seen_titles.add(title)
                 articles.append({
                     "title": title,
                     "source": "全网深度文章",
@@ -437,9 +488,11 @@ def fetch_topic_multisource_references(query: str, limit: int = 5) -> list[dict]
                     title = t_el.get_text(strip=True)
                     if title in seen_titles:
                         continue
-                    seen_titles.add(title)
                     snippet = p_el.get_text(strip=True) if p_el else ""
                     src_name = src_el.get_text(strip=True) if src_el else "微信公众号热文"
+                    if not _accept_reference(title, t_el.get("href", ""), snippet, kw):
+                        continue
+                    seen_titles.add(title)
                     articles.append({
                         "title": title,
                         "source": f"微信公众号 · {src_name}",
@@ -459,6 +512,10 @@ def fetch_topic_multisource_references(query: str, limit: int = 5) -> list[dict]
             tt_items = toutiao_search(kw, limit=limit)
             for it in tt_items:
                 if it["title"] in seen_titles:
+                    continue
+                if not _accept_reference(
+                    it["title"], it.get("url", ""), it.get("snippet", ""), kw
+                ):
                     continue
                 seen_titles.add(it["title"])
                 articles.append({

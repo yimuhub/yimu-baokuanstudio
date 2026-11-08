@@ -10,6 +10,9 @@ venv/
 .env.*
 !.env.example
 .pytest_cache/
+# pytest 临时目录（CI/本地跑测试时可能指到仓库内，避免误提交）
+.pytest-tmp*/
+.pytest_tmp/
 .mypy_cache/
 .ruff_cache/
 
@@ -70,6 +73,11 @@ docs/*需求*.md
 docs/DEDUP*.md
 docs/REVIEW*.md
 docs/AUDIT*.md
+
+# 原型与内部审查报告（开发过程产物，不入公开仓库；本地保留即可）
+prototype/
+*审查报告*.md
+*深度审查*.md
 
 
 

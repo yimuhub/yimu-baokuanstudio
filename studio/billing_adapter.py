@@ -248,6 +248,27 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
             return {"ok": True, "msg": "兑换成功！已升级为 MCN 机构版并获得配额"}
         amt = inv.credits_grant or 0
         bal = grant_tokens(db, tenant_id, user_id, amt, "兑换卡密: " + code)
+        # R5-4 邀请奖励：核销时给邀请人发 20%，并写 invite_referrals 关系表。
+        # 🔴 修复前这一步只存在于 studio.membership.service.redeem_invite，
+        #    而生产环境的兑换入口（本函数）与注册入口都没调用它，
+        #    于是「邀请奖励永不发放」——邀请人一分钱拿不到，裂变等于没有。
+        inviter_reward = 0
+        try:
+            from studio.db_models import Tenant as _Tenant, User as _User
+            from .membership.service import _reward_inviter
+            _t = db.query(_Tenant).filter(_Tenant.id == tenant_id).first()
+            _u = db.query(_User).filter(_User.id == user_id).first()
+            if _t is not None and _u is not None:
+                inviter_reward, _inviter_id = _reward_inviter(db, _t, inv, _u)
+                if inviter_reward:
+                    db.commit()
+        except Exception as _e:
+            # 发奖失败绝不能回滚已到账的额度：这里只记日志
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            print(f"[邀请] 邀请人奖励发放失败（不影响被邀请人到账）: {_e}")
         # 若该卡密来自套餐购买订单（orders.cdkey），同步升级用户会员档位并更新订单状态
         upgraded_plan = ""
         try:
@@ -300,7 +321,8 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
                 "balance": bal,
                 "tier": upgraded_plan,
             }
-        return {"ok": True, "msg": "兑换成功！已为账户注入 %s 点数" % f"{amt:,}", "balance": bal}
+        return {"ok": True, "msg": "兑换成功！已为账户注入 %s 点数" % f"{amt:,}",
+                "balance": bal, "credits": int(amt), "inviter_reward": int(inviter_reward)}
     except Exception:
         db.rollback()
         db.execute(

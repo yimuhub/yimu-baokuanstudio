@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # ==============================================================================
-#  一幕·YIMU 爆款工作室 (YIMU Studio) - Linux .deb 原生应用安装包构建脚本
+#  一幕·YIMU 爆款工作室 - Linux .deb 全功能离线安装包
+#  基于 dist/bundle_linux（自带 Python / 全量依赖 / 内置 Chromium / 出厂配额）
+#  客户机上不装 Python、不建 venv、不跑 pip、不联网即可启动。
 # ==============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DIST_DIR="$ROOT_DIR/dist"
+BUNDLE_DIR="$DIST_DIR/bundle_linux"
 
 cd "$ROOT_DIR"
 
@@ -16,17 +19,24 @@ STAGE_DIR="$DIST_DIR/deb_stage/$PKG_NAME"
 OUTPUT_DEB="$DIST_DIR/$PKG_NAME.deb"
 
 echo "============================================================"
-echo "  🐧 开始构建 Linux 原生安装包 (.deb): V${VERSION}"
+echo "  开始构建 Linux 全功能离线安装包 (.deb): V${VERSION}"
 echo "============================================================"
 
-# 1. 清理并创建 deb 包目录结构
-rm -rf "$STAGE_DIR"
-mkdir -p "$STAGE_DIR/DEBIAN"
-mkdir -p "$STAGE_DIR/opt/yimu-studio"
-mkdir -p "$STAGE_DIR/usr/bin"
-mkdir -p "$STAGE_DIR/usr/share/applications"
+if [ ! -f "$BUNDLE_DIR/MANIFEST.json" ]; then
+  echo "未发现完整 bundle，先构建全功能离线包 ..."
+  python3 scripts/build_full_bundle.py --platform linux --no-pack
+fi
+if ! grep -q 'A2-full-offline' "$BUNDLE_DIR/MANIFEST.json"; then
+  echo "错误: bundle_linux 不是 A2 全功能离线包，拒绝产出只有源码的安装器" >&2
+  exit 1
+fi
 
-# 2. 生成 DEBIAN/control 元数据
+rm -rf "$STAGE_DIR"
+mkdir -p "$STAGE_DIR/DEBIAN" "$STAGE_DIR/opt/yimu-studio" "$STAGE_DIR/usr/bin" \
+         "$STAGE_DIR/usr/share/applications" "$STAGE_DIR/usr/share/icons"
+
+# Depends 只保留内置 Chromium 与原生窗口需要的系统图形/音频库；
+# 系统 Python 与 pip 不再是依赖，apt 也不会在客户机上跑任何安装脚本。
 cat <<EOF > "$STAGE_DIR/DEBIAN/control"
 Package: yimu-studio
 Version: ${VERSION}
@@ -34,35 +44,33 @@ Section: video
 Priority: optional
 Architecture: amd64
 Maintainer: YIMU Studio Team <support@hyipf.com>
-Depends: python3 (>= 3.10), python3-venv, python3-pip, curl
-Description: 一幕·YIMU 爆款工作室桌面客户端
- 全自主 Multi-Agent 全媒体内容与影视短剧创作系统原生桌面客户端，
- 支持热榜挖掘、爆款仿写、AI配图、口播TTS与视频渲染。
+Depends: libc6, libnss3, libatk-bridge2.0-0, libgtk-3-0, libgbm1, libasound2, libxss1
+Description: 一幕·YIMU 爆款工作室桌面客户端（全功能离线版）
+ 全自主 Multi-Agent 全媒体内容与影视短剧创作系统。
+ 内置 Python 运行时、全量依赖与浏览器内核，安装后即可离线启动。
 EOF
 
-# 3. 复制项目代码与资源到 /opt/yimu-studio
-echo "正在注入项目代码与运行时资源..."
-cp -R core studio web adapters docs requirements.txt version.py pyproject.toml desktop.py .env.example "$STAGE_DIR/opt/yimu-studio/"
-mkdir -p "$STAGE_DIR/opt/yimu-studio/data" "$STAGE_DIR/opt/yimu-studio/logs" "$STAGE_DIR/opt/yimu-studio/runs"
+echo "正在注入完整离线 bundle ..."
+cp -R "$BUNDLE_DIR"/. "$STAGE_DIR/opt/yimu-studio/"
 
-# 4. 生成 /usr/bin/yimu-studio 系统命令引导
+# 应用图标：hicolor 多尺寸 PNG，桌面环境按需取用
+if [ -d "$ROOT_DIR/installer/icons/hicolor" ]; then
+  mkdir -p "$STAGE_DIR/usr/share/icons/hicolor"
+  cp -R "$ROOT_DIR/installer/icons/hicolor/." "$STAGE_DIR/usr/share/icons/hicolor/"
+  echo "已注入应用图标: hicolor 多尺寸 PNG"
+else
+  echo "警告: 缺少 installer/icons/hicolor，桌面图标会显示为系统占位图" >&2
+fi
+
 cat <<'EOF' > "$STAGE_DIR/usr/bin/yimu-studio"
 #!/usr/bin/env bash
 set -e
 INSTALL_DIR="/opt/yimu-studio"
-cd "$INSTALL_DIR"
-
-# 检查虚拟环境
-if [ ! -d ".venv" ]; then
-  python3 -m venv .venv
-  .venv/bin/pip install -r requirements.txt
-fi
-
-exec .venv/bin/python desktop.py "$@"
+cd "$INSTALL_DIR/app"
+exec "$INSTALL_DIR/runtime/bin/python3" "$INSTALL_DIR/app/desktop.py" "$@"
 EOF
 chmod 755 "$STAGE_DIR/usr/bin/yimu-studio"
 
-# 5. 生成系统桌面快捷方式 /usr/share/applications/yimu-studio.desktop
 cat <<EOF > "$STAGE_DIR/usr/share/applications/yimu-studio.desktop"
 [Desktop Entry]
 Version=1.0
@@ -71,33 +79,39 @@ Name=一幕·YIMU 爆款工作室
 GenericName=影视短剧与爆款图文创作平台
 Comment=全自主 Multi-Agent 全媒体内容与影视短剧创作系统
 Exec=/usr/bin/yimu-studio
-Icon=video-x-generic
+Icon=yimu-studio
 Terminal=false
 Categories=AudioVideo;Development;AudioVideoEditing;
 Keywords=YIMU;Video;Studio;MediaFlow;
 EOF
 chmod 644 "$STAGE_DIR/usr/share/applications/yimu-studio.desktop"
 
-# 6. 生成 DEBIAN/postinst
 cat <<'EOF' > "$STAGE_DIR/DEBIAN/postinst"
 #!/bin/sh
 set -e
-chmod -R 777 /opt/yimu-studio/data /opt/yimu-studio/logs /opt/yimu-studio/runs 2>/dev/null || true
-echo "一幕·YIMU 爆款工作室已成功安装至 /opt/yimu-studio。"
-echo "您可以在系统应用菜单搜索【一幕·YIMU 爆款工作室】直接启动，或在终端输入 yimu-studio 启动。"
+chmod -R 777 /opt/yimu-studio/app/data /opt/yimu-studio/app/logs /opt/yimu-studio/app/runs 2>/dev/null || true
+chmod 755 /opt/yimu-studio/runtime/bin/python3 /usr/bin/yimu-studio 2>/dev/null || true
+# 刷新图标缓存，让应用菜单立即显示 logo 而不是占位图
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache -f -t /usr/share/icons/hicolor >/dev/null 2>&1 || true
+elif command -v update-icon-caches >/dev/null 2>&1; then
+  update-icon-caches /usr/share/icons/hicolor >/dev/null 2>&1 || true
+fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+fi
+echo "一幕·YIMU 爆款工作室已安装完成，直接在应用菜单启动即可（无需安装 Python 或配置环境）。"
 exit 0
 EOF
 chmod 755 "$STAGE_DIR/DEBIAN/postinst"
 
-# 7. 打包 DEB (需在 dpkg-deb 可用环境或 Linux runner 中执行)
 if command -v dpkg-deb >/dev/null 2>&1; then
   echo "正在使用 dpkg-deb 打包 .deb 安装文件..."
   dpkg-deb --build "$STAGE_DIR" "$OUTPUT_DEB"
   echo "============================================================"
-  echo "✅ Linux 原生 DEB 安装包打包成功: $OUTPUT_DEB"
+  echo "Linux 全功能 DEB 安装包构建成功: $OUTPUT_DEB"
   ls -lh "$OUTPUT_DEB"
   echo "============================================================"
 else
-  echo "⚠️ 当前系统无 dpkg-deb 工具，构建目录已就绪: $STAGE_DIR"
-  echo "💡 该脚本在 GitHub Actions (ubuntu-latest) 流水线中将全自动打包输出 .deb 安装包。"
+  echo "当前系统无 dpkg-deb，构建目录已就绪: $STAGE_DIR"
 fi

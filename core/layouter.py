@@ -6,10 +6,12 @@ from core.themes import (
     md_to_wechat_html,
     list_themes,
     get_theme,
-    _dedupe_wechat_html_images,
     DEFAULT_THEME,
     WECHAT_THEMES,
 )
+# 注意：本模块在下面自己实现了一份 _dedupe_wechat_html_images（带「连续相邻 <img>
+# 防堆叠」守卫），因此不再从 core.themes 导入同名函数——两者同名会让「到底跑的
+# 是哪一份」长期说不清，Lint 也一直是 F811。
 
 
 def render(body_md: str, title: str = "", theme: str = "caozhou",

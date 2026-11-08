@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: BUSL-1.1
+# ==============================================================================
+#  单独补齐某个已发布 Release 的 macOS 全功能安装包
+#
+#  背景：build-desktop-client.yml 的 macOS 作业曾因写死 macos-14 镜像标签而
+#  「零步骤 cancelled」，v13.0.0 / v14.0.0 的 Release 都缺 .dmg。重新跑整个
+#  三平台流水线会连坐已发好的 Win/Linux 产物，这里只跑 macOS 并把资产追加到
+#  指定 tag，不动 Release 说明、不动其它平台的资产。
+#
+#  用法：Actions → Build macOS Installer (standalone) → Run workflow → 填 tag。
+# ==============================================================================
+name: Build macOS Installer (standalone)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要补齐 macOS 资产的 Release tag（例如 v14.0.0）'
+        required: true
+        default: 'v14.0.0'
+
+permissions:
+  contents: write
+
+env:
+  PYTHONIOENCODING: utf-8
+  PYTHONUTF8: "1"
+  YIMU_OFFICIAL_BOOTSTRAP_KEY: ${{ secrets.YIMU_OFFICIAL_BOOTSTRAP_KEY }}
+
+jobs:
+  build-macos:
+    name: Build & attach macOS A2 full offline installer
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build-side dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build A2 full offline bundle (runtime + deps + Chromium + resources)
+        run: python scripts/build_full_bundle.py --platform mac
+
+      - name: Offline smoke test and size gate
+        run: python scripts/verify_bundle.py --platform mac --strict-chromium
+
+      - name: Build macOS DMG (.dmg)
+        run: bash scripts/build_macos_dmg.sh
+
+      - name: Attach assets to the existing release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          files=()
+          for f in dist/*.dmg dist/*.tar.gz; do
+            [ -f "$f" ] || continue
+            mb=$(du -m "$f" | cut -f1)
+            if [ "$mb" -lt 90 ]; then
+              echo "::error::$f 仅 ${mb} MB，疑似退化成源码壳"
+              exit 1
+            fi
+            files+=("$f")
+          done
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::没有生成任何 macOS 安装包"
+            exit 1
+          fi
+          echo "待上传：${files[*]}"
+          gh release upload "$TAG" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"
+          echo "== Release $TAG 当前资产 =="
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[].name'

@@ -8,6 +8,7 @@ v2：仿写按钮禁用态+进度、toast、草稿左右分栏工作区、手机
 from __future__ import annotations
 import asyncio
 import hashlib
+import logging
 import re
 import json
 import sys
@@ -16,6 +17,23 @@ import uuid
 from contextvars import ContextVar
 from pathlib import Path
 from typing import Optional, List, Dict, Any
+
+# 模块级 logger：历史上 advideo / aivideo 两处 except 里写了不存在的 `log`，
+# NameError 会把真实异常顶掉，前端只看到 500 而没有原因。这里补上真实对象。
+logger = logging.getLogger("yimu.web")
+
+# ⭐ Windows 兼容：控制台默认编码是 cp936，任何 print 里的 emoji / 生僻字都会抛
+#    UnicodeEncodeError。这类 print 夹在长链路（改写、生成）中间，会让业务看起来
+#    "莫名其妙失败"，而同一段代码在 macOS/Linux 上跑得好好的。
+#    统一把标准流切到 UTF-8 + replace，让编码问题不再伪装成业务 bug。
+for _stream_name in ("stdout", "stderr"):
+    try:
+        _stream = getattr(sys, _stream_name, None)
+        _enc = (getattr(_stream, "encoding", "") or "").lower().replace("-", "").replace("_", "")
+        if _stream is not None and hasattr(_stream, "reconfigure") and _enc != "utf8":
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
 
 BASE = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BASE))
@@ -29,6 +47,11 @@ from fastapi.staticfiles import StaticFiles          # noqa: E402
 from fastapi.routing import APIRoute                # noqa: E402
 
 from core import db, judge, orchestrator             # noqa: E402
+from core import diagnostics as diag                 # noqa: E402
+
+# ⭐ 诊断日志尽早安装：此后任何 logger.exception、线程/进程未捕获异常、
+#    HTTP 4xx/5xx 都会自动留档，用户可在「设置 → 系统诊断日志」一键复制。
+diag.install()
 from core.llm import load_config, load_env           # noqa: E402
 import os as _os
 for _k, _v in load_env().items():
@@ -84,12 +107,14 @@ app.add_middleware(SecurityHeadersMiddleware)
 # ⚠️ 有意放行的例外（否则会打断公网分享功能）：
 #   - /s/{token} 分享页及其二维码/海报：地址里**只有令牌、没有 did**，
 #     令牌→稿件映射只存在于服务端库，无法靠改 did 越权（R5-5 已验证）。
-#   - /preview/{did}/{platform}：分享产物预览页，由 share 令牌链路驱动。
-#   其余一切带 did 的路由一律校验归属。
-# R11：DraftOwnerRoute 抽出至 web/draft_guard.py（独立稳定模块——
-# tests/test_nine_sixty 的 reload 语义依赖类身份跨 reload 不变，
-# 详见该模块头注释）。此处仅保留别名引用。
-from web.draft_guard import DraftOwnerRoute, DID_OWNER_EXEMPT_PREFIXES as _DID_OWNER_EXEMPT_PREFIXES  # noqa: E402
+#     分享页里引用的图片改为 /s/{token}/img/... 令牌路由（见 share_media），
+#     因此 /img/{did}/... 不再需要对外公开。
+#   - /preview/{did}/{platform} **不再豁免**：它只是把本地文件吐出来，
+#     与分享链路无关（分享页由 /s/{token} 直接读文件渲染）。
+#     历史上把它列进豁免前缀等于「知道 did 就能读他人排版稿」。
+# R11：DraftOwnerRoute 抽出至 web/draft_guard.py（独立稳定模块，
+# 类身份跨 importlib.reload 不变；v14 强化语义已并入该模块）。
+from web.draft_guard import DraftOwnerRoute, DID_OWNER_EXEMPT_PREFIXES as _DID_OWNER_EXEMPT_PREFIXES  # noqa: E402,F401
 
 # 必须在**任何路由注册之前**设置 route_class，否则已注册的路由不会走新类
 app.router.route_class = DraftOwnerRoute
@@ -103,6 +128,10 @@ app.router.route_class = DraftOwnerRoute
 _STATIC_UPLOAD_DIR = BASE / "data" / "editor_uploads"
 _STATIC_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 app.mount("/static-img/editor_uploads", StaticFiles(directory=str(_STATIC_UPLOAD_DIR)), name="img")
+# V14 对话附件：只有图片需要回显，单独挂一个目录（文档类附件只在内存里解析，不落盘）
+_COPILOT_UPLOAD_DIR = BASE / "data" / "copilot_uploads"
+_COPILOT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/static-img/copilot_uploads", StaticFiles(directory=str(_COPILOT_UPLOAD_DIR)), name="copilot_img")
 app.mount("/static", StaticFiles(directory=str(BASE / "web" / "static")), name="static")
 
 
@@ -122,10 +151,15 @@ app.include_router(gateway_openai_router)
 # 保证网关 UI、/v1、会员三方数据一致（测试可用 YIMU_DB_URL 隔离）。
 import os as _os  # noqa: E402
 import secrets as _secrets  # noqa: E402
+from core import secret_store as _secret_store  # noqa: E402
 from core.db import DB_PATH as _MAIN_DB_PATH  # noqa: E402
 _os.environ.setdefault("YIMU_DB_URL", "sqlite:///" + str(_MAIN_DB_PATH))
+# studio.auth 在 import 期就要求 YIMU_SECRET_KEY，因此这里必须供给。
+# ⚠️ 必须用**持久化**密钥（data/.secrets/session），不能再用启动时随机：
+#    随机值会让每次重启都换签名密钥（全员掉线 + 已存 API Key 解不开），
+#    且多 worker 之间互不认对方的 token。
 if not _os.environ.get("YIMU_SECRET_KEY"):
-    _os.environ["YIMU_SECRET_KEY"] = "yimu-dev-" + _secrets.token_hex(16)
+    _os.environ["YIMU_SECRET_KEY"] = _secret_store.session_secret()
 from studio.membership_router import router as membership_router  # noqa: E402
 app.include_router(membership_router)
 from app.routers import architecture_router  # noqa: E402
@@ -218,8 +252,35 @@ except Exception as _gw_exc:  # pragma: no cover
     print(f"⚠️ 网关 /v1 运行时装配失败（主服务不受影响，/v1 暂不可用）：{_gw_exc}")
 
 
+def _draft_table_health() -> str:
+    """把 draft_history 的真实列写进启动日志。
+
+    改写失败最常见的原因是这张表缺列（旧库 / studio 建表版本），
+    启动时记一次，导出日志第一屏就能看出来。
+    """
+    try:
+        c = db.conn()
+        try:
+            cols = [r[1] for r in c.execute("PRAGMA table_info(draft_history)")]
+        finally:
+            c.close()
+        return ",".join(cols) or "表不存在"
+    except Exception as e:
+        return f"探测失败({e})"
+
+
 @app.on_event("startup")
 async def on_startup():
+    # ⭐ 诊断日志：接管 asyncio 未处理异常，并把启动现场（环境快照）记一条，
+    #    这样即使用户什么也没做，导出日志也能看到跑在什么环境上。
+    try:
+        diag.install_asyncio(asyncio.get_event_loop())
+        # 只记一行；完整环境快照在导出文本的开头，不必重复一遍
+        diag.record("system", "startup", status="ok",
+                    detail=f"服务已启动 · 版本 {version.__version__}",
+                    draft_tables=_draft_table_health())
+    except Exception:
+        pass
     try:
         from core.db import auto_heal_all_sqlite_databases
         auto_heal_all_sqlite_databases()
@@ -325,6 +386,38 @@ async def idempotent_posts(request: Request, call_next):
     return await call_next(request)
 
 
+# ⭐ 诊断日志的 HTTP 采集层：任何 /api/ 失败与超慢请求都留档。
+#   注册在 idempotent_posts 之后 → Starlette 逆序执行，本中间件在最外层，
+#   因此连 idempotent_posts 自己抛的异常也能捕获。
+_DIAG_THROTTLE: dict = {}
+
+
+@app.middleware("http")
+async def diagnostics_middleware(request: Request, call_next):
+    t0 = time.perf_counter()
+    method = request.method
+    path = request.url.path
+    try:
+        resp = await call_next(request)
+    except Exception as exc:
+        dt = time.perf_counter() - t0
+        diag.capture_exc("http", f"{method} {path}", exc, elapsed=dt,
+                         query=str(request.url.query or "")[:200])
+        raise
+    dt = time.perf_counter() - t0
+    if path.startswith("/api/") and (resp.status_code >= 400 or dt > 8):
+        # 同一接口同一状态码 5 秒内只记一次，避免前端轮询把缓冲区刷爆
+        key = (path, resp.status_code)
+        now = time.time()
+        if now - _DIAG_THROTTLE.get(key, 0) > 5:
+            _DIAG_THROTTLE[key] = now
+            for k in [k for k, v in _DIAG_THROTTLE.items() if now - v > 60]:
+                _DIAG_THROTTLE.pop(k, None)
+            diag.http_event(method, path, resp.status_code, dt,
+                            detail="慢请求（超过 8 秒）" if resp.status_code < 400 else "")
+    return resp
+
+
 # ---------------------------------------------------------------------------
 # ⭐ 单机管理口令与 loopback 免密通行（fail-closed）
 #
@@ -343,8 +436,11 @@ async def idempotent_posts(request: Request, call_next):
 #      （一键启动.command 会生成随机口令）开箱可用。
 # ---------------------------------------------------------------------------
 
-#: 进程内随机的管理会话密钥：每次启动重新生成，外部无法预测或伪造 mf_token
-_MF_SESSION_SECRET = _secrets.token_hex(32)
+#: 管理会话密钥：**持久化**到 data/.secrets/admin_session（0600），
+#: 重启/升级/多 worker 均复用同一份，外部仍不可预测。
+#: ⚠️ 不要改回 token_hex(32) 的进程内随机：那会让每次重启全员掉线，
+#:    且 --workers 2 时 A worker 签发的 Cookie 到 B worker 直接 401。
+_MF_SESSION_SECRET = _secret_store.admin_session_secret()
 
 #: 历史默认弱口令：即使 .env 里真的写了它，也不当作"已配置口令"处理
 _WEAK_DEFAULT_PASSWORD = "local-admin"
@@ -507,6 +603,12 @@ def guard(request: Request) -> dict:
     if not u:
         raise HTTPException(401, "未登录或登录态已失效，请先登录")
     _CURRENT_USER.set(u)
+    # 让 db 层知道"谁在请求"：活动工作区/工作区列表要按用户隔离，
+    # 否则 A 切工作区会让 B 的草稿箱跟着换（见 core/db.py:set_request_user）。
+    try:
+        db.set_request_user(str((u or {}).get("id") or ""))
+    except Exception:
+        pass
     return u
 
 
@@ -540,6 +642,12 @@ _ACTION_LABELS = {
 }
 
 
+#: 自备 Key 也**不能**免额度的动作：算力不在用户 Key 上。
+#: drama_render = 本机 ffmpeg 渲染；drama_tts = 平台侧配音引擎。
+#: 其余动作（改写/评分/润色/生图）确实消耗用户自己的模型额度，可免。
+_BYOK_NEVER_FREE_ACTIONS = frozenset({"drama_render", "drama_tts"})
+
+
 def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
     """⭐ 扣算力额度并校验结果：余额不足直接抛 402，调用方必须 return。
 
@@ -570,7 +678,11 @@ def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
     user_id = str(user.get("id") or "")
 
     # ⭐ V10.0.0：当用户已配置并启用自备 API Key（BYOK）时，兑现「自备 Key 不扣会员额度」承诺
-    if user_id:
+    # 🔴 但必须排除「根本不走用户 Key」的动作：短剧渲染跑在本机 ffmpeg、
+    #    TTS 走平台侧引擎——这些对平台是真金白银的成本，
+    #    原实现只要填了自己的 Key 就全免，等于把自毁开关交给用户。
+    #    判定口径：动作的算力是否真的由用户 Key 承担。
+    if user_id and action not in _BYOK_NEVER_FREE_ACTIONS:
         try:
             from core import auth as _core_auth
             _u_cfg = _core_auth.get_active_user_llm_config(user_id)
@@ -711,8 +823,13 @@ def _on_quota_blocked(action: str, label: str, need: int, balance: int) -> None:
 def _tier_quota_check(user: dict, capability: str) -> tuple:
     """会员配额检查（V7 Free / V7 Pro / V7 Studio 三档）。
 
-    返回 (allowed, reason, tier)：配额系统异常时直接放行（配额是体验
-    限制非资金，不阻塞主功能）；未知用户按 free 档处理。
+    返回 (allowed, reason, tier)。
+
+    🔴 租户修复：原来写死 ``tenant_id="default"``，而 studio 侧真实租户是 uuid，
+       于是 get_user_tier 永远查不到会员行 → 一律返回 free，
+       付费用户的热榜次数/单次发布平台数/赛马权限全被按免费档限流
+       （用户侧表现为「我明明买了却说额度不足」）。
+       现在统一走 _web_tenant_id() 解析真实租户。
     """
     try:
         from studio.membership import capabilities as _caps
@@ -720,32 +837,49 @@ def _tier_quota_check(user: dict, capability: str) -> tuple:
         _db = _caps.get_db_session()
         try:
             _uid = str((user or {}).get("id") or "")
-            _tier = _caps.get_user_tier(_db, tenant_id="default", user_id=_uid)
+            _tenant = _web_tenant_id(_db, _uid)
+            _tier = _caps.get_user_tier(_db, tenant_id=_tenant, user_id=_uid)
             _allowed, _reason = _caps.check_and_consume(
-                _db, tenant_id="default", user_id=_uid,
+                _db, tenant_id=_tenant, user_id=_uid,
                 tier=_tier, capability=capability,
             )
             return _allowed, _reason, _tier
         finally:
             _db.close()
-    except Exception:
-        return True, "", "pro"
+    except Exception as e:
+        # 配额是体验限制，不是资金校验：数据库抖动时不阻断主功能。
+        # 但**不得升级为 pro**（那等于一抖库就把免费用户全解锁），
+        # 取值退回用户档案里的档位，缺省 free。
+        print(f"[配额] 检查失败，本次不限制（按保守档位回退）: {e}")
+        return True, "", str((user or {}).get("plan") or "free")
 
 
 def _tier_capability_limit(user: dict, capability: str):
-    """取用户某能力的配置值；异常时返回 -1（不限）。"""
+    """取用户某能力的配置值。
+
+    🔴 异常时**不再返回 -1（不限）**：那等于一抖库免费用户就拿到不限次数。
+       改为退回 free 档的限额（纯函数，不依赖数据库）。
+    """
+    tier = "free"
     try:
         from studio.membership import capabilities as _caps
 
         _db = _caps.get_db_session()
         try:
-            _tier = _caps.get_user_tier(
-                _db, tenant_id="default", user_id=str((user or {}).get("id") or ""))
-            return _caps.capability_limit(_tier, capability)
+            _uid = str((user or {}).get("id") or "")
+            _tenant = _web_tenant_id(_db, _uid)
+            tier = _caps.get_user_tier(_db, tenant_id=_tenant, user_id=_uid)
+            return _caps.capability_limit(tier, capability)
         finally:
             _db.close()
-    except Exception:
-        return -1
+    except Exception as e:
+        print(f"[配额] 限额查询失败，按 free 档回退: {e}")
+        try:
+            from studio.membership import capabilities as _caps2
+
+            return _caps2.capability_limit(tier, capability)
+        except Exception:
+            return 1
 
 
 def write_env(key: str, value: str):
@@ -836,8 +970,8 @@ def get_app_version_info() -> dict:
             return version.get_version_info()
         return {
             "version": version.__version__,
-            "codename": getattr(version, "__codename__", "鸿蒙始"),
-            "codename_en": getattr(version, "__codename_en__", "Primordial Dawn"),
+            "codename": getattr(version, "__codename__", "山岳赋"),
+            "codename_en": getattr(version, "__codename_en__", "Longwind Ballad"),
             "slogan": getattr(version, "__slogan__", ""),
             "slogan_cn": getattr(version, "__slogan_cn__", ""),
             "slogan_en": getattr(version, "__slogan_en__", ""),
@@ -1003,6 +1137,10 @@ def _draft_view(d: dict) -> dict:
 
 
 # ---------------- search & rewrite ----------------
+
+
+
+
 
 
 
@@ -1312,6 +1450,18 @@ def _current_user_id(u: dict | None) -> str:
 
 
 
+# ---------------- R10 在线支付闭环 ----------------
+
+
+
+
+
+
+
+
+
+
+
 # ---------------- R3-2 下单收款 ----------------
 
 
@@ -1535,6 +1685,12 @@ def _current_user_id(u: dict | None) -> str:
 
 
 
+# ===================== 📎 V14 对话附件与提示词优化 =====================
+
+
+
+
+
 
 
 # ===================== 📦 批量矩阵生产 API =====================
@@ -1633,6 +1789,10 @@ def _current_user_id(u: dict | None) -> str:
 
 
 
+
+
+
+
 # ---------------- settings ----------------
 
 
@@ -1710,6 +1870,9 @@ def _run_rewrite_job(jid: str, payload: dict):
                 rnd += 1
         update_async_job(jid, status="done", progress=100, step="爆款仿写完成！", result={"draft_id": d["id"], "score": score, "title": title})
     except Exception as e:
+        diag.capture_exc("rewrite", "rewrite_job", e, job_id=jid,
+                         platform=payload.get("platform"), text_len=len(payload.get("text") or ""),
+                         has_url=bool(payload.get("url")))
         update_async_job(jid, status="failed", error=str(e)[:400], step="仿写失败")
 
 
@@ -1734,6 +1897,16 @@ def _run_one_sentence_viral_job(jid: str, payload: dict):
     except Exception as e:
         update_async_job(jid, status="failed", error=str(e)[:400], step="创作失败")
 
+
+
+
+
+
+
+
+# ---------------- 系统诊断日志 ----------------
+# 用户场景：Windows 上「改写失败」，但拿不到服务端控制台。
+# 这三个接口把失败现场变成可复制文本，用户粘给开发者即可定位。
 
 
 
@@ -1806,7 +1979,9 @@ _METRICS_PAGE_HTML = """<!doctype html>
     <button onclick="load(0,this)">全部</button>
     <button onclick="load()">刷新</button>
   </div>
+  <div class="card"><h2>收入看板（R10 新增：GMV / MRR / ARPU）</h2><div id="revenue"><div class="empty">加载中…</div></div></div>
   <div class="card"><h2>转化漏斗</h2><div id="funnel"><div class="empty">加载中…</div></div></div>
+  <div class="card"><h2>续费提醒（7/3/1 天节点）</h2><div id="expiring"><div class="empty">加载中…</div></div></div>
   <div class="card"><h2>账号健康（自动发布）</h2><div id="health"><div class="empty">加载中…</div></div></div>
   <div class="card"><h2>每日工单定时</h2><div id="ticket"><div class="empty">加载中…</div></div></div>
   <div class="card"><h2>最近事件</h2><div id="events"><div class="empty">加载中…</div></div></div>
@@ -1826,9 +2001,47 @@ async function load(days,btn){
     const d=await r.json();
     renderFunnel(d.funnel);renderHealth(d.account_health||[]);
     renderTicket(d.ticket||{});renderEvents(d.recent_events||[]);
+    renderRevenue(d.revenue||{});renderExpiring(d.expiring_memberships||[]);
   }catch(e){
     document.getElementById('funnel').innerHTML='<div class="empty">看板数据加载失败：'+esc(e.message)+'</div>';
   }
+}
+
+function renderRevenue(rv){
+  const el=document.getElementById('revenue');
+  if(!rv||rv.ok===false){el.innerHTML='<div class="empty">'+esc((rv&&rv.error)||'收入数据不可用')+'</div>';return;}
+  const planRows=Object.keys(rv.by_plan||{}).map(function(p){
+    const x=rv.by_plan[p];
+    return '<tr><td>'+esc(p.toUpperCase())+'</td><td>'+x.orders+' 单</td><td>¥'+(x.gmv_cents/100).toFixed(2)+'</td></tr>';
+  }).join('')||'<tr><td colspan="3" class="empty">暂无已收款订单</td></tr>';
+  el.innerHTML=
+    '<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px">'+
+    '<div style="flex:1;min-width:120px;background:#10142a;border-radius:10px;padding:12px"><div style="font-size:12px;color:#7d88b0">累计实收 GMV</div><div style="font-size:22px;font-weight:700;color:#5fd08a">¥'+Number(rv.gmv_yuan||0).toFixed(2)+'</div></div>'+
+    '<div style="flex:1;min-width:120px;background:#10142a;border-radius:10px;padding:12px"><div style="font-size:12px;color:#7d88b0">MRR（月度经常性收入）</div><div style="font-size:22px;font-weight:700;color:#7c9cff">¥'+Number(rv.mrr_yuan||0).toFixed(2)+'</div></div>'+
+    '<div style="flex:1;min-width:120px;background:#10142a;border-radius:10px;padding:12px"><div style="font-size:12px;color:#7d88b0">ARPU（'+rv.days+'天）</div><div style="font-size:22px;font-weight:700;color:#e0b45f">¥'+Number(rv.arpu_yuan||0).toFixed(2)+'</div></div>'+
+    '<div style="flex:1;min-width:120px;background:#10142a;border-radius:10px;padding:12px"><div style="font-size:12px;color:#7d88b0">付费转化率</div><div style="font-size:22px;font-weight:700;color:#fff">'+(rv.pay_conversion*100).toFixed(1)+'%</div><div style="font-size:11px;color:#6b7699">'+rv.paid_orders+'/'+rv.total_orders+' 单</div></div>'+
+    '</div>'+
+    '<table><tr><th>套餐</th><th>订单</th><th>实收</th></tr>'+planRows+'</table>'+
+    (rv.refund_cents>0?'<div style="font-size:12px;color:#ef7b7b;margin-top:8px">⚠️ 累计退款 ¥'+Number(rv.refund_yuan||0).toFixed(2)+' · 净收入 ¥'+Number(rv.net_yuan||0).toFixed(2)+'</div>':'');
+}
+
+function renderExpiring(list){
+  const el=document.getElementById('expiring');
+  if(!list.length){el.innerHTML='<div class="empty">未来 7 天没有到期的付费会员。</div>'+
+    '<button style="margin-top:8px" onclick="sendRenewal()">手动触发续费提醒（7/3/1 天节点）</button>';return;}
+  el.innerHTML='<table><tr><th>用户</th><th>套餐</th><th>到期日</th><th>剩余</th></tr>'+
+    list.map(function(x){return '<tr><td>'+esc(x.username)+'</td><td>'+esc(String(x.tier).toUpperCase())+'</td><td>'+
+      esc(String(x.period_end).slice(0,10))+'</td><td><span class="tag '+(x.days_left<=3?'cooldown':'degraded')+'">'+x.days_left+' 天</span></td></tr>';}).join('')+'</table>'+
+    '<button style="margin-top:8px" onclick="sendRenewal()">发送续费提醒（24h 节流）</button>';
+}
+
+async function sendRenewal(){
+  try{
+    const r=await fetch('/api/admin/renewal-reminders/send',{method:'POST',credentials:'same-origin',headers:H,body:'{}'});
+    const d=await r.json();
+    if(r.ok&&d.ok){alert('已检查 '+d.checked+' 人：发送 '+d.sent+' 封，节流/待发 '+d.skipped+' 封');load();}
+    else{alert('发送失败：'+((d.detail&&d.detail.message)||'请重试'));}
+  }catch(e){alert('发送异常：'+e.message);}
 }
 
 function renderFunnel(fn){

@@ -527,8 +527,8 @@ class DraftHistory(Base, HasTenant):
     draft_id: Mapped[str] = mapped_column(
         String(32), ForeignKey("drafts.id"), nullable=False, index=True
     )
-    # 版本号（同一草稿内从 1 递增）
-    version: Mapped[int] = mapped_column(Integer, nullable=False)
+    # 版本号（同一草稿内从 1 递增；core 层 add_history 写入。可空以兼容 core 侧建表无此列的情况）
+    version: Mapped[int | None] = mapped_column(Integer, nullable=True, default=1)
     # 该版本正文（Markdown）
     body_md: Mapped[str] = mapped_column(Text, nullable=False, default="")
     # 该版本质检评分（可为空）
@@ -537,6 +537,8 @@ class DraftHistory(Base, HasTenant):
     created_at: Mapped[datetime] = mapped_column(
         FlexibleDateTime(), nullable=False, default=utcnow
     )
+    # 版本标题（core 层 add_history 写入，历史列表直接展示；与 core/db.py 建表语句保持一致）
+    title: Mapped[str | None] = mapped_column(String(512), nullable=True, default="")
 
     __table_args__ = (
         UniqueConstraint("draft_id", "version", name="uq_draft_history_version"),

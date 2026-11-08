@@ -67,6 +67,231 @@ YIMU Studio maintains strict version discipline:
 | **账号安全与管理 (Account Security)** | 无法自主修改登录口令 | **个人中心与口令弹窗集成修改密码** | 后端 `/api/auth/change_password` 严格校验加密更新 |
 | **GitHub 归档管理 (Git Release)** | `git tag v8.3.33` 独立归档冻结 | `git tag v9.0.0` (Latest 旗舰版) | 老版本保持冻结原貌不变，新版本直推发布 |
 
+## [14.0.0] - 2026-11-07 · 兰心曲 (Orchid Melody) · 亮色统一与 WorkBuddy 式输入框
+
+> 这次是 major：新增/改进 7 项，按 `VERSION_RULES.md` 第二章 X+1、Y/Z 归零。
+
+### Added
+- **中栏输入框改造为 WorkBuddy 形态**：`cb-composer` 结构落地 —— 附件区、输入区、操作条三段式。左下角 `＋` 传附件、模型下拉直选、`✨ 优化提示词`，右下角字数与圆形发送/停止。附件以 chip 呈现，可单个移除。
+- **附件上传与正文抽取**：新增 `POST /api/copilot/attach` 与 `core/copilot_files.py`。txt/md/csv/json 多编码兜底（utf-8 / gb18030 / utf-16…）、docx 走 zipfile 取 `word/document.xml` 并按段落保留换行、pdf 走 pypdf（缺失时静默返回空正文，不让上传失败）、图片落盘并挂静态路径。单文件 10MB、单次 6 个、正文 12000 字截断。
+- **提示词一键优化**：新增 `POST /api/copilot/polish_prompt` 与 `core/prompt_polish.py`。有可用模型时交给模型改写（保留原意、补全维度），返回 `source="llm"`；模型不可用时按平台结构模板补全，返回 `source="template"` 并在前端如实提示「已按结构模板补全」。
+- **`llm.chat` 支持 `max_tokens`**：交互式短任务终于能限制生成长度。不传时行为完全不变，长文创作链路不受影响。
+- **亮色模式语义 token 体系**：`--card2 / --border2 / --border3 / --text-dim / --active / --hover / --accbg` 七个 token 首次在 `:root` 与 `[data-theme="light"]` 内显式定义。
+
+### Fixed
+- **亮色模式下大片看不清**：这七个 token 此前从未定义，全部落到 `var(--x, 深色兜底)`，导致左栏选中项是「深底压深字」（实测对比度 1.06:1，等于看不见）、空态引导卡与输入条整块发黑。补全 token 后逐页审计，低对比文本从 22/39/57 条收敛到 0–1 条。
+- **发送按钮被压扁**：`#btn-copilot-send` 作为 flex 子项被 textarea 撑成 28×42，`border-radius:50%` 在非正方形上变成椭圆。现锁定 `32×32` + `aspect-ratio: 1/1` + `flex: 0 0 32px`，任何输入高度下都是正圆；文字箭头改为内联 SVG。
+- **提示词优化点了转半分钟没反应**：默认通道解析到推理型模型，不设上限时一路生成到上下文尽头（35–45 秒），设了上限又把 token 全烧在思维链上、正文为空，两种表现合起来就是「转很久、最后什么都没给、静默套模板」。现改为「直出型模型优先 + max_tokens 封顶 + 18 秒总预算 + 10 分钟结果缓存」，实测 45 秒降至约 4 秒，且真正走的是大模型。
+- **白底上的深色强调色不达标**：模板里大量内联 `style="color:#f0883e"` 一类深色主题色，在白底只有 1.4–3.8:1。用属性选择器在亮色主题内统一折算到同色相更深一档，共 40 条规则，不动 HTML 结构。
+- **紫色残留**：14 处 `#ede9fe / #c4b5fd / #e9d5ff / #faf5ff / #4f46e5 / #4338ca` 全部折算到暖橙同明度层级。
+
+### Changed
+- 亮色模式下主按钮与左栏「新建创作」改为白字橙底（`#c2410c`），替代原来的深棕字压橙底（对比度 3.58）。
+
+## [13.0.0] - 2026-11-06 · 梅雪镜 (Plum-Snow Mirror) · 全功能离线安装包 (A2 Full Offline Bundle)
+
+> 这次是 major：新增/改进 7 项，按 `VERSION_RULES.md` 第二章 X+1、Y/Z 归零。
+
+### Added
+- **A2 完全自给分发包**：新增 `scripts/build_full_bundle.py`，把所有运行条件在构建机一次装好 —— 自带 Python 3.11 运行时、预装全量依赖、内置 Chrome for Testing、全量源码资源、重新生成的出厂配额。客户机安装后双击即用，不需要 Python、不需要 venv、不需要 pip、不需要浏览器、不需要联网。
+- **内置浏览器内核**：`core/browser_path.py` 统一把内置 Chromium 供给桌面窗口（`desktop.py`）与 Playwright（`core/render_card.py`、`core/search.py`）；开发模式无内置目录时行为完全不变。
+- **内置官方通道与凭证**：出厂配置指向官方云端网关（不再残留开发机 `127.0.0.1:8787`）；`scripts/first_run_bootstrap.py` 首次启动按「随包凭证 → 环境变量 → 官方网关设备试用凭证」注入，用户在设置页填的自定义 API Key 永不覆盖，删除自定义凭证后自动切回官方通道。
+- **出厂配额重新生成**：`billing.json` / `free_demo_calls.json` / `llm_usage.json` 等全新生成（free 档 + 出厂赠送额度、零消费历史），不再携带开发机 999999 余额与测试用户记录。
+- **离线冒烟与体积门禁**：`scripts/verify_bundle.py` 校验全量资源、预装依赖、内置浏览器、出厂配置与配额，并用自带解释器启动服务请求 `/api/version`；压缩产物低于 90 MB 直接判定「退化成源码壳」。
+
+### Fixed
+- **桌面客户端只有几兆、装完起不来**：旧打包器只复制 `core/studio/web/adapters/docs`，`--with-runtime` 默认 False 且函数里没有 `pip install`；`gateway/`、`app/`、`skills/`、`config.yaml` 全都没进包，模拟客户安装后 `from web.admin import app` 直接 `ModuleNotFoundError: No module named 'gateway'`。
+- **客户机现装依赖**：Linux `.deb` 的 `/usr/bin/yimu-studio`、macOS `.dmg` 的 launcher、Windows `一键启动.bat` 全部改为直接 exec 自带解释器；`.deb` 的 `Depends` 去掉 `python3* / python3-pip`，macOS 不再弹窗要求 `brew install python`。
+- **不存在的数据库自愈调用**：`desktop.py` 里 `core.db.auto_heal_all_sqlite_databases` 并不存在、异常被吞掉，改为由首次启动自举统一创建数据目录与 SQLite 占位。
+- **原生窗口永远降级**：`requirements.txt` 缺 `pywebview`，现随包预装；即使系统 WebView 不可用，也由内置 Chromium 以独立应用模式呈现窗口。
+
+## [12.1.0] - 2026-11-04 · 竹韵篇 (Bamboo Rhythm) · 进页真数据 (Page-Enter Data)
+
+### Added
+- **控制中心工单流程可视化**：把原来一行机制说明升级为「抓热榜 → 挑选优质题 → AI 成稿 → 制作短视频 → 钉钉推送卡片」五步横向流程卡，宽屏一行铺满、窄屏自动折行。
+
+### Fixed
+- **进页不拉数据**：订阅与会员、内容工作台、控制中心、操盘大屏 四页此前没有进页钩子，进入后停在「加载中…」。现补齐 `pageLoaders` 统一钩子，进页即调用 `loadIntegratedPricingPanel` / `renderDraftList` / `loadTicketStatus` / `renderAgentList` / `renderSkillsList` / `healthLoad` / 大屏统计与雷达刷新。
+- **右栏舞台改道吞掉业务逻辑**：`switchToPage` 的舞台包装此前直接打开舞台并提前返回，页面自己的加载与子视图切换全部被跳过。改为先执行原函数（挂钩子、拉数据、写高亮），再搬运面板。
+- **同页重复搬运**：业务跳转与导航冒泡会各触发一次打开，导致滚动位置与输入焦点被冲掉；`open()` 增加同页复用判断。
+
+## [12.0.0] - 2026-11-04 · 松涛境 (Pinewave Realm) · 右栏舞台 (Right-Pane Stage)
+
+Major release. 交互模型整体重构：**左栏恒定、中栏恒定对话、所有功能页面在右栏打开、右栏可全屏**。
+七个功能页不再是「把中间对话挤走」的整页切换，而是右栏里的一个可全屏工作区。
+
+### Changed
+- **中栏永不切换**：`#p-lite-mode` 被固定为对话栏，任何菜单点击都不会把它替换掉；
+  主区里 7 个 `.panel` 由 CSS 统一收起（舞台内的面板不在 `<main>` 下，不受影响）。
+- **右栏成为舞台**：点左侧任意功能，对应面板**整体搬进右栏**（DOM 搬家，非重写），
+  面板自带的 onclick、事件绑定、滚动位置、表单状态原样保留。
+- **轴心自动反转**：打开功能页时三列从「对话为主」切到「内容为主」——
+  中栏收成对话宽度（340–400px），右栏吃满剩余空间。
+- **全屏**：舞台头右侧的全屏按钮 / 双击标题 / `Esc` 三级退出；
+  `.assets` 是层叠上下文，全屏时与舞台一起抬高 z-index，否则会被左栏盖住。
+- **业务跳转改道**：`switchToPage()` 在舞台打开时改走舞台，避免页面切到看不见的主区；
+  左栏二级树点击会先把所属页面开到舞台上，再切子视图。
+
+### Added
+- `web/static/js/workbench-stage.js`：舞台引擎（构建 / 搬运 / 全屏 / 键盘 / 双语）。
+- `tests/test_v1200_stage_layout.py`：21 项结构契约回归锁。
+
+### Fixed
+- **全站主色统一**：清掉 8 种紫色变体（`#8b5cf6` / `#a855f7` / `#a371f7` / `#6366f1` 等，
+  共 100+ 处），全部收敛到品牌橙 `#f0883e`；`--brand-primary` 同步改正。
+- **左栏二级树串开**：连点多个菜单会把所有二级树都摊开、把「最近产出」顶出视口，
+  改为手风琴（切页时收起其它）。
+- **内页视觉与工作台脱节**：子标签改为换行不裁切、卡片去掉高亮描边与渐变底、
+  页面大标题去掉彩虹渐变文字、按钮文字不再被压成两行、8 步步骤条换行完整显示。
+
+### Notes
+- 全部改动仍只在 `body[data-shell="v2"]` 下生效；`?legacy=1` 经典版与 <1280px 回落一行未改。
+- 实测：1512 / 1280 两档 × 7 个功能页，`scrollWidth === innerWidth`，零横向溢出、控制台零报错。
+
+## [11.1.1] - 2026-11-04 · 江河曲 (River Rhapsody) · 实机像素校准 (Pixel Fixes)
+
+Patch release. 用过真机截图逐块比对后，修掉 11.1.0 残留的四处观感偏差，功能零增减。
+
+### Fixed
+- **主色回归原型橙**：基础样式层用 `!important` 把 `.btn.primary` 写死成紫色渐变，
+  「发布」等主按钮与原型不符；V11.2 层以更高权重覆盖为 `#f0883e`，
+  「极简 / 全能」模式胶囊一并收敛，与 `--yimu-brand-primary` 统一。
+- **左栏底栏不再互相挤压**：用户卡曾被压缩到 50px，「个人中心」文字与齿轮图标重叠；
+  改为第一行「明暗 / Sage-A1.5 / 经典版 / 控制中心」，第二行整宽「个人中心 · 已登录」。
+- **控制中心图标**换成控制滑杆造型，15px 下不再被误认成太阳。
+- **顶栏窄屏重叠**：≤1400px 收起页面副标题并收紧模式胶囊内边距，
+  1280 / 1366 / 1512 三档实测顶层元素零重叠、`scrollWidth === innerWidth`。
+
+### Notes
+- 全部改动仍挂在 `body[data-shell="v2"]` 下，`?legacy=1` 经典版与 <1280px 回落一行未改。
+- 实测：三栏渲染正常、控制台零报错，外壳与术语门禁 29 项、全量 632 项测试全绿。
+
+## [11.1.0] - 2026-11-04 · 山岳赋 (Mountain Hymn) · 三栏逐项对齐原型 (Prototype Parity)
+
+三栏外壳在 11.0.x 只是「搭起了架子」：左栏仍是老的加粗双行导航，中栏仍是「Copilot 面板 + 画布」
+两块并排，顶栏还有元素重叠。这一版把左栏、中栏、右栏逐项改成原型的样子，功能一个不少。
+
+### Added
+- **左栏（全新）**：品牌块改为 logo + 两行文字；橙色「＋ 新建创作」主按钮；30px 单行导航配线性图标；
+  一级项可展开二级树（8 个一级页共 35 个二级入口，全部指向真实子视图）；「最近产出」列表直连
+  `S.drafts`，点一条即切到内容工作台并载入该稿；底部收为主题 / 算力 / 用户 / 经典版 / 控制中心一行
+- **中栏**：标题下加副标题（按页面切换）；快捷胶囊条接管原 6 个快捷芯片，右侧并排两个入口图标；
+  输入框改圆角卡片 + 圆形发送键；对话为空时给出「从这里开始」三张引导卡，开聊后自动撤掉
+- **右栏**：底部新增动作条「复制 / 导出 / 发布」，分别接 `copyLiteCurrentRichContent` /
+  `dlXhsZip` / `openPublishModal`
+- `tests/test_v1102_rail_prototype_parity.py` 14 项门禁：注入块齐全、二级树无死链、
+  样式全部收在 `body[data-shell="v2"]` 下、SVG 有明确尺寸、中英文案成对、无调试开关残留
+
+### Fixed
+- 注入的内联 SVG 缺省尺寸导致按 300×150 撑开，把右栏动作条挤成竖排文字；统一补上尺寸规则
+- 胶囊条 6 个胶囊 + 2 个工具入口超出一行被裁切；改为 4 个胶囊 + 两个图标入口
+- 原「爆款创作 Copilot」行与顶部标题重复；两个入口收进胶囊条，整行收起
+- 中栏在 1280px 宽时输入框提示被裁下半截（`min-height` 抬高）
+
+### Notes
+- 经典版 `?legacy=1` 与 <1280px 回落完全未受影响，注入块与增强样式全部挂在 `body[data-shell="v2"]` 下
+- 英文模式下注入块全部为英文（`New draft / Recent / Copy / Export / Publish` 与 35 个二级项）
+- 预览：`prototype/ui-v2.html`
+
+## [11.0.1] - 2026-11-04 · 沧海吟 (Oceanic Ode) · 质量门禁修复 (Quality Gate Fix)
+
+### Fixed
+
+- **术语门禁红**：`web/templates/index.html` 中一段 V11 三栏外壳的 CSS 注释误用了「占位」一词，触发 `tests/test_no_internal_jargon.py` 的面向用户文案禁用词表，导致 v11.0.0 的 CI 校验失败。注释已改写为「提示文案」，功能零影响。
+- **版本门禁随补丁版漂移**：`tests/test_v1100_workbench_shell.py` 原先硬编码 `11.0.0` 与「长风谣」，现改为与 `release-codenames.json` 互相校验（版本号 / 中英代号 / history 末条 / 序列不重复），`test_v1002`、`test_v1020` 的版本等值断言改为从 `version.py` 动态取值，后续补丁版不再需要逐处改测试。
+
+### Changed
+
+- 版本推进至 `11.0.1`，代号「沧海吟 / Oceanic Ode」，`next_index` 由 4 推进至 5，下一代号「山岳赋 / Mountain Hymn」。
+
+---
+
+## [11.0.0] - 2026-11-04 · 长风谣 (Longwind Ballad) · 三栏工作台外壳重构 (Three-Pane Workbench Shell)
+
+### Added
+
+- **三栏工作台外壳（P0）**：主界面由「侧栏 + 单列主区」升级为「左功能栏 / 中主台 / 右资产台」三栏布局。
+  - 左栏 248px、右栏 400px 起，**两条 11px 拖拽带可实时改宽**（左 200–420 / 右 300–680，中栏保底 460px），双击手柄复位，宽度写入 `localStorage` 并按屏宽自适应默认值。
+  - 右栏「资产台」四个标签页全部接真实数据：**成稿**（平台切换 + 真排版 iframe + 版本历史一键回滚）、**图片**（稿件配图、点击放大灯箱、← → 翻页）、**视频**（`/api/video/tasks` 成片直接播放）、**数据**（当前稿件评分、后台任务、资产统计）。
+  - **选中即联动**：内容工作台选稿 / 极简模式出稿，右栏立刻跟随；左侧导航切到影音工坊自动翻到视频页。
+  - **专注态**：右栏「⛶ 放大」一键铺满整屏阅读稿件，`Esc` 或右下角浮标退出，成稿按 940px 居中排版。
+  - **顶栏自动收敛**：中栏变窄时按重要性把顶栏动作自动收进「⋯ 更多」下拉，任何屏幕宽度都保持单行 57px 高度，功能一个不减。
+- **经典版往返**：`?legacy=1` / `?classic=1` 直达原版复杂界面，经典版右下角常驻「⚡ 新版工作台」返程浮标；窄于 1280px 自动回落经典版，避免小屏被三栏挤坏。
+
+### Changed
+
+- 极简模式在中栏内改为可压缩双列（`min-width:0`），面板子标签改为单行横向滚动，杜绝折行与横向溢出。
+- 版本代号步进至 **长风谣 · Longwind Ballad**（`10.x 鸿蒙始` 收官），版本号 **11.0.0**。
+
+### Notes
+
+- 业务逻辑零改动：7 个业务面板、约 400 个函数、117 个接口原样复用，外壳只更换容器与视口分配；出任何问题 `?legacy=1` 一键回退。
+- 新增 `web/static/js/workbench-shell.js`（外壳全部逻辑，非 v2 布局下自行空转退出）。
+
+## [10.3.2] - 2026-11-03 · 鸿蒙始 (Primordial Dawn) · 模型服务测速 401 修复 (Provider Ping Auth Fix)
+
+### Fixed
+- **编辑已有模型服务后点「连通性测速」必然 401**：设置页在编辑时会**故意清空** Key 输入框，
+  占位提示写着「留空则保持现有密钥不变」，但测速接口直接把输入框的值当 Key 用，
+  空值就完全不带 `Authorization` 头，于是：
+  - 一幕官方通道 → `HTTP 401: invalid api key`
+  - 自建 / AgnesAI 通道 → `HTTP 401: Token not provided (AgnesAI_error)`
+
+  同一个根因，两个上游的不同措辞。Key 本身是好的——带上已保存的同一把 Key 请求即 200。
+  - 新增 `core/llm.resolve_provider_key()`：手填 Key 优先；留空时回退到该服务已保存的 Key；
+    平台自有端点再回退到平台主 Key。返回 `key_source`（input / saved / platform / none）。
+  - `ping_provider()` 与 `fetch_remote_models()` 统一走这套解析，避免「测速」和「拉取模型」
+    再次出现同款分裂。`/api/models/ping` 现在把 `provider_id` 一并透传给后端。
+  - 前端在输入框留空时明确提示「将使用已保存的密钥」，结果行显示「校验凭证: 已保存密钥」；
+    401 时直接给结论（未携带 Key / 该 Key 被上游拒绝），不再只丢一句英文报错。
+- **粘贴的 Key 带 `Bearer ` 前缀 / 引号 / 零宽字符时同样 401**：新增 `clean_api_key()` 统一清洗，
+  避免拼成 `Bearer Bearer sk-...`。
+- **安全边界保持不变**：已保存的 Key 只在 `base_url` 与该服务已保存地址一致时才回退，
+  平台主 Key 只在平台自有端点生效——把 `base_url` 指向自己的服务器骗不走任何密钥。
+
+## [10.3.1] - 2026-11-03 · 鸿蒙始 (Primordial Dawn) · 首次引导按钮修复 (Onboarding Wizard Fixes)
+
+### Fixed
+- **首次引导（Wizard）里 ✕ / 下一步 / 完成引导全部点不动**：
+  `closeWizard()` 里写的是 `modal('m-wizard').classList.remove('on')`，而 `modal()` 没有返回值，
+  必然抛 `TypeError: Cannot read properties of undefined (reading 'classList')`。
+  结果是弹窗关不掉、`POST /api/onboarding/done` 也永远发不出去 → 每次刷新都重新弹，新用户被永久卡在引导里。
+  - `modal()` 改为返回元素（并对不存在的 id 静默容错）。
+  - `closeWizard()` 直接操作 DOM 并包 try/catch，无论从哪条路径关闭都落「已完成」标记。
+  - 背景点击 / Esc 关闭引导同样走 `closeWizard()`，不再出现「关了但下次还弹」。
+- **矮屏（1366×768 笔记本、125% 缩放、小窗口）下「下一步」被压在可视区外**：
+  弹窗 `max-height:88vh` + 内部滚动，把底部按钮藏到滚动区之外，看着像"按钮没反应"。
+  - mask 改为 `flex-start + overflow-y:auto`，超高时弹窗顶部不会被居中裁掉，整层可滚动。
+  - 每步的底部操作条改为 `position:sticky` 实色贴底，任何屏高下「下一步 / 完成引导」都看得见、点得到。
+- **步骤条只能看不能点**：现在可点击回看已走过的步骤，未走到的步骤保持锁定，避免空跑到「完成」页。
+- **自备 Key 保存失败仍跳「完成」页**：改为失败即停在当前步并提示，按钮进入「保存中…」防连点；
+  Key 为空时把焦点与红框送到输入框，而不是弹个 toast 就没了。
+- **默认管理员自动登录后永不出现引导**：此前用登录前的状态判断（`wizard.show` 恒为 false），
+  改为登录成功后重新拉取 `/api/auth/status`；注册 / 登录成功后也会立即拉起引导。
+
+## [10.3.0] - 2026-11-03 · 鸿蒙始 (Primordial Dawn) · 系统诊断日志与改写链路修复 (Diagnostics & Rewrite Fixes)
+
+### Added
+- **系统诊断日志（设置 → 系统诊断日志）**：一键导出可复制的诊断文本，包含环境快照、失败步骤、完整错误堆栈。
+  - 新增 `core/diagnostics.py`：环形缓冲区（2000 条）+ 落盘 `data/logs/diagnostics.log`（2MB 自动轮转）。
+  - 自动接管 `logging` WARNING 及以上、线程/进程未捕获异常、asyncio 未处理异常、HTTP 4xx/5xx。
+  - 新增接口 `GET /api/diagnostics/log`、`GET /api/diagnostics/stats`、`POST /api/diagnostics/clear`。
+  - 敏感字段（key/token/password/secret/cookie/auth）自动打码，可安全外发。
+  - 前端支持「复制全部 / 保存为文件 / 只看错误与警告 / 清空」。
+
+### Fixed
+- **Windows 端「新建正常、所有改写方式全失败」**：旧库 `draft_history` 缺 `title` 列时报
+  `table draft_history has no column named title`。根因是补列迁移只写在「首次建库」分支，
+  只要 `drafts` 表存在就走快速路径，永远补不上。
+  - `conn()` 快速路径现在会补缺失的表（`_ensure_core_tables`）与缺失的列（`_migrate_columns`）。
+  - `add_history` 增加「最后一米」兜底：表存在但缺 `title` / `body_md` / `score` / `created_at` 时就地补齐。
+  - `add_history` 改为单连接 + `finally` 关闭，避免异常路径漏关连接造成的 `database is locked`。
+- **改写不再因「历史版本存不下」整体失败**：`add_history` 失败降级为告警，改写继续。
+- **Windows 控制台编码**：启动时把 `stdout`/`stderr` 切到 UTF-8 + `replace`，
+  避免 `cp936` 下 print emoji 抛 `UnicodeEncodeError` 把长链路带崩。
+- **改写链路步骤埋点**：`rewrite_draft_once` / `rewrite_single_platform` 记录「读取草稿 → 写历史 →
+  调模型 → 解析 → 重建产物 → 评分」各步，失败时能直接看出卡在哪一步。
+
 ## [10.2.1] - 2026-10-23 · 鸿蒙始 (Primordial Dawn) · 原生应用安装包发布 (Native Application Installers)
 
 ### Added

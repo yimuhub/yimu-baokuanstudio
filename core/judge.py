@@ -276,10 +276,17 @@ def judge_draft(draft_id: str, platform: str | None = None,
     total = round(sum(scores.values()), 1)
     if 0.0 < total <= 10.5:
         total = round(total * 10.0, 1)
+    # ⭐ 诊断与改进建议会原样展示给用户，同样不允许 Markdown 标记噪音
+    from core.text_purity import purify_title as _pt
+
+    _reasons = {
+        k: _pt(str(v)) for k, v in (data.get("reasons") or {}).items()
+    }
+    _improvements = [_pt(str(x)) for x in (data.get("improvements") or []) if str(x).strip()]
     detail = {
         "scores": scores,
-        "reasons": data.get("reasons", {}),
-        "improvements": data.get("improvements", []),
+        "reasons": _reasons,
+        "improvements": _improvements,
         "grade": grade(total),
         "platform": platform or "general",  # v3.33: 记录评审平台
     }

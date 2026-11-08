@@ -1,0 +1,69 @@
+name: CI
+
+# 门禁设计原则：
+#   1. 只卡「一定是 bug」的项，不卡代码风格 —— 仓库存量有 600+ 条风格告警，
+#      一次性全卡等于 CI 永久红，没人会看。风格交给 pre-commit 的 --fix。
+#   2. 安全与鉴权用测试锁（tests/test_routes_smoke.py），而不是靠人记。
+#   3. 失败要给得出人话的原因，所以每个 step 都有 name。
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test (py${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Lint - 只查真实缺陷（未定义名 / 语法）
+        # F821 未定义名 = 运行到必崩（本期就靠这条抓到 is_section_heading、
+        # subprocess、re、log 四处 NameError）；E9 = 语法错误。
+        # 刻意不含 F811：core/orchestrator.py 里有两处函数内局部 import 遮蔽了
+        # 模块级同名对象，是无害的既有写法，单独列为清理项，不挡 CI。
+        run: ruff check --select F821,E9 .
+
+      - name: Test - 全量测试
+        env:
+          # 关键：让测试跑在一次性临时库上，不碰仓库里的 data/mediaflow.db。
+          # （conftest.py 也会兜底设置，这里显式声明便于排查）
+          YIMU_DB_URL: ""
+        run: pytest tests/ -q
+
+      - name: Upload pytest artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-artifacts-py${{ matrix.python-version }}
+          path: |
+            .pytest_cache/v/cache/lastfailed
+            logs/
+          if-no-files-found: ignore
+          retention-days: 7

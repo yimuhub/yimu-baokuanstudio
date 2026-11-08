@@ -23,7 +23,13 @@ HYPER_REAL_PHOTO_SUFFIX = (
     "realistic immaculate environment textures, brilliant clarity across entire frame, "
     "8k ultra-high resolution, vibrant saturation, rich crisp contrast, "
     "no smoke, no fog, no mist, no haze, no blurry blur, no dim lighting, no washed out pale colors, "
-    "no grain, no noise, no CGI, no 3D render, no plastic skin, no text, no watermark, sharp focus"
+    "no grain, no noise, no CGI, no 3D render, no plastic skin, sharp focus, "
+    # ⭐ 画面不得出现任何文字：模型常把提示词里的中文当成"要书写的内容"，
+    #    结果在背景画出乱码伪汉字（读者看到一堆不认识的字，比不加图更糟）。
+    #    Flux 这类模型不认 negative prompt，必须用正向可执行描述：
+    "absolutely no text, no letters, no words, no Chinese characters, no calligraphy, "
+    "no signage, no labels, no logos, no watermark, clean unmarked blank surfaces, "
+    "plain unlettered walls and paper"
 )
 STYLE_SUFFIX = HYPER_REAL_PHOTO_SUFFIX  # 兼容旧引用
 

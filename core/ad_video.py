@@ -213,6 +213,9 @@ def generate_ad_script(product_name: str, selling_points: list,
     terms = [t.strip() for t in re.split(r"[,，]", terms_raw) if t.strip()][:4]
     if not terms:
         terms = ["product", "lifestyle"]
+    from core.text_purity import purify_body
+
+    hook, body, cta = purify_body(hook), purify_body(body), purify_body(cta)
     script = "。".join(s for s in (hook, body, cta) if s)
     return {
         "hook": hook, "body": body, "cta": cta,

@@ -355,6 +355,8 @@
 - `POST /api/billing/pay/sandbox/{order_id}/confirm` → billing_pay_sandbox_confirm：沙箱模拟支付成功（仅沙箱模式开启）【R10.0】[NEW]
 - `GET /api/billing/pay/notify/{channel}` → billing_pay_notify：渠道异步回调验签→自动核销【R10.0】[NEW]
 - `POST /api/billing/pay/notify/{channel}` → billing_pay_notify：渠道异步回调验签→自动核销【R10.0】[NEW]
+- `GET /api/admin/access-mode` → admin_access_mode:访问模式查询(单机免密/多用户)【R15.7】[NEW]
+- `POST /api/admin/access-mode` → admin_set_access_mode:切换访问模式(写 .env,重启生效)【R15.7】[NEW]
 - `POST /api/admin/renewal-reminders/send` → admin_send_renewal_reminders：手动触发续费提醒（7/3/1 天节点）【R10.0】[NEW]
 - `GET /api/billing/upgrade` → billing_upgrade_options：额度墙付费引导（缺口+套餐对比，取定价真源）【V7.2/R3-4】[NEW]
 - `GET /api/admin/orders` → admin_list_orders：订单管理列表（管理员，分页+状态筛选）【V7.2/R3-2】[NEW]

@@ -474,7 +474,11 @@ def _loopback_admin_allowed() -> bool:
 
     ⭐ V8/P0-B：历史实现恒 True（本机任何进程=超管）。现与 _admin_password
     联动：未配置/弱口令 → False，本机不免密、get_current_user 返回 None。
+    ⭐ R15.7 访问模式开关：YIMU_MULTIUSER=1 时关闭本机免密——转化为
+       「多用户注册/登录」形态（家庭/团队/对外试用），注册流不再被覆盖。
     """
+    if (_os.environ.get("YIMU_MULTIUSER") or "").strip().lower() in ("1", "true", "yes"):
+        return False
     return _admin_password() is not None
 
 

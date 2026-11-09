@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.7.0] - 长歌行 (Long Song Journey) · 2026-11-09
+
+### Added 审查建议落地
+- 一句话成稿进度加耗时回显(消除黑盒等待)
+- 模型服务配置保存后自动收起弹窗
+- 系统设置新增「访问模式」开关(单机免密/多用户注册,YIMU_MULTIUSER)
+- 价格页新增邀请返佣 20% 常驻横幅
+- 新增 GitHub Actions push/PR 级 CI(ci.yml)
+
 ## [15.6.0] - 星野阔 (Starfield Wide) · 2026-11-09
 
 ### Added 内容工作台双栏自由拖拽

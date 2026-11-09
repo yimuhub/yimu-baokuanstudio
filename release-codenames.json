@@ -1,8 +1,8 @@
 {
-  "current_version": "15.6.0",
-  "current_codename_zh": "星野阔",
-  "current_codename_en": "Starfield Wide",
-  "next_index": 72,
+  "current_version": "15.7.0",
+  "current_codename_zh": "长歌行",
+  "current_codename_en": "Long Song Journey",
+  "next_index": 73,
   "sequence": [
     {
       "zh": "曦光序",
@@ -482,6 +482,12 @@
       "version": "v15.6.0",
       "zh": "星野阔",
       "en": "Starfield Wide",
+      "date": "2026-11-09"
+    },
+    {
+      "version": "v15.7.0",
+      "zh": "长歌行",
+      "en": "Long Song Journey",
       "date": "2026-11-09"
     }
   ]

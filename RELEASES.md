@@ -4,6 +4,27 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🎶 Version 15.7.0 · 长歌行 (Long Song Journey) · Review Actions Shipped · 2026-11-09
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.7.0"`, `__codename__ = "长歌行"`, `__codename_en__ = "Long Song Journey"`)
+
+### 🎯 Milestone Summary
+
+全流程实测走查报告(2026-11-09)的建议全部落地;同日推送 GitHub 并触发三平台桌面客户端构建(见 tag 工作流)。
+
+### ✅ Review Actions Shipped
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **生成耗时回显** | 一句话成稿进度实时显示「已 Ns · 全链路约 3-5 分钟」,消除黑盒等待(P1 整改) |
+| 2 | **保存即收** | 模型服务配置保存成功后 1.2s 自动收起弹窗并 toast(P2 整改) |
+| 3 | **访问模式开关** | 系统设置新增「访问模式」卡:单机免密 ↔ 多用户注册(YIMU_MULTIUSER 写 .env,重启生效);本机免密不再覆盖注册流(P2 整改) |
+| 4 | **邀请返佣常驻入口** | 价格页顶部「邀请好友,双方受益(20% 返佣)」横幅 → 个人中心邀请码管理 |
+| 5 | **push 级云 CI** | 新增 `.github/workflows/ci.yml`:push/PR 自动跑四道门禁(补齐此前仅本地 ci.sh 的短板) |
+| 6 | **契约同步** | access-mode 双路由登记 CONTRACT.md |
+
+**Full Changelog**: v15.6.0...v15.7.0
+
 ## 🌌 Version 15.6.0 · 星野阔 (Starfield Wide) · Resizable Workbench & Session-Scoped Assets · 2026-11-09
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.6.0"`, `__codename__ = "星野阔"`, `__codename_en__ = "Starfield Wide"`)

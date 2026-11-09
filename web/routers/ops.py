@@ -118,6 +118,28 @@ def admin_metrics(request: Request):
         revenue = {'ok': False, 'error': str(_e)[:200]}
     return {'ok': True, 'funnel': fn, 'recent_events': analytics.list_recent(20), 'ticket': _sched.ticket_status(), 'account_health': pubguard.health_summary(), 'revenue': revenue, 'expiring_memberships': expiring, 'generated_at': time.time()}
 
+@router.get('/api/admin/access-mode')
+def admin_access_mode(request: Request):
+    """R15.7:访问模式(单机免密 / 多用户注册)+ 当前生效态。"""
+    import os as _os
+    _a.guard_admin(request)
+    multi = _os.environ.get("YIMU_MULTIUSER", "").strip().lower() in ("1", "true", "yes")
+    return {"ok": True, "multiuser": multi,
+            "note": "切换后需重启服务生效"}
+
+
+@router.post("/api/admin/access-mode")
+async def admin_set_access_mode(request: Request):
+    """R15.7:切换访问模式。single=本机免密;multi=多用户注册(写 .env:YIMU_MULTIUSER=1)。"""
+    _a.guard_admin(request)
+    body = await request.json()
+    mode = str((body or {}).get("mode") or "").strip().lower()
+    if mode not in ("single", "multi"):
+        raise HTTPException(400, "mode 仅支持 single / multi")
+    _a.write_env("YIMU_MULTIUSER", "1" if mode == "multi" else "0")
+    return {"ok": True, "mode": mode, "note": "已写入 .env,重启服务后生效"}
+
+
 @router.post('/api/admin/renewal-reminders/send')
 async def admin_send_renewal_reminders(request: Request):
     """R10：手动触发续费提醒（7/3/1 天节点，24h 节流幂等）。"""

@@ -8423,6 +8423,17 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
               <div class="ft"><span class="meta">私密信息自动打码</span><button class="btn btn-sm" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff;border:none;font-weight:700" onclick="diagOpen()">查看并复制</button></div>
             </div>
             <div class="set20-card">
+              <div class="hd"><div class="ic">👥</div><div><div class="tt">访问模式（R15.7 新增）</div></div></div>
+              <div class="ds" id="st-access-mode-info">加载中…</div>
+              <div class="ft">
+                <span class="meta">切换后需重启服务生效</span>
+                <span style="display:flex;gap:6px">
+                  <button class="btn btn-sm ghost" onclick="setAccessMode('single')">🏠 单机免密</button>
+                  <button class="btn btn-sm ghost" onclick="setAccessMode('multi')">👥 多用户注册</button>
+                </span>
+              </div>
+            </div>
+            <div class="set20-card">
               <div class="hd"><div class="ic">🔄</div><div><div class="tt">GitHub 在线升级</div></div></div>
               <div class="ds" id="st-updater-status">当前版本：<code style="color:var(--primary);font-weight:700" data-app-version="prefix">{{ APP_VERSION_FULL }}</code> · 绑定仓库 <code>yimuhub/yimu-baokuanstudio</code></div>
               <div class="ft">
@@ -9129,6 +9140,14 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
   
     <!-- ================== 6. 套餐与价格独立面板 (Integrated Pricing & Order Center) ================== -->
     <section class="panel" id="p-pricing">
+  <!-- R15.7:邀请返佣常驻入口 -->
+  <div onclick="switchToPage('profile')" style="cursor:pointer;margin:0 0 14px;background:linear-gradient(135deg,rgba(52,211,153,.14),rgba(56,189,248,.08));border:1px solid rgba(52,211,153,.4);border-radius:12px;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:18px">🎁</span>
+      <span style="font-size:13px;color:var(--text)"><b style="color:#34d399">邀请好友,双方受益</b> —— 每成功邀请 1 位,邀请人获 <b style="color:#ffb25e">20% 额度返佣</b>,被邀请人得新人礼包</span>
+    </div>
+    <span style="font-size:12.5px;color:#34d399;font-weight:700">获取我的邀请码 →</span>
+  </div>
       <!-- 顶部账户状态与核心说明横幅 -->
       <div class="card" style="margin-bottom:16px;background:radial-gradient(ellipse at top left, rgba(240,136,62,0.16), rgba(240,136,62,0.08), #141a26);border:1px solid rgba(240,136,62,0.35);padding:20px 24px">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
@@ -13740,6 +13759,9 @@ function switchSubTab(parentPanel, subId) {
   if (subId === 'sp-settings' && typeof loadLlmUsage === 'function') {
     try { loadLlmUsage(); } catch(e) { console.warn('[llm-usage] 懒加载失败:', e); }
   }
+  if (subId === 'sp-settings' && typeof loadAccessMode === 'function') {
+    try { loadAccessMode(); } catch(e) { /* ignore */ }
+  }
   /* ⭐ AI 短视频生成及文案改写模型列表刷新 */
   if (subId === 'sp-aivideo' && typeof populateAivRewriteModels === 'function') {
     try { populateAivRewriteModels(); } catch(e) { console.warn('[aiv-models] 加载失败:', e); }
@@ -16717,11 +16739,13 @@ async function runOneSentenceViral() {
     });
     const jid = res.job;
     let pollCount = 0;
+    const t0 = Date.now();
     while (true) {
       await new Promise(r => setTimeout(r, 1600));
       pollCount++;
       const j = await api(`/api/jobs/${jid}`);
-      stepText.textContent = '⏳ ' + j.step;
+      const elapsed = Math.round((Date.now() - t0) / 1000);
+      stepText.textContent = `⏳ ${j.step}（已 ${elapsed}s · 全链路含检索/仿写/评分约 3-5 分钟）`;
 
       let pct = 20 + Math.min(pollCount * 8, 70);
       if (j.step.includes('检索')) pct = 40;
@@ -20526,6 +20550,26 @@ async function loadBillingStatus() {
 }
 
 /* ================== LLM 双轨制：各模型服务使用量统计 ================== */
+async function loadAccessMode() {
+  try {
+    const d = await api('/api/admin/access-mode');
+    const el = document.getElementById('st-access-mode-info');
+    if (el && d) el.innerHTML = d.multiuser
+      ? '当前:<b style="color:#7c9cff">多用户注册</b> —— 本机访问也需登录,注册流对小白可见(适合团队/对外)。'
+      : '当前:<b style="color:#34d399">单机免密</b> —— 本机自动管理员,最快上手(适合个人创作者)。';
+  } catch (e) { /* ignore */ }
+}
+async function setAccessMode(mode) {
+  if (!confirm(mode === 'multi'
+    ? '切换为「多用户注册」:本机访问也需登录,适合团队/对外试用。继续?'
+    : '切换为「单机免密」:本机自动管理员。继续?')) return;
+  try {
+    await api('/api/admin/access-mode', { method: 'POST', body: JSON.stringify({ mode }) });
+    toast('✅ 已写入配置,重启服务后生效');
+    loadAccessMode();
+  } catch (e) { toast('⚠️ 设置失败: ' + e.message); }
+}
+
 async function loadLlmUsage() {
   const box = $('llm-usage-table');
   if (box) box.innerHTML = '加载中…';
@@ -22440,6 +22484,8 @@ async function saveModelProviderConfig(setAsActive = true) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(body)
     });
+    // R15.7:保存成功后自动收起弹窗,避免新手停在弹窗里不知下一步
+    setTimeout(() => { if (typeof closeModal === 'function') closeModal(); }, 1200);
     if (setAsActive) {
       activeProviderId = pid;
     }

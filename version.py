@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.6.0"
-__codename__ = "星野阔"
-__codename_en__ = "Starfield Wide"
-__slogan__ = "一念起 一幕开 万象生 · 内容工作台双栏自由拖拽：顶栏自定义、资产台会话隔离、发布条按成品显隐"
-__slogan_cn__ = "一念起 一幕开 万象生 · 内容工作台双栏自由拖拽：顶栏自定义、资产台会话隔离、发布条按成品显隐"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Resizable workbench panes, configurable header, session-scoped assets"
+__version__ = "15.7.0"
+__codename__ = "长歌行"
+__codename_en__ = "Long Song Journey"
+__slogan__ = "一念起 一幕开 万象生 · 审查建议落地：阶段耗时回显、保存即收、访问模式开关、邀请常驻、push 级 CI"
+__slogan_cn__ = "一念起 一幕开 万象生 · 审查建议落地：阶段耗时回显、保存即收、访问模式开关、邀请常驻、push 级 CI"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Review actions shipped: elapsed feedback, auto-close, access mode, invite entry, push CI"
 
 
 def get_version() -> str:

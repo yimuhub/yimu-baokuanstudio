@@ -2070,5 +2070,14 @@
   "爆款达标保底巡航熔炉": "Quality-bar furnace cruise",
   "🎯 派生到": "🎯 Derive to",
   "🚀 按需派生所选平台": "🚀 Derive selected platforms",
-  "Ctrl+S 即存即渲 · 按勾选生成": "Ctrl+S saves & renders · generates per selection"
+  "Ctrl+S 即存即渲 · 按勾选生成": "Ctrl+S saves & renders · generates per selection",
+  "访问模式（R15.7 新增）": "Access Mode (new in R15.7)",
+  "切换后需重启服务生效": "Restart required after switch",
+  "🏠 单机免密": "🏠 Single-user (password-free)",
+  "👥 多用户注册": "👥 Multi-user",
+  "邀请好友,双方受益": "Invite friends — both win",
+  "—— 每成功邀请 1 位,邀请人获": " — for each successful invite, the inviter gets",
+  "20% 额度返佣": "20% credit rebate",
+  ",被邀请人得新人礼包": ", and the invitee gets a newcomer pack",
+  "获取我的邀请码 →": "Get my invite code →"
 }

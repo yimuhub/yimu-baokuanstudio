@@ -209,8 +209,17 @@ def test_free_demo_exhausted_falls_back_to_billing(tmp_usage, tmp_demo, monkeypa
 
 
 def test_free_demo_long_output_not_eligible(tmp_usage, tmp_demo, monkeypatch):
-    """单次输出超 FREE_DEMO_MAX_OUTPUT_TOKENS → 不享受免费体验，正常扣费。"""
+    """单次输出超 FREE_DEMO_MAX_OUTPUT_TOKENS → 不享受免费体验，正常扣费。
+
+    R10 起长输出会自动核销「首篇完整体验券」。本用例只验每日免费额度规则，
+    因此显式把该券置为已用（不可用），不再依赖 data/first_piece_free.json 的
+    仓库残留状态——否则首次跑全量会误判，重跑又变绿。
+    """
     _patch_tier_free(monkeypatch)
+    monkeypatch.setattr(
+        "studio.first_piece.consume_first_piece",
+        lambda uid, meta=None: False,
+    )
     with patch("studio.membership.service.deduct_credits", return_value=(True, 20000)) as mock_deduct:
         r = llm_metering.record_llm_call(
             "yimu_official", "yimu-chat", 100,

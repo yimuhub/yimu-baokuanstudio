@@ -85,7 +85,7 @@ async def do_rewrite(request: Request):
     _a.guard(request)
     body = await request.json()
     try:
-        return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.benchmark_and_rewrite(body.get('platform', ''), body.get('title', ''), body.get('url', ''), (body.get('theme') or '').strip(), body.get('extra') or {}, source_text=body.get('source_text') or body.get('text') or '', user_id=_current_user_id(_a.guard(request))))
+        return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.benchmark_and_rewrite(body.get('platform', ''), body.get('title', ''), body.get('url', ''), (body.get('theme') or '').strip(), body.get('extra') or {}, source_text=body.get('source_text') or body.get('text') or '', user_id=_a._current_user_id(_a.guard(request))))
     except Exception as e:
         raise HTTPException(500, f'拆解仿写失败: {e}')
 

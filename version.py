@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.5.1"
-__codename__ = "玉衡明"
-__codename_en__ = "Jade Balance Bright"
-__slogan__ = "一念起 一幕开 万象生 · 编辑器底栏协调化重排：派生平台横排胶囊、按钮全宽、提示归位"
-__slogan_cn__ = "一念起 一幕开 万象生 · 编辑器底栏协调化重排：派生平台横排胶囊、按钮全宽、提示归位"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Editor footer realigned: horizontal derive chips, full-width CTA"
+__version__ = "15.6.0"
+__codename__ = "星野阔"
+__codename_en__ = "Starfield Wide"
+__slogan__ = "一念起 一幕开 万象生 · 内容工作台双栏自由拖拽：顶栏自定义、资产台会话隔离、发布条按成品显隐"
+__slogan_cn__ = "一念起 一幕开 万象生 · 内容工作台双栏自由拖拽：顶栏自定义、资产台会话隔离、发布条按成品显隐"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Resizable workbench panes, configurable header, session-scoped assets"
 
 
 def get_version() -> str:

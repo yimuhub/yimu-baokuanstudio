@@ -94,7 +94,7 @@ async def topic_action(tid: str, action: str, request: Request):
         return {'ok': True}
     if action == 'generate':
         try:
-            return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.generate_draft(tid, user_id=_current_user_id(user)))
+            return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.generate_draft(tid, user_id=_a._current_user_id(user)))
         except Exception as e:
             raise HTTPException(500, str(e))
     if action == 'generate_job':
@@ -113,13 +113,13 @@ async def topic_action(tid: str, action: str, request: Request):
 
         def _run():
             try:
-                update_async_job(jid, step='AI 主笔深度创作中…', progress=30)
-                res = orchestrator.generate_draft(tid, emit=lambda m: update_async_job(jid, step=m), media_name=media_name, platforms=platforms, user_id=_current_user_id(user), image_style=image_style)
+                _a.update_async_job(jid, step='AI 主笔深度创作中…', progress=30)
+                res = orchestrator.generate_draft(tid, emit=lambda m: _a.update_async_job(jid, step=m), media_name=media_name, platforms=platforms, user_id=_a._current_user_id(user), image_style=image_style)
                 draft_info = res.get('draft') or {}
                 d_title = draft_info.get('title') or '新生成文章'
-                update_async_job(jid, status='done', step='文章生成完成', progress=100, result={'draft_id': draft_info.get('id'), 'score': res.get('score'), 'title': d_title})
+                _a.update_async_job(jid, status='done', step='文章生成完成', progress=100, result={'draft_id': draft_info.get('id'), 'score': res.get('score'), 'title': d_title})
             except Exception as e:
-                update_async_job(jid, status='failed', error=str(e)[:400], step='文章生成失败')
+                _a.update_async_job(jid, status='failed', error=str(e)[:400], step='文章生成失败')
         asyncio.get_event_loop().run_in_executor(None, _run)
         return {'job': jid}
     raise HTTPException(404, action)

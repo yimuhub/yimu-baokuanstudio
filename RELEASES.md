@@ -4,6 +4,23 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌌 Version 15.6.0 · 星野阔 (Starfield Wide) · Resizable Workbench & Session-Scoped Assets · 2026-11-09
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.6.0"`, `__codename__ = "星野阔"`, `__codename_en__ = "Starfield Wide"`)
+
+### 🎛️ What changed
+
+| # | Area | Detail |
+|---|------|--------|
+| 1 | **Resizable split view** | Draggable divider between editor and preview; double-click / arrow keys / `Home` to reset; persisted to `localStorage` |
+| 2 | **DOM fix** | `#split-workbench` was closed too early since R11 — handle and preview were outside the flex container, so dragging never worked |
+| 3 | **Header settings** | Removed the "admin logged in" badge; added a gear menu to pin tool categories, rest go into "More" |
+| 4 | **Session-scoped assets** | A fresh conversation shows an empty state instead of stale scores/cards/images; the publish bar appears only when a deliverable exists |
+| 5 | **Export / publish** | Copy, export (ZIP cards or HTML article) and publish all give real feedback instead of silent no-ops |
+| 6 | **Quality** | 47 undefined-name errors in routers fixed; CI lint gate green; full pytest suite green |
+
+**Full Changelog**: v15.5.1...v15.6.0
+
 ## ⚖️ Version 15.5.0 · 玉衡明 (Jade Balance Bright) · Editor Footer Realigned · 2026-11-09
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.5.0"`, `__codename__ = "玉衡明"`, `__codename_en__ = "Jade Balance Bright"`)

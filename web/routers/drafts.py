@@ -22,7 +22,7 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
 
-from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+from web.draft_guard import DraftOwnerRoute, SAFE_DID_RE  # noqa: E402  稳定类身份 / did 白名单
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from adapters.base import PLATFORMS, NAMES  # noqa: E402,F811
@@ -519,15 +519,15 @@ async def draft_publish_xhs(did: str, request: Request):
     body = await request.json()
     import uuid
     jid = uuid.uuid4().hex[:12]
-    JOBS[jid] = {'step': '准备发布…', 'status': 'running', 'result': None, 'error': ''}
+    _a.JOBS[jid] = {'step': '准备发布…', 'status': 'running', 'result': None, 'error': ''}
 
     def _run():
         try:
             from core import xhspub
-            res = xhspub.publish(did, emit=lambda m: JOBS[jid].update(step=m))
-            JOBS[jid].update(status='done' if res['ok'] else 'failed', step='完成' if res['ok'] else '失败', result=res, error='' if res['ok'] else res['detail'][:300])
+            res = xhspub.publish(did, emit=lambda m: _a.JOBS[jid].update(step=m))
+            _a.JOBS[jid].update(status='done' if res['ok'] else 'failed', step='完成' if res['ok'] else '失败', result=res, error='' if res['ok'] else res['detail'][:300])
         except Exception as e:
-            JOBS[jid].update(status='failed', error=str(e)[:300], step='失败')
+            _a.JOBS[jid].update(status='failed', error=str(e)[:300], step='失败')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 
@@ -861,14 +861,14 @@ async def draft_evolve(did: str, request: Request):
     max_rounds = int(body.get('max_rounds', 3))
     import uuid
     jid = uuid.uuid4().hex[:12]
-    JOBS[jid] = {'step': '自进化熔炉初始化…', 'status': 'running', 'result': None, 'error': ''}
+    _a.JOBS[jid] = {'step': '自进化熔炉初始化…', 'status': 'running', 'result': None, 'error': ''}
 
     def _run():
         try:
-            res = orchestrator.evolve_draft_to_target(did, target_score=target_score, max_rounds=max_rounds, emit=lambda m: JOBS[jid].update(step=m))
-            JOBS[jid].update(status='done', step='炼制完成', result=res)
+            res = orchestrator.evolve_draft_to_target(did, target_score=target_score, max_rounds=max_rounds, emit=lambda m: _a.JOBS[jid].update(step=m))
+            _a.JOBS[jid].update(status='done', step='炼制完成', result=res)
         except Exception as e:
-            JOBS[jid].update(status='failed', error=str(e)[:300], step='炼制中断')
+            _a.JOBS[jid].update(status='failed', error=str(e)[:300], step='炼制中断')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 
@@ -1253,7 +1253,7 @@ async def drafts_delete(request: Request):
     skipped: list[str] = []
     for raw_did in ids:
         did = str(raw_did or '').strip()
-        if not _SAFE_DID_RE.match(did):
+        if not SAFE_DID_RE.match(did):
             skipped.append(str(raw_did))
             continue
         d = db.get_draft(did)

@@ -47,14 +47,14 @@ async def xhspub_login(request: Request):
     from core import xhspub
     import uuid
     jid = uuid.uuid4().hex[:12]
-    JOBS[jid] = {'step': '弹出浏览器中…', 'status': 'running', 'result': None, 'error': ''}
+    _a.JOBS[jid] = {'step': '弹出浏览器中…', 'status': 'running', 'result': None, 'error': ''}
 
     def _run():
         try:
-            res = xhspub.login(emit=lambda m: JOBS[jid].update(step=m))
-            JOBS[jid].update(status='done', step='完成', result=res)
+            res = xhspub.login(emit=lambda m: _a.JOBS[jid].update(step=m))
+            _a.JOBS[jid].update(status='done', step='完成', result=res)
         except Exception as e:
-            JOBS[jid].update(status='failed', error=str(e)[:300], step='失败')
+            _a.JOBS[jid].update(status='failed', error=str(e)[:300], step='失败')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 
@@ -105,10 +105,10 @@ async def audio_make(request: Request):
     def _run():
         try:
             from core import audio
-            res = audio.make_audio(did, int(body.get('seconds', 30)), body.get('platform', 'xhs'), body.get('subject', ''), emit=lambda m: update_async_job(jid, step=m), custom_script=script)
-            update_async_job(jid, status='done', step='AI 配音TTS合成完成', progress=100, result=res)
+            res = audio.make_audio(did, int(body.get('seconds', 30)), body.get('platform', 'xhs'), body.get('subject', ''), emit=lambda m: _a.update_async_job(jid, step=m), custom_script=script)
+            _a.update_async_job(jid, status='done', step='AI 配音TTS合成完成', progress=100, result=res)
         except Exception as e:
-            update_async_job(jid, status='failed', error=str(e)[:300], step='配音合成失败')
+            _a.update_async_job(jid, status='failed', error=str(e)[:300], step='配音合成失败')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 
@@ -198,10 +198,10 @@ async def video_make(request: Request):
     def _run():
         try:
             from core import video
-            res = video.make_video(did, int(body.get('seconds', 15)), body.get('subject', ''), emit=lambda m: update_async_job(jid, step=m), platform=body.get('platform', 'douyin'), aspect=body.get('aspect', ''), voice=body.get('voice', ''), custom_script=script, bgm_type=bgm_type, bgm_volume=bgm_volume, bgm_file=bgm_file, subtitle_enabled=subtitle_enabled, subtitle_position=subtitle_position, text_fore_color=text_fore_color, video_materials=materials)
-            update_async_job(jid, status='done', step='短视频混剪合成完成！', progress=100, result=res)
+            res = video.make_video(did, int(body.get('seconds', 15)), body.get('subject', ''), emit=lambda m: _a.update_async_job(jid, step=m), platform=body.get('platform', 'douyin'), aspect=body.get('aspect', ''), voice=body.get('voice', ''), custom_script=script, bgm_type=bgm_type, bgm_volume=bgm_volume, bgm_file=bgm_file, subtitle_enabled=subtitle_enabled, subtitle_position=subtitle_position, text_fore_color=text_fore_color, video_materials=materials)
+            _a.update_async_job(jid, status='done', step='短视频混剪合成完成！', progress=100, result=res)
         except Exception as e:
-            update_async_job(jid, status='failed', error=str(e)[:300], step='短视频生成失败')
+            _a.update_async_job(jid, status='failed', error=str(e)[:300], step='短视频生成失败')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 
@@ -332,11 +332,11 @@ async def advideo_create(request: Request):
     def _run():
         try:
             from core import ad_video
-            res = ad_video.make_ad_video(product_name, product_desc, seconds=seconds, aspect=aspect, audience=audience, voice=voice, selling_points=selling_points, ref_images=ref_images, person_ref_image=person_ref_image, voice_mode=voice_mode, custom_audio_path=custom_audio_path, ad_mode=ad_mode, custom_script=custom_script, video_model=video_model, emit=lambda m: update_async_job(jid, step=m))
-            update_async_job(jid, status='done', step='广告短片合成完成！', progress=100, result=res)
+            res = ad_video.make_ad_video(product_name, product_desc, seconds=seconds, aspect=aspect, audience=audience, voice=voice, selling_points=selling_points, ref_images=ref_images, person_ref_image=person_ref_image, voice_mode=voice_mode, custom_audio_path=custom_audio_path, ad_mode=ad_mode, custom_script=custom_script, video_model=video_model, emit=lambda m: _a.update_async_job(jid, step=m))
+            _a.update_async_job(jid, status='done', step='广告短片合成完成！', progress=100, result=res)
         except Exception as e:
             log_exc = str(e)[:300]
-            update_async_job(jid, status='failed', error=log_exc, step='广告短片生成失败')
+            _a.update_async_job(jid, status='failed', error=log_exc, step='广告短片生成失败')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 
@@ -712,10 +712,10 @@ async def drama_render(did: str, request: Request):
 
     def _run():
         try:
-            res = short_drama.render_short_drama_video(did, aspect=aspect, max_total_seconds=_max_s, emit=lambda m: update_async_job(jid, step=m))
-            update_async_job(jid, status='done', step='短剧成片渲染完成！', progress=100, result=res)
+            res = short_drama.render_short_drama_video(did, aspect=aspect, max_total_seconds=_max_s, emit=lambda m: _a.update_async_job(jid, step=m))
+            _a.update_async_job(jid, status='done', step='短剧成片渲染完成！', progress=100, result=res)
         except Exception as e:
-            update_async_job(jid, status='failed', error=str(e)[:400], step='短剧渲染失败')
+            _a.update_async_job(jid, status='failed', error=str(e)[:400], step='短剧渲染失败')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 
@@ -935,10 +935,10 @@ async def drama_pipeline_step8(did: str, request: Request):
 
     def _run():
         try:
-            res = short_drama.step8_render_final_drama(did, aspect=aspect, subtitle_enabled=subtitle_enabled, video_mode=video_mode, video_model=video_model, emit=lambda m: update_async_job(jid, step=m))
-            update_async_job(jid, status='done', step='短剧全流程流水线成片合成完成！', progress=100, result=res)
+            res = short_drama.step8_render_final_drama(did, aspect=aspect, subtitle_enabled=subtitle_enabled, video_mode=video_mode, video_model=video_model, emit=lambda m: _a.update_async_job(jid, step=m))
+            _a.update_async_job(jid, status='done', step='短剧全流程流水线成片合成完成！', progress=100, result=res)
         except Exception as e:
-            update_async_job(jid, status='failed', error=str(e)[:400], step='短剧合成失败')
+            _a.update_async_job(jid, status='failed', error=str(e)[:400], step='短剧合成失败')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 

@@ -7,7 +7,7 @@
 ; 版本号由 scripts/build_windows_installer.py 通过 /DMyAppVersion=... 注入，
 ; 避免写死导致 v10.3.0 的安装包仍叫 v10.2.1.exe。手工直接编译时用下面的兜底值。
 #ifndef MyAppVersion
-  #define MyAppVersion "15.5.1"
+  #define MyAppVersion "15.6.0"
 #endif
 #define MyAppPublisher "YIMU Studio Team"
 #define MyAppURL "https://yimu.hyipf.com"

@@ -188,7 +188,7 @@ async def health_repair(request: Request):
         launchd = {'apipool': ('YIMU_LAUNCHD_APIPOOL', 4), 'exporter': ('YIMU_LAUNCHD_EXPORTER', 3)}
         if name in launchd:
             env_name, wait_s = launchd[name]
-            label = (_os.environ.get(env_name) or '').strip()
+            label = (_a._os.environ.get(env_name) or '').strip()
             if not label:
                 raise HTTPException(501, f'当前环境未注册该组件的后台服务（缺少 {env_name}），请手动重启对应程序后重试')
             uid_ = sp.run(['id', '-u'], capture_output=True, text=True).stdout.strip()
@@ -196,12 +196,12 @@ async def health_repair(request: Request):
             time.sleep(wait_s)
             return {'ok': True}
         if name == 'xhsmcp':
-            xb = BASE / 'vendors/xhs-mcp/xiaohongshu-mcp'
+            xb = _a.BASE / 'vendors/xhs-mcp/xiaohongshu-mcp'
             if not xb.exists():
                 raise HTTPException(400, '组件未安装')
             sp.run(['pkill', '-f', 'xiaohongshu-mcp'], capture_output=True)
             time.sleep(1)
-            log_dir = BASE / 'logs'
+            log_dir = _a.BASE / 'logs'
             log_dir.mkdir(parents=True, exist_ok=True)
             with open(log_dir / 'xhsmcp.out', 'w') as _log:
                 sp.Popen([str(xb), '-headless=true'], cwd=str(xb.parent), stdout=_log, stderr=sp.STDOUT)

@@ -19,6 +19,7 @@
   var LS_W = 'yimu.shell.w';
   var LS_TAB = 'yimu.shell.tab';
   var LS_MODE = 'yimu.shell.mode';
+  var LS_HDR = 'yimu.shell.hdr';       // V15.6 顶栏工具项的「直接显示 / 收进更多」配置
   var BREAK = 1180;                 // 低于该宽度不启用三栏
   var MIN_RAIL = 200, MAX_RAIL = 420;
   var MIN_PANEL = 300, MAX_PANEL = 680;
@@ -312,8 +313,13 @@
   }
 
   function openLB(list, idx) {
-    ensureLB();
     ST.imgs = list || [];
+    // V15.6：空列表时不要弹出黑洞洞的空白灯箱，给一句明确反馈
+    if (!ST.imgs.length) {
+      toast('暂无可预览的图片');
+      return;
+    }
+    ensureLB();
     ST.lbIdx = clamp(idx || 0, 0, Math.max(0, ST.imgs.length - 1));
     paintLB();
     LB.classList.add('on');
@@ -349,6 +355,17 @@
       '</div>';
   }
 
+  /* V15.6：全新会话的「未创作」空态。不放任何示意图片 / 缩略图，
+     避免用户点到打不开的假图片；唯一动作是把焦点交回中栏输入框。 */
+  function freshState() {
+    return '<div class="a-fresh">' +
+      '<div class="ic">✦</div>' +
+      '<div class="tt">未创作</div>' +
+      '<div class="tx">本次对话还没有成品。把主题交给 Agent，成稿、配图与发布入口会在生成完成后出现在这里。</div>' +
+      '<button class="abtn go" type="button" data-act="start-create">立即创作</button>' +
+      '</div>';
+  }
+
   function render() {
     var box = byId('assetsBody');
     if (!box) return;
@@ -359,6 +376,25 @@
       tabs[i].classList.toggle('on', tabs[i].getAttribute('data-at') === ST.tab);
     }
     var hint = byId('assetsHint');
+
+    /* V15.6 会话隔离：右栏只跟随「本次创作」，绝不回落展示历史稿。
+       新建对话后 curDraft / currentLiteDraftId 都被清空，此时给一个纯引导空态，
+       不渲染评分卡、小红书卡片、假图片，也不显示发布/导出条。 */
+    var bound = activeDraftId();
+    if (!bound) {
+      ST.draft = null;
+      ST.imgs = [];
+      ST.xhsCards = [];
+      DOC.body.setAttribute('data-assets-fresh', '1');
+      if (hint) hint.textContent = tr('shell_hint_fresh', '等待本次创作产出');
+      var cnt0 = byId('assetsImgCount');
+      if (cnt0) cnt0.textContent = '';
+      ++ST.seq;
+      box.innerHTML = freshState();
+      return;
+    }
+    ST.draft = bound;
+    DOC.body.setAttribute('data-assets-fresh', '0');
     if (hint) {
       hint.textContent = ST.focus
         ? tr('shell_hint_focus', '专注查看 · Esc 退出')
@@ -389,7 +425,7 @@
   }
 
   function renderDoc(box, seq) {
-    var id = ST.draft || activeDraftId();
+    var id = activeDraftId() || ST.draft;
     var meta = id ? draftMeta(id) : null;
     if (!id || !meta) {
       var ds = draftList();
@@ -523,7 +559,7 @@
 
   /* ------------------------------ 图片 ------------------------------ */
   function renderImg(box, seq) {
-    var id = ST.draft || currentDraftId();
+    var id = activeDraftId() || ST.draft;
     if (!id) {
       box.innerHTML = emptyState('🖼️', '还没有图片资产。稿件出图后，封面与配图会出现在这里。', '去生成图片', 'open-drafts');
       return;
@@ -596,7 +632,7 @@
 
   /* ------------------------------ 数据 ------------------------------ */
   function renderData(box, seq) {
-    var id = ST.draft || currentDraftId();
+    var id = activeDraftId() || ST.draft;
     var m = id ? draftMeta(id) : null;
 
     box.innerHTML =
@@ -653,9 +689,77 @@
   var HDR_ORDER = ['misc', 'refresh', 'lang', 'theme', 'watermark', 'persona',
     'api', 'cmd', 'jobs', 'mode', 'cal', 'ws', 'token', 'auth'];
   var hdrMenu = null;
+  var hdrCfgMenu = null;
   var hdrItems = [];
   var MORE_LABEL = tr('shell_more', '⋯ 更多');
   var LESS_LABEL = tr('shell_less', '✕ 收起');
+
+  /* V15.6 顶栏自定义：默认只常驻「工作室空间 + 算力套餐」，其余收进「更多」。
+     用户在「⚙ 设置」里勾选的项常驻，未勾选的一律进「更多」，配置持久化。 */
+  var HDR_DEFAULT = { ws: true, token: true };
+  var HDR_LABEL = {
+    ws: '工作室空间', token: '算力与套餐', cal: '排期日历', mode: '工作台模式',
+    jobs: '任务监控', cmd: '快捷命令', api: '我的 API', persona: '6 维画像',
+    watermark: '水印设置', lang: '语言切换', theme: '主题切换',
+    refresh: '刷新状态', misc: '其它工具'
+  };
+  var hdrCfg = readHdrCfg();
+
+  function readHdrCfg() {
+    var out = {};
+    Object.keys(HDR_DEFAULT).forEach(function (k) { out[k] = HDR_DEFAULT[k]; });
+    try {
+      var raw = localStorage.getItem(LS_HDR);
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (d && typeof d === 'object') {
+          Object.keys(d).forEach(function (k) { out[k] = !!d[k]; });
+        }
+      }
+    } catch (e) { /* 配置损坏时回默认 */ }
+    return out;
+  }
+
+  function saveHdrCfg() {
+    try { localStorage.setItem(LS_HDR, JSON.stringify(hdrCfg)); } catch (e) { /* ignore */ }
+  }
+
+  function resetHdrCfg() {
+    hdrCfg = {};
+    Object.keys(HDR_DEFAULT).forEach(function (k) { hdrCfg[k] = HDR_DEFAULT[k]; });
+  }
+
+  function hdrCfgKinds() {
+    var seen = {}, out = [];
+    hdrItems.forEach(function (el) {
+      var k = hdrKind(el);
+      if (k === 'auth' || seen[k]) return;
+      seen[k] = 1;
+      out.push(k);
+    });
+    out.sort(function (a, b) {
+      return HDR_ORDER.indexOf(b) - HDR_ORDER.indexOf(a);
+    });
+    return out;
+  }
+
+  function renderHdrCfg() {
+    if (!hdrCfgMenu) return;
+    var rows = hdrCfgKinds().map(function (k) {
+      return '<label class="hdr-cfg-item">' +
+        '<input type="checkbox" data-kind="' + esc(k) + '"' + (hdrCfg[k] ? ' checked' : '') + '>' +
+        '<span>' + esc(HDR_LABEL[k] || k) + '</span>' +
+        '<i>' + (hdrCfg[k] ? '常驻' : '更多') + '</i></label>';
+    }).join('');
+    hdrCfgMenu.innerHTML =
+      '<div class="hdr-cfg-title">顶栏显示设置</div>' +
+      '<div class="hdr-cfg-tip">勾选的项直接显示在顶栏，未勾选的收进「更多」</div>' +
+      '<div class="hdr-cfg-list">' + rows + '</div>' +
+      '<div class="hdr-cfg-foot">' +
+        '<button type="button" class="abtn" data-cfg="all">全部常驻</button>' +
+        '<button type="button" class="abtn" data-cfg="reset">恢复默认</button>' +
+      '</div>';
+  }
 
   function hdrKind(el) {
     if (el.id === 'top-auth-btn') return 'auth';
@@ -703,24 +807,37 @@
     // 1) 全部先摆回顶栏
     hdrItems.forEach(function (el) { acts.insertBefore(el, more); });
 
-    // 2) 从最低优先级开始往菜单里收，直到一行放得下
-    var moved = 0;
-    for (var i = 0; i < hdrItems.length; i++) {
-      if (!hdrOverflow(acts)) break;
-      hdrMenu.appendChild(hdrItems[i]);
-      moved++;
+    // 2) 按用户配置分派：未勾选的收进「更多」（这是 V15.6 的主逻辑）
+    hdrItems.forEach(function (el) {
+      if (!hdrCfg[hdrKind(el)]) hdrMenu.appendChild(el);
+    });
+
+    // 3) 宽度兜底：常驻项在一行放不下时，按优先级从低到高临时挪进菜单，
+    //    只影响本次布局，不改写用户配置
+    for (var i = 0; i < hdrItems.length && hdrOverflow(acts); i++) {
+      var el = hdrItems[i];
+      if (el.parentNode === acts) hdrMenu.appendChild(el);
     }
 
-    // 3) 菜单内按重要性从高到低排列（最重要的一项在最上面）
-    for (var k = moved - 1; k >= 0; k--) hdrMenu.appendChild(hdrItems[k]);
+    // 4) 菜单内按重要性从高到低排列（最重要的一项在最上面）
+    hdrItems.slice().sort(function (a, b) {
+      return hdrRank(b) - hdrRank(a) || a.__hdrOrder - b.__hdrOrder;
+    }).forEach(function (it) {
+      if (it.parentNode === hdrMenu) hdrMenu.appendChild(it);
+    });
 
-    more.style.display = moved ? '' : 'none';
+    more.style.display = hdrMenu.children.length ? '' : 'none';
   }
 
   function buildHeaderOverflow() {
     var acts = DOC.querySelector('header .top-acts');
     if (!acts || acts.getAttribute('data-shell-hdr') === '1') return;
     acts.setAttribute('data-shell-hdr', '1');
+
+    // V15.6 批注整改：顶栏「管理员已登录 / 创作者已登录」徽章移除。
+    // 身份展示由左下个人中心的 side-auth-badge 承担，登录弹窗仍可从个人中心打开。
+    var auth = byId('top-auth-btn');
+    if (auth && auth.parentNode === acts) acts.removeChild(auth);
 
     var more = DOC.createElement('div');
     more.className = 'hdr-more';
@@ -729,17 +846,35 @@
     acts.appendChild(more);
     hdrMenu = more.querySelector('#shellMoreMenu');
 
+    // V15.6 新增：顶栏显示设置（勾选常驻 / 不勾选收进更多）
+    var cfg = DOC.createElement('div');
+    cfg.className = 'hdr-config';
+    cfg.innerHTML = '<button class="abtn" id="shellCfgBtn" type="button" title="顶栏显示设置" aria-label="顶栏显示设置">⚙</button>' +
+      '<div class="hdr-menu hdr-cfg-menu" id="shellCfgMenu"></div>';
+    acts.appendChild(cfg);
+    hdrCfgMenu = cfg.querySelector('#shellCfgMenu');
+
     var btn = more.querySelector('#shellMoreBtn');
+    var cfgBtn = cfg.querySelector('#shellCfgBtn');
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       hdrMenu.classList.toggle('on');
       btn.textContent = hdrMenu.classList.contains('on') ? LESS_LABEL : MORE_LABEL;
+      hdrCfgMenu.classList.remove('on');
+    });
+    cfgBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      hdrCfgMenu.classList.toggle('on');
+      hdrMenu.classList.remove('on');
+      btn.textContent = MORE_LABEL;
+      if (hdrCfgMenu.classList.contains('on')) renderHdrCfg();
     });
     DOC.addEventListener('click', function (e) {
       if (!more.contains(e.target)) {
         hdrMenu.classList.remove('on');
         btn.textContent = MORE_LABEL;
       }
+      if (!cfg.contains(e.target)) hdrCfgMenu.classList.remove('on');
     });
     // 点了菜单里的任意项（除工作区下拉）就把菜单收起
     hdrMenu.addEventListener('click', function (e) {
@@ -749,10 +884,31 @@
         btn.textContent = MORE_LABEL;
       }, 120);
     });
+    hdrCfgMenu.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var b = e.target.closest('[data-cfg]');
+      if (!b) return;
+      if (b.getAttribute('data-cfg') === 'all') {
+        hdrCfgKinds().forEach(function (k) { hdrCfg[k] = true; });
+      } else {
+        resetHdrCfg();
+      }
+      saveHdrCfg();
+      renderHdrCfg();
+      fitHeader();
+    });
+    hdrCfgMenu.addEventListener('change', function (e) {
+      var box = e.target.closest('input[data-kind]');
+      if (!box) return;
+      hdrCfg[box.getAttribute('data-kind')] = box.checked;
+      saveHdrCfg();
+      renderHdrCfg();
+      fitHeader();
+    });
 
     var SKIP_ID = { 'nav-ver-text': 1, 'header-extra': 1 };
     hdrItems = Array.prototype.filter.call(acts.children, function (el) {
-      if (el === more || el.tagName === 'SCRIPT') return false;
+      if (el === more || el === cfg || el.tagName === 'SCRIPT') return false;
       if (SKIP_ID[el.id]) return false;
       return true;
     });
@@ -762,6 +918,7 @@
       return hdrRank(a) - hdrRank(b) || a.__hdrOrder - b.__hdrOrder;
     });
 
+    renderHdrCfg();
     fitHeader();
     var t = null;
     WIN.addEventListener('resize', function () {
@@ -795,6 +952,12 @@
         return;
       }
       var act = t.getAttribute('data-act');
+      if (act === 'start-create') {
+        var inp = byId('copilot-input') || DOC.querySelector('#p-lite-mode textarea');
+        if (inp && inp.focus) inp.focus();
+        toast('写下主题发送后，Agent 生成成品会自动出现在这里');
+        return;
+      }
       if (act === 'open-drafts') { gotoPanel('drafts'); return; }
       if (act === 'open-inspire') { gotoPanel('inspire'); return; }
       if (act === 'open-studio') { gotoPanel('studio'); return; }
@@ -865,7 +1028,7 @@
   }
 
   function refreshDoc(explicit) {
-    if (explicit) ST.draft = currentDraftId();
+    if (explicit) ST.draft = activeDraftId();
     render();
     if (explicit) toast('已刷新');
   }
@@ -912,7 +1075,10 @@
       // 全局刷新（生成完成/切换工作区）→ 右栏重取
       refresh: function () {
         setTimeout(function () {
-          if (!ST.draft || !draftMeta(ST.draft)) ST.draft = currentDraftId();
+          // V15.6：绝不把失效的 ST.draft 回落到 S.drafts[0]（那是上一篇旧稿）。
+          // 生成完成后 currentLiteDraftId / curDraft 会被业务侧赋值，activeDraftId
+          // 自然拿到本次成品；若仍是空会话，render() 会保持「未创作」空态。
+          ST.draft = activeDraftId();
           render();
         }, 300);
       }
@@ -989,11 +1155,26 @@
     })();
 
     WIN.YIMU_SHELL = {
-      version: '14.0.0',
+      version: '15.6.0',
       setTab: function (t) { ST.tab = t; render(); },
       focus: setFocus,
       refresh: render,
-      widths: currentWidths
+      widths: currentWidths,
+      // V15.6 会话隔离 / 顶栏自定义对外接口
+      resetAssets: function () {
+        ST.imgs = [];
+        ST.xhsCards = [];
+        render();
+      },
+      setDraft: function (id) { ST.draft = id || activeDraftId(); render(); },
+      headerConfig: function () { return hdrCfg; },
+      applyHeaderConfig: function (c) {
+        if (!c || typeof c !== 'object') return;
+        hdrCfg = c;
+        saveHdrCfg();
+        renderHdrCfg();
+        fitHeader();
+      }
     };
   }
 

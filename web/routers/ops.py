@@ -50,10 +50,10 @@ async def ticket_run(request: Request):
     def _run():
         try:
             from core import ticket
-            res = ticket.run_ticket(emit=lambda m: update_async_job(jid, step=m))
-            update_async_job(jid, status='done', step='每日巡航工单执行完成！', progress=100, result=res)
+            res = ticket.run_ticket(emit=lambda m: _a.update_async_job(jid, step=m))
+            _a.update_async_job(jid, status='done', step='每日巡航工单执行完成！', progress=100, result=res)
         except Exception as e:
-            update_async_job(jid, status='failed', error=str(e)[:300], step='工单执行失败')
+            _a.update_async_job(jid, status='failed', error=str(e)[:300], step='工单执行失败')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 

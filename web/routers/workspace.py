@@ -8,6 +8,8 @@
 - admin.py 底部统一 include 本 router。"""
 from __future__ import annotations
 
+from typing import Optional  # noqa: E402
+
 import asyncio  # noqa: F401
 import base64  # noqa: F401
 import hashlib  # noqa: F401

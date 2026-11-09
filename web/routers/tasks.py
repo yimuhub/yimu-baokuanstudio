@@ -225,7 +225,7 @@ async def batch_submit_endpoint(request: Request):
 @router.get('/api/rewrite/job/{jid}')
 def rewrite_job_status(jid: str, request: Request):
     _a.guard(request)
-    j = JOBS.get(jid)
+    j = _a.JOBS.get(jid)
     if not j:
         raise HTTPException(404, '任务不存在')
     return j

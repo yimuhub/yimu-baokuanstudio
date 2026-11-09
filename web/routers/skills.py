@@ -116,9 +116,9 @@ async def skills_distill(request: Request):
             if not rules:
                 raise ValueError('蒸馏解析失败：' + raw[:150])
             (_a.SKILL_AGENTS_DIR / f'{slug}.md').write_text(f'---\nname: {slug}\ndescription: 蒸馏技能·{name_raw}：{desc}\n---\n\n# 蒸馏自「{name_raw}」\n\n{rules}\n', encoding='utf-8')
-            update_async_job(jid, status='done', step='文风蒸馏完成并已入库！', progress=100, result={'slug': slug, 'desc': desc})
+            _a.update_async_job(jid, status='done', step='文风蒸馏完成并已入库！', progress=100, result={'slug': slug, 'desc': desc})
         except Exception as e:
-            update_async_job(jid, status='failed', error=str(e)[:300], step='蒸馏失败')
+            _a.update_async_job(jid, status='failed', error=str(e)[:300], step='蒸馏失败')
     asyncio.get_event_loop().run_in_executor(None, _run)
     return {'job': jid}
 

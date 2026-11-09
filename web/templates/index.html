@@ -683,8 +683,48 @@ body {
 }
 [data-theme="light"] .wb-editor-pane {
   background: #ffffff !important;
-  border-right: 1px solid #e2e8f0 !important;
+  border-right: none !important;
 }
+[data-theme="light"] .wb-splitter {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+[data-theme="light"] .wb-splitter::before { background: #94a3b8 !important; }
+[data-theme="light"] .wb-splitter::after {
+  background: #64748b !important;
+  box-shadow: 0 -7px 0 #64748b, 0 7px 0 #64748b !important;
+}
+[data-theme="light"] .wb-splitter:hover::before,
+[data-theme="light"] .wb-splitter:focus-visible::before,
+[data-theme="light"] body.wb-split-drag .wb-splitter::before { background: #ea580c !important; }
+[data-theme="light"] .wb-splitter:hover::after,
+[data-theme="light"] .wb-splitter:focus-visible::after,
+[data-theme="light"] body.wb-split-drag .wb-splitter::after {
+  background: #ea580c !important;
+  box-shadow: 0 -7px 0 #ea580c, 0 7px 0 #ea580c !important;
+}
+[data-theme="light"] .wb-editor-body { background: #f8fafc !important; }
+[data-theme="light"] .wb-textarea { border-color: #e2e8f0 !important; }
+[data-theme="light"] body[data-shell="v2"] .assets .assets-acts {
+  background: #ffffff !important;
+  border-top-color: #e2e8f0 !important;
+}
+[data-theme="light"] body[data-shell="v2"] .assets .assets-acts .btn {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #475569 !important;
+}
+[data-theme="light"] body[data-shell="v2"] .assets .assets-acts .btn.primary {
+  background: #c2410c !important;
+  border-color: #c2410c !important;
+  color: #ffffff !important;
+}
+[data-theme="light"] .a-fresh .go {
+  color: #b03a08 !important;
+  background: rgba(234, 88, 12, .09) !important;
+  border-color: rgba(194, 65, 12, .45) !important;
+}
+[data-theme="light"] .a-fresh .ic { border-color: #e2e8f0 !important; }
 [data-theme="light"] .wb-editor-header {
   background: #f8fafc !important;
   border-bottom: 1px solid #e2e8f0 !important;
@@ -1563,17 +1603,77 @@ input[type=text]:focus, textarea:focus, select:focus {
   width: 100%;
   overflow: hidden;
   background: #0d1117;
+  --wb-editor-w: 46%;
 }
 
-/* 左栏：源文案与 Markdown 专业编辑台 (46% 黄金比例) */
+/* V15.6 可拖拽分栏：宽度由 --wb-editor-w 驱动，workbench-split.js 写入并持久化。
+   脚本未加载时退回 46% 默认比例；两栏不再各自写死 min/max，改由拖拽逻辑统一 clamp。 */
+.wb-splitter {
+  flex: 0 0 10px;
+  width: 10px;
+  height: 100%;
+  position: relative;
+  cursor: col-resize;
+  touch-action: none;
+  z-index: 6;
+  outline: none;
+  background: #0d1117;
+  border-left: 1px solid #30363d;
+  border-right: 1px solid #30363d;
+  transition: background .15s ease;
+}
+.wb-splitter::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 54px;
+  border-radius: 4px;
+  background: #4b5868;
+  transform: translate(-50%, -50%);
+  transition: height .18s ease, background .18s ease;
+}
+/* 三点抓手：让「这条线可以拖」一眼可见，不喧宾夺主 */
+.wb-splitter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3px;
+  height: 3px;
+  margin: -1.5px 0 0 -1.5px;
+  border-radius: 50%;
+  background: #8b98a8;
+  box-shadow: 0 -7px 0 #8b98a8, 0 7px 0 #8b98a8;
+  opacity: .85;
+  pointer-events: none;
+  transition: background .18s ease, box-shadow .18s ease;
+}
+.wb-splitter:hover, .wb-splitter:focus-visible { background: rgba(240, 136, 62, .09); }
+.wb-splitter:hover::before, .wb-splitter:focus-visible::before,
+body.wb-split-drag .wb-splitter::before {
+  height: 82px;
+  background: var(--primary, #f0883e);
+}
+.wb-splitter:hover::after, .wb-splitter:focus-visible::after,
+body.wb-split-drag .wb-splitter::after {
+  background: var(--primary, #f0883e);
+  box-shadow: 0 -7px 0 var(--primary, #f0883e), 0 7px 0 var(--primary, #f0883e);
+}
+body.wb-split-drag, body.wb-split-drag * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+body.wb-split-drag iframe { pointer-events: none !important; }
+
+/* 左栏：源文案与 Markdown 专业编辑台（默认 46%，可自由拖拽） */
 .wb-editor-pane {
-  flex: 0 0 46%;
-  min-width: 380px;
-  max-width: 52%;
+  flex: 0 0 var(--wb-editor-w, 46%);
+  min-width: 280px;
   display: flex;
   flex-direction: column;
   background: #11161d;
-  border-right: 1px solid #30363d;
   height: 100%;
   position: relative;
 }
@@ -1661,16 +1761,28 @@ input[type=text]:focus, textarea:focus, select:focus {
   color: #8b949e;
 }
 
-/* 右栏：全景真实渲染与一键交付台 (54%) */
+/* 右栏：全景真实渲染与一键交付台（占剩余宽度） */
 .wb-preview-pane {
-  flex: 1;
-  min-width: 440px;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   background: #0a0d12;
   height: 100%;
   overflow: hidden;
 }
+
+/* V15.6 双栏视觉协调：头部等高、编辑区卡片化、预览纸留白更从容 */
+.wb-editor-header, .wb-preview-header { min-height: 46px; box-sizing: border-box; }
+.wb-editor-body { padding: 12px 14px 16px; }
+.wb-textarea {
+  border-radius: 10px;
+  border: 1px solid #21262d;
+  background: #11161d;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .02);
+}
+.wb-preview-viewport { padding: 22px 26px 30px; }
+.wb-preview-sheet { max-width: 900px; }
 
 .wb-preview-header {
   padding: 8px 16px;
@@ -3489,6 +3601,46 @@ body[data-shell="v2"] > :not(.side):not(.main-wrapper):not(.assets) {
 .a-empty .ic { font-size: 28px; opacity: 0.45; }
 .a-empty .tx { font-size: 12.5px; line-height: 1.75; max-width: 250px; }
 
+/* V15.6 全新会话空态：不展示示意图片、不展示假成品，只给一句引导和一个动作 */
+.a-fresh {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 300px;
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.a-fresh .ic {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 25px;
+  color: var(--primary, #f0883e);
+  background: var(--accbg, rgba(240, 136, 62, .12));
+  border: 1px solid var(--border2, #26313f);
+}
+.a-fresh .tt { font-size: 14px; font-weight: 700; color: var(--text); }
+.a-fresh .tx { font-size: 12px; line-height: 1.85; max-width: 240px; }
+.a-fresh .go {
+  margin-top: 2px;
+  padding: 7px 16px;
+  border-radius: 9px;
+  border: 1px solid var(--primary, #f0883e);
+  background: var(--accbg, rgba(240, 136, 62, .12));
+  color: var(--primary-ink, #f7a05a);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform .15s ease, filter .15s ease;
+}
+.a-fresh .go:hover { transform: translateY(-1px); filter: brightness(1.1); }
+
 .a-plats { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
 .a-plat {
   font-size: 11px;
@@ -3901,6 +4053,56 @@ body[data-shell="v2"] .system-mode-toggle .sys-mode-btn > span:nth-child(2) { di
 }
 .hdr-menu > *:last-child { margin-bottom: 0 !important; }
 .hdr-menu .ws-brand-selector { flex-wrap: wrap; row-gap: 4px; }
+
+/* V15.6 顶栏显示设置：手动决定哪些工具常驻、哪些收进「更多」 */
+.hdr-config { position: relative; flex: 0 0 auto; }
+.hdr-config > .abtn { min-width: 32px; justify-content: center; }
+.hdr-cfg-menu { width: 262px; padding: 12px; }
+.hdr-cfg-menu > * { margin: 0 0 8px !important; }
+.hdr-cfg-menu > *:last-child { margin-bottom: 0 !important; }
+.hdr-cfg-title { font-size: 13px; font-weight: 700; color: var(--text); }
+.hdr-cfg-tip {
+  display: block !important;
+  font-size: 11px;
+  line-height: 1.65;
+  color: var(--text-muted);
+  white-space: normal;
+}
+.hdr-cfg-list {
+  display: flex !important;
+  flex-direction: column;
+  gap: 2px;
+  max-height: min(52vh, 360px);
+  overflow-y: auto;
+}
+.hdr-cfg-item {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  width: 100% !important;
+  padding: 6px 8px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text);
+}
+.hdr-cfg-item:hover { background: var(--hover, rgba(255, 255, 255, .05)); }
+.hdr-cfg-item input { width: 14px; height: 14px; margin: 0; flex: 0 0 auto; accent-color: var(--primary); }
+.hdr-cfg-item span { flex: 1; }
+.hdr-cfg-item i { font-style: normal; font-size: 10.5px; color: var(--text-dim, #8b98ac); }
+.hdr-cfg-foot { display: flex !important; gap: 8px; }
+.hdr-cfg-foot .abtn {
+  flex: 1;
+  font-size: 11.5px;
+  padding: 5px 6px;
+  border-radius: 7px;
+  border: 1px solid var(--border2, #26313f);
+  background: var(--card2, #0f1621);
+  color: var(--text-muted);
+  cursor: pointer;
+  justify-content: center;
+}
+.hdr-cfg-foot .abtn:hover { color: var(--primary); border-color: var(--primary); }
 
 /* ---------- 极简模式：中栏变窄后双列改为可压缩，绝不横向溢出 ---------- */
 body[data-shell="v2"] #p-lite-mode { height: calc(100vh - 96px); min-height: 520px; }
@@ -4396,26 +4598,36 @@ body[data-shell="v2"] .assets .assets-foot { display: none !important; }
 body[data-shell="v2"] .assets .assets-acts {
   flex: 0 0 auto;
   border-top: 1px solid var(--border, #1b2431);
-  padding: 9px 10px;
-  display: flex; gap: 6px;
+  padding: 10px 12px;
+  display: flex; gap: 8px;
+  background: var(--card, #121824);
 }
+/* V15.6：全新会话没有成品时，发布条整条隐藏（不再出现点了没反应的按钮） */
+body[data-shell="v2"]:not([data-assets-fresh="0"]) .assets .assets-acts { display: none !important; }
 body[data-shell="v2"] .assets .assets-acts .btn {
-  flex: 1; height: 30px; min-width: 0;
-  border-radius: 7px;
+  flex: 1; height: 32px; min-width: 0;
+  border-radius: 8px;
   border: 1px solid var(--border2, #26313f);
   background: var(--card2, #0f1621);
   color: var(--text-muted, #8b98ac);
   font-size: 11.5px;
-  display: flex; align-items: center; justify-content: center; gap: 5px;
-  cursor: pointer; transition: all .15s;
+  font-weight: 500;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer;
+  transition: transform .15s ease, box-shadow .15s ease, color .15s ease, border-color .15s ease;
 }
 body[data-shell="v2"] .assets .assets-acts .btn:hover {
-  color: var(--text); border-color: var(--border3, #33415a);
+  color: var(--text);
+  border-color: var(--border3, #33415a);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
 }
+body[data-shell="v2"] .assets .assets-acts .btn:active { transform: translateY(0); }
 body[data-shell="v2"] .assets .assets-acts .btn.primary {
-  background: #f0883e;
-  border-color: #f0883e;
-  color: #1a1207; font-weight: 600;
+  background: linear-gradient(135deg, #f0883e, #e05a10);
+  border-color: #e05a10;
+  color: #ffffff; font-weight: 600;
+  box-shadow: 0 3px 10px rgba(224, 90, 16, .22);
 }
 body[data-shell="v2"] .assets .assets-acts .btn.primary:hover { filter: brightness(1.07); }
 
@@ -6784,10 +6996,12 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                     </div>
                   </div>
                 </div>
-              </div>
+
+              <!-- V15.6 可拖拽分栏手柄：左右拖动自由调整两栏宽度，双击复位 -->
+              <div class="wb-splitter" id="wb-splitter" role="separator" aria-orientation="vertical" aria-label="Resize editor and preview panes" tabindex="0"></div>
 
               <!-- 右栏：全景真实渲染与交付台 (54%) -->
-              <div class="wb-preview-pane">
+              <div class="wb-preview-pane" id="wb-preview-pane">
                 <div class="wb-preview-header">
                   <!-- 平台切换 Tabs -->
                   <div class="wb-nav-tabs">
@@ -6819,6 +7033,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                 </div>
               </div>
             </div>
+            <!-- /V15.6 #split-workbench：编辑栏 + 拖拽手柄 + 预览栏三者同一 flex 容器 -->
           </div>
         </div>
       </div>
@@ -14016,7 +14231,9 @@ function saveLiteCanvasEdits() {
 
 // 极简模式一键复制排版好的成品
 async function copyLiteCurrentRichContent() {
-  if (!currentLiteDraftId) return toast('当前画布尚无成稿');
+  if (!currentLiteDraftId && !curDraft) return toast('本次创作还没有成稿');
+  // V15.6：内容工作台选稿时只有 curDraft，这里补齐绑定，复制动作才不会空转
+  if (!currentLiteDraftId) currentLiteDraftId = curDraft;
 
   if (currentLitePlatform === 'wechat_mp' || currentLitePlatform === 'toutiao') {
     // 调用成熟的富文本复制
@@ -14454,6 +14671,28 @@ function newLiteDraft(silent = false) {
   
   // 清理对话消息流
   clearCopilotChat();
+
+  // V15.6 会话隔离：新建创作必须同步清空右栏资产台，
+  // 否则上一次的评分卡 / 小红书卡片 / 发布条会继续显示在这次空白对话里。
+  try {
+    if (window.YIMU_SHELL && typeof window.YIMU_SHELL.resetAssets === 'function') {
+      window.YIMU_SHELL.resetAssets();
+    }
+  } catch(e) {}
+
+  // V15.6 会话隔离：经典内容工作台同步回到「未选稿」空态，
+  // 避免上一次选中稿件的正文与渲染结果残留在这次空白对话里。
+  try {
+    const wbCls = $('split-workbench');
+    if (wbCls) wbCls.style.display = 'none';
+    const emptyCls = $('phone-empty-state');
+    if (emptyCls) emptyCls.style.display = 'block';
+    const edInput = $('wb-editor-input');
+    if (edInput) edInput.value = '';
+    const pvCanvas = $('wb-preview-canvas');
+    if (pvCanvas) pvCanvas.innerHTML = '';
+  } catch(e) {}
+
   if (!silent) {
     toast('✨ 已开启全新空白创作，请在左侧告诉 Agent 您的灵感！', 3000);
   }
@@ -17910,9 +18149,48 @@ async function copyCurrentRich(platform) {
 
 function dlXhsZip() {
   const did = currentLiteDraftId || curDraft;
-  if(!did) return toast('未选择草稿');
-  toast('正在打包小红书高清卡片包…');
-  window.open(`/api/drafts/${did}/zip/xhs`);
+  if(!did) return toast('本次创作还没有成品，生成完成后即可导出');
+  const d = (S.drafts||[]).find(x => x.id === did) || {};
+  const nCards = parseInt(d.cards || 0, 10) || 0;
+  if (nCards > 0) {
+    toast('正在打包小红书高清卡片包…');
+    window.open(`/api/drafts/${did}/zip/xhs`);
+    return;
+  }
+  // V15.6：没有卡片包时导出当前平台成稿为 HTML，保证「导出」一定有真实产物，
+  // 不再让新建对话落到「未选择草稿」这类与当前状态无关的提示。
+  exportDraftAsHtml(did, d);
+}
+
+async function exportDraftAsHtml(did, d) {
+  const plat = currentLitePlatform || 'wechat_mp';
+  toast('正在导出成稿…');
+  try {
+    const res = await fetch(`/api/drafts/${encodeURIComponent(did)}/raw/${plat}`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    let html = await res.text();
+    try {
+      const j = JSON.parse(html);
+      if (j && (j.html || j.content || j.raw)) html = j.html || j.content || j.raw;
+    } catch(e) {}
+    if (!html || !String(html).trim()) throw new Error('成稿内容为空');
+    const title = (d && d.title) ? String(d.title) : ('一幕成稿-' + did);
+    const isDoc = /^\s*(<!doctype|<html)/i.test(html);
+    const full = isDoc ? html : `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>` +
+      `<style>body{max-width:760px;margin:40px auto;padding:0 20px;font-family:-apple-system,"PingFang SC",sans-serif;line-height:1.9;color:#1e293b}img{max-width:100%}</style>` +
+      `</head><body>${html}</body></html>`;
+    const url = URL.createObjectURL(new Blob([full], {type:'text/html;charset=utf-8'}));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = title.replace(/[\\/:*?"<>|]/g, '_') + '.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+    toast('✅ 成稿已导出为 HTML');
+  } catch(e) {
+    toast('导出失败：' + (e.message || '请稍后重试'));
+  }
 }
 
 async function runLiteAIVisualCards() {
@@ -18411,8 +18689,11 @@ async function deleteSelected() {
 
 /* 发布弹窗 */
 function openPublishModal() {
-  if(!curDraft) return;
-  const d = (S.drafts||[]).find(x => x.id === curDraft);
+  // V15.6：新建对话不再静默无反应；有成品时一定弹出发布配置对话框。
+  const did = curDraft || currentLiteDraftId;
+  if(!did) return toast('本次创作还没有成品，生成完成后即可发布');
+  curDraft = did;
+  const d = (S.drafts||[]).find(x => x.id === did) || {};
   const platNames = {wechat_mp:'公众号 (草稿箱)', xhs:'小红书 (图文发布)', toutiao:'今日头条 (直排)'};
   $('pub-plats').innerHTML = (d.platforms||['wechat_mp','xhs','toutiao']).map(p => `
     <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer">
@@ -26145,6 +26426,8 @@ function switchMobileNav(panelKey) {
 <script src="/static/js/workbench-rail.js"></script>
 <!-- V12 右栏舞台：左栏恒定 / 中栏恒定对话 / 功能页在右栏打开并可全屏 -->
 <script src="/static/js/workbench-stage.js"></script>
+<!-- V15.6 内容工作台双栏可拖拽分栏（编辑区 / 成稿预览） -->
+<script src="/static/js/workbench-split.js"></script>
 
 
 

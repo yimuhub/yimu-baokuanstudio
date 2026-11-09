@@ -1,8 +1,8 @@
 {
-  "current_version": "15.5.1",
-  "current_codename_zh": "玉衡明",
-  "current_codename_en": "Jade Balance Bright",
-  "next_index": 71,
+  "current_version": "15.6.0",
+  "current_codename_zh": "星野阔",
+  "current_codename_en": "Starfield Wide",
+  "next_index": 72,
   "sequence": [
     {
       "zh": "曦光序",
@@ -476,6 +476,12 @@
       "version": "v15.5.1",
       "zh": "玉衡明",
       "en": "Jade Balance Bright",
+      "date": "2026-11-09"
+    },
+    {
+      "version": "v15.6.0",
+      "zh": "星野阔",
+      "en": "Starfield Wide",
       "date": "2026-11-09"
     }
   ]

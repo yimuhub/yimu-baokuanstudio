@@ -741,16 +741,8 @@ def _migrate_columns(c: sqlite3.Connection) -> None:
         if "inviter_id" not in _icols:
             c.execute("ALTER TABLE invites ADD COLUMN inviter_id TEXT NOT NULL DEFAULT ''")
 
-        # ---- 租户隔离：给业务表补 tenant_id ----
-        for _t in ("drafts", "draft_history", "jobs", "async_tasks",
-                   "ip_characters", "scheduled_posts", "workspaces",
-                   "users", "user_api_keys"):
-            try:
-                _cols = {r["name"] for r in c.execute(f"PRAGMA table_info({_t})")}
-            except Exception:
-                continue
-            if _cols and "tenant_id" not in _cols:
-                c.execute(f"ALTER TABLE {_t} ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
+        # ---- 租户隔离：给业务表补 tenant_id（幂等，容忍多连接竞态）----
+        _ensure_tenant_columns(c)
 
         try:
             ensure_users_columns(c)
@@ -764,6 +756,37 @@ def _migrate_columns(c: sqlite3.Connection) -> None:
         c.commit()
     except Exception as e:  # pragma: no cover - 迁移失败不应阻断业务
         logger.warning("补列迁移失败（忽略，继续运行）: %s", e)
+
+
+_TENANT_TABLES = ("topics", "drafts", "draft_history", "jobs", "async_tasks",
+                  "ip_characters", "scheduled_posts", "workspaces",
+                  "users", "user_api_keys")
+
+
+def _ensure_tenant_columns(c: sqlite3.Connection,
+                           tables: tuple[str, ...] = _TENANT_TABLES) -> None:
+    """幂等补齐 tenant_id（V7 租户隔离）。
+
+    ``CREATE TABLE IF NOT EXISTS`` 不会给已存在的表补列，老库需要 ALTER。
+    但 PRAGMA 与 ALTER 之间并非原子：桌面端/后台线程可能用另一条连接
+    抢先补列，本连接仍持有旧 schema 缓存，ALTER 就会抛
+    ``duplicate column name: tenant_id``，导致建库直接失败（CI 曾偶发红灯）。
+    因此这里把「列已存在」视为迁移已完成，而不是异常。
+    """
+    for table in tables:
+        try:
+            cols = {r["name"] for r in c.execute(f"PRAGMA table_info({table})")}
+        except Exception:
+            continue
+        # 空结果说明表不存在或 schema 暂时不可读，跳过比盲目 ALTER 安全。
+        if not cols or "tenant_id" in cols:
+            continue
+        try:
+            c.execute(f"ALTER TABLE {table} ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
+        except sqlite3.OperationalError as exc:
+            if "duplicate column" not in str(exc).lower():
+                raise
+            # 另一条连接已补过列：幂等跳过，不再中断建库。
 
 
 def conn() -> sqlite3.Connection:
@@ -876,15 +899,7 @@ def conn() -> sqlite3.Connection:
         c.execute("ALTER TABLE invites ADD COLUMN inviter_id TEXT NOT NULL DEFAULT ''")
 
     # V7 租户隔离：给业务表补 tenant_id 列，老数据统一归 'default' 租户。
-    for _t in ("topics", "drafts", "draft_history", "jobs", "async_tasks",
-               "ip_characters", "scheduled_posts", "workspaces",
-               "users", "user_api_keys"):
-        try:
-            _cols = {r["name"] for r in c.execute(f"PRAGMA table_info({_t})")}
-        except Exception:
-            continue
-        if "tenant_id" not in _cols:
-            c.execute(f"ALTER TABLE {_t} ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
+    _ensure_tenant_columns(c)
 
     # 版本历史：老库 draft_history 可能缺 title / body_md / score（这些列是后加的，
     # 而 CREATE TABLE IF NOT EXISTS 不会给「已存在」的表补列），这里幂等补齐。

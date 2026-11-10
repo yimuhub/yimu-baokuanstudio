@@ -311,3 +311,48 @@ def test_v158_share_set_self_heals_xhs_when_source_exists(v158_db):
     res = share.create_share_set(did, ["wechat_mp", "xhs"], "u-a")
     assert {x["platform"] for x in res["links"]} == {"wechat_mp", "xhs"}
     assert (ddir / "preview-xhs.html").is_file()
+
+
+# ---------------------------------------------------------------------------
+# 7. 建库迁移幂等：CI 曾偶发 duplicate column name: tenant_id
+#    （PRAGMA 读到旧 schema，另一连接抢先补列，本连接 ALTER 抛错）
+# ---------------------------------------------------------------------------
+
+def test_v158_tenant_migration_tolerates_concurrent_alter(tmp_path):
+    import sqlite3
+    from core import db as core_db
+
+    path = tmp_path / "race.db"
+    real = sqlite3.connect(path)
+    real.execute("CREATE TABLE jobs (id TEXT PRIMARY KEY)")
+    real.commit()
+    real.row_factory = sqlite3.Row
+    rival = sqlite3.connect(path)
+
+    class _RacingConn:
+        """在 ALTER 落库前，模拟另一条连接抢先补上 tenant_id。"""
+
+        def __init__(self, conn, other):
+            self._conn, self._other = conn, other
+
+        def execute(self, sql, *args):
+            if sql.startswith("ALTER TABLE") and "tenant_id" in sql:
+                self._other.execute(sql)
+                self._other.commit()
+            return self._conn.execute(sql, *args)
+
+    try:
+        racing = _RacingConn(real, rival)
+        core_db._ensure_tenant_columns(racing)  # 修复前这里直接抛 OperationalError
+        assert "tenant_id" in {r["name"] for r in real.execute("PRAGMA table_info(jobs)")}
+        core_db._ensure_tenant_columns(racing)  # 二次调用同样幂等
+    finally:
+        real.close()
+        rival.close()
+
+
+def test_v158_both_migration_paths_use_idempotent_helper():
+    src = _read("core/db.py")
+    assert src.count("_ensure_tenant_columns(c)") == 2, \
+        "conn() 首次建库与快速路径必须共用同一个幂等补列实现"
+    assert "duplicate column" in src, "并发补列冲突必须按「已完成」处理"

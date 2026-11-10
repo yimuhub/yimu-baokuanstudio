@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [Unreleased] · v15.8.0 发布后热修（未升版）
+
+- **打包鉴权**：`scripts/build_full_bundle.py` 查询 GitHub Release API 时带上 `GITHUB_TOKEN`，并对 403 / 429 / 5xx 与网络错误做指数退避；两个打包工作流显式传入 `secrets.GITHUB_TOKEN`，修掉三平台并行构建时 macOS 作业撞匿名 60 次/小时限额的问题。独立 macOS 工作流已补齐 `YIMU-Studio-macOS-v15.8.0.dmg` 与 `.tar.gz`。
+- **建库幂等**：`core/db.py` 把 `conn()` 首次建库与 `_migrate_columns()` 快速路径里重复的 `tenant_id` 补列收敛为 `_ensure_tenant_columns()`；PRAGMA 读到旧 schema、另一连接抢先补列时不再抛 `duplicate column name: tenant_id`，消除 CI 偶发红灯。
+- 新增 5 项回归锁（打包限流 3 项 + 并发补列 2 项）；本地 `ci.sh` 四道门禁与云库全量回归均通过。
+
+---
+
 ## [15.8.0] - 归帆渡 (Homebound Ferry) · 2026-11-10
 
 ### Fixed 客户端缺陷排查报告全栈整改

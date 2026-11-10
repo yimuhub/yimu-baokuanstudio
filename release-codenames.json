@@ -1,8 +1,8 @@
 {
-  "current_version": "15.7.0",
-  "current_codename_zh": "长歌行",
-  "current_codename_en": "Long Song Journey",
-  "next_index": 73,
+  "current_version": "15.8.0",
+  "current_codename_zh": "归帆渡",
+  "current_codename_en": "Homebound Ferry",
+  "next_index": 74,
   "sequence": [
     {
       "zh": "曦光序",
@@ -489,6 +489,12 @@
       "zh": "长歌行",
       "en": "Long Song Journey",
       "date": "2026-11-09"
+    },
+    {
+      "version": "v15.8.0",
+      "zh": "归帆渡",
+      "en": "Homebound Ferry",
+      "date": "2026-11-10"
     }
   ]
 }

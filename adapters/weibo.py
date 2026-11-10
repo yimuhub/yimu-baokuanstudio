@@ -38,6 +38,10 @@ def render_preview(body_md: str, title: str, author: str = "热点观察台", to
         except Exception:
             pass
 
+    # V15.8 / S4：过滤指向不存在文件的本地图片，避免九宫格里出现裂图
+    from adapters.base import safe_image_urls
+    all_img_urls = safe_image_urls(all_img_urls)
+
     # 2. 提炼适合微博传播的正文段落（去重与呼吸感）
     paras = []
     for p in body_md.splitlines():

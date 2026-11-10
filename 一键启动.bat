@@ -257,12 +257,11 @@ if not exist ".env" (
         copy ".env.example" ".env" >nul
     )
 )
-rem ⭐ 确保管理员口令可用：
-rem   .env.example 不含真实口令；若 ADMIN_PASSWORD 为空或命中 local-admin/admin/123456，
-rem   后端会判定为「未配置」→ 口令登录被拒 + 本机免密关闭 → 用户被弹回登录框，
-rem   只能用普通账号登录，管理功能全部 403（历史确定性死锁）。
-if exist "scripts\ensure_admin_password.py" (
-    %PY_BIN% "scripts\ensure_admin_password.py" ".env"
+rem ⭐ V15.8：统一初始化密钥到用户目录 secrets.env（0600）。
+rem   旧 .env 中的 YIMU_SECRET_KEY / ADMIN_PASSWORD 会被自动迁出，
+rem   安装目录不再随包分发任何明文密钥；弱口令自动换为随机强口令。
+if exist "scripts\init_secrets.py" (
+    %PY_BIN% "scripts\init_secrets.py" --show
 )
 
 echo.

@@ -65,8 +65,13 @@ fi
 cat <<'EOF' > "$STAGE_DIR/usr/bin/yimu-studio"
 #!/usr/bin/env bash
 set -e
+export PYTHONIOENCODING=utf-8
+export PYTHONUTF8=1
 INSTALL_DIR="/opt/yimu-studio"
 cd "$INSTALL_DIR/app"
+if [ -f "$INSTALL_DIR/app/launch_desktop.py" ]; then
+  exec "$INSTALL_DIR/runtime/bin/python3" "$INSTALL_DIR/app/launch_desktop.py" "$@"
+fi
 exec "$INSTALL_DIR/runtime/bin/python3" "$INSTALL_DIR/app/desktop.py" "$@"
 EOF
 chmod 755 "$STAGE_DIR/usr/bin/yimu-studio"

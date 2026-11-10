@@ -28,6 +28,10 @@ import secrets
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
+from core import user_paths  # noqa: E402
+
 #: 与 web/admin.py:_WEAK_PASSWORDS 保持一致
 WEAK = {"", "local-admin", "admin", "123456"}
 LINE_RE = re.compile(r"(?m)^ADMIN_PASSWORD=(.*)$")
@@ -56,7 +60,9 @@ def ensure(env_path: Path) -> tuple[str, bool]:
 
 
 def main(argv: list[str]) -> int:
-    env_path = Path(argv[1]) if len(argv) > 1 else Path(".env")
+    # V15.8：默认写用户数据目录 secrets.env（0600），安装目录不再存明文口令。
+    # 显式传入路径时仍按传入值处理，保持旧调用兼容。
+    env_path = Path(argv[1]) if len(argv) > 1 else user_paths.secrets_env_path()
     try:
         pwd, created = ensure(env_path)
     except OSError as e:

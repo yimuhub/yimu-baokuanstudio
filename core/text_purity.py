@@ -222,7 +222,14 @@ def to_storage(text: str) -> str:
     if fence:
         out.extend(fence)
 
-    return _MULTI_BLANK_RE.sub("\n\n", "\n".join(out)).strip()
+    cleaned = _MULTI_BLANK_RE.sub("\n\n", "\n".join(out)).strip()
+    # V15.8 契约：模型自造的图片文件名（workflow.png 等）在落库前改写成
+    # {{IMG:N}} 占位符，避免死链一路传到预览 HTML。真实地址与外链原样保留。
+    try:
+        from core.image_contract import storage_normalize
+        return storage_normalize(cleaned)
+    except Exception:
+        return cleaned
 
 
 def has_markup(text: str) -> bool:

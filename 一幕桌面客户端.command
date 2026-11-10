@@ -5,6 +5,8 @@
 #  官网: https://yimu.hyipf.com
 # ============================================================
 set -eu
+export PYTHONIOENCODING=utf-8
+export PYTHONUTF8=1
 cd "$(dirname "$0")"
 
 # 1. 优先使用便携运行时或已配置虚拟环境
@@ -19,5 +21,8 @@ else
   exit 0
 fi
 
-# 2. 启动原生桌面应用
+# 2. 启动原生桌面应用（垫片负责统一 cwd / sys.path，desktop.py 负责日志与单实例）
+if [ -f "app/launch_desktop.py" ]; then
+  exec "$PY" app/launch_desktop.py
+fi
 exec "$PY" desktop.py

@@ -52,7 +52,20 @@ def _format_toutiao_paragraphs(body_md: str, section_images: list[str] | dict[st
         if img_m:
             alt, src = img_m.group(1), img_m.group(2)
             cap = f"<div style='font-size:12.5px;color:#888;text-align:center;margin-top:6px;'>{html.escape(alt)}</div>" if alt and alt != "封面" else ""
-            out_lines.append(f"<div style='margin:20px 0;text-align:center;'><img src='{html.escape(src)}' style='width:100%;max-width:100%;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.06);display:block;margin:0 auto;'/>{cap}</div>")
+            # V15.8 / S4：编译期存在性校验，缺失文件降级为占位块，不再输出死链
+            try:
+                from core.image_contract import local_image_exists
+                missing = local_image_exists(src) is False
+            except Exception:
+                missing = False
+            if missing:
+                out_lines.append(
+                    "<div style='margin:20px 0;padding:16px;border:1px dashed #c9ced6;"
+                    "border-radius:8px;text-align:center;color:#8a9099;font-size:13px;'>"
+                    "［配图缺失，已跳过］</div>"
+                )
+            else:
+                out_lines.append(f"<div style='margin:20px 0;text-align:center;'><img src='{html.escape(src)}' style='width:100%;max-width:100%;border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,0.06);display:block;margin:0 auto;'/>{cap}</div>")
             continue
 
         # 2. 处理标题

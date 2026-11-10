@@ -183,21 +183,13 @@ setup_config() {
   log_step "4/6" "初始化生产配置、目录结构与高强度安全密钥..."
   mkdir -p data/topics data/drafts data/cards data/cookies logs runs
 
+  # V15.8：生产密钥写入用户目录 secrets.env（0600），部署目录 .env 只留非敏感项。
+  log_succ "初始化高强度随机生产秘钥与管理员凭证（用户目录 secrets.env）..."
+  .venv/bin/python scripts/init_secrets.py --show
   if [ ! -f ".env" ]; then
-    log_succ "自动生成高强度随机生产秘钥与管理员凭证 (.env)..."
-    local secret
-    secret=$(.venv/bin/python -c "import secrets; print(secrets.token_hex(32))")
-    local rand_pass
-    rand_pass="yimu-$(.venv/bin/python -c 'import secrets; print(secrets.token_hex(4))')"
-    cat <<EOF > .env
-# 一幕·YIMU 爆款工作室生产环境配置文件
-YIMU_SECRET_KEY=${secret}
-ADMIN_PASSWORD=${rand_pass}
-PORT=${PORT}
-EOF
-    log_succ "已生成高强度随机密码: $rand_pass (后续可在 .env 中修改)"
+    printf 'PORT=%s\n' "$PORT" > .env
   else
-    log_succ "已检测到现存 .env 生产配置文件，予以保留。"
+    log_succ "已检测到现存 .env 生产配置文件，予以保留（敏感项已迁出）。"
   fi
 
   log_succ "自动初始化、约束自愈并无损迁移数据库架构..."

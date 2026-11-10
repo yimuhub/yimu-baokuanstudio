@@ -38,6 +38,57 @@ import re  # noqa: E402,F811
 import time  # noqa: E402,F811
 import uuid  # noqa: E402,F811
 
+#: 前端平台切换条与预览 / 分享共用的六平台（含小红书）
+LIST_PLATFORMS = ('wechat_mp', 'xhs', 'toutiao', 'zhihu', 'weibo', 'twitter')
+
+
+@router.get('/api/drafts')
+def drafts_list(request: Request, limit: int = 50, offset: int = 0):
+    """R10 / F6：统一的草稿列表接口。
+
+    历史上 ``GET /api/drafts`` 直接 404，前端只能从 ``/api/status`` 取精简摘要，
+    列表与详情取数口径不一致、拿不到缩略图。这里补齐统一摘要（含缩略图地址、
+    已生成的预览地址、卡片与配图计数），并保持与 ``/api/status`` 同样的归属过滤。
+    """
+    user = _a.guard(request)
+    try:
+        limit = max(1, min(int(limit or 50), 200))
+        offset = max(0, int(offset or 0))
+    except (TypeError, ValueError):
+        limit, offset = 50, 0
+    cur_ws_id = db.get_active_workspace().get('id', 'ws-default')
+    rows = db.list_drafts(_a._current_user_id(user), is_admin=_a._is_admin_user(user),
+                          workspace_id=cur_ws_id)
+    items = []
+    for d in rows[offset:offset + limit]:
+        did = str(d.get('id') or '')
+        try:
+            view = _a._draft_view(d)
+        except Exception:
+            view = dict(d)
+        thumb = ''
+        preview_urls = {}
+        try:
+            ddir = db.draft_dir(did)
+            if (ddir / 'img' / 'cover.png').is_file():
+                thumb = f'/img/{did}/cover.png'
+            else:
+                cards = sorted(ddir.glob('card-*.png'))
+                if cards:
+                    thumb = f'/card/{did}/{cards[0].name}'
+            preview_urls = {
+                p: f'/preview/{did}/{p}'
+                for p in LIST_PLATFORMS
+                if (ddir / f'preview-{p}.html').is_file()
+            }
+        except OSError:
+            pass
+        view['thumbnail'] = thumb
+        view['preview_urls'] = preview_urls
+        items.append(view)
+    return {'ok': True, 'total': len(rows), 'limit': limit, 'offset': offset, 'drafts': items}
+
+
 @router.get('/api/drafts/{did}/images')
 def draft_images(did: str, request: Request):
     _a.guard(request)
@@ -695,6 +746,13 @@ async def draft_restore(did: str, request: Request):
 @router.get('/api/drafts/{did}')
 def get_draft_detail_endpoint(did: str, request: Request):
     _a.guard(request)
+    # V15.8：老草稿打开即自愈——修正模型自造的死链并补齐六平台预览，
+    # 客户机器上已有的坏草稿无需手工改数据库或重新生成。
+    try:
+        from core import artifacts
+        artifacts.heal_draft(did)
+    except Exception:
+        pass
     d = db.get_draft(did)
     if not d:
         raise HTTPException(404, f'草稿不存在: {did}')
@@ -814,6 +872,21 @@ async def draft_quality_gate(did: str, request: Request):
     d = db.get_draft(did)
     if not d:
         raise HTTPException(404, '草稿不存在')
+    # V15.8 / 建议「状态进入 preview 前自检」：正文还有缺失配图时直接拦截，
+    # 不让裂图草稿进入发布流程（同时兜住 F2 与未来同类问题）。
+    try:
+        from core import artifacts
+        gate = artifacts.quality_gate(did)
+        if not gate.get('ok'):
+            return {
+                'passed': False, 'score': 0,
+                'summary': gate.get('hint', '配图缺失'),
+                'ad_violations': [], 'platform_risks': [], 'ai_smell_issues': [],
+                'recommendations': [gate.get('hint', '')],
+                'missing_images': gate.get('missing', []),
+            }
+    except Exception:
+        pass
     from core import agents
     title = d.get('title', '')
     body = d.get('body_md', '')
@@ -1052,6 +1125,13 @@ async def draft_save_platform(did: str, request: Request):
         cover_file = ddir / 'img' / 'cover.png' if (ddir / 'img' / 'cover.png').exists() else None
         from core.render_card import render_draft_cards
         render_draft_cards(ddir, xhs_title, sec_meta, cover_img=cover_file)
+        # V15.8 / R7：卡片更新后同步刷新 preview-xhs.html，
+        # 否则 /preview/{did}/xhs 与分享页拿到的还是上一版卡片。
+        try:
+            from core import previews
+            previews.build_all_previews(did, platforms=('xhs',))
+        except Exception:
+            pass
         cards = sorted([f'/card/{did}/{p.name}' for p in ddir.glob('card-*.png')])
         return {'ok': True, 'text': text, 'cards': cards}
     elif platform == 'toutiao':

@@ -1,22 +1,52 @@
+Option Explicit
+' YIMU Studio desktop launcher (Windows).
+' ASCII-only + CRLF + no BOM: WSH reads .vbs as ANSI, non-ASCII text corrupts paths.
+' V15.8: window style MUST be 1 (SW_SHOWNORMAL). Style 0 (SW_HIDE) is applied to
+' the first top-level window of the child process, which is the pywebview main
+' window under pythonw.exe -- the classic "double click does nothing" bug.
+Dim WshShell, fso, root, pyExe, launcher, batFolder, batFile
 Set WshShell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
-currentDir = fso.GetParentFolderName(WScript.ScriptFullName)
+root = fso.GetParentFolderName(WScript.ScriptFullName)
 
-' 优先使用内置便携 runtime，次优使用 .venv
-If fso.FileExists(currentDir & "\runtime\pythonw.exe") Then
-    pyExe = """" & currentDir & "\runtime\pythonw.exe"""
-ElseIf fso.FileExists(currentDir & "\runtime\python.exe") Then
-    pyExe = """" & currentDir & "\runtime\python.exe"""
-ElseIf fso.FileExists(currentDir & "\.venv\Scripts\pythonw.exe") Then
-    pyExe = """" & currentDir & "\.venv\Scripts\pythonw.exe"""
-ElseIf fso.FileExists(currentDir & "\.venv\Scripts\python.exe") Then
-    pyExe = """" & currentDir & "\.venv\Scripts\python.exe"""
-Else
-    ' 若尚未配置任何环境，引导运行一键启动脚本
-    WshShell.Run "cmd /c """ & currentDir & "\一键启动.bat""", 1, False
-    WScript.Quit
+' pythonw.exe has no console; force UTF-8 so prints and uvicorn logs never fail.
+WshShell.Environment("PROCESS")("PYTHONIOENCODING") = "utf-8"
+WshShell.Environment("PROCESS")("PYTHONUTF8") = "1"
+
+' Prefer the self-contained portable runtime, then a local venv.
+If fso.FileExists(root & "\runtime\pythonw.exe") Then
+    pyExe = root & "\runtime\pythonw.exe"
+ElseIf fso.FileExists(root & "\runtime\python.exe") Then
+    pyExe = root & "\runtime\python.exe"
+ElseIf fso.FileExists(root & "\.venv\Scripts\pythonw.exe") Then
+    pyExe = root & "\.venv\Scripts\pythonw.exe"
+ElseIf fso.FileExists(root & "\.venv\Scripts\python.exe") Then
+    pyExe = root & "\.venv\Scripts\python.exe"
 End If
 
-desktopScript = """" & currentDir & "\desktop.py"""
-' 运行 desktop.py，第 2 参数为 0 表示隐藏黑色控制台窗口，获得纯净桌面原生体验
-WshShell.Run pyExe & " " & desktopScript, 0, False
+If pyExe = "" Then
+    ' No runtime: hand over to the bundled bootstrap .bat (name may be localized).
+    Set batFolder = fso.GetFolder(root)
+    For Each batFile In batFolder.Files
+        If LCase(fso.GetExtensionName(batFile.Name)) = "bat" Then
+            WshShell.Run "cmd /c """ & batFile.Path & """", 1, False
+            WScript.Quit
+        End If
+    Next
+    WshShell.Popup "YIMU Studio: Python runtime not found in " & root, 0, "YIMU Studio", 16
+    WScript.Quit 1
+End If
+
+' The launcher shim normalizes cwd / sys.path and delegates to desktop.py.
+' desktop.py itself owns log redirection, single-instance lock and window creation.
+launcher = root & "\app\launch_desktop.py"
+If Not fso.FileExists(launcher) Then launcher = root & "\launch_desktop.py"
+If Not fso.FileExists(launcher) Then launcher = root & "\app\desktop.py"
+If Not fso.FileExists(launcher) Then launcher = root & "\desktop.py"
+If Not fso.FileExists(launcher) Then
+    WshShell.Popup "YIMU Studio: desktop.py not found in " & root, 0, "YIMU Studio", 16
+    WScript.Quit 1
+End If
+
+WshShell.CurrentDirectory = fso.GetParentFolderName(launcher)
+WshShell.Run """" & pyExe & """ """ & launcher & """", 1, False

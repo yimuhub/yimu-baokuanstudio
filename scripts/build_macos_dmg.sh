@@ -81,8 +81,13 @@ fi
 cat <<'EOF' > "$APP_BUNDLE/Contents/MacOS/yimu-launcher"
 #!/bin/bash
 set -u
+export PYTHONIOENCODING=utf-8
+export PYTHONUTF8=1
 BUNDLE="$(cd "$(dirname "$0")/../Resources/bundle" && pwd)"
 cd "$BUNDLE/app" || exit 1
+if [ -f "$BUNDLE/app/launch_desktop.py" ]; then
+  exec "$BUNDLE/runtime/bin/python3" "$BUNDLE/app/launch_desktop.py"
+fi
 exec "$BUNDLE/runtime/bin/python3" "$BUNDLE/app/desktop.py"
 EOF
 chmod +x "$APP_BUNDLE/Contents/MacOS/yimu-launcher"

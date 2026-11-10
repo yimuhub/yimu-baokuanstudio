@@ -334,25 +334,46 @@ def setup_chromium(stage: Path, plat: str, skip: bool) -> dict:
 
 def write_launchers(stage: Path, plat: str) -> None:
     if plat == "win":
-        (stage / "一幕桌面客户端.vbs").write_text('''Set WshShell = CreateObject("WScript.Shell")
+        # V15.8: window style 0 (SW_HIDE) hid the pywebview main window and
+        # pythonw.exe has no stdout. Use 1 + launcher shim + UTF-8 env.
+        vbs = '''Option Explicit
+' YIMU Studio desktop launcher. ASCII-only + CRLF + no BOM for WSH ANSI parsing.
+Dim WshShell, fso, root, pyExe, launcher
+Set WshShell = CreateObject("WScript.Shell")
 Set fso = CreateObject("Scripting.FileSystemObject")
 root = fso.GetParentFolderName(WScript.ScriptFullName)
+WshShell.Environment("PROCESS")("PYTHONIOENCODING") = "utf-8"
+WshShell.Environment("PROCESS")("PYTHONUTF8") = "1"
 pyExe = root & "\\runtime\\pythonw.exe"
 If Not fso.FileExists(pyExe) Then pyExe = root & "\\runtime\\python.exe"
 WshShell.CurrentDirectory = root & "\\app"
-WshShell.Run """" & pyExe & """ """ & root & "\\app\\desktop.py" & """", 0, False
-''', encoding="utf-8")
+launcher = root & "\\app\\launch_desktop.py"
+If Not fso.FileExists(launcher) Then launcher = root & "\\app\\desktop.py"
+WshShell.Run """" & pyExe & """ """ & launcher & """", 1, False
+'''
+        (stage / "一幕桌面客户端.vbs").write_bytes(vbs.replace("\n", "\r\n").encode("ascii"))
         (stage / "一键启动.bat").write_text('''@echo off
 chcp 65001 >nul 2>nul
+set PYTHONIOENCODING=utf-8
+set PYTHONUTF8=1
 cd /d "%~dp0app"
-"%~dp0runtime\\python.exe" "%~dp0app\\desktop.py"
+if exist "%~dp0app\\launch_desktop.py" (
+  "%~dp0runtime\\python.exe" "%~dp0app\\launch_desktop.py"
+) else (
+  "%~dp0runtime\\python.exe" "%~dp0app\\desktop.py"
+)
 pause
 ''', encoding="utf-8")
     else:
         script = '''#!/bin/bash
 # 全功能离线包启动器：直接 exec 自带 Python，无需系统 Python / venv / pip
+export PYTHONIOENCODING=utf-8
+export PYTHONUTF8=1
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT/app" || exit 1
+if [ -f "$ROOT/app/launch_desktop.py" ]; then
+  exec "$ROOT/runtime/bin/python3" "$ROOT/app/launch_desktop.py" "$@"
+fi
 exec "$ROOT/runtime/bin/python3" "$ROOT/app/desktop.py" "$@"
 '''
         name = "一幕桌面客户端.command" if plat == "mac" else "一幕桌面客户端.sh"
@@ -374,7 +395,8 @@ Categories=AudioVideo;Development;
   · 全量功能资源与技能库
   · 官方云端通道与出厂赠送额度
 
-首次启动会自动生成本地配置与管理员口令（保存在 app/.env）。
+首次启动会自动生成本地配置与管理员口令（保存在用户数据目录的 secrets.env，
+权限 0600；安装目录内不再明文存放任何密钥）。
 如需使用自己的 API Key，在「设置 → 模型服务 / 我的凭证」中添加即可，
 删除自定义凭证后会自动切回官方通道。
 ''', encoding="utf-8")

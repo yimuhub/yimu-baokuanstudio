@@ -523,8 +523,9 @@ def _warn_main_chain_keys() -> None:
             shown = key if key else "空"
             print(
                 f"[提示] 当前激活 AI 通道「{active_pid}」的 Key 还是示例值（{shown}），"
-                "「一句话生成」主链路会 401。请在 .env 填入该通道的真实 API Key，"
-                "或在「模型服务」里切换到已配置真实 Key 的通道。"
+                "「一句话生成」主链路会鉴权失败。请在「设置 → 模型服务」填入该通道的"
+                "真实 API Key（密钥保存在用户目录 secrets.env），或联网后自动领取官方"
+                "试用凭证、或切换到已配置真实 Key 的通道。"
             )
     except Exception as e:  # 检测失败绝不阻断启动
         print(f"[提示] 主链路 Key 检测跳过: {e}")
@@ -887,6 +888,24 @@ def _tier_capability_limit(user: dict, capability: str):
 
 
 def write_env(key: str, value: str):
+    """写配置项；密钥类一律落到用户目录 secrets.env（0600），不落在安装目录。"""
+    try:
+        from core.user_paths import (
+            is_sensitive, read_env_file, secrets_env_path, write_env_file,
+        )
+        if is_sensitive(key):
+            path = secrets_env_path()
+            secrets = read_env_file(path)
+            secrets[key] = value
+            if write_env_file(path, secrets):
+                # 清掉旧版遗留在安装目录 .env 里的同名明文
+                old = ENV_PATH.read_text(encoding="utf-8", errors="ignore").splitlines() if ENV_PATH.exists() else []
+                cleaned = [ln for ln in old if not ln.strip().startswith(f"{key}=")]
+                if len(cleaned) != len(old):
+                    ENV_PATH.write_text("\n".join(cleaned).rstrip("\n") + "\n", encoding="utf-8")
+                return
+    except Exception:
+        pass  # 用户目录不可写时回退到历史行为，不让设置页保存失败
     lines = ENV_PATH.read_text(encoding="utf-8").splitlines() if ENV_PATH.exists() else []
     out, found = [], False
     for ln in lines:
@@ -898,6 +917,10 @@ def write_env(key: str, value: str):
     if not found:
         out.append(f"{key}={value}")
     ENV_PATH.write_text("\n".join(out) + "\n", encoding="utf-8")
+    try:
+        _os.chmod(ENV_PATH, 0o600)
+    except OSError:
+        pass
 
 
 # ---------------- V6 多用户 SaaS 认证与个人 API 保险箱 ----------------

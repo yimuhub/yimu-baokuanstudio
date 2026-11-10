@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.8.0] - 归帆渡 (Homebound Ferry) · 2026-11-10
+
+### Fixed 客户端缺陷排查报告全栈整改
+
+- **启动链路（F1/R1/R2）**：Windows VBS / A2 离线包模板 / 旧构建器模板统一从 `SW_HIDE(0)` 改为 `SW_SHOWNORMAL(1)`；三平台启动器统一 `PYTHONIOENCODING=utf-8`、`PYTHONUTF8=1` 并走 `app/launch_desktop.py` 垫片；`desktop.py` 在任何 import 前安装日志垫片，`pythonw.exe` 无控制台也留痕。
+- **单实例（F4/R8）**：跨平台 `O_EXCL` 原子锁 + 已有窗口唤起；`probe_service()` 区分 free / yimu / foreign，端口被无关进程占用时自动避让。
+- **配图契约（F2/R3/R4/R5）**：新增 `core/image_contract.py`，模型只输出 `{{IMG:N}}` 占位符，`to_storage()` 落库前拦截自造文件名；`normalize()` 按序号映射真实 sec 图，标题文本只作 alt；`inject_images_to_markdown()` 成为唯一回写入口，`generate_and_inject_images()` 重写；新增 `core/artifacts.py` 统一收口。
+- **六平台预览（F3/R6/R7）**：新增 `core/previews.py`，六平台统一编译并补齐 `preview-xhs.html`；`files.py` / `share.py` 懒生成，`fission.py` / `orchestrator.py` / `drafts.py` 卡片生成后刷新；`matrix.json` 增加 `xhs.preview_url`；缺失图片降级为占位块，`quality_gate()` 发布前拦截。
+- **补齐缺失函数**：`core.imagegen.recompile_previews` 历史上被 3 处 import 却不存在，异常被 `except: pass` 吞掉，现已补齐。
+- **安全加固**：`adapters/base.save_preview()` 增加平台标识白名单，防路径穿越。
+- **密钥（F5/R9/S7）**：新增 `core/user_paths.py` 与 `scripts/init_secrets.py`，敏感项写用户目录 `secrets.env`（0600），旧 `.env` 明文自动迁出；`load_env()` 合并顺序为进程环境变量 > 用户目录 > 安装目录；三平台启动、部署、设置页写入统一。
+- **草稿列表（F6/R10/S8）**：新增 `GET /api/drafts`，返回统一摘要、`thumbnail` 与 `preview_urls`，并登记 `docs/CONTRACT.md`。
+- **默认通道（报告 6.3）**：`/api/status` 增加 `active_key_set` / `key_hint`，空 Key 报错给出明确引导。
+
+### Added
+
+- `tests/test_v158_client_defects.py`：18 项 V15.8 专项回归。
+- `app/launch_desktop.py`、`core/artifacts.py`、`core/image_contract.py`、`core/previews.py`、`core/user_paths.py`、`scripts/init_secrets.py`。
+
+### Changed
+
+- 版本真源、代号表、Windows 安装器、双语 README、i18n 语言包同步至 15.8.0 / 归帆渡 / Homebound Ferry。
+
 ## [15.7.0] - 长歌行 (Long Song Journey) · 2026-11-09
 
 ### Added 审查建议落地

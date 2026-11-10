@@ -185,6 +185,35 @@ def list_shares(draft_id: str = "", owner_user_id: str = "",
 # ---------------------------------------------------------------------------
 
 
+#: 各平台「确实产出过内容」的源文件（裂变引擎写盘点，见 core/fission.py）
+_PLATFORM_SOURCES = {
+    "wechat_mp": ("content.md",),
+    "xhs": ("xhs.md",),
+    "toutiao": ("toutiao.md",),
+    "zhihu": ("zhihu.md",),
+    "weibo": ("weibo.md",),
+    "twitter": ("twitter.md",),
+}
+
+
+def _has_platform_source(ddir, platform: str) -> bool:
+    """草稿是否为该平台真正生成过内容（而不是只有一篇正文）。"""
+    for name in _PLATFORM_SOURCES.get(platform, ()):
+        f = ddir / name
+        if f.is_file() and f.stat().st_size > 0:
+            return True
+    if platform == "xhs" and any(ddir.glob("card-*.png")):
+        return True
+    mf = ddir / "matrix.json"
+    if mf.is_file():
+        try:
+            data = json.loads(mf.read_text(encoding="utf-8", errors="ignore"))
+            return platform in data
+        except (ValueError, OSError):
+            pass
+    return False
+
+
 def create_share_set(draft_id: str, platforms: list[str],
                      owner_user_id: str = "", ttl_days: int = DEFAULT_TTL_DAYS,
                      base_url: str = "") -> dict:
@@ -192,14 +221,23 @@ def create_share_set(draft_id: str, platforms: list[str],
 
     只会为**确实存在产物文件**的平台签发——没生成预览的平台给链接
     会让用户点开 404，体验比不给更差。
-    """
-    from core import db
 
+    V15.8（F3 / R7）：历史上 ``preview-xhs.html`` 从未生成，老草稿的
+    小红书分享链接必然 404。现在当且仅当该平台**已有源产物**
+    （``xhs.md`` / ``card-*.png`` / ``matrix.json`` 等）而只是漏写 HTML 时，
+    才调用统一编译器补写产物；没有任何平台内容的草稿不会被凭空造出
+    空壳预览并签发死链，保持「只给真实产物发链接」的既有契约。
+    """
+    from core import db, previews
+
+    ddir = db.draft_dir(draft_id)
     links = []
     skipped = []
     for plat in platforms:
-        f = db.draft_dir(draft_id) / f"preview-{plat}.html"
-        if not f.exists():
+        f = ddir / f"preview-{plat}.html"
+        if not f.is_file() and _has_platform_source(ddir, plat):
+            previews.ensure_preview(draft_id, plat)
+        if not f.is_file():
             skipped.append({"platform": plat, "reason": "该平台产物尚未生成"})
             continue
         links.append(create_share(draft_id, plat, owner_user_id,

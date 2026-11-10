@@ -87,8 +87,13 @@ def drama_video_file(did: str, filename: str):
 
 @router.get('/preview/{did}/{platform}')
 def preview(did: str, platform: str):
-    f = db.draft_dir(did) / f'preview-{platform}.html'
-    if not f.exists():
+    """分平台 HTML 预览（V15.8：六平台统一，缺失时懒生成，老草稿自动自愈）。"""
+    from adapters.base import SUPPORTED_PREVIEW_PLATFORMS
+    from core import previews
+    if platform not in SUPPORTED_PREVIEW_PLATFORMS:
+        raise HTTPException(400, '不支持的预览平台')
+    f = previews.ensure_preview(did, platform)
+    if not f:
         raise HTTPException(404, '预览未生成')
     return FileResponse(f)
 

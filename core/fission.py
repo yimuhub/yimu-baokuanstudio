@@ -282,6 +282,14 @@ def derive_all_platforms_from_master(
         cover_img = ddir / "img" / "cover.png" if (ddir / "img" / "cover.png").exists() else None
         made_cards = render_draft_cards(ddir, xhs_title, sections, style=card_style, cover_img=cover_img)
 
+    # V15.8 / R7：小红书此前只有卡片没有 preview-xhs.html，
+    # /preview/{did}/xhs 与分享链接必然 404。卡片生成后统一补齐 HTML 预览。
+    try:
+        from core import previews
+        previews.build_all_previews(draft_id, platforms=("xhs",))
+    except Exception as e:
+        print(f"[矩阵] 小红书预览编译跳过: {e}")
+
     # 9. 读取或更新全域矩阵数据
     existing_matrix = {}
     mf = ddir / "matrix.json"
@@ -297,7 +305,7 @@ def derive_all_platforms_from_master(
         "selected_platforms": selected_platforms,
         "master": {"title": title, "body": body_md, "theme": theme},
         "wechat_mp": {"title": title, "body": body_md, "preview_url": f"/preview/{draft_id}/wechat_mp"} if "wechat_mp" in selected_platforms else existing_matrix.get("wechat_mp", {}),
-        "xhs": {"title": xhs_title, "body": xhs_body, "cards": made_cards, "cards_count": len(made_cards)} if "xhs" in selected_platforms else existing_matrix.get("xhs", {}),
+        "xhs": {"title": xhs_title, "body": xhs_body, "cards": made_cards, "cards_count": len(made_cards), "preview_url": f"/preview/{draft_id}/xhs"} if "xhs" in selected_platforms else existing_matrix.get("xhs", {}),
         "toutiao": {"title": tt_title, "body": tt_body, "preview_url": f"/preview/{draft_id}/toutiao"} if "toutiao" in selected_platforms else existing_matrix.get("toutiao", {}),
         "zhihu": {"title": zh_title, "body": zh_body, "preview_url": f"/preview/{draft_id}/zhihu"} if "zhihu" in selected_platforms else existing_matrix.get("zhihu", {}),
         "weibo": {"text": wb_text, "preview_url": f"/preview/{draft_id}/weibo"} if "weibo" in selected_platforms else existing_matrix.get("weibo", {}),
@@ -361,13 +369,19 @@ def get_draft_matrix(draft_id: str) -> dict:
     tw_text = tw_file.read_text(encoding="utf-8") if tw_file.exists() else ""
 
     cards = sorted([p.name for p in ddir.glob("card-*.png")])
+    # V15.8：矩阵返回前确保小红书 HTML 预览存在，preview_url 不再是死链。
+    try:
+        from core import previews
+        previews.ensure_preview(draft_id, "xhs")
+    except Exception:
+        pass
 
     return {
         "updated_at": int(time.time()),
         "draft_id": draft_id,
         "master": {"title": title, "body": body, "theme": d.get("theme", DEFAULT_THEME)},
         "wechat_mp": {"title": title, "body": body, "preview_url": f"/preview/{draft_id}/wechat_mp"},
-        "xhs": {"title": title, "body": xhs_text, "cards": cards, "cards_count": len(cards)},
+        "xhs": {"title": title, "body": xhs_text, "cards": cards, "cards_count": len(cards), "preview_url": f"/preview/{draft_id}/xhs"},
         "toutiao": {"title": title, "body": tt_text, "preview_url": f"/preview/{draft_id}/toutiao"},
         "zhihu": {"title": f"如何看待「{title[:22]}」？", "body": zh_text, "preview_url": f"/preview/{draft_id}/zhihu"},
         "weibo": {"text": wb_text, "preview_url": f"/preview/{draft_id}/weibo"},

@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.7.0"
-__codename__ = "长歌行"
-__codename_en__ = "Long Song Journey"
-__slogan__ = "一念起 一幕开 万象生 · 审查建议落地：阶段耗时回显、保存即收、访问模式开关、邀请常驻、push 级 CI"
-__slogan_cn__ = "一念起 一幕开 万象生 · 审查建议落地：阶段耗时回显、保存即收、访问模式开关、邀请常驻、push 级 CI"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Review actions shipped: elapsed feedback, auto-close, access mode, invite entry, push CI"
+__version__ = "15.8.0"
+__codename__ = "归帆渡"
+__codename_en__ = "Homebound Ferry"
+__slogan__ = "一念起 一幕开 万象生 · 客户端缺陷全栈整改：启动可见、密钥归用户目录、配图命名契约、六平台预览统一"
+__slogan_cn__ = "一念起 一幕开 万象生 · 客户端缺陷全栈整改：启动可见、密钥归用户目录、配图命名契约、六平台预览统一"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Full-stack client defect fixes: visible launcher, user-scoped secrets, image contract, unified six-platform previews"
 
 
 def get_version() -> str:

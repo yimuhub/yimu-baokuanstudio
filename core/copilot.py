@@ -11,7 +11,7 @@ import logging
 import re
 from typing import Optional, Callable, Any, Dict, List
 
-from core import agents, copilot_context, db, judge, llm, orchestrator
+from core import agents, copilot_context, db, image_contract, judge, llm, orchestrator
 from core.text_purity import purify_body, purify_title, to_storage
 from core.title_forge import generate_candidate_titles
 
@@ -980,6 +980,7 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
             f"{skill_instruction}"
             f"6. 结尾设置强互动引导（点赞/收藏/评论引发共鸣）；\n"
             f"7. 严禁出现任何『视觉指南/配图说明/排版提示/参考依据』等幕后制作性文字！\n"
+            f"8. {image_contract.PROMPT_RULE}\n"
             f"{web_ref_text}\n"
             f"严格按以下格式输出，不要输出任何多余废话：\n"
             f"TITLE: <爆款标题>\n"

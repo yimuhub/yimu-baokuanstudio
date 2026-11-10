@@ -4,6 +4,8 @@
 #  官网: https://yimu.hyipf.com
 # ============================================================
 set -euo pipefail
+export PYTHONIOENCODING=utf-8
+export PYTHONUTF8=1
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 PY=""
@@ -16,4 +18,7 @@ else
   exit 0
 fi
 
+if [ -f "app/launch_desktop.py" ]; then
+  exec "$PY" app/launch_desktop.py
+fi
 exec "$PY" desktop.py

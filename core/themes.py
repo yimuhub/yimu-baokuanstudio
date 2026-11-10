@@ -234,7 +234,20 @@ def md_to_wechat_html(body_md: str, title: str, theme: str = DEFAULT_THEME,
                 norm_s = img_src.split("?")[0].strip().rstrip("/")
                 if norm_s not in emitted_srcs:
                     emitted_srcs.add(norm_s)
-                    out.append(f"<img src='{img_src}' style='{st['img']}'/>")
+                    # V15.8 / S4：编译期存在性校验，缺失时降级为占位块而不是裂图
+                    try:
+                        from core.image_contract import local_image_exists
+                        missing = local_image_exists(img_src) is False
+                    except Exception:
+                        missing = False
+                    if missing:
+                        out.append(
+                            "<div style='border:1px dashed #c9ced6;border-radius:8px;"
+                            "padding:16px;text-align:center;color:#8a9099;font-size:13px;'>"
+                            "［配图缺失，已跳过］</div>"
+                        )
+                    else:
+                        out.append(f"<img src='{img_src}' style='{st['img']}'/>")
         else:
             if in_list:
                 out.append("</ul>"); in_list = False

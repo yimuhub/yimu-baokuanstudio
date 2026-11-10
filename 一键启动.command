@@ -46,17 +46,14 @@ if ! .venv/bin/python -c "import fastapi, uvicorn" &>/dev/null; then
   .venv/bin/pip install -r requirements.txt || { echo "  ❌ 依赖安装失败"; exit 1; }
 fi
 
-# 4. 环境变量与安全配置（自动生成随机高强度口令，杜绝写死弱口令）
+# 4. 环境变量与安全配置
+#    V15.8：敏感项统一写入用户目录 secrets.env（0600），安装目录 .env 不再存明文。
+#    init_secrets.py 会自动把旧 .env 里的密钥迁出并生成随机强口令。
 if [ -f ".env" ]; then
   set -a; source .env; set +a
-else
-  echo "  🔑 自动生成安全密钥配置 (.env)..."
-  SECRET=$(.venv/bin/python -c "import secrets; print(secrets.token_hex(32))")
-  APASS="yimu-$(.venv/bin/python -c "import secrets; print(secrets.token_hex(4))")"
-  printf 'YIMU_SECRET_KEY=%s\nADMIN_PASSWORD=%s\n' "$SECRET" "$APASS" > .env
-  chmod 600 .env 2>/dev/null || true
-  set -a; source .env; set +a
 fi
+echo "  🔑 正在初始化安全配置（用户目录 secrets.env）..."
+.venv/bin/python scripts/init_secrets.py --show
 
 # 5. 准备目录
 mkdir -p data/topics data/drafts data/cards data/cookies logs runs
@@ -81,7 +78,7 @@ sleep 2
 if ps -p $SERVER_PID > /dev/null; then
   echo "  ✅ 服务已成功在后台启动 (PID: $SERVER_PID)"
   echo "  🌐 本地地址: http://127.0.0.1:${PORT}"
-  echo "  🔑 管理口令: ${ADMIN_PASSWORD:-请查看 .env}"
+  echo "  🔑 管理口令: 已保存至用户目录 secrets.env（0600，不再明文展示）"
   open "http://127.0.0.1:${PORT}"
   echo ""
   echo "  💡 提示：按 Ctrl+C 可停止日志查看，后台服务仍将安全运行；如需关闭服务可运行: kill $SERVER_PID"

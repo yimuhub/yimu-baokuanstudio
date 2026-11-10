@@ -4,6 +4,40 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## ⛵ Version 15.8.0 · 归帆渡 (Homebound Ferry) · 客户端缺陷全栈整改 · 2026-11-10
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.8.0"`, `__codename__ = "归帆渡"`, `__codename_en__ = "Homebound Ferry"`)
+
+### 🎯 Milestone Summary
+
+依据《一幕工作室客户端缺陷排查报告（V15.7.0）》的 F1–F6 / R1–R10 / S1–S8，
+按「不是某一个客户端的问题，而是整条代码链路」的口径做全栈整改：
+Windows / macOS / Linux 三端、源码包与离线包、Web 服务、成稿与预览、分享与发布、
+配置与打包模板一次性对齐，并补 18 项 V15.8 专项回归测试。
+
+### ✅ 已修复
+
+| # | 客户反馈 | 修复内容 |
+|---|---------|---------|
+| 1 | F1 双击桌面快捷方式无反应 | Windows VBS 的 `WshShell.Run ..., 0` 会连 pywebview 主窗体一起隐藏，三处模板统一改为 `1`；新增 `app/launch_desktop.py` 启动垫片并统一 UTF-8 环境，`pythonw.exe` 无控制台时日志仍写入文件 |
+| 2 | F4 重复双击开出多个窗口 | 跨平台原子锁 `instance.lock` + 已有窗口唤起；端口探测区分「本应用已在跑 / 被别的程序占用」，占用时自动换端口 |
+| 3 | F2 草稿正文配图裂图 | 新增正文配图命名契约：模型只输出 `{{IMG:N}}`，落库前拦截自造文件名，成稿按序号映射到磁盘真实 `cover.png` / `sec-N.png`；提示词、回写入口、成稿编排、预览编译全链路统一 |
+| 4 | F3 小红书预览 404 | 六平台预览统一编译，补齐从未生成的 `preview-xhs.html`；预览/分享路由懒生成，老草稿打开自动自愈；矩阵数据补 `xhs.preview_url` |
+| 5 | 预览死链直接输出裂图 | 编译前做图片存在性校验，缺失时显示「配图缺失，已跳过」；发布前质量闸拦截缺图草稿，并给出可操作提示 |
+| 6 | F5 配置文件明文放密钥 | 敏感项统一写入用户数据目录 `secrets.env`（权限 0600），安装目录 `.env` 只留非敏感项；旧版本升级时自动迁出；三平台启动/部署脚本与设置页统一 |
+| 7 | F6 草稿列表接口 404 | 新增 `GET /api/drafts`，返回统一摘要、缩略图与六平台预览地址，并登记进 `docs/CONTRACT.md` |
+| 8 | 默认通道未配置 Key 时报错含糊 | `/api/status` 增加 `active_key_set` / `key_hint`；空 Key 报错改为明确引导到「设置 → 模型服务」或联网领取官方试用凭证 |
+| 9 | 出厂日志目录为空 | 桌面启动与首次运行自举即写启动日志（安装目录与用户数据目录双落点），异常也留痕 |
+
+### 🔧 工程化
+
+- 修复历史隐患：`from core.imagegen import recompile_previews` 被 3 处引用但函数不存在，异常被静默吞掉 → 已补齐并统一委托 `core.previews.recompile_previews`。
+- `save_preview()` 增加平台标识白名单，防止 `preview-../../x.html` 路径穿越。
+- 新增 `tests/test_v158_client_defects.py`（18 项），覆盖启动链路、密钥迁移、配图契约、六平台预览、质量闸与分享链接。
+- 全量 `pytest` 通过；CI 四道门禁（pytest / 真活探针 / 术语 / 密钥扫描）通过；改动文件相对 HEAD 基线未新增静态检查问题。
+
+**Full Changelog**: v15.7.0...v15.8.0
+
 ## 🎶 Version 15.7.0 · 长歌行 (Long Song Journey) · Review Actions Shipped · 2026-11-09
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.7.0"`, `__codename__ = "长歌行"`, `__codename_en__ = "Long Song Journey"`)

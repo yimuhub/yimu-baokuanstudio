@@ -108,7 +108,7 @@
 
 ---
 
-## 5. Studio 主服务：路由清单（B @ 0cb424f 全量映射，共 185 条）
+## 5. Studio 主服务：路由清单（B @ 0cb424f 全量映射 + 后续新增，共 186 条）
 
 > 格式约定（`tests/test_contract_lock.py` 按此解析）：每条为行 `- \`METHOD /path\` → handler：说明【V7.0/V7.1】[来源]`。
 > 映射规则：B 的每个路由必须出现；`[B]` 原样保留 / `[B→重写]` D-3 重写或 C 项调整 / `[NEW]` 新增。
@@ -172,6 +172,7 @@
 - `GET /api/rewrite/job/{jid}` → rewrite_job_status：同上兼容别名（deprecated）【V7.0】[B]
 
 ### 5.5 草稿核心 /api/drafts【V7.0】
+- `GET /api/drafts` → drafts_list：草稿列表（统一摘要 + 缩略图 + 六平台预览地址，分页 limit/offset）【V15.8】[NEW]
 - `POST /api/drafts/create` → create_draft：手动新建/导入草稿【V7.0】[B]
 - `GET /api/drafts/{did}` → get_draft：草稿详情【V7.0】[B]
 - `GET /api/drafts/{did}/score` → draft_score：7 维评分结果查询【V7.0】[B]

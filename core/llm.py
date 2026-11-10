@@ -437,15 +437,25 @@ def load_config() -> dict:
 
 
 def load_env() -> dict:
-    env_path = BASE / ".env"
-    vals = dict(os.environ)
-    if env_path.exists():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                vals.setdefault(k.strip(), v.strip())
-    return vals
+    """读取配置：进程环境变量 > 用户目录 secrets.env > 安装目录 .env。
+
+    V15.8：密钥不再明文存放于随包分发的 ``.env``，统一落到用户目录并限权
+    0600（见 ``core/user_paths.py``）。旧版配置仍可被读到，升级不丢配置。
+    """
+    try:
+        from core.user_paths import merge_env
+        return merge_env(BASE / ".env")
+    except Exception:
+        # 兜底：任何异常都退回历史行为，绝不让服务起不来
+        env_path = BASE / ".env"
+        vals = dict(os.environ)
+        if env_path.exists():
+            for line in env_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    vals.setdefault(k.strip(), v.strip())
+        return vals
 
 
 def ping_provider(base_url: str, api_key: str, model: str, provider_id: str = "") -> dict:
@@ -986,7 +996,11 @@ def chat(messages: list[dict], *, model: str | None = None,
             base, key, target_model, provider_id = fallbacks[0]
             logger.warning(f"[LLM] 主通道缺少密钥，自动切换至已配置备用通道 [{provider_id}]")
         else:
-            raise RuntimeError(f"供应商 [{provider_id}] 尚未配置 API Key，请先在控制中心企业级 AI 供应商中配置密钥")
+            raise RuntimeError(
+                f"AI 通道 [{provider_id}] 尚未配置密钥，本次生成已跳过（未发出任何请求）。"
+                "请在「设置 → 模型服务」填入自己的 API Key，或联网后由客户端自动领取官方试用凭证；"
+                "密钥保存在用户数据目录 secrets.env，不会写进安装目录。"
+            )
 
     # 对话接口安全保护：若解析出的目标模型是生图/视频模型，回退到当前主文本模型
     if classify_model(target_model) in ("image", "video"):

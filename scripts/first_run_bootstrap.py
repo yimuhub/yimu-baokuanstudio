@@ -28,8 +28,13 @@ import os
 import secrets
 import sqlite3
 import sys
+import time
 import urllib.request
+from datetime import datetime
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from core import user_paths  # noqa: E402  —— 纯标准库，启动期可安全导入
 
 APP = Path(__file__).resolve().parent.parent
 BUNDLE = APP.parent
@@ -51,13 +56,36 @@ def ensure_dir(p: Path) -> None:
         p.mkdir(parents=True)
 
 
-def ensure_dir(p: Path) -> None:
-    if not p.is_dir():
-        p.mkdir(parents=True)
-
-
 def _log(msg: str) -> None:
     print(f"[首次启动] {msg}", flush=True)
+
+
+def write_boot_log(summary: dict) -> None:
+    """出厂即建日志目录，并在启动时立即写入带时间戳的版本 / 路径记录（6.6）。"""
+    try:
+        try:
+            import version
+            ver = version.__version__
+        except Exception:
+            ver = "unknown"
+        entry = json.dumps({
+            "ts": datetime.now().isoformat(timespec="seconds"),
+            "version": ver,
+            "platform": sys.platform,
+            "app_dir": str(APP),
+            "bundle_dir": str(BUNDLE),
+            "secrets_file": str(user_paths.secrets_env_path()),
+            **summary,
+        }, ensure_ascii=False)
+        for p in (APP / "logs" / "bootstrap.log", DATA / "logs" / "bootstrap.log"):
+            try:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                with p.open("a", encoding="utf-8") as f:
+                    f.write(entry + "\n")
+            except OSError:
+                continue
+    except Exception:
+        pass
 
 
 def activate_runtime() -> bool:
@@ -85,18 +113,12 @@ def activate_runtime() -> bool:
 
 
 def _read_env() -> dict:
-    out: dict = {}
-    if ENV_PATH.is_file():
-        for line in ENV_PATH.read_text(encoding="utf-8", errors="ignore").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, v = line.split("=", 1)
-            out[k.strip()] = v.strip()
-    return out
+    """安装目录 .env + 用户目录 secrets.env + 进程环境变量。"""
+    return user_paths.merge_env(ENV_PATH)
 
 
 def _write_env(values: dict) -> None:
+    """只补缺失项；敏感项写入用户目录 secrets.env（0600），安装目录不留明文。"""
     env = _read_env()
     changed = False
     for k, v in values.items():
@@ -105,16 +127,28 @@ def _write_env(values: dict) -> None:
             changed = True
     if not changed:
         return
+
+    secret_path = user_paths.secrets_env_path()
+    secrets_map = user_paths.read_env_file(secret_path)
+    for k, v in env.items():
+        if user_paths.is_sensitive(k):
+            secrets_map.setdefault(k, v)
+    secrets_written = user_paths.write_env_file(secret_path, secrets_map)
+
+    # 用户目录不可写时回退到安装目录，绝不丢密钥
+    plain = {k: v for k, v in env.items()
+             if not user_paths.is_sensitive(k) or not secrets_written}
     lines = [
         "# 一幕·YIMU 爆款工作室 本地配置（首次启动自动生成，可手动修改）",
+        "# 密钥与管理员口令已迁至用户数据目录 secrets.env（0600），本文件不再存放明文。",
         "# 在「设置 → 模型服务」里填入自己的 API Key 后，官方通道会被自动覆盖。",
     ]
-    lines.extend(f"{k}={v}" for k, v in env.items())
-    ENV_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    lines.extend(f"{k}={v}" for k, v in plain.items())
     try:
+        ENV_PATH.write_text("\n".join(lines) + "\n", encoding="utf-8")
         os.chmod(ENV_PATH, 0o600)
-    except Exception:
-        pass
+    except OSError as e:
+        _log(f"本地配置写入跳过: {e}")
 
 
 def _machine_id() -> str:
@@ -204,9 +238,12 @@ def reset_factory_quota() -> None:
 
 def bootstrap() -> dict:
     """桌面启动器在任何第三方 import 之前调用一次。返回自检摘要（供 CI 离线冒烟读取）。"""
-    env = _read_env()
+    started = time.time()
     bundled = activate_runtime()
     reset_factory_quota()
+    # 旧版本把密钥明文写在随包分发的 .env 里；升级时自动迁出到用户目录。
+    migrated = user_paths.migrate_legacy_secrets(ENV_PATH)
+    env = _read_env()
 
     # 用户已经在设置页填过自己的 Key → 一个字节都不动
     user_key = env.get("MEDIAFLOW_KEY_YIMU_OFFICIAL") or env.get("MEDIAFLOW_APIPOOL_KEY") or ""
@@ -231,7 +268,11 @@ def bootstrap() -> dict:
         "official_key_source": key_source,
         "factory_credits": FACTORY_TRIAL_CREDITS,
         "data_dir": str(DATA),
+        "secrets_file": str(user_paths.secrets_env_path()),
+        "migrated_secrets": migrated,
+        "elapsed_ms": int((time.time() - started) * 1000),
     }
+    write_boot_log(summary)
     if bundled:
         _log(f"自带运行时已激活 · 官方通道: {key_source or '待激活（可在设置页填自定义 Key）'}")
     return summary

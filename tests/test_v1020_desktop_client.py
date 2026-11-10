@@ -47,8 +47,12 @@ def test_v1020_windows_vbs_launcher_exists_and_silent():
     content = vbs.read_text(encoding="utf-8")
     assert "runtime\\pythonw.exe" in content
     assert "desktop.py" in content
-    # WshShell.Run pyExe & " " & desktopScript, 0, False (0 表示无黑框隐藏)
-    assert ", 0, False" in content
+    # V15.8: WshShell.Run ..., 1, False —— 0 (SW_HIDE) 会把 pywebview 主窗体一起隐藏，
+    # 造成「双击无反应但进程在」，已改为 SW_SHOWNORMAL + 启动垫片。
+    assert ", 1, False" in content
+    assert ", 0, False" not in content
+    assert "launch_desktop.py" in content
+    assert "PYTHONIOENCODING" in content
 
 
 def test_v1020_unix_launchers_exist_and_executable():

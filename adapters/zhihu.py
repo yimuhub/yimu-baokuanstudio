@@ -31,7 +31,12 @@ def _format_zhihu_body(body_md: str, section_images: list[str] | dict[str, str] 
         if img_m:
             alt, src = img_m.group(1), img_m.group(2)
             cap = f"<div style=\"font-size:13px;color:#8590a6;text-align:center;margin-top:6px;\">{html.escape(alt)}</div>" if alt and alt != "封面" else ""
-            out.append(f"<div style=\"margin:20px 0;text-align:center;\"><img src=\"{html.escape(src)}\" style=\"width:100%;max-width:100%;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.06);display:block;margin:0 auto;\"/>{cap}</div>")
+            # V15.8 / S4：缺失文件降级为占位块，不输出死链
+            from adapters.base import image_is_missing
+            if image_is_missing(src):
+                out.append("<div style='margin:20px 0;padding:16px;border:1px dashed #c9ced6;border-radius:6px;text-align:center;color:#8a9099;font-size:13px;'>［配图缺失，已跳过］</div>")
+            else:
+                out.append(f"<div style=\"margin:20px 0;text-align:center;\"><img src=\"{html.escape(src)}\" style=\"width:100%;max-width:100%;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,0.06);display:block;margin:0 auto;\"/>{cap}</div>")
             continue
 
         if ln.startswith("# "):

@@ -1074,6 +1074,14 @@ def regenerate_draft_image(draft_id: str, name: str, prompt: str = "", title: st
     wb_html = _wb.render_preview(body_md, d["title"])
     (ddir / "preview-weibo.html").write_text(wb_html, encoding="utf-8")
 
+    # V15.8 / R7：历史注释写「五大平台」实际只有四种，且从未生成小红书 / Twitter。
+    # 统一重编译六平台，并顺带修正正文里的死链。
+    try:
+        from core import previews
+        previews.recompile_previews(draft_id)
+    except Exception as e:
+        print(f"[配图] 全平台预览重编译跳过: {e}")
+
     return {
         "ok": True,
         "name": name,
@@ -1142,182 +1150,107 @@ def _dedupe_markdown_images(body_md: str) -> str:
 
 
 def inject_images_to_markdown(body_md: str, draft_id: str) -> str:
-    """若 markdown 中未显式包含图片标记，自动在合适位置注入已生成的封面与小节配图（内置防重复防连贴）。"""
-    if "![" in body_md or "<img" in body_md:
-        return _dedupe_markdown_images(body_md)
-    imgs = get_draft_images(draft_id)
-    if not imgs["all"]:
+    """正文配图的**唯一回写入口**（V15.8 / R4 / S2）。
+
+    历史上这里一见正文含 ``![`` 就只做去重直接返回，导致对话式成稿里
+    模型自造的 ``workflow.png`` 等死链原样保留、真实配图永远注入不进去。
+    现在统一委托 ``core.image_contract.normalize``：
+    占位符 / 死链按序号映射为磁盘真实图片，无图时按小节顺序自动注入。
+    所有成稿路径（选题池、copilot 对话、一句话成稿、分平台改写）都调用本函数，
+    因此一处收敛即可全覆盖。
+    """
+    try:
+        from core import image_contract
+        # 图片源仍由 get_draft_images 提供（生产读磁盘，测试可注入），
+        # 映射/去重/降级逻辑则统一收敛到 image_contract，避免两套规则打架。
+        imgs = get_draft_images(draft_id)
+        normalized, _ = image_contract.normalize(body_md, draft_id, images=imgs)
+        return _dedupe_markdown_images(normalized)
+    except Exception:
+        # 契约模块异常时退回历史行为，绝不让成稿链路中断
+        if "![" in body_md or "<img" in body_md:
+            return _dedupe_markdown_images(body_md)
         return body_md
 
-    lines = body_md.splitlines()
-    out = []
-    cover_injected = False
-    sec_idx = 0
-    num_secs = len(imgs["sections"])
-    injected_urls: set[str] = set()
 
-    from core.text_denoise import is_section_heading, extract_section_title
-    for ln in lines:
-        if not cover_injected and is_section_heading(ln):
-            cov_url = imgs.get("cover")
-            if cov_url:
-                norm_cov = cov_url.split("?")[0].strip().rstrip("/")
-                if norm_cov not in injected_urls:
-                    out.append(f"![封面]({cov_url})\n")
-                    injected_urls.add(norm_cov)
-            cover_injected = True
+def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "",
+                               force_regen: bool = False, model: str = "") -> dict:
+    """生成配图 → 按命名契约回写正文 → 统一编译六平台预览。
 
-        out.append(ln)
-
-        if is_section_heading(ln) and sec_idx < num_secs:
-            sec_title = extract_section_title(ln)
-            sec_url = imgs["sections"][sec_idx]
-            norm_sec = sec_url.split("?")[0].strip().rstrip("/")
-            if norm_sec not in injected_urls:
-                out.append(f"\n![{sec_title}]({sec_url})\n")
-                injected_urls.add(norm_sec)
-            sec_idx += 1
-
-    if not cover_injected and imgs.get("cover"):
-        cov_url = imgs["cover"]
-        norm_cov = cov_url.split("?")[0].strip().rstrip("/")
-        if norm_cov not in injected_urls:
-            out.insert(0, f"![封面]({cov_url})\n")
-            injected_urls.add(norm_cov)
-
-    res = "\n".join(out).strip()
-    return _dedupe_markdown_images(res)
-
-
-def generate_and_inject_images(draft_id: str, count: int = 3, style: str = "", force_regen: bool = False, model: str = "") -> dict:
+    V15.8（客户报告 R3/R4/R5/R6/R7、建议 S1/S2/S3/S4/S5）：
+    * 旧实现按「小节标题文本」匹配插图位置，提示词里的小节标题与正文标题体系
+      不一致时匹配必然落空，图片只能被追加到文末 —— 改为按 sec 序号映射；
+    * 正文里模型自造的 ``workflow.png`` 等死链由 ``image_contract.normalize``
+      按出现顺序映射到磁盘真实图片，映射不上就移除，不再有裂图；
+    * 预览编译统一交给 ``core.previews.build_all_previews``，六平台齐备，
+      含此前从未生成的 ``preview-xhs.html``。
     """
-    核心业务流程：
-    1. 针对指定 draft_id，通读全文并提取视觉结构与小节；
-    2. 按指定配图风格生成封面图 + 各小节配图（包含持久化 prompts.json）；
-    3. 智能在 Markdown 中对应小节插入图片标记（若未插入过）；
-    4. 重新编译各平台专属排版预览（微信、头条、知乎、微博等）；
-    5. 返回图片列表与更新后内容。
-    """
-    from core import db, themes
-    from adapters import toutiao as _tt, zhihu as _zh, weibo as _wb
-    from core.layouter import _inject_cover
+    import time
+    from core import db, image_contract, previews
 
     d = db.get_draft(draft_id)
     if not d:
         raise ValueError(f"草稿不存在: {draft_id}")
-
     ddir = db.draft_dir(draft_id)
     title = d["title"]
-    body_md = d["body_md"]
+    body_md = d["body_md"] or ""
 
-    from core.text_denoise import extract_section_headings, is_section_heading, extract_section_title
+    from core.text_denoise import extract_section_headings
     sec_meta = extract_section_headings(body_md)
-
     sec_arg = []
     for i, (t, paras) in enumerate(sec_meta):
         prev_tail = " ".join(sec_meta[i - 1][1])[-60:] if i > 0 else ""
         sec_arg.append((t, (prev_tail + " " + " ".join(paras))[:140]))
-
     if not sec_arg:
         sec_arg = [("核心解析", title)]
 
-    imgs = decorate_draft(ddir, title, sec_arg, body_md=body_md, count=count, style=style, force_regen=bool(style or force_regen), model=model)
+    decorate_draft(ddir, title, sec_arg, body_md=body_md, count=count, style=style,
+                   force_regen=bool(style or force_regen), model=model)
 
-    import time
+    # 命名契约：占位符 / 历史死链 → 真实 sec-N.png（按序号，不依赖标题文本）
+    updated_body_md, contract = image_contract.normalize(body_md, draft_id, ddir)
     ts = int(time.time())
-    v_param = f"?v={ts}"
-
-    has_cover = (ddir / "img" / "cover.png").exists()
-    sec_files = sorted((ddir / "img").glob("sec-*.png"))
-
-    # 1. 替换 body_md 中已存在的封面链接或注入新封面
-    updated_body_md = body_md
-    if f"/img/{draft_id}/cover.png" in updated_body_md:
-        updated_body_md = re.sub(
-            rf"!\[(.*?)\]\(/img/{re.escape(draft_id)}/cover\.png(?:\?[^)]*)?\)",
-            rf"![\1](/img/{draft_id}/cover.png{v_param})",
-            updated_body_md
-        )
-    elif has_cover:
-        lines = updated_body_md.splitlines()
-        cov_inserted = False
-        new_lines = []
-        for ln in lines:
-            if not cov_inserted and is_section_heading(ln):
-                new_lines.append(f"![封面](/img/{draft_id}/cover.png{v_param})\n")
-                cov_inserted = True
-            new_lines.append(ln)
-        if not cov_inserted:
-            new_lines.insert(0, f"![封面](/img/{draft_id}/cover.png{v_param})\n")
-        updated_body_md = "\n".join(new_lines).strip()
-
-    # 2. 刷新已有小节配图时间戳，或精准回填缺失小节配图到正文
-    for i, sfile in enumerate(sec_files):
-        sec_url = f"/img/{draft_id}/{sfile.name}{v_param}"
-        sec_title = sec_arg[i][0] if i < len(sec_arg) else f"小节{i+1}"
-        if f"/img/{draft_id}/{sfile.name}" in updated_body_md:
-            updated_body_md = re.sub(
-                rf"!\[(.*?)\]\(/img/{re.escape(draft_id)}/{re.escape(sfile.name)}(?:\?[^)]*)?\)",
-                rf"![\1]({sec_url})",
-                updated_body_md
-            )
-        else:
-            lines = updated_body_md.splitlines()
-            injected = False
-            new_lines = []
-            for ln in lines:
-                new_lines.append(ln)
-                if not injected and is_section_heading(ln):
-                    hdr = extract_section_title(ln)
-                    norm_sec_title = sec_title.strip("【】").strip()
-                    norm_hdr = hdr.strip("【】").strip()
-                    if hdr == sec_title or norm_hdr == norm_sec_title or (len(sec_meta) == 0 and i == 0):
-                        new_lines.append(f"\n![{sec_title}]({sec_url})\n")
-                        injected = True
-            if not injected:
-                new_lines.append(f"\n![{sec_title}]({sec_url})\n")
-            updated_body_md = "\n".join(new_lines).strip()
-
+    updated_body_md = re.sub(
+        r"(/img/[A-Za-z0-9_-]+/[A-Za-z0-9_.-]+\.(?:png|jpg|jpeg|webp))(?:\?[^)\s]*)?",
+        rf"\1?v={ts}", updated_body_md,
+    )
     c = db.conn()
     c.execute("UPDATE drafts SET body_md=? WHERE id=?", (updated_body_md, draft_id))
     c.commit()
     c.close()
 
-    images_dict = {f.name: f"/img/{draft_id}/{f.name}{v_param}" for f in sec_files}
-    cover_url = f"/img/{draft_id}/cover.png{v_param}" if has_cover else None
-    
-    from core.layouter import render as layout_render
-    theme = load_config().get("creation", {}).get("wechat_theme", "caozhou")
-    wx_html = layout_render(updated_body_md, title, theme=theme, images=images_dict, cover=cover_url)
-    (ddir / "preview-wechat_mp.html").write_text(wx_html, encoding="utf-8")
+    # 六平台统一编译（含 preview-xhs.html）+ 编译前配图存在性校验
+    built = previews.build_all_previews(draft_id, body_md=updated_body_md)
 
-    tt_html = _tt.render_preview(updated_body_md, title, images=[f"/img/{draft_id}/{f.name}{v_param}" for f in sec_files], cover=cover_url, draft_id=draft_id)
-    (ddir / "preview-toutiao.html").write_text(tt_html, encoding="utf-8")
-    (ddir / "toutiao.md").write_text(updated_body_md, encoding="utf-8")
-
-    zh_html = _zh.render_preview(updated_body_md, title)
-    (ddir / "preview-zhihu.html").write_text(zh_html, encoding="utf-8")
-    (ddir / "zhihu.md").write_text(updated_body_md, encoding="utf-8")
-
-    wb_html = _wb.render_preview(updated_body_md, title)
-    (ddir / "preview-weibo.html").write_text(wb_html, encoding="utf-8")
-    (ddir / "weibo.md").write_text(updated_body_md, encoding="utf-8")
-
+    imgs = image_contract.disk_images(draft_id, ddir)
     img_list = []
-    if has_cover:
-        img_list.append({"name": "封面图", "url": f"/img/{draft_id}/cover.png{v_param}"})
-    for f in sec_files:
-        img_list.append({"name": f.stem, "url": f"/img/{draft_id}/{f.name}{v_param}"})
+    if imgs["cover"]:
+        img_list.append({"name": "封面图", "url": f"{imgs['cover']}?v={ts}"})
+    for u in imgs["sections"]:
+        img_list.append({"name": u.rsplit("/", 1)[-1].rsplit(".", 1)[0], "url": f"{u}?v={ts}"})
     for f in sorted((ddir / "img").glob("custom-*.png")):
-        img_list.append({"name": f.stem, "url": f"/img/{draft_id}/{f.name}{v_param}"})
+        img_list.append({"name": f.stem, "url": f"/img/{draft_id}/{f.name}?v={ts}"})
 
+    wx_file = ddir / "preview-wechat_mp.html"
+    wx_html = wx_file.read_text(encoding="utf-8", errors="ignore") if wx_file.is_file() else ""
     return {
         "ok": True,
         "count": len(img_list),
         "images": img_list,
         "body_md": updated_body_md,
         "html_wechat": wx_html,
-        "image_channel": last_gen_diagnosis()
+        "image_channel": last_gen_diagnosis(),
+        "previews": built.get("platforms", []),
+        "image_contract": contract,
     }
 
 
+def recompile_previews(draft_id: str) -> dict:
+    """图片上传 / 替换后的全平台预览重编译。
+
+    历史上 ``web/routers/drafts.py`` 与 ``assets.py`` 都 ``from core.imagegen
+    import recompile_previews``，但本函数从未存在，ImportError 被
+    ``except Exception: pass`` 静默吞掉，替换图片后预览一直是旧内容。
+    """
+    from core import previews
+    return previews.recompile_previews(draft_id)

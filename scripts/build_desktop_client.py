@@ -64,9 +64,12 @@ Else
     WScript.Quit
 End If
 
-desktopScript = """" & currentDir & "\\desktop.py"""
-' 运行 desktop.py，第 2 参数为 0 表示隐藏黑色控制台窗口
-WshShell.Run pyExe & " " & desktopScript, 0, False
+desktopScript = """" & currentDir & "\\app\\launch_desktop.py"""
+If Not fso.FileExists(currentDir & "\\app\\launch_desktop.py") Then desktopScript = """" & currentDir & "\\desktop.py"""
+' V15.8: 1 = SW_SHOWNORMAL. 0 (SW_HIDE) hides the pywebview main window under pythonw.exe.
+WshShell.Environment("PROCESS")("PYTHONIOENCODING") = "utf-8"
+WshShell.Environment("PROCESS")("PYTHONUTF8") = "1"
+WshShell.Run pyExe & " " & desktopScript, 1, False
 '''
     (target_dir / "一幕桌面客户端.vbs").write_text(vbs_content, encoding="utf-8")
     log("已生成 Windows 原生静默桌面启动器: 一幕桌面客户端.vbs")

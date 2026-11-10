@@ -82,16 +82,9 @@ setup_env() {
   fi
 
   # 环境变量与安全密钥配置
-  if [ ! -f ".env" ]; then
-    echo -e "${CYAN}[3/4] 自动生成高强度安全凭证 (.env)...${NC}"
-    local secret
-    secret=$(.venv/bin/python -c "import secrets; print(secrets.token_hex(32))")
-    local apass="yimu-888888"
-    cat <<EOF > .env
-YIMU_SECRET_KEY=${secret}
-ADMIN_PASSWORD=${apass}
-EOF
-  fi
+  # V15.8：敏感项统一写入用户目录 secrets.env（0600），安装目录 .env 不再存明文。
+  echo -e "${CYAN}[3/4] 初始化安全凭证（用户目录 secrets.env）...${NC}"
+  .venv/bin/python scripts/init_secrets.py --show || true
 
   # 自动自愈表约束与对齐数据库结构
   .venv/bin/python -c "from core.db import auto_heal_all_sqlite_databases; auto_heal_all_sqlite_databases(); from studio.db import get_engine, init_db; import os; url = os.environ.get('YIMU_DB_URL', 'sqlite:///./data/mediaflow.db'); engine = get_engine(url); init_db(engine)" 2>/dev/null || true
@@ -168,7 +161,7 @@ start_server() {
     echo -e "   🔹 运行进程 PID: ${YELLOW}${new_pid}${NC}"
     echo -e "   🔹 本地访问地址: ${CYAN}http://127.0.0.1:${PORT}${NC}"
     echo -e "   🔹 服务器外网地址: ${CYAN}http://${s_ip}:${PORT}${NC}"
-    echo -e "   🔹 默认管理员密码: ${YELLOW}${ADMIN_PASSWORD:-yimu-888888}${NC}"
+    echo -e "   🔹 管理员口令: ${YELLOW}已保存至用户目录 secrets.env（0600）${NC}"
     echo -e "   🔹 实时日志路径: ${BLUE}${LOG_FILE}${NC}"
     echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${YELLOW}常用管理命令：${NC}"

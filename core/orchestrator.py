@@ -437,6 +437,15 @@ def _refresh_artifacts(draft_id: str, parsed: dict, fallback_title: str, fallbac
     c.commit()
     c.close()
 
+    # V15.8 / R7：小红书此前只产卡片不产 preview-xhs.html，
+    # 导致 /preview/{did}/xhs 与分享链接 404。卡片落盘后强制刷新 HTML 预览，
+    # 同时由 build_all_previews 统一修正正文配图契约。
+    try:
+        from core import previews
+        previews.build_all_previews(draft_id, body_md=body, platforms=("xhs",))
+    except Exception as e:
+        print(f"[编排] 小红书预览编译跳过: {e}")
+
 
 def generate_draft(topic_id: str, emit=None, media_name: str = "一幕·YIMU 爆款工作室",
                    platforms: list[str] | None = None,

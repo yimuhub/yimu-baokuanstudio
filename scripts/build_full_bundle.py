@@ -38,6 +38,8 @@ import stat
 import subprocess
 import sys
 import tarfile
+import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -100,10 +102,39 @@ def _download(url: str, dest: Path, timeout: int = 180) -> Path:
     return dest
 
 
-def _get_json(url: str, timeout: int = 60) -> dict:
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+def _get_json(url: str, timeout: int = 60, retries: int = 4) -> dict:
+    """读取 GitHub Release API：带可用凭证 + 限流/网络抖动重试。
+
+    V15.8.0 的 macOS 打包作业曾在三平台并行构建时撞上未鉴权 GitHub API
+    每小时 60 次的共享限额，``HTTP 403: rate limit exceeded`` 直接让整个
+    作业失败（Win/Linux 已成功上传）。这里两处加固：
+
+    1. CI 提供 ``GITHUB_TOKEN`` / ``GH_TOKEN`` 时带上鉴权头（额度高得多）；
+    2. 对 403/429/5xx 与网络错误做指数退避重试，仍失败才给出中文诊断。
+    """
+    headers = dict(UA)
+    headers.setdefault("Accept", "application/vnd.github+json")
+    token = (os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or "").strip()
+    if token and "api.github.com" in url:
+        headers["Authorization"] = f"Bearer {token}"
+
+    last: Exception | None = None
+    for attempt in range(max(1, retries)):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError) as exc:
+            last = exc
+            code = getattr(exc, "code", None)
+            retryable = code in (403, 429, 500, 502, 503, 504) or code is None
+            if not retryable or attempt == max(1, retries) - 1:
+                break
+            wait = min(20, 3 * (2 ** attempt))
+            log(f"GitHub API 暂不可用（{code or type(exc).__name__}），{wait}s 后重试 "
+                f"({attempt + 1}/{retries})")
+            time.sleep(wait)
+    raise RuntimeError(f"读取 {url} 失败（已重试 {retries} 次）：{last}")
 
 
 # ---------------------------------------------------------------------------

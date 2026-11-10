@@ -14,6 +14,9 @@ permissions:
 env:
   PYTHONIOENCODING: utf-8
   PYTHONUTF8: "1"
+  # V15.8: 三平台并行构建时会同时查询 GitHub Release API；未鉴权调用只有
+  # 60 次/小时共享额度，macOS 作业曾因此 403 rate limit exceeded 失败。
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   YIMU_OFFICIAL_BOOTSTRAP_KEY: ${{ secrets.YIMU_OFFICIAL_BOOTSTRAP_KEY }}
 
 jobs:

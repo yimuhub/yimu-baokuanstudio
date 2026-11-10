@@ -25,6 +25,8 @@ permissions:
 env:
   PYTHONIOENCODING: utf-8
   PYTHONUTF8: "1"
+  # 补齐历史 Release 的 macOS 资产时同样要查询 GitHub Release API
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   YIMU_OFFICIAL_BOOTSTRAP_KEY: ${{ secrets.YIMU_OFFICIAL_BOOTSTRAP_KEY }}
 
 jobs:

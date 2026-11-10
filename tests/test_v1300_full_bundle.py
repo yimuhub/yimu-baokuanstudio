@@ -158,3 +158,61 @@ def test_version_and_codename() -> None:
     # 代号只能前进，不许回退或重号
     assert d["next_index"] >= 1
     assert d["sequence"][d["next_index"]]["zh"] not in {h["zh"] for h in d["history"]}, "下一个待用代号已被消耗"
+
+
+# ---------------------------------------------------------------------------
+# V15.8：GitHub Release API 限流加固（v15.8.0 macOS 作业曾 403 失败）
+# ---------------------------------------------------------------------------
+
+def test_builder_github_api_has_auth_and_backoff(builder: str) -> None:
+    assert "Authorization" in builder and "GITHUB_TOKEN" in builder
+    assert "retries" in builder and "time.sleep" in builder
+    assert "rate limit" in builder
+
+
+def test_workflows_pass_github_token_to_builder() -> None:
+    standalone = BASE / ".github" / "workflows" / "build-macos-installer.yml"
+    for p in (CI, standalone):
+        s = p.read_text(encoding="utf-8")
+        assert "GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in s, (
+            f"{p.name} 必须把 GITHUB_TOKEN 传给打包脚本，否则仍会撞 60 次/小时匿名限额"
+        )
+
+
+def test_get_json_retries_on_rate_limit_and_sends_token(monkeypatch) -> None:
+    """403 限流后应退避重试，且带上鉴权头；无需真的访问网络。"""
+    import importlib.util
+    import urllib.error
+
+    spec = importlib.util.spec_from_file_location("yimu_full_bundle_under_test", BUILDER)
+    assert spec and spec.loader
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    url = "https://api.github.com/repos/example/runtime/releases/latest"
+
+    class _Resp:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return b'{"assets": []}'
+
+    calls = []
+
+    def fake_urlopen(req, timeout=60):
+        calls.append(req)
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(url, 403, "rate limit exceeded", {}, None)
+        return _Resp()
+
+    monkeypatch.setenv("GITHUB_TOKEN", "ci-token-for-test")
+    monkeypatch.setattr(mod.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(mod.time, "sleep", lambda _s: None)
+
+    assert mod._get_json(url) == {"assets": []}
+    assert len(calls) == 2, "403 后必须重试一次"
+    assert calls[0].get_header("Authorization") == "Bearer ci-token-for-test"

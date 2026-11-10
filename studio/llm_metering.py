@@ -154,11 +154,6 @@ def free_demo_left_today(user_id: str) -> int:
     return max(pricing.FREE_DEMO_DAILY_CALLS - used, 0)
 
 
-def can_use_free_demo(user_id: str) -> bool:
-    """调用前预检：判断该 free 用户今日是否仍保有官方通道免费体验次数。"""
-    if not user_id:
-        return False
-    return free_demo_left_today(user_id) > 0
 
 
 def _read_usage() -> dict:

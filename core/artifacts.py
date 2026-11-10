@@ -12,15 +12,6 @@ from __future__ import annotations
 from core import db, image_contract, previews
 
 
-def finalize_draft_artifacts(draft_id: str, *, generate_images: bool = False,
-                             body_md: str | None = None, **image_kwargs) -> dict:
-    """成稿落库后的唯一入口：可选生成配图 → 修正正文契约 → 编译六平台预览。"""
-    result = {}
-    if generate_images:
-        from core import imagegen
-        result["images"] = imagegen.generate_and_inject_images(draft_id, **image_kwargs)
-    result["previews"] = previews.build_all_previews(draft_id, body_md=body_md)
-    return result
 
 
 def heal_draft(draft_id: str) -> dict:

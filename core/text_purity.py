@@ -170,12 +170,6 @@ def _protect(text: str) -> tuple[str, list[str]]:
     return text, kept
 
 
-def _restore(text: str, kept: list[str]) -> str:
-    def _sub(m: re.Match) -> str:
-        idx = int(m.group(1))
-        return kept[idx] if 0 <= idx < len(kept) else ""
-
-    return _SAFE_RE.sub(_sub, text)
 
 
 def to_storage(text: str) -> str:
@@ -232,9 +226,6 @@ def to_storage(text: str) -> str:
         return cleaned
 
 
-def has_markup(text: str) -> bool:
-    """是否还留有排版标记（用于判断是否值得走富文本渲染）。"""
-    return bool(re.search(r"\*\*|^#{1,6}\s|\n\s*[-*+]\s|\n\s*>\s", text or "", flags=re.M))
 
 
 def purify_body(text: str) -> str:
@@ -357,26 +348,6 @@ def purify_title(text: str) -> str:
     return s.strip()
 
 
-def purify_platform_variants(parsed: dict) -> dict:
-    """批量处理多端标题与正文——按形态分流，不搞一刀切。
-
-    `BODY_WX` / `body_md` 是公众号正文源（要渲染成富文本 HTML）→ 走存储态，
-    保留 `**` 才能出加粗；其余平台是直接粘贴发布的纯文本 → 剥净标记。
-    """
-    if not parsed:
-        return parsed
-    out = dict(parsed)
-    for key in list(out.keys()):
-        val = out.get(key)
-        if not isinstance(val, str):
-            continue
-        if key.startswith("TITLE") or key.endswith("_TITLE") or key == "title":
-            out[key] = purify_title(val)
-        elif key in ("BODY_WX", "BODY_CORE", "body", "body_md"):
-            out[key] = to_storage(val)
-        elif key.startswith("BODY") or key.startswith("TEXT"):
-            out[key] = purify_body(val)
-    return out
 
 
 def card_inline_html(text: str) -> str:

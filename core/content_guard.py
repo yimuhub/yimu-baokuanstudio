@@ -189,10 +189,6 @@ def _load_whitelist() -> list[str]:
         return []
 
 
-def reload_library() -> None:
-    """清空词库缓存（词库热更新或测试用）。"""
-    global _cache
-    _cache = None
 
 
 # ---------------------------------------------------------------------------
@@ -334,9 +330,3 @@ def library_stats() -> dict:
             "whitelist": len(_load_whitelist())}
 
 
-def describe_warnings(hits: Iterable[GuardHit]) -> list[str]:
-    """把命中列表转成一句一句的中文提示（给前端弹窗用）。"""
-    msgs = []
-    for h in hits:
-        msgs.append(f"{h.category}：命中「{h.word}」——{h.to_dict()['advice']}")
-    return msgs

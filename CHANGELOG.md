@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.8.2] - 朝晖颂 (Dawn Glow Ode) · 2026-11-11
+
+### Removed 商业交付级代码卫生清理(AST 全仓扫描)
+- 删除 13 个零引用死函数(task_queue/notify/text_purity/content_guard/artifacts/llm_metering,约 -150 行)
+- 保守恢复 3 个被误判的存活模块(notify/scheduler/tts——装饰器注册与 probe 契约属活代码,教训已记录)
+- 清理孤儿 import;0 重复函数体 / 0 重复路由 / 0 重复 JS 函数 / 0 TODO / 0 console.log(扫描实证)
+- 测试:786 用例全绿(远端新增测试并入),CI 四道门禁通过
+
 ## [15.8.1] - 朝晖颂 (Dawn Glow Ode) · 2026-11-11
 
 > 本版为「源码与安装包完全一致」的重建版，同时落地内置官方凭证机制、云库巨石拆分，

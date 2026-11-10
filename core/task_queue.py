@@ -388,8 +388,6 @@ class TaskManager:
 _global_task_manager = TaskManager(max_workers=4)
 
 
-def get_task_manager() -> TaskManager:
-    return _global_task_manager
 
 
 def register_job(jid: str, name: str, task_type: str, target_id: str = "",

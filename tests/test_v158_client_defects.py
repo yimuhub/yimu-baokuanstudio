@@ -140,7 +140,7 @@ def test_v158_status_exposes_empty_key_hint():
     src = _read("web/routers/system.py")
     assert "active_key_set" in src and "key_hint" in src
     assert "设置 → 模型服务" in src
-    assert "官方试用凭证" in src
+    assert "内置官方凭证" in src, "空 Key 提示必须引导管理员配置随包凭证，而非联网申领"
     llm_src = _read("core/llm.py")
     assert "secrets.env" in llm_src
     assert "尚未配置密钥" in llm_src

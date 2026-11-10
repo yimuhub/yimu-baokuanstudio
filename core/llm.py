@@ -998,8 +998,8 @@ def chat(messages: list[dict], *, model: str | None = None,
         else:
             raise RuntimeError(
                 f"AI 通道 [{provider_id}] 尚未配置密钥，本次生成已跳过（未发出任何请求）。"
-                "请在「设置 → 模型服务」填入自己的 API Key，或联网后由客户端自动领取官方试用凭证；"
-                "密钥保存在用户数据目录 secrets.env，不会写进安装目录。"
+                "请在「设置 → 模型服务」填入自己的 API Key，或请管理员在构建期配置内置官方凭证"
+                "（YIMU_OFFICIAL_BOOTSTRAP_KEY）；密钥保存在用户数据目录 secrets.env，不会写进安装目录。"
             )
 
     # 对话接口安全保护：若解析出的目标模型是生图/视频模型，回退到当前主文本模型

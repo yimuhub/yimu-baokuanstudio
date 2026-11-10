@@ -58,6 +58,41 @@ def check_structure(stage: Path) -> dict:
     if "gateway.yimu.studio" not in cfg:
         fail("出厂配置没有内置官方云端通道")
 
+    # 官方凭证机制：来源必须可判定，「unset」在强制门禁下直接拒绝出包
+    src = str(m.get("official_key_source") or "")
+    if src not in ("ci-secret", "env", "unset"):
+        fail(f"MANIFEST 的 official_key_source 非法/已过时: {src!r}")
+    if "trial-claim" in src:
+        fail("仍在产出需客户机联网申领试用凭证的安装包（trial-claim 已废弃）")
+    cred = app / ".bootstrap" / "official_credential.json"
+    if src == "ci-secret":
+        if not cred.is_file():
+            fail("MANIFEST 声明已注入官方凭证，但缺少 official_credential.json")
+        try:
+            data = json.loads(cred.read_text(encoding="utf-8") or "{}")
+        except ValueError:
+            fail("official_credential.json 不是合法 JSON")
+        if not isinstance(data, dict) or data.get("schema") != 1:
+            fail("官方凭证结构版本不符（schema != 1）")
+        key = str(data.get("key") or "").strip()
+        if not key or key.lower() in ("test", "test_key", "changeme", "placeholder", "sk-xxx"):
+            fail("随包官方凭证为空或仍是占位符")
+        if data.get("bundle_id") != m.get("bundle_id"):
+            fail("官方凭证的 bundle_id 与 MANIFEST 不一致，可能串包")
+        if os.name == "posix" and (cred.stat().st_mode & 0o077):
+            fail("随包官方凭证权限不是 0600")
+    elif cred.exists():
+        fail("MANIFEST 标记未注入凭证，却残留 official_credential.json")
+    require = os.environ.get("YIMU_REQUIRE_OFFICIAL_KEY", "0") == "1"
+    if require and src != "ci-secret":
+        fail("YIMU_REQUIRE_OFFICIAL_KEY=1 要求随包内置官方凭证，当前来源为 "
+             f"{src!r}；请配置仓库 Secret YIMU_OFFICIAL_BOOTSTRAP_KEY")
+    if not m.get("bundle_id"):
+        fail("MANIFEST 缺少 bundle_id，升级后无法重新生成配额")
+    bootstrap = (app / "scripts" / "first_run_bootstrap.py").read_text(encoding="utf-8")
+    if "trial/claim" in bootstrap:
+        fail("首次启动自举仍会联网申领试用凭证（客户机必须全程离线可用）")
+
     # 配额必须是全新生成的，不能带开发机数据
     billing = json.loads((app / "data" / "billing.json").read_text(encoding="utf-8"))
     if billing.get("balance") != FACTORY_TRIAL_CREDITS or billing.get("total_consumed") != 0 or billing.get("history"):
@@ -107,7 +142,6 @@ def smoke_offline(stage: Path, plat: str, strict: bool) -> None:
     app = stage / "app"
     env = dict(os.environ)
     env["PYTHONPATH"] = os.pathsep.join([str(app), str(stage / "runtime" / "site-packages")])
-    env["YIMU_SKIP_TRIAL_CLAIM"] = "1"  # 离线冒烟不等官方网关
     env["YIMU_DB_PATH"] = str(app / "data" / "smoke.db")
     env["PORT"] = "8899"
     proc = subprocess.Popen(
@@ -156,7 +190,10 @@ def main() -> None:
         mb = sum(p.stat().st_size for p in stage.rglob("*") if p.is_file()) / 1048576
         if mb < MIN_ARCHIVE_MB:
             fail(f"未压缩体积 {mb:.1f} MB 低于下限 {MIN_ARCHIVE_MB} MB")
-        print(f"[验收] 体积 {mb:.1f} MB · {m['files']} 文件 · 官方凭证来源 {m['official_key_source']}")
+        print(f"[验收] 体积 {mb:.1f} MB · {m['files']} 文件 · 包标识 {m['bundle_id']} · "
+              f"官方凭证来源 {m['official_key_source']}"
+              + ("（未注入：安装包不含内置 Key，需管理员配置 Secret）"
+                 if m["official_key_source"] == "unset" else ""))
     print("[验收] 全部通过")
     print(json.dumps(m, ensure_ascii=False, indent=2))
 

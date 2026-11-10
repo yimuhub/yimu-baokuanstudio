@@ -7,8 +7,10 @@
    还没进 ``sys.path``，任何第三方 import 都会直接失败。
 2. **绝不覆盖用户配置**：用户后来在设置页填的自定义 API Key、管理员口令、配额数据
    一律原样保留；本模块只补缺失项。
-3. **断网可运行**：官方凭证的联网申领是「尽力而为」，超时或失败静默降级，
-   不影响服务启动；用户随时可以在设置页填自己的 Key。
+3. **全程离线**：官方凭证只在**构建期**由 CI 从 Secrets 注入为结构化文件
+   ``app/.bootstrap/official_credential.json``；客户机启动时不发任何网络请求，
+   也不再向官方网关申领设备试用凭证。没有随包凭证时服务照常启动，
+   界面给出明确的配置引导。
 
 bundle 布局（由 scripts/build_full_bundle.py 生成）::
 
@@ -22,14 +24,12 @@ bundle 布局（由 scripts/build_full_bundle.py 生成）::
 """
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import secrets
 import sqlite3
 import sys
 import time
-import urllib.request
 from datetime import datetime
 from pathlib import Path
 
@@ -43,11 +43,12 @@ CHROMIUM_MARKER = BUNDLE / "chromium" / "EXECUTABLE"
 DATA = APP / "data"
 ENV_PATH = APP / ".env"
 
-OFFICIAL_GATEWAY = "https://gateway.yimu.studio/v1"
 #: 出厂赠送额度。不复制开发机上的 billing.json（那里面是 999999 和测试用户记录）。
 FACTORY_TRIAL_CREDITS = 200000
-#: 官方试用凭证申领超时（秒）。断网时最多耽误这么久，且只在首次启动发生一次。
-CLAIM_TIMEOUT = 6.0
+#: 随包官方凭证（构建期由 scripts/build_full_bundle.py 生成，仓库里绝不存明文）。
+CREDENTIAL_FILE = ".bootstrap/official_credential.json"
+#: 记录上一次自举所属的包标识，用于「全新版本升级后重新生成配额」。
+FACTORY_STATE_FILE = "factory_state.json"
 _PLACEHOLDERS = {"", "test_key", "test", "your-api-key", "your_api_key", "sk-xxx", "xxx", "changeme", "placeholder"}
 
 
@@ -151,59 +152,63 @@ def _write_env(values: dict) -> None:
         _log(f"本地配置写入跳过: {e}")
 
 
-def _machine_id() -> str:
-    """稳定的匿名设备指纹，仅用于官方试用额度去重，不含任何个人信息。"""
-    import platform
-    import uuid
-    raw = f"{platform.node()}|{uuid.getnode()}|{platform.system()}|{platform.machine()}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+def read_official_credential() -> dict:
+    """读取构建期随包注入的结构化官方凭证；不存在/损坏时返回空字典。
+
+    该文件由 ``scripts/build_full_bundle.py`` 生成，内含 key、bundle_id、
+    版本、签发时间与出厂额度。仓库里绝不存放可扣费的真实 Key。
+    """
+    p = APP / CREDENTIAL_FILE
+    if not p.is_file():
+        return {}
+    try:
+        data = json.loads(p.read_text(encoding="utf-8") or "{}")
+    except (OSError, ValueError):
+        return {}
+    if not isinstance(data, dict) or data.get("schema") != 1:
+        return {}
+    key = str(data.get("key") or "").strip()
+    if not key or key.lower() in _PLACEHOLDERS:
+        return {}
+    return data
+
+
+def read_bundle_id() -> str:
+    """从包根 MANIFEST.json 读取本次构建的包标识（用于升级后重新生成配额）。"""
+    try:
+        m = json.loads((BUNDLE / "MANIFEST.json").read_text(encoding="utf-8") or "{}")
+        return str(m.get("bundle_id") or "") if isinstance(m, dict) else ""
+    except (OSError, ValueError):
+        return ""
 
 
 def resolve_official_key() -> tuple[str, str]:
-    """按优先级解析内置官方凭证，返回 ``(key, source)``。
+    """按优先级解析内置官方凭证，返回 ``(key, source)``；**全程不联网**。
 
-    1. 构建期随包注入的凭证（GitHub Secrets → ``app/.bootstrap/official_key``）；
-    2. 进程环境变量 ``YIMU_OFFICIAL_BOOTSTRAP_KEY``；
-    3. 官方网关按设备签发的试用凭证（联网尽力而为）；
-    4. 都没有 → 返回空串，服务照常启动，界面提示可在设置页填自己的 Key。
+    1. 随包结构化凭证 ``app/.bootstrap/official_credential.json`` → ``bundle``；
+    2. 进程环境变量 ``YIMU_OFFICIAL_BOOTSTRAP_KEY``（开发/自测用）→ ``env``；
+    3. 都没有 → ``unset``，服务照常启动，界面提示管理员配置官方凭证或用户填自备 Key。
 
-    注意：仓库里**绝不**明文存放可扣费的真实 Key。正式发行版由 CI 从 Secrets 注入。
+    ⭐ V15.8.1：移除了运行期的设备试用凭证联网申领。客户机首次启动
+    不再依赖官方网关在线，也不会因断网多等 6 秒；是否提供官方通道完全由构建期决定。
     """
-    packed = APP / ".bootstrap" / "official_key"
-    if packed.is_file():
-        k = packed.read_text(encoding="utf-8", errors="ignore").strip()
-        if k and k.lower() not in _PLACEHOLDERS:
-            return k, "bundle"
+    packed = read_official_credential()
+    if packed:
+        return str(packed["key"]).strip(), "bundle"
     k = os.environ.get("YIMU_OFFICIAL_BOOTSTRAP_KEY", "").strip()
     if k and k.lower() not in _PLACEHOLDERS:
         return k, "env"
-    if os.environ.get("YIMU_SKIP_TRIAL_CLAIM") == "1":
-        return "", "none"
-    try:
-        req = urllib.request.Request(
-            OFFICIAL_GATEWAY.rstrip("/") + "/trial/claim",
-            data=json.dumps({
-                "machine_id": _machine_id(),
-                "product": "yimu-studio",
-                "channel": "desktop-offline",
-            }).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=CLAIM_TIMEOUT) as resp:
-            payload = json.loads(resp.read().decode("utf-8") or "{}")
-        claimed = str(payload.get("api_key") or payload.get("key") or "").strip()
-        if claimed and claimed.lower() not in _PLACEHOLDERS:
-            return claimed, "trial"
-    except Exception:
-        pass
-    return "", "none"
+    return "", "unset"
 
 
-def reset_factory_quota() -> None:
-    """生成一份全新的出厂配额，不携带开发机的余额、消费记录和测试用户。
+def reset_factory_quota(bundle_id: str = "") -> bool:
+    """生成/刷新出厂配额，返回「是否因全新版本包而重新生成」。
 
-    只在文件缺失时写入，用户使用过程中产生的数据永远不会被重置。
+    - 首次安装：文件缺失 → 写入一份不含开发机余额与测试记录的干净配额；
+    - 升级到全新构建（``bundle_id`` 变化）：免费体验次数与 LLM 用量计数清零，
+      赠送额度补足到 ``FACTORY_TRIAL_CREDITS``；
+      **用户的草稿、话题、兑换码、消费历史、自定义 Key、管理员口令一律不动**，
+      引导完成标记 ``user_onboarding_done.json`` 也不重置（不反复弹 Wizard）。
     """
     ensure_dir(DATA)
     for sub in ("topics", "drafts", "cards", "logs", "runs"):
@@ -228,19 +233,56 @@ def reset_factory_quota() -> None:
         if not p.exists():
             p.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
+    state_path = DATA / FACTORY_STATE_FILE
+    try:
+        prev = json.loads(state_path.read_text(encoding="utf-8") or "{}")
+    except (OSError, ValueError):
+        prev = {}
+    if not isinstance(prev, dict):
+        prev = {}
+    old_id = str(prev.get("bundle_id") or "")
+    regenerated = bool(bundle_id and old_id and old_id != bundle_id)
+    if regenerated:
+        for name in ("free_demo_calls.json", "llm_usage.json"):
+            (DATA / name).write_text("{}\n", encoding="utf-8")
+        bp = DATA / "billing.json"
+        try:
+            b = json.loads(bp.read_text(encoding="utf-8") or "{}")
+        except (OSError, ValueError):
+            b = {}
+        if isinstance(b, dict):
+            try:
+                cur = float(b.get("balance") or 0)
+            except (TypeError, ValueError):
+                cur = 0.0
+            b["balance"] = max(cur, float(FACTORY_TRIAL_CREDITS))
+            bp.write_text(json.dumps(b, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        _log(f"检测到全新版本包（{old_id} → {bundle_id}），出厂额度与体验次数已重新生成")
+    if bundle_id and old_id != bundle_id:
+        try:
+            state_path.write_text(json.dumps({
+                "bundle_id": bundle_id,
+                "updated_at": datetime.now().isoformat(timespec="seconds"),
+                "factory_credits": FACTORY_TRIAL_CREDITS,
+            }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        except OSError as e:
+            _log(f"包标识记录写入跳过: {e}")
+
     db = DATA / "mediaflow.db"
     if not db.exists():
         try:
             sqlite3.connect(str(db)).close()
         except Exception as e:
             _log(f"数据库占位创建跳过: {e}")
+    return regenerated
 
 
 def bootstrap() -> dict:
     """桌面启动器在任何第三方 import 之前调用一次。返回自检摘要（供 CI 离线冒烟读取）。"""
     started = time.time()
     bundled = activate_runtime()
-    reset_factory_quota()
+    bundle_id = read_bundle_id()
+    quota_regenerated = reset_factory_quota(bundle_id)
     # 旧版本把密钥明文写在随包分发的 .env 里；升级时自动迁出到用户目录。
     migrated = user_paths.migrate_legacy_secrets(ENV_PATH)
     env = _read_env()
@@ -266,6 +308,9 @@ def bootstrap() -> dict:
         "site_packages": str(RUNTIME_SITE),
         "chromium": os.environ.get("YIMU_CHROMIUM_PATH", ""),
         "official_key_source": key_source,
+        "official_credential_present": bool(read_official_credential()),
+        "bundle_id": bundle_id,
+        "quota_regenerated": quota_regenerated,
         "factory_credits": FACTORY_TRIAL_CREDITS,
         "data_dir": str(DATA),
         "secrets_file": str(user_paths.secrets_env_path()),
@@ -274,7 +319,12 @@ def bootstrap() -> dict:
     }
     write_boot_log(summary)
     if bundled:
-        _log(f"自带运行时已激活 · 官方通道: {key_source or '待激活（可在设置页填自定义 Key）'}")
+        if key_source in ("bundle", "env", "user"):
+            _log(f"自带运行时已激活 · 官方通道: {key_source}")
+        else:
+            _log("自带运行时已激活 · 官方凭证未随包提供："
+                 "请管理员在构建期配置 YIMU_OFFICIAL_BOOTSTRAP_KEY，"
+                 "或在「设置 → 模型服务」填入自己的 API Key（客户端不联网申领）")
     return summary
 
 

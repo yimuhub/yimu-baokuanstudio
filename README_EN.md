@@ -6,7 +6,7 @@
 
 **The Full-Lifecycle Viral Content Creation Engine & LLM Commercial Gateway for Digital Creators, Short Drama Studios, and MCN Agencies**
 
-[![Version](https://img.shields.io/badge/version-15.8.0-orange.svg?style=flat-square)](version.py)
+[![Version](https://img.shields.io/badge/version-15.8.1-orange.svg?style=flat-square)](version.py)
 [![Release](https://img.shields.io/badge/release-v11.1.1%20(River%20Rhapsody)-blueviolet.svg?style=flat-square)](RELEASES.md)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Licensor](https://img.shields.io/badge/Licensor-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)

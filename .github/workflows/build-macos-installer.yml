@@ -28,6 +28,7 @@ env:
   # 补齐历史 Release 的 macOS 资产时同样要查询 GitHub Release API
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   YIMU_OFFICIAL_BOOTSTRAP_KEY: ${{ secrets.YIMU_OFFICIAL_BOOTSTRAP_KEY }}
+  YIMU_REQUIRE_OFFICIAL_KEY: ${{ vars.YIMU_REQUIRE_OFFICIAL_KEY || '0' }}
 
 jobs:
   build-macos:

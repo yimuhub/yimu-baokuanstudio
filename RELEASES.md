@@ -4,6 +4,51 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌅 Version 15.8.1 · 朝晖颂 (Dawn Glow Ode) · 源码与安装包一致重建 · 2026-11-11
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.8.1"`, `__codename__ = "朝晖颂"`, `__codename_en__ = "Dawn Glow Ode"`)
+
+### 🎯 Milestone Summary
+
+v15.8.0 的安装包构建于两项热修（打包鉴权、建库幂等）**之前**，导致「源码」与「用户手里的包」
+存在细微差异。本版把三平台 6 个资产全部用当前源码重建，源码与安装包完全一致；
+同时落地内置官方凭证机制，并把云库的 7639 行单体后端真正拆开。
+
+### ✅ 本次交付
+
+| # | 事项 | 结果 |
+|---|------|------|
+| 1 | 安装包与源码一致 | 三平台 6 个资产全部由 v15.8.1 tag 重新构建（含 macOS `.dmg`） |
+| 2 | 内置官方凭证机制 | 构建期从 Secret 生成 `official_credential.json`（0600）；客户机零联网、不再走 `trial/claim`；不覆盖用户自定义 Key；每包重新生成配额 |
+| 3 | 构建期硬门禁 | `YIMU_REQUIRE_OFFICIAL_KEY=1` 时缺凭证直接失败，避免悄悄产出「没有官方通道」的包 |
+| 4 | 云库巨石拆分 | `web/admin.py` 7639 → 2020 行，路由迁入 18 个族模块；路由表逐条等价（332 → 332，零丢失/零新增），`teams` 13 条云库独有端点保留 |
+| 5 | 云库补 CI | 此前完全没有 Actions，新增与本地版同口径的四道门禁 |
+| 6 | 护栏跟着代码走 | 静态护栏改扫聚合源；变异测试验证后门注入能被实时捕获 |
+
+### ⚠️ 关于「内置官方凭证」的当前状态
+
+机制已落地并通过回归，但**本版安装包尚未嵌入真实 Key** —— 两个仓库此前从未配置
+`YIMU_OFFICIAL_BOOTSTRAP_KEY` 这个 Secret。配置后重跑打包工作流即可自动带 Key，无需改代码：
+
+```bash
+# 方式一：脚本写入并校验格式
+python scripts/set_official_key.py --repo yimuhub/yimu-baokuanstudio
+
+# 方式二：手工写入 GitHub Secrets（Settings → Secrets → Actions）
+#   Name:  YIMU_OFFICIAL_BOOTSTRAP_KEY
+#   Value: <官方通道 API Key>
+```
+
+写入后重跑 `Build Native Desktop Installers` 工作流，新产出的包即「安装完直接可用官方通道」。
+
+### 🔧 工程化
+
+- 云库新增 `tests/test_routes_smoke.py`（4 项鉴权冒烟），用反向白名单锁死匿名 200 越权。
+- 修复拆分副作用：`/api/health` 迁入 `system.py` 后仍引用 `admin.health`。
+- 全量回归：本地版 778 项、云库 622 项全部通过；四道门禁全绿。
+
+**Full Changelog**: v15.8.0...v15.8.1
+
 ## ⛵ Version 15.8.0 · 归帆渡 (Homebound Ferry) · 客户端缺陷全栈整改 · 2026-11-10
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.8.0"`, `__codename__ = "归帆渡"`, `__codename_en__ = "Homebound Ferry"`)

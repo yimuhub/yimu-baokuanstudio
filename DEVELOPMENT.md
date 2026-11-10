@@ -218,3 +218,43 @@ chore(build): 依赖更新或工程脚本维护
 1. 运行 `bash ci.sh` 确保 4 道门禁 100% 全绿；
 2. 杜绝任何中间草稿、审查纪要或临时文件提交到版本库；
 3. 更新版本号时，严格同步 [`version.py`](version.py) 与本规划库中的专属代号。
+
+---
+
+## 8. 内置官方凭证（V15.8.1 机制）
+
+### 机制说明
+
+- **构建期注入**：`scripts/build_full_bundle.py` 从 `YIMU_OFFICIAL_BOOTSTRAP_KEY`（GitHub Actions Secret）
+  读取官方 Key，生成结构化文件 `app/.bootstrap/official_credential.json`（含 `schema` / `bundle_id` /
+  `version` / `platform` / `channel` / `base_url` / `issued_at` / `factory_credits` / `key`），权限 `0600`。
+  仓库与源码里**绝不**存放任何真实可扣费 Key。
+- **客户机零联网**：`scripts/first_run_bootstrap.py` 只读随包凭证或进程环境变量，
+  **已彻底移除运行期 `POST /trial/claim` 设备试用凭证申领**。断网、官方网关不可达都不影响启动。
+- **绝不覆盖用户 Key**：用户在「设置 → 模型服务」填过自备 API Key 后，自举一个字节都不动；
+  敏感项一律写用户数据目录 `secrets.env`（0600），安装目录不留明文。
+- **升级重新生成配额**：每个包有唯一 `bundle_id`（写入 `MANIFEST.json`）。换包时清零免费体验次数
+  与 LLM 用量计数、把赠送额度补足到 200000，同时**保留**用户草稿、兑换码、消费历史、引导完成标记。
+- **硬门禁**：`YIMU_REQUIRE_OFFICIAL_KEY=1` 时，缺凭证的构建直接失败；
+  `scripts/verify_bundle.py` 还会校验来源枚举、凭证结构、`bundle_id` 一致性、`0600` 权限，
+  并拒绝任何残留 `trial-claim` 的包。关闭门禁时仍可出包，但 `MANIFEST.official_key_source=unset`
+  并打印明显告警。
+
+### 管理员一次性启用（真实 Key 不进仓库）
+
+```bash
+# 1. 把专用官方 Key 写到一个本地文件（只有一行，切勿提交）
+# 2. 写入 Secret 并开启硬门禁
+python scripts/set_official_key.py --key-file /path/to/official_key.txt \
+    --repo yimuhub/yimu-baokuanstudio
+# 3. 之后任意一次 tag 触发的打包都会把凭证注入三平台安装包
+#    临时关闭：python scripts/set_official_key.py --disable --repo yimuhub/yimu-baokuanstudio
+```
+
+等价的手工配置：仓库 `Settings → Secrets and variables → Actions` 中新增
+Secret `YIMU_OFFICIAL_BOOTSTRAP_KEY` 与 Variable `YIMU_REQUIRE_OFFICIAL_KEY=1`。
+
+> ⚠ **安全须知**：主库是公开仓库，Release 安装包任何人可下载，随包 Key 一定能被解包提取。
+> 该 Key 必须是**专用、限额、可轮换**的官方推广 Key，并定期轮换；不要放主账号密钥。
+> 若不便提供真实 Key，保持 `YIMU_REQUIRE_OFFICIAL_KEY=0` 即可正常出包，此时安装包不含内置 Key，
+> 用户可在「设置 → 模型服务」填入自己的 API Key 后使用。

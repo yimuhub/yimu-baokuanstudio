@@ -1,8 +1,8 @@
 {
-  "current_version": "15.8.0",
-  "current_codename_zh": "归帆渡",
-  "current_codename_en": "Homebound Ferry",
-  "next_index": 74,
+  "current_version": "15.8.1",
+  "current_codename_zh": "朝晖颂",
+  "current_codename_en": "Dawn Glow Ode",
+  "next_index": 75,
   "sequence": [
     {
       "zh": "曦光序",
@@ -495,6 +495,12 @@
       "zh": "归帆渡",
       "en": "Homebound Ferry",
       "date": "2026-11-10"
+    },
+    {
+      "version": "v15.8.1",
+      "zh": "朝晖颂",
+      "en": "Dawn Glow Ode",
+      "date": "2026-11-11"
     }
   ]
 }

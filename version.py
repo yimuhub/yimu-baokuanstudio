@@ -6,9 +6,9 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.8.0"
-__codename__ = "归帆渡"
-__codename_en__ = "Homebound Ferry"
+__version__ = "15.8.1"
+__codename__ = "朝晖颂"
+__codename_en__ = "Dawn Glow Ode"
 __slogan__ = "一念起 一幕开 万象生 · 客户端缺陷全栈整改：启动可见、密钥归用户目录、配图命名契约、六平台预览统一"
 __slogan_cn__ = "一念起 一幕开 万象生 · 客户端缺陷全栈整改：启动可见、密钥归用户目录、配图命名契约、六平台预览统一"
 __slogan_en__ = "One Thought. One Scene. Infinite Worlds · Full-stack client defect fixes: visible launcher, user-scoped secrets, image contract, unified six-platform previews"

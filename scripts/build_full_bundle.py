@@ -24,7 +24,10 @@
 
 ``--skip-download`` 只生成结构与清单，用于本地门禁测试；CI 必须完整下载。
 官方凭证由环境变量 ``YIMU_OFFICIAL_BOOTSTRAP_KEY``（GitHub Secrets）在构建期注入，
-仓库里绝不保存可扣费的真实 Key；未注入时运行时会向官方网关申领设备试用凭证。
+仓库里绝不保存可扣费的真实 Key。凭证以结构化文件落到
+``app/.bootstrap/official_credential.json``（0600），客户机启动只读随包凭证、
+**不发任何网络请求**；是否强制要求凭证由 ``YIMU_REQUIRE_OFFICIAL_KEY`` 控制，
+置 1 时缺凭证直接让打包失败，避免悄悄产出「没有官方通道」的安装包。
 """
 from __future__ import annotations
 
@@ -42,6 +45,7 @@ import time
 import urllib.error
 import urllib.request
 import zipfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -224,20 +228,54 @@ def reset_factory_quota(stage: Path) -> None:
     log(f"出厂配额已重新生成（free / {FACTORY_TRIAL_CREDITS} 额度 / 零历史）")
 
 
-def inject_official_key(stage: Path) -> str:
-    """构建期从环境变量注入官方凭证。仓库里永远不存真实 Key。"""
-    key = os.environ.get("YIMU_OFFICIAL_BOOTSTRAP_KEY", "").strip()
-    if not key:
-        return "trial-claim"
+_PLACEHOLDER_KEYS = {"", "test_key", "test", "your-api-key", "your_api_key",
+                     "sk-xxx", "xxx", "changeme", "placeholder"}
+
+
+def official_key_from_env() -> str:
+    """读取构建期官方凭证；占位符与空值一律视为未配置。"""
+    k = os.environ.get("YIMU_OFFICIAL_BOOTSTRAP_KEY", "").strip()
+    return "" if k.lower() in _PLACEHOLDER_KEYS else k
+
+
+def write_official_credential(stage: Path, plat: str, bundle_id: str) -> str:
+    """构建期把官方凭证写成结构化文件（0600），返回 MANIFEST 的来源标记。
+
+    ``YIMU_REQUIRE_OFFICIAL_KEY=1`` 时缺凭证直接失败——这是「内置官方凭证」
+    机制的硬门禁：绝不让一个没有官方通道的包被悄悄发布出去。
+    关闭门禁时仍可出包，但 MANIFEST 明确标记 ``unset``，验收脚本会打印告警。
+    """
+    key = official_key_from_env()
     p = stage / "app" / ".bootstrap"
     ensure_dir(p)
-    f = p / "official_key"
-    f.write_text(key, encoding="utf-8")
+    f = p / "official_credential.json"
+    if not key:
+        if f.exists():
+            f.unlink()  # 覆盖式重建时清掉上一轮的旧凭证，避免串包
+        if os.environ.get("YIMU_REQUIRE_OFFICIAL_KEY", "0") == "1":
+            raise RuntimeError(
+                "缺少官方凭证：请在仓库 Secrets 配置 YIMU_OFFICIAL_BOOTSTRAP_KEY 后重新构建。"
+                "当前 YIMU_REQUIRE_OFFICIAL_KEY=1，拒绝产出无官方通道的安装包。"
+            )
+        log("⚠ 本次构建未注入官方凭证（official_key_source=unset）：安装包不含内置 Key")
+        return "unset"
+    cred = {
+        "schema": 1,
+        "bundle_id": bundle_id,
+        "version": version.__version__,
+        "platform": plat,
+        "channel": "yimu_official",
+        "base_url": OFFICIAL_GATEWAY,
+        "issued_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "factory_credits": FACTORY_TRIAL_CREDITS,
+        "key": key,
+    }
+    f.write_text(json.dumps(cred, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     try:
         os.chmod(f, 0o600)
-    except Exception:
+    except OSError:
         pass
-    log("官方凭证已随包注入（来自构建期 Secrets）")
+    log("官方凭证已随包注入（结构化 official_credential.json / 0600）")
     return "ci-secret"
 
 
@@ -433,7 +471,8 @@ Categories=AudioVideo;Development;
 ''', encoding="utf-8")
 
 
-def write_manifest(stage: Path, plat: str, runtime: dict, chromium: dict, key_source: str) -> dict:
+def write_manifest(stage: Path, plat: str, runtime: dict, chromium: dict,
+                   key_source: str, bundle_id: str) -> dict:
     files = [p for p in stage.rglob("*") if p.is_file()]
     total = sum(p.stat().st_size for p in files)
     m = {
@@ -447,6 +486,8 @@ def write_manifest(stage: Path, plat: str, runtime: dict, chromium: dict, key_so
         "runtime": runtime,
         "chromium": chromium,
         "official_key_source": key_source,
+        "official_credential_present": key_source == "ci-secret",
+        "bundle_id": bundle_id,
         "factory_credits": FACTORY_TRIAL_CREDITS,
         "min_archive_mb": MIN_ARCHIVE_MB,
         "checksum": hashlib.sha256(
@@ -485,17 +526,18 @@ def build(plat: str, skip: bool = False, pack: bool = True, fresh: bool = False)
     if fresh and stage.exists():
         shutil.rmtree(stage)
     ensure_dir(stage)
-    log(f"开始构建 {plat} 全功能离线包 (V{version.__version__})")
+    bundle_id = f"v{version.__version__}-{plat}-{int(time.time())}"
+    log(f"开始构建 {plat} 全功能离线包 (V{version.__version__} · {bundle_id})")
 
     copy_sources(stage)
     copy_app_icons(stage)
     write_factory_config(stage)
     reset_factory_quota(stage)
-    key_source = inject_official_key(stage)
+    key_source = write_official_credential(stage, plat, bundle_id)
     runtime = setup_runtime(stage, plat, skip)
     chromium = setup_chromium(stage, plat, skip)
     write_launchers(stage, plat)
-    manifest = write_manifest(stage, plat, runtime, chromium, key_source)
+    manifest = write_manifest(stage, plat, runtime, chromium, key_source, bundle_id)
 
     if pack and not skip:
         manifest["archive"] = str(pack_archive(stage, plat))

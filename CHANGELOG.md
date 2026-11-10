@@ -7,11 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [Unreleased] · v15.8.0 发布后热修（未升版）
+## [15.8.1] - 朝晖颂 (Dawn Glow Ode) · 2026-11-11
 
-- **打包鉴权**：`scripts/build_full_bundle.py` 查询 GitHub Release API 时带上 `GITHUB_TOKEN`，并对 403 / 429 / 5xx 与网络错误做指数退避；两个打包工作流显式传入 `secrets.GITHUB_TOKEN`，修掉三平台并行构建时 macOS 作业撞匿名 60 次/小时限额的问题。独立 macOS 工作流已补齐 `YIMU-Studio-macOS-v15.8.0.dmg` 与 `.tar.gz`。
-- **建库幂等**：`core/db.py` 把 `conn()` 首次建库与 `_migrate_columns()` 快速路径里重复的 `tenant_id` 补列收敛为 `_ensure_tenant_columns()`；PRAGMA 读到旧 schema、另一连接抢先补列时不再抛 `duplicate column name: tenant_id`，消除 CI 偶发红灯。
-- 新增 5 项回归锁（打包限流 3 项 + 并发补列 2 项）；本地 `ci.sh` 四道门禁与云库全量回归均通过。
+> 本版为「源码与安装包完全一致」的重建版，同时落地内置官方凭证机制、云库巨石拆分，
+> 并吸收 v15.8.0 发布后的两项热修（打包鉴权、建库幂等）。
+
+### Added 内置官方凭证机制（出厂即用）
+
+- **构建期注入**：`scripts/build_full_bundle.py` 从 GitHub Secret `YIMU_OFFICIAL_BOOTSTRAP_KEY`
+  生成结构化凭证 `app/.bootstrap/official_credential.json`（权限 0600），
+  内含 `api_key` / `channel` / `base_url` / `bundle_id` / `built_at`；仓库内仍不出现明文 Key。
+- **硬门禁**：`YIMU_REQUIRE_OFFICIAL_KEY=1` 时缺凭证直接失败，拒绝产出「没有官方通道」的安装包；
+  未开启时仅告警并在清单里记 `official_key_source=unset`，便于事后核验。
+- **客户机零联网**：`scripts/first_run_bootstrap.py` 移除运行期 `POST /trial/claim` 设备试用凭证申领
+  （原实现断网要空等 6 秒、网关不可达时静默失败）。现在只读随包凭证，落用户目录 `secrets.env`（0600）。
+- **不覆盖用户配置**：只补空项；用户在设置页填的自定义 API Key 始终优先，永不被随包凭证顶掉。
+- **每包重新生成配额**：出厂 `billing.json` / `llm_usage.json` 等仍由构建器重新生成，
+  不携带开发机的余额、消费记录与测试用户。
+- 新增 `scripts/set_official_key.py`：把 Key 写入仓库 Secret 并校验格式，避免手工粘贴出错。
+- `scripts/verify_bundle.py` 增加凭证存在性验收；`DEVELOPMENT.md` 新增第 8 章机制说明。
+
+### Changed 云库（yimu-baokuanstudio-cloud）巨石后端完成 R11 拆分
+
+- `web/admin.py` **7639 行 → 2020 行**（-73.6%），路由整体迁入 `web/routers/` 18 个族模块（合计 5290 行）。
+- 路由表**逐条等价**：拆分前后均为 332 条，零丢失、零新增（含 `include_router` 挂载的
+  gateway / membership 子应用）；云库独有的 `teams.py` 13 条多租户端点完整保留。
+- `web/admin.py` 只保留辅助层（`guard` / `require_credits` / `DraftOwnerRoute` / 静态挂载 / 中间件 / 启动事件）。
+- 新增云库 GitHub Actions CI（此前完全没有，这是巨石长期无人守门的结构性原因）。
+- 新增云库 `tests/test_routes_smoke.py`（从本地版移植，4 项），补齐拆分后的鉴权冒烟。
+- 静态护栏全部改扫 `web_routing_source()` 聚合源（原只扫 `admin.py`，路由搬走后会变成假护栏）；
+  已用变异测试验证：往 `routers/pages.py` 注入弱口令后门，护栏立即报错。
+- 修复拆分副作用：`/api/health` 迁入 `system.py` 后仍引用 `admin.health`，改走 `pages.health()`。
+
+### Fixed v15.8.0 发布后热修（并入本版）
+
+- **打包鉴权**：查询 GitHub Release API 时带 `GITHUB_TOKEN`，对 403 / 429 / 5xx 与网络错误做指数退避，
+  修掉三平台并行构建时 macOS 作业撞匿名 60 次/小时限额的问题。
+- **建库幂等**：`core/db.py` 把两处重复的 `tenant_id` 补列收敛为 `_ensure_tenant_columns()`，
+  消除多连接竞态下的 `duplicate column name: tenant_id` 与 CI 偶发红灯。
+
+### Changed 发布物
+
+- 三平台 6 个安装资产全部由 v15.8.1 源码重新构建，与 tag 内容一致。
 
 ---
 

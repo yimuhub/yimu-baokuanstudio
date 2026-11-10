@@ -12,6 +12,7 @@ import asyncio  # noqa: F401
 import base64  # noqa: F401
 import hashlib  # noqa: F401
 import json  # noqa: F401
+import logging
 import re  # noqa: F401
 import time  # noqa: F401
 import uuid  # noqa: F401
@@ -24,6 +25,8 @@ from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include
 
 from web.draft_guard import DraftOwnerRoute, SAFE_DID_RE  # noqa: E402  稳定类身份 / did 白名单
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
+
+logger = logging.getLogger(__name__)
 
 from adapters.base import PLATFORMS, NAMES  # noqa: E402,F811
 from core import db, judge, orchestrator  # noqa: E402,F811
@@ -787,7 +790,14 @@ async def create_draft_endpoint(request: Request):
     orchestrator.init_draft_artifacts(did, draft['title'], draft['body_md'])
     from core import judge
     from core import llm as _llm
-    score = judge.judge_draft(did) if _llm.available() else {'total': 0, 'grade': '未评分（未配置大模型）'}
+    # V15.8.1：评分是**附属动作**，上游临时不可用（断网、Key 失效、上游 5xx）
+    # 时不得连带「新建草稿」整体 500 —— 建档本身不依赖大模型。
+    # 此前 judge_draft 抛错会直接冒泡成 500，用户表现为「草稿建不出来」。
+    try:
+        score = judge.judge_draft(did) if _llm.available() else {'total': 0, 'grade': '未评分（未配置大模型）'}
+    except Exception as e:  # noqa: BLE001 - 评分失败一律降级，不能影响建档
+        logger.warning("[drafts] %s 建档成功但评分失败（已降级）: %s", did, e)
+        score = {'total': 0, 'grade': '未评分（评分通道暂不可用）'}
     try:
         from core import analytics
         analytics.track('first_draft_created', str((user or {}).get('id') or ''), {'draft_id': did, 'title_len': len(title)})

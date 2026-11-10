@@ -582,6 +582,40 @@ def test_r1_4_drafts_create_ok_when_enough(client_for_admin_tests):
     assert title in _all_draft_titles(_core_db())
 
 
+def test_r1_4_draft_create_survives_judge_failure(client_for_admin_tests, monkeypatch):
+    """V15.8.1 回归：评分通道故障不得让「新建草稿」失败。
+
+    真实场景：用户断网 / 官方 Key 失效 / 上游 502 时点「新建草稿」。
+    此前 ``judge.judge_draft()`` 的异常会直接冒泡成 500，用户看到的是
+    「草稿建不出来」，而实际上建档本身完全不依赖大模型——评分只是附属动作。
+    云库 CI 首次上线就撞出了这个问题（无上游环境下 Connection refused）。
+    """
+    from core import judge as judge_mod
+    from core import llm as llm_mod
+
+    c = client_for_admin_tests
+    c.as_user(role="user")
+    c.set_balance(500000)
+
+    monkeypatch.setattr(llm_mod, "available", lambda *a, **k: True)
+
+    def _boom(did, *a, **k):
+        raise RuntimeError("大模型全链路调用失败，已尝试所有可用备选通道。最后错误: [Errno 111] Connection refused")
+
+    monkeypatch.setattr(judge_mod, "judge_draft", _boom)
+
+    title = f"R1评分降级-{unique_name('t')}"
+    resp = c.post("/api/drafts/create", json={"title": title, "body_md": "正文"})
+    assert resp.status_code == 200, (
+        f"评分失败不应连带建档失败，实际 {resp.status_code}：{resp.text}"
+    )
+    payload = resp.json()
+    assert payload.get("ok") is True
+    assert payload.get("score", {}).get("total") == 0
+    assert "未评分" in str(payload.get("score", {}).get("grade", ""))
+    assert title in _all_draft_titles(_core_db()), "建档必须已落盘"
+
+
 def _core_db():
     from core import db as core_db
 

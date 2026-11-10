@@ -524,8 +524,8 @@ def _warn_main_chain_keys() -> None:
             print(
                 f"[提示] 当前激活 AI 通道「{active_pid}」的 Key 还是示例值（{shown}），"
                 "「一句话生成」主链路会鉴权失败。请在「设置 → 模型服务」填入该通道的"
-                "真实 API Key（密钥保存在用户目录 secrets.env），或请管理员在构建期配置"
-                "内置官方凭证（YIMU_OFFICIAL_BOOTSTRAP_KEY），或切换到已配置真实 Key 的通道。"
+                "真实 API Key，或切换到已配置真实 Key 的通道；"
+                "若使用官方内置通道，请联系管理员获取已开通的版本。"
             )
     except Exception as e:  # 检测失败绝不阻断启动
         print(f"[提示] 主链路 Key 检测跳过: {e}")

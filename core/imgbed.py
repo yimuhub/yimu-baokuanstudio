@@ -25,7 +25,7 @@ def available() -> bool:
 def upload(img_path: str, did: str) -> str:
     c = imgbed_cfg()
     if not available():
-        raise RuntimeError("图床未配置（.env 缺 GITHUB_IMGBED_TOKEN/REPO）")
+        raise RuntimeError("图床尚未配置：请在「设置 → 图片上传」填入仓库与访问令牌后再试")
     p = Path(img_path)
     path = f"mediaflow/{did}/{p.name}"
     content = base64.b64encode(p.read_bytes()).decode()

@@ -795,8 +795,8 @@ async def create_draft_endpoint(request: Request):
     # 此前 judge_draft 抛错会直接冒泡成 500，用户表现为「草稿建不出来」。
     try:
         score = judge.judge_draft(did) if _llm.available() else {'total': 0, 'grade': '未评分（未配置大模型）'}
-    except Exception as e:  # noqa: BLE001 - 评分失败一律降级，不能影响建档
-        logger.warning("[drafts] %s 建档成功但评分失败（已降级）: %s", did, e)
+    except Exception as e:  # noqa: BLE001 - 评分失败一律忽略，不能影响建档
+        logger.warning("[drafts] %s 建档成功但评分失败（已忽略）: %s", did, e)
         score = {'total': 0, 'grade': '未评分（评分通道暂不可用）'}
     try:
         from core import analytics

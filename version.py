@@ -9,9 +9,9 @@
 __version__ = "15.8.1"
 __codename__ = "朝晖颂"
 __codename_en__ = "Dawn Glow Ode"
-__slogan__ = "一念起 一幕开 万象生 · 客户端缺陷全栈整改：启动可见、密钥归用户目录、配图命名契约、六平台预览统一"
-__slogan_cn__ = "一念起 一幕开 万象生 · 客户端缺陷全栈整改：启动可见、密钥归用户目录、配图命名契约、六平台预览统一"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Full-stack client defect fixes: visible launcher, user-scoped secrets, image contract, unified six-platform previews"
+__slogan__ = "一念起 一幕开 万象生 · 内置官方凭证机制、评分容错、源码与安装包一致重建"
+__slogan_cn__ = "一念起 一幕开 万象生 · 内置官方凭证机制、评分容错、源码与安装包一致重建"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Built-in official credential pipeline, fault-tolerant scoring, installers rebuilt from source"
 
 
 def get_version() -> str:

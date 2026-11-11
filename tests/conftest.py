@@ -12,6 +12,7 @@ from __future__ import annotations
 import os
 import sqlite3
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -139,3 +140,37 @@ def db_session(test_db_path, db_url):
     finally:
         session.close()
         engine.dispose()
+
+
+# ---------------------------------------------------------------------------
+# ⭐ V15.8.3 守护：测试绝不允许改写仓库里的出厂配置
+# ---------------------------------------------------------------------------
+# 背景：少数用例只隔离了 core.llm，却没隔离 core.provider_registry，
+# 于是「保存供应商配置」直接落到了仓库根目录的 config.yaml 上，
+# 把开发机的私人通道写进了版本库。这里在会话开始快照、结束还原，
+# 并打印提示——让漏隔离的用例暴露出来，而不是悄悄污染工作区。
+_CONFIG_SNAPSHOT: dict[str, bytes] = {}
+
+
+def _guarded_config_files() -> list[Path]:
+    root = Path(__file__).resolve().parent.parent
+    return [p for p in (root / "config.yaml", root / "data" / "config.local.yaml") if p.is_file()]
+
+
+def pytest_sessionstart(session):  # noqa: ARG001
+    for p in _guarded_config_files():
+        try:
+            _CONFIG_SNAPSHOT[str(p)] = p.read_bytes()
+        except OSError:
+            pass
+
+
+def pytest_sessionfinish(session, exitstatus):  # noqa: ARG001
+    for name, original in _CONFIG_SNAPSHOT.items():
+        p = Path(name)
+        try:
+            if not p.is_file() or p.read_bytes() != original:
+                p.write_bytes(original)
+                print(f"\n[守护] 测试期间 {p.name} 被改写，已自动还原（说明有用例未隔离 provider_registry）")
+        except OSError:
+            pass

@@ -341,6 +341,7 @@
 - `POST /api/models/save` → models_save：保存模型配置【V7.0】[B→重写]
 - `POST /api/models/provider/set_active` → models_set_active：切换活动供应商【V7.0】[B→重写]
 - `POST /api/models/provider/delete` → models_delete_provider：删除供应商【V7.0】[B→重写]
+- `GET /api/models/diagnose` → models_diagnose：通道自检（当前地址/密钥来源/可执行建议，不含明文）【V15.8.3】[NEW]
 - `GET /api/llm/usage` → llm_usage：各模型服务使用量统计+官方通道消费汇总（双轨制）【V7.0】[NEW]
 - `GET /api/pricing` → pricing_plans：三档套餐与售价（价格页数据源，价格取 studio/pricing 真源）【V7.2/R3-1】[NEW]
 - `GET /pricing` → pricing_page：价格页（自包含 HTML，含下单与订单查询）【V7.2/R3-1】[NEW]

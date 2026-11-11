@@ -4,6 +4,43 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌅 Version 15.8.3 · 朝晖颂 (Dawn Glow Ode) · 通道配置单一真源 · 2026-11-11
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.8.3"`, `__codename__ = "朝晖颂"`)
+
+### 🎯 客户缺陷
+
+Windows 客户端在「设置 → 模型服务」填好 API 地址与密钥，点「灵感与选题 → 一句话生成爆款」，
+仍然提示大模型不可用。排查结论：不是密钥错，是**同一份配置存了两份、读的是另一份**。
+
+| 症状 | 写入位置 | 读取位置 | 后果 |
+|------|----------|----------|------|
+| 用户填的 Key 不生效 | 安装目录 `.env` | 用户目录 `secrets.env`（优先级更高） | 旧示例值 `test_key` 一直赢 |
+| 用户填的地址不生效 | `gateway.providers.<pid>` | `gateway.base_url`（出厂快照） | 请求打向老地址 |
+| 备用通道形同虚设 | —— | 只遍历内置预设 | 用户自建通道永不入选，一跳到底 |
+
+### ✅ 本次交付
+
+| # | 事项 | 结果 |
+|---|------|------|
+| 1 | 单一真源 | 新增 `core/provider_registry.py`；供应商池是唯一存储，地址/模型/路由改为派生视图 |
+| 2 | 密钥落点 | 只写用户目录 `secrets.env`（0600），与读取优先级同向；安装目录 `.env` 不再承接写入 |
+| 3 | 示例值识别 | `test_key` 一类占位值一律视为「未配置」，触发备用通道而不是必然 401 |
+| 4 | 备用链 | 改为「内置预设 ∪ 用户已保存池」，自建通道也能被自动接管 |
+| 5 | 可诊断 | 新增 `GET /api/models/diagnose`；失败信息逐通道列出地址与成因；前端弹窗显示具体原因 |
+| 6 | 防复发 | AST 级护栏：registry/llm/user_paths 之外出现 `MEDIAFLOW_KEY_*` 字面量即测试失败 |
+
+### 🧪 验证
+
+- 新增 13 项回归锁（`tests/test_v1583_provider_single_source.py`），复现路径：出厂配置 → 首次启动迁移 → 设置页保存 → 重启 → 解析端点。
+- 修复前：解析结果 `base=出厂地址`、`key=test_key`；修复后：`base=用户地址`、`key=用户密钥`。
+
+## 🌅 Version 15.8.2 · 朝晖颂 (Dawn Glow Ode) · 代码卫生清理 · 2026-11-11
+
+删除 13 个零引用死函数（约 −150 行），清理孤儿 import；`notify` / `scheduler` / `tts`
+曾被 AST 误判为死代码，复核后完整恢复（装饰器注册属活代码）。
+扫描实证：0 重复函数体 / 0 重复路由 / 0 重复 JS 函数 / 0 TODO / 0 `console.log`。
+
 ## 🌅 Version 15.8.1 · 朝晖颂 (Dawn Glow Ode) · 源码与安装包一致重建 · 2026-11-11
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.8.1"`, `__codename__ = "朝晖颂"`, `__codename_en__ = "Dawn Glow Ode"`)

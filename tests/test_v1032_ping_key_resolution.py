@@ -43,6 +43,11 @@ def fake_env(monkeypatch):
     }
     monkeypatch.setattr(llm, "load_env", lambda: dict(env))
     monkeypatch.setattr(llm, "load_config", lambda: json.loads(json.dumps(cfg)))
+    # V15.8.3：密钥取用已收口到 core.provider_registry，这里同步替换它的两个入口，
+    # 让「已保存 Key 回退」的判定用同一份内存假数据（契约不变，只是入口换了）。
+    from core import provider_registry as _reg
+    monkeypatch.setattr(_reg, "env", lambda: dict(env))
+    monkeypatch.setattr(_reg, "raw_config", lambda: json.loads(json.dumps(cfg)))
     return env
 
 

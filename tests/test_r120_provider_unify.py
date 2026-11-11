@@ -30,6 +30,14 @@ from core import llm  # noqa: E402
 def gw_isolated(tmp_path, monkeypatch):
     """隔离 config.yaml / .env。"""
     monkeypatch.setattr(llm, "BASE", tmp_path)
+    # V15.8.3：配置与密钥的唯一真源在 core.provider_registry，隔离必须同时指向 tmp，
+    # 否则读到的还是仓库里的真实 config.yaml / 用户目录密钥。
+    from core import provider_registry as _reg
+    from core import user_paths as _up
+    monkeypatch.setattr(_reg, "BASE", tmp_path)
+    monkeypatch.setattr(_up, "user_data_dir", lambda: tmp_path / "userdata")
+    monkeypatch.setattr(_up, "secrets_env_path", lambda: tmp_path / "userdata" / "secrets.env")
+    (tmp_path / "userdata").mkdir(exist_ok=True)
     (tmp_path / "config.yaml").write_text("gateway: {}\n", encoding="utf-8")
     (tmp_path / ".env").write_text("", encoding="utf-8")
     # auth 库隔离(users 表由 core.db SCHEMA 建表)

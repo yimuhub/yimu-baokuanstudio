@@ -286,6 +286,15 @@ async def on_startup():
         auto_heal_all_sqlite_databases()
     except Exception as e:
         print(f"[Startup] SQLite数据库自愈轻微提示: {e}")
+    # ⭐ V15.8.3：把旧配置折叠成单一真源（gateway 顶层快照 -> 通道池）。
+    #    升级上来的老用户可能仍带着「地址写顶层、池里是旧值」的分裂状态，
+    #    这里一次性收敛并回写；已归一化时什么都不做。
+    try:
+        from core import llm as _llm_cfg
+        from core import provider_registry as _reg_cfg
+        _reg_cfg.migrate(presets=_llm_cfg.MODEL_PROVIDERS)
+    except Exception as e:
+        print(f"[Startup] 模型通道配置折叠轻微异常: {e}")
     try:
         cnt = db.recover_interrupted_tasks()
         if cnt > 0:
@@ -497,11 +506,10 @@ def _warn_admin_password_state() -> None:
         )
 
 
-#: ⭐ V8/P1-F：示例 API Key 识别集（与 gateway/main.py 保持一致）。
-#: 命中即判定「主生成链路开箱不可用」，启动时醒目告警引导用户填 Key。
-_PLACEHOLDER_API_KEYS = frozenset(
-    {"", "test_key", "test", "your-api-key", "your_api_key", "sk-xxx", "xxx", "changeme", "placeholder"}
-)
+#: ⭐ V8/P1-F：示例 API Key 识别集。
+#: V15.8.3 起并入 core.provider_registry.PLACEHOLDER_KEYS（全站唯一一份），
+#: 这里保留别名只为兼容可能的外部引用。
+from core.provider_registry import PLACEHOLDER_KEYS as _PLACEHOLDER_API_KEYS  # noqa: E402
 
 
 def _warn_main_chain_keys() -> None:
@@ -512,21 +520,21 @@ def _warn_main_chain_keys() -> None:
     不阻断启动（真实 Key 用户完全不受影响）。
     """
     try:
-        cfg = load_config()
-        gw = cfg.get("gateway", {})
-        active_pid = str(gw.get("provider_id", "")).strip()
-        env = load_env()
-        if not active_pid:
+        from core import llm as _llm
+        # V15.8.3：改用通道自检，与真正发请求时同源；示例值、备用通道都已知
+        diag = _llm.diagnose()
+        pid = str(diag.get("provider_id") or "").strip()
+        if not pid or diag.get("key_present"):
             return
-        key = (env.get(f"MEDIAFLOW_KEY_{active_pid.upper()}") or env.get("MEDIAFLOW_APIPOOL_KEY") or "").strip()
-        if key.lower() in _PLACEHOLDER_API_KEYS:
-            shown = key if key else "空"
+        fallbacks = diag.get("fallback_providers") or []
+        if fallbacks:
             print(
-                f"[提示] 当前激活 AI 通道「{active_pid}」的 Key 还是示例值（{shown}），"
-                "「一句话生成」主链路会鉴权失败。请在「设置 → 模型服务」填入该通道的"
-                "真实 API Key，或切换到已配置真实 Key 的通道；"
-                "若使用官方内置通道，请联系管理员获取已开通的版本。"
+                f"[提示] 当前激活 AI 通道「{pid}」没有可用密钥，将自动改用备用通道："
+                f"{'、'.join(fallbacks[:3])}。若想固定使用某条通道，请在"
+                "「设置 → 模型服务」为它填入密钥并设为当前通道。"
             )
+            return
+        print(f"[提示] 当前 AI 通道「{pid}」不可用：{diag.get('advice')}")
     except Exception as e:  # 检测失败绝不阻断启动
         print(f"[提示] 主链路 Key 检测跳过: {e}")
 

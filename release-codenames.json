@@ -1,5 +1,5 @@
 {
-  "current_version": "15.8.2",
+  "current_version": "15.8.3",
   "current_codename_zh": "朝晖颂",
   "current_codename_en": "Dawn Glow Ode",
   "next_index": 75,
@@ -504,6 +504,12 @@
     },
     {
       "version": "v15.8.2",
+      "zh": "朝晖颂",
+      "en": "Dawn Glow Ode",
+      "date": "2026-11-11"
+    },
+    {
+      "version": "v15.8.3",
       "zh": "朝晖颂",
       "en": "Dawn Glow Ode",
       "date": "2026-11-11"

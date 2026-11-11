@@ -11,6 +11,8 @@ from pathlib import Path
 import httpx
 import yaml
 
+from core import provider_registry as _reg
+
 logger = logging.getLogger(__name__)
 BASE = Path(__file__).resolve().parent.parent
 
@@ -291,12 +293,11 @@ def resolve_provider_key(base_url: str, api_key: str, provider_id: str = "") -> 
 
     pid = (provider_id or "").strip()
     target = _norm_base(base_url)
-    env = load_env()
 
     if pid:
         # base 留空 = 按已保存/预设地址探测，属于平台内部调用
         if not target or target == _norm_base(_saved_base_for(pid)):
-            k = clean_api_key(env.get(f"MEDIAFLOW_KEY_{pid.upper()}"))
+            k = _reg.key_for(pid, allow_global=False)
             if k:
                 return k, "saved"
             try:
@@ -304,12 +305,12 @@ def resolve_provider_key(base_url: str, api_key: str, provider_id: str = "") -> 
             except Exception:
                 active_pid = None
             if pid == active_pid:
-                k = clean_api_key(env.get("MEDIAFLOW_APIPOOL_KEY"))
+                k = _reg.key_for(pid, allow_global=True)
                 if k:
                     return k, "platform"
 
     if _is_platform_endpoint(base_url):
-        k = clean_api_key(env.get("MEDIAFLOW_APIPOOL_KEY"))
+        k = _reg.global_key()
         if k:
             return k, "platform"
     return "", "none"
@@ -415,25 +416,20 @@ def fetch_remote_models(base_url: str, api_key: str = "", provider_id: str = "")
 
 
 def load_config() -> dict:
-    cfg_file = BASE / "config.yaml"
-    cfg = {}
-    if cfg_file.exists():
-        with open(cfg_file, encoding="utf-8") as f:
-            cfg = yaml.safe_load(f) or {}
-    local_cfg_file = BASE / "data" / "config.local.yaml"
-    if local_cfg_file.exists():
-        try:
-            with open(local_cfg_file, encoding="utf-8") as lf:
-                local_cfg = yaml.safe_load(lf) or {}
-            if isinstance(local_cfg, dict):
-                for k, v in local_cfg.items():
-                    if isinstance(v, dict) and isinstance(cfg.get(k), dict):
-                        cfg[k].update(v)
-                    else:
-                        cfg[k] = v
-        except Exception:
-            pass
-    return cfg
+    """读配置，返回**已派生**的视图（v15.8.3 起）。
+
+    唯一真源是 ``gateway.providers``（见 :mod:`core.provider_registry`）。
+    ``gateway.base_url`` / ``model`` / ``configured_models`` / ``agent_routing``
+    不再是独立存储的事实，而是**每次读取时由活动供应商现算**。
+
+    为什么这样改：旧实现把同一份「当前地址与模型」在 ``gateway`` 顶层和
+    ``gateway.providers[pid]`` 各存一份，保存走池、解析走顶层；一旦不同步，
+    用户改了地址，请求仍然打向老地址。现在老代码照旧读 ``gateway.base_url``，
+    但读到的永远等于活动供应商的真实值，无需逐处改造调用点。
+    """
+    cfg = _reg.raw_config()
+    cfg, _dirty = _reg.normalize(cfg, presets=MODEL_PROVIDERS)
+    return _reg.derive_view(cfg, presets=MODEL_PROVIDERS)
 
 
 def load_env() -> dict:
@@ -441,21 +437,10 @@ def load_env() -> dict:
 
     V15.8：密钥不再明文存放于随包分发的 ``.env``，统一落到用户目录并限权
     0600（见 ``core/user_paths.py``）。旧版配置仍可被读到，升级不丢配置。
+    V15.8.3：合并规则收进 ``provider_registry.env()``，全站只有一份实现，
+    避免「保存写一个文件、解析读另一个文件」再次分家。
     """
-    try:
-        from core.user_paths import merge_env
-        return merge_env(BASE / ".env")
-    except Exception:
-        # 兜底：任何异常都退回历史行为，绝不让服务起不来
-        env_path = BASE / ".env"
-        vals = dict(os.environ)
-        if env_path.exists():
-            for line in env_path.read_text(encoding="utf-8", errors="ignore").splitlines():
-                line = line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    k, v = line.split("=", 1)
-                    vals.setdefault(k.strip(), v.strip())
-        return vals
+    return _reg.env()
 
 
 def ping_provider(base_url: str, api_key: str, model: str, provider_id: str = "") -> dict:
@@ -542,7 +527,6 @@ def get_all_configured_providers() -> dict:
     cfg = load_config()
     gw = cfg.get("gateway", {})
     saved_providers = gw.get("providers", {})
-    env = load_env()
     active_pid = gw.get("provider_id", "deepseek")
 
     result = {}
@@ -555,7 +539,7 @@ def get_all_configured_providers() -> dict:
             continue
         saved = saved_providers.get(pid, {})
         spec_k = f"MEDIAFLOW_KEY_{pid.upper()}"
-        has_key = bool(env.get(spec_k)) or (pid == active_pid and bool(env.get("MEDIAFLOW_APIPOOL_KEY")))
+        has_key = bool(_reg.key_for(pid, allow_global=(pid == active_pid)))
 
         saved_models = saved.get("configured_models")
         if not saved_models:
@@ -585,7 +569,7 @@ def get_all_configured_providers() -> dict:
             continue
         if pid not in result and isinstance(p_saved, dict):
             spec_k = f"MEDIAFLOW_KEY_{pid.upper()}"
-            has_key = bool(env.get(spec_k)) or (pid == active_pid and bool(env.get("MEDIAFLOW_APIPOOL_KEY")))
+            has_key = bool(_reg.key_for(pid, allow_global=(pid == active_pid)))
             saved_models = p_saved.get("configured_models")
             if not saved_models:
                 p_models = p_saved.get("models", [p_saved.get("model", "gpt-3.5-turbo")])
@@ -648,176 +632,71 @@ def save_provider_config(provider_id: str, base_url: str, api_key: str, model: s
                          configured_models: list[dict] | None = None,
                          provider_name: str | None = None,
                          is_set_active: bool = False) -> bool:
-    """持久化保存供应商配置至 config.yaml 与 .env，同时维护多供应商配置池。
+    """保存供应商配置到**唯一真源**（供应商池 + 用户目录密钥）。
 
     ⭐ R12 矛盾修复：``is_set_active`` 默认 **False**（保存≠激活）。
        旧默认 True 导致「为交叉路由配置第二家供应商」时**静默覆盖全局活动
-       供应商**——这正是多供应商能力互相制约的根源。激活必须显式：
-       前端走「🌟 保存并设为主网关」按钮或 /api/models/provider/set_active。
-       兼容性：老调用方若依赖旧的"保存即激活"，需显式传 is_set_active=True。
+       供应商**。激活必须显式：前端「🌟 保存并设为主网关」按钮或
+       ``/api/models/provider/set_active``。
+    ⭐ v15.8.3 单一真源修复（客户缺陷）：
+       - 只写 ``gateway.providers[pid]``，不再写 ``gateway.base_url/model``
+         这份「出厂快照」——解析器读的是派生视图，改了立刻生效；
+       - 密钥只写用户目录 ``secrets.env``。旧实现写安装目录 ``.env``，而
+         ``load_env()`` 里 secrets.env 优先级更高，等于**写到永远读不到的地方**，
+         用户填了新 Key 仍然用着旧的占位值。
     """
     pid = (provider_id or "custom").strip()
-    cfg_file = BASE / "config.yaml"
-    cfg = load_config()
-    gw = cfg.setdefault("gateway", {})
+    cfg = _reg.raw_config()
+    had_active = bool(str((cfg.get("gateway") or {}).get("provider_id") or "").strip())
+    # 首次配置尚无活动供应商时保存即接管；其余情况只有显式要求才切换
+    activate = bool(is_set_active) or not had_active
 
-    # R12：仅当显式要求激活，或系统尚无任何活动供应商（首次配置兜底）时才接管全局
-    should_activate = is_set_active or not gw.get("provider_id")
-    if should_activate:
-        gw["provider_id"] = pid
-        gw["base_url"] = base_url.strip()
-        gw["model"] = model.strip()
-        if agent_routing is not None:
-            gw["agent_routing"] = agent_routing
-        if configured_models is not None:
-            gw["configured_models"] = configured_models
-    # 若此前曾删除过该供应商，重新配置时将其移出已删除黑名单
-    deleted_pids = set(gw.get("deleted_providers") or [])
-    if pid in deleted_pids:
-        deleted_pids.remove(pid)
-        gw["deleted_providers"] = list(deleted_pids)
-
-    # 维护多供应商持久化池
-    providers = gw.setdefault("providers", {})
-    p_entry = providers.setdefault(pid, {})
     if provider_name and provider_name.strip():
-        p_entry["name"] = provider_name.strip()
+        name = provider_name.strip()
     elif pid in MODEL_PROVIDERS:
-        p_entry["name"] = MODEL_PROVIDERS[pid]["name"]
+        name = MODEL_PROVIDERS[pid]["name"]
     else:
-        p_entry.setdefault("name", f"自定义网关 ({pid})")
+        name = f"自定义网关 ({pid})"
 
-    p_entry["base_url"] = base_url.strip()
-    p_entry["model"] = model.strip()
-    if agent_routing is not None:
-        p_entry["agent_routing"] = agent_routing
-        gw["agent_routing"] = agent_routing
-    if configured_models is not None:
-        p_entry["configured_models"] = configured_models
-
-    with open(cfg_file, "w", encoding="utf-8") as f:
-        yaml.safe_dump(cfg, f, allow_unicode=True)
-
-    # 写入 .env 密钥（同时更新全局活动 Key 与供应商专属 Key）
+    ok = _reg.save_provider(
+        pid,
+        base_url=base_url,
+        model=model,
+        configured_models=configured_models,
+        agent_routing=agent_routing,
+        name=name,
+        activate=activate,
+    )
     if api_key and api_key.strip():
-        env_file = BASE / ".env"
-        lines = env_file.read_text(encoding="utf-8").splitlines() if env_file.exists() else []
-        main_k = "MEDIAFLOW_APIPOOL_KEY"
-        spec_k = f"MEDIAFLOW_KEY_{pid.upper()}"
-        clean_key = api_key.strip()
-
-        found_main, found_spec = False, False
-        new_lines = []
-        for ln in lines:
-            s = ln.strip()
-            if s.startswith(f"{main_k}="):
-                if should_activate:
-                    new_lines.append(f"{main_k}={clean_key}")
-                else:
-                    new_lines.append(ln)
-                found_main = True
-            elif s.startswith(f"{spec_k}="):
-                new_lines.append(f"{spec_k}={clean_key}")
-                found_spec = True
-            else:
-                new_lines.append(ln)
-        if not found_main and should_activate:
-            new_lines.append(f"{main_k}={clean_key}")
-        if not found_spec:
-            new_lines.append(f"{spec_k}={clean_key}")
-        env_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
-        if should_activate:
-            os.environ[main_k] = clean_key
-        os.environ[spec_k] = clean_key
-
-    return True
+        _reg.set_key(pid, api_key.strip(), also_global=activate)
+    return ok
 
 
 def delete_provider(provider_id: str) -> bool:
-    """删除指定的自定义供应商配置及环境变量密钥。"""
-    pid = provider_id.strip()
-    cfg_file = BASE / "config.yaml"
-    cfg = load_config()
-    gw = cfg.setdefault("gateway", {})
-    providers = gw.setdefault("providers", {})
-
-    if pid in providers:
-        del providers[pid]
-
-    deleted_pids = set(gw.get("deleted_providers") or [])
-    deleted_pids.add(pid)
-    gw["deleted_providers"] = list(deleted_pids)
-
-    # 若删除的是当前活动主网关，平滑回退
-    if gw.get("provider_id") == pid:
-        all_candidates = [k for k in (list(providers.keys()) + list(MODEL_PROVIDERS.keys())) if k not in deleted_pids]
-        new_active = "deepseek" if "deepseek" in all_candidates else (all_candidates[0] if all_candidates else "deepseek")
-        gw["provider_id"] = new_active
-        p_info = providers.get(new_active) or MODEL_PROVIDERS.get(new_active, {})
-        gw["base_url"] = p_info.get("base_url", "")
-        gw["model"] = p_info.get("model") or p_info.get("default_model", "")
-        if p_info.get("configured_models"):
-            gw["configured_models"] = p_info["configured_models"]
-
-    with open(cfg_file, "w", encoding="utf-8") as f:
-        yaml.safe_dump(cfg, f, allow_unicode=True)
-
-    # 清理 .env 中的对应 Key
-    env_file = BASE / ".env"
-    if env_file.exists():
-        lines = env_file.read_text(encoding="utf-8").splitlines()
-        spec_k = f"MEDIAFLOW_KEY_{pid.upper()}"
-        new_lines = [ln for ln in lines if not ln.strip().startswith(f"{spec_k}=")]
-        env_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
-        os.environ.pop(spec_k, None)
-
-    return True
+    """删除供应商配置与其密钥（唯一真源统一处理）。"""
+    pid = (provider_id or "").strip()
+    if not pid:
+        return False
+    ok = _reg.delete_provider(pid)
+    _reg.clear_key(pid)
+    return ok
 
 
 def set_active_provider(provider_id: str) -> bool:
-    """切换系统当前活动主供应商。"""
-    pid = provider_id.strip()
-    cfg_file = BASE / "config.yaml"
-    cfg = load_config()
-    gw = cfg.setdefault("gateway", {})
-    providers = gw.setdefault("providers", {})
+    """切换当前活动供应商。
 
-    p_saved = providers.get(pid, {})
-    p_preset = MODEL_PROVIDERS.get(pid, {})
-
-    gw["provider_id"] = pid
-    gw["base_url"] = p_saved.get("base_url") or p_preset.get("base_url", gw.get("base_url", ""))
-    gw["model"] = p_saved.get("model") or p_preset.get("default_model", gw.get("model", ""))
-    if p_saved.get("configured_models"):
-        gw["configured_models"] = p_saved["configured_models"]
-    if p_saved.get("agent_routing"):
-        gw["agent_routing"] = p_saved["agent_routing"]
-
-    with open(cfg_file, "w", encoding="utf-8") as f:
-        yaml.safe_dump(cfg, f, allow_unicode=True)
-
-    # 同步活动 Key 到 MEDIAFLOW_APIPOOL_KEY
-    env = load_env()
-    spec_k = f"MEDIAFLOW_KEY_{pid.upper()}"
-    key_val = env.get(spec_k, "")
-    if key_val:
-        env_file = BASE / ".env"
-        lines = env_file.read_text(encoding="utf-8").splitlines() if env_file.exists() else []
-        main_k = "MEDIAFLOW_APIPOOL_KEY"
-        found = False
-        new_lines = []
-        for ln in lines:
-            if ln.strip().startswith(f"{main_k}="):
-                new_lines.append(f"{main_k}={key_val}")
-                found = True
-            else:
-                new_lines.append(ln)
-        if not found:
-            new_lines.append(f"{main_k}={key_val}")
-        env_file.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
-        os.environ[main_k] = key_val
-
-    return True
+    v15.8.3：只改 ``gateway.provider_id``。地址/模型/路由全部由派生视图现算，
+    不再往顶层复制一份快照——那份快照正是「切换后仍用老地址」的根源。
+    """
+    pid = (provider_id or "").strip()
+    if not pid:
+        return False
+    ok = _reg.set_active(pid)
+    # 该通道已有 Key 时同步到全局键位，保证历史读 MEDIAFLOW_APIPOOL_KEY 的代码也一致
+    key = _reg.key_for(pid, allow_global=False)
+    if key:
+        _reg.set_key(pid, key, also_global=True)
+    return ok
 
 
 def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, user_id: str | None = None) -> tuple[str, str, str, str]:
@@ -876,14 +755,15 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
 
     cfg = load_config()
     gw = cfg.get("gateway", {})
-    env = load_env()
 
     active_pid = gw.get("provider_id") or "deepseek"
     active_pinfo = MODEL_PROVIDERS.get(active_pid, MODEL_PROVIDERS.get("deepseek", {}))
 
     active_base = (gw.get("base_url") or active_pinfo.get("base_url", "https://api.deepseek.com")).rstrip("/")
     active_model = gw.get("model") or active_pinfo.get("default_model", "deepseek-chat")
-    active_key = env.get(f"MEDIAFLOW_KEY_{active_pid.upper()}") or env.get("MEDIAFLOW_APIPOOL_KEY", "")
+    # 取键统一走 registry：占位值（test_key 等）一律视为「没有 Key」，
+    # 这样才能触发备用通道，而不是带着示例值去必然 401。
+    active_key = _reg.key_for(active_pid, allow_global=True)
 
     req_model = (model or "").strip()
 
@@ -900,7 +780,7 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
             saved_p = gw.get("providers", {}).get(p_prefix, {})
             preset_p = MODEL_PROVIDERS.get(p_prefix, {})
             target_base = (saved_p.get("base_url") or preset_p.get("base_url", "")).rstrip("/")
-            target_key = env.get(f"MEDIAFLOW_KEY_{p_prefix.upper()}") or (active_key if p_prefix == active_pid else "")
+            target_key = _reg.key_for(p_prefix, allow_global=(p_prefix == active_pid))
             if target_base:
                 return target_base, target_key, actual_m, p_prefix
 
@@ -923,7 +803,7 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
             p_models = MODEL_PROVIDERS[pid].get("models", [])
         if req_model in p_models:
             p_base = (pdata.get("base_url") or MODEL_PROVIDERS.get(pid, {}).get("base_url", "")).rstrip("/")
-            p_key = env.get(f"MEDIAFLOW_KEY_{pid.upper()}", "")
+            p_key = _reg.key_for(pid, allow_global=False)
             if p_base and (p_key or "11434" in p_base):
                 logger.info(f"[LLM] 模型 '{req_model}' 命中已配置跨运营商通道 [{pid}] ({p_base})")
                 return p_base, p_key, req_model, pid
@@ -933,7 +813,7 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
         if pid == active_pid:
             continue
         if req_model in pinfo.get("models", []):
-            p_key = env.get(f"MEDIAFLOW_KEY_{pid.upper()}", "")
+            p_key = _reg.key_for(pid, allow_global=False)
             if p_key:
                 p_base = pinfo.get("base_url", "").rstrip("/")
                 logger.info(f"[LLM] 模型 '{req_model}' 命中预设跨运营商通道 [{pid}] ({p_base})")
@@ -947,27 +827,42 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
 
 
 def _get_fallback_candidates(exclude_pid: str) -> list[tuple[str, str, str, str]]:
-    """获取所有具备有效密钥/可用连接的备选供应商列表 (base, key, default_model, pid)"""
-    candidates = []
+    """获取所有具备**真实**密钥/可用连接的备选供应商 (base, key, default_model, pid)。
+
+    v15.8.3 两处修正：
+    1. 旧实现只遍历内置预设，**用户自建的供应商永远进不了候选链**——用户明明
+       配了可用通道，备用列表里却只有 ollama，于是「一跳到底」报全链路失败。
+       现在按「预设 ∪ 用户已保存池」的并集枚举。
+    2. Key 统一走 registry 取，占位值（``test_key`` 等）视为没有 Key，
+       不再把它当成一条「可用备选」。
+    """
     cfg = load_config()
     gw = cfg.get("gateway", {})
-    env = load_env()
-    saved_providers = gw.get("providers", {})
+    saved_providers = gw.get("providers") or {}
+    active_pid = gw.get("provider_id")
+    deleted = set(gw.get("deleted_providers") or [])
 
     priority = ["deepseek", "qwen", "custom", "openai", "glm"]
-    all_pids = priority + [p for p in MODEL_PROVIDERS if p not in priority]
+    ordered = [p for p in priority if p not in deleted]
+    for pid in list(saved_providers.keys()) + list(MODEL_PROVIDERS.keys()):
+        if pid not in ordered and pid not in deleted:
+            ordered.append(pid)
 
-    for pid in all_pids:
+    out: list[tuple[str, str, str, str]] = []
+    for pid in ordered:
         if pid == exclude_pid:
             continue
         p_info = MODEL_PROVIDERS.get(pid, {})
-        saved = saved_providers.get(pid, {})
-        base = (saved.get("base_url") or p_info.get("base_url", "")).rstrip("/")
-        m = saved.get("model") or p_info.get("default_model", "deepseek-chat")
-        key = env.get(f"MEDIAFLOW_KEY_{pid.upper()}", "") or (env.get("MEDIAFLOW_APIPOOL_KEY", "") if pid == gw.get("provider_id") else "")
-        if base and (key or "11434" in base or "127.0.0.1" in base):
-            candidates.append((base, key, m, pid))
-    return candidates
+        saved = saved_providers.get(pid) or {}
+        base = (saved.get("base_url") or p_info.get("base_url", "") or "").rstrip("/")
+        if not base:
+            continue
+        is_local = "11434" in base or "127.0.0.1" in base or "localhost" in base
+        key = _reg.key_for(pid, allow_global=(pid == active_pid))
+        if key or is_local:
+            model = saved.get("model") or p_info.get("default_model", "deepseek-chat")
+            out.append((base, key, model, pid))
+    return out
 
 
 def chat(messages: list[dict], *, model: str | None = None,
@@ -997,9 +892,9 @@ def chat(messages: list[dict], *, model: str | None = None,
             logger.warning(f"[LLM] 主通道缺少密钥，自动切换至已配置备用通道 [{provider_id}]")
         else:
             raise RuntimeError(
-                f"AI 通道 [{provider_id}] 尚未配置密钥，本次生成已跳过（未发出任何请求）。"
-                "请在「设置 → 模型服务」填入自己的 API Key，或请管理员在构建期配置内置官方凭证"
-                "（YIMU_OFFICIAL_BOOTSTRAP_KEY）；密钥保存在用户数据目录 secrets.env，不会写进安装目录。"
+                f"当前通道「{provider_id}」尚未配置密钥，本次生成未发出任何请求。\n"
+                "请在「设置 → 模型服务」填入该通道的 API Key 并保存；"
+                "若使用随包提供的通道，请联系管理员获取已开通的版本（内置官方凭证）。"
             )
 
     # 对话接口安全保护：若解析出的目标模型是生图/视频模型，回退到当前主文本模型
@@ -1015,6 +910,7 @@ def chat(messages: list[dict], *, model: str | None = None,
         chain.append(fb)
 
     last_err = None
+    trail: list[str] = []
     for attempt_idx, (curr_base, curr_key, curr_model, curr_pid) in enumerate(chain):
         req_url = f"{curr_base}/chat/completions" if not curr_base.endswith("/chat/completions") else curr_base
         body = {
@@ -1050,12 +946,45 @@ def chat(messages: list[dict], *, model: str | None = None,
                     return content
                 else:
                     last_err = RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
+                    trail.append(f"{curr_pid} {curr_base} → {_explain_status(r.status_code, r.text[:200])}")
                     logger.warning(f"[LLM] 渠道 [{curr_pid}] 返回异常状态码: {r.status_code}，尝试备用通道...")
         except Exception as e:
             last_err = e
+            trail.append(f"{curr_pid} {curr_base} → 连接失败：{type(e).__name__}: {str(e)[:120]}")
             logger.warning(f"[LLM] 渠道 [{curr_pid}] 发生异常: {e}，正在尝试自动降级转移...")
 
-    raise RuntimeError(f"大模型全链路调用失败，已尝试所有可用备选通道。最后错误: {last_err}")
+    raise RuntimeError(_format_chain_failure(chain, trail, last_err))
+
+
+def _explain_status(code: int, body: str = "") -> str:
+    """把 HTTP 状态码翻译成用户能动手的提示（写进错误信息，前端直接展示）。"""
+    hints = {
+        401: "密钥无效或无权限（请检查 API Key 是否属于该地址）",
+        403: "访问被拒绝（Key 权限不足，或该模型未对当前账号开放）",
+        404: "地址或模型不存在（常见原因：base_url 少了或多了 /v1）",
+        429: "触发限流或额度不足（稍后重试，或更换通道）",
+        500: "上游服务内部错误",
+        502: "上游网关错误（中转地址可能已失效）",
+        503: "上游服务暂不可用",
+        504: "上游响应超时",
+    }
+    hint = hints.get(code, "请求被上游拒绝")
+    detail = (body or "").strip().replace("\n", " ")[:80]
+    return f"HTTP {code} · {hint}" + (f" · {detail}" if detail else "")
+
+
+def _format_chain_failure(chain: list, trail: list[str], last_err) -> str:
+    """组装「逐通道诊断」错误信息，替代笼统的「全链路失败」。"""
+    lines = [f"大模型调用失败：已尝试 {len(chain)} 条通道"]
+    for item in trail:
+        lines.append(f"  · {item}")
+    if len(chain) == 1:
+        lines.append("  （当前只有 1 条可用通道，建议在「设置 → 模型服务」再配置一条备用通道）")
+    lines.append("请到「设置 → 模型服务」核对上面这些通道的地址与密钥；"
+                 "地址需以 http(s):// 开头，OpenAI 兼容端点通常以 /v1 结尾。")
+    if last_err is not None and not trail:
+        lines.append(f"最后错误：{last_err}")
+    return "\n".join(lines)
 
 
 def chat_stream(messages: list[dict], *, model: str | None = None,
@@ -1151,13 +1080,78 @@ def _meter_call(provider_id: str, model: str, prompt_tokens: int, completion_tok
 
 
 def available() -> bool:
+    """是否有**真正可用**的通道（占位值不算）。
+
+    旧实现只看「环境变量里有没有这个键」，于是 ``MEDIAFLOW_APIPOOL_KEY=test_key``
+    这种出厂示例值会被判为「已配置」，界面显示正常、一点就 401。现在统一用
+    registry 的取键规则：空值与占位值一律等同于没有 Key。
+    """
     cfg = load_config().get("gateway", {})
-    base = cfg.get("base_url", "")
-    if "11434" in base:
+    pid = str(cfg.get("provider_id") or "deepseek")
+    base = str(cfg.get("base_url") or "")
+    if "11434" in base or "127.0.0.1" in base or "localhost" in base:
+        return True  # 本机 Ollama 允许无 Key
+    if _reg.key_for(pid, allow_global=True):
         return True
-    env = load_env()
-    pid = cfg.get("provider_id", "deepseek")
-    return bool(env.get("MEDIAFLOW_APIPOOL_KEY", "") or env.get(f"MEDIAFLOW_KEY_{pid.upper()}", ""))
+    # 只有「带真实密钥」的备用通道才算可用；本机预设不能凭空撑起「可用」的判断
+    return any(c[1] for c in _get_fallback_candidates(pid))
+
+
+def diagnose() -> dict:
+    """通道自检：当前用哪个地址、哪把 Key、来自哪里、为什么可能用不了。
+
+    存在的意义：客户机（尤其 Windows）拿不到服务端日志。把「解析结果」直接
+    暴露成结构化数据，设置页与诊断页可以直接展示，用户不用再猜。
+    注意：**绝不返回 Key 明文**，只返回来源标识与末四位。
+    """
+    cfg = load_config().get("gateway", {})
+    pid = str(cfg.get("provider_id") or "deepseek")
+    preset = MODEL_PROVIDERS.get(pid, {})
+    entry = (cfg.get("providers") or {}).get(pid) or {}
+
+    raw_env = _reg.env()
+    spec_name = f"MEDIAFLOW_KEY_{pid.upper()}"
+    raw_spec = str(raw_env.get(spec_name) or "")
+    raw_global = str(raw_env.get("MEDIAFLOW_APIPOOL_KEY") or "")
+
+    key = _reg.key_for(pid, allow_global=True)
+    if key and key == raw_spec.strip():
+        key_source = spec_name
+    elif key:
+        key_source = "MEDIAFLOW_APIPOOL_KEY"
+    else:
+        key_source = "none"
+
+    placeholders = [
+        name for name, val in ((spec_name, raw_spec), ("MEDIAFLOW_APIPOOL_KEY", raw_global))
+        if val and _reg.is_placeholder(val)
+    ]
+    candidates_all = _get_fallback_candidates(pid)
+    candidates = [c[3] for c in candidates_all]
+    keyed_fallbacks = [c[3] for c in candidates_all if c[1]]
+
+    if key:
+        advice = "当前通道已配置可用密钥，可直接调用。"
+    elif placeholders:
+        advice = ("检测到示例值（" + "、".join(placeholders) + "），已按「未配置」处理并自动忽略。")
+    elif keyed_fallbacks:
+        advice = f"当前通道缺少密钥，将自动改用备用通道：{'、'.join(keyed_fallbacks[:3])}。"
+    else:
+        advice = "当前没有任何可用通道（地址或密钥尚未配置）。"
+
+    return {
+        "provider_id": pid,
+        "provider_name": entry.get("name") or preset.get("name") or pid,
+        "base_url": str(entry.get("base_url") or preset.get("base_url") or ""),
+        "model": str(entry.get("model") or preset.get("default_model") or ""),
+        "key_present": bool(key),
+        "key_source": key_source,
+        "key_tail": (key[-4:] if len(key) >= 8 else ""),
+        "placeholder_keys": placeholders,
+        "fallback_providers": candidates,
+        "ready": bool(key or keyed_fallbacks),
+        "advice": advice,
+    }
 
 
 

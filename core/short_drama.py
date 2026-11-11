@@ -1170,10 +1170,12 @@ def generate_ai_video_clip(
     if not img_path.exists() or img_path.stat().st_size < 1000:
         return False
 
-    from core.llm import load_config, load_env
-    env = load_env()
+    from core.llm import load_config, resolve_provider_key
     cfg = load_config()
-    api_key = env.get("MEDIAFLOW_APIPOOL_KEY", "").strip()
+    gw_pid = str(cfg.get("gateway", {}).get("provider_id") or "")
+    # V15.8.3：视频接口的 Key 也走统一解析器（含占位值过滤与全局键位回退），
+    # 不再直接读环境变量，避免与文本链路各认一把 Key。
+    api_key, _key_src = resolve_provider_key("", "", gw_pid)
     gw_base = (cfg.get("gateway", {}).get("base_url") or "http://127.0.0.1:8787/v1").rstrip("/")
     host_root = gw_base[:-3] if gw_base.endswith("/v1") else gw_base
 

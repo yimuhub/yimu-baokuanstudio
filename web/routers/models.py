@@ -35,8 +35,9 @@ def get_model_providers(request: Request):
     cfg = llm.load_config()
     gw = cfg.get('gateway', {})
     active_pid = gw.get('provider_id', 'deepseek')
-    env = llm.load_env()
-    has_active_key = bool(env.get(f'MEDIAFLOW_KEY_{active_pid.upper()}')) or bool(env.get('MEDIAFLOW_APIPOOL_KEY'))
+    # V15.8.3：与真正发请求时同源（示例值不算已配置），避免界面说「已配置」而调用 401
+    _diag = llm.diagnose()
+    has_active_key = _diag['key_present']
     cross_models = []
     for pid, p in all_providers.items():
         for m in p.get('models', []):
@@ -89,6 +90,13 @@ async def model_ping(request: Request):
     model = body.get('model', '')
     provider_id = body.get('provider_id', '')
     return llm.ping_provider(base_url, api_key, model, provider_id)
+
+@router.get('/api/models/diagnose')
+def model_diagnose(request: Request):
+    """通道自检：返回当前解析到的地址、密钥来源与可执行建议（不含 Key 明文）。"""
+    _a.guard(request)
+    from core import llm
+    return {'ok': True, **llm.diagnose()}
 
 @router.post('/api/models/save')
 async def model_save(request: Request):

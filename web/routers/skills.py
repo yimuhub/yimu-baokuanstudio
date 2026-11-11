@@ -80,11 +80,12 @@ async def skills_delete(request: Request):
     trash = Path.home() / '.Trash'
     trash.mkdir(exist_ok=True)
     shutil.move(str(f), str(trash / f'skill-{name}.md'))
-    cfg = load_config()
+    from core import provider_registry as _reg
+    cfg = _reg.raw_config()
     for stage, a in cfg.get('agents', {}).items():
         if name in (a.get('skills') or []):
             a['skills'] = [x for x in a['skills'] if x != name]
-    _a.CFG_PATH.write_text(yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), encoding='utf-8')
+    _reg.write_config(cfg)
     return {'ok': True}
 
 @router.post('/api/skills/distill')

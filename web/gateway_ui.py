@@ -481,10 +481,8 @@ def _provider_rows() -> str:
             key_cell = '<span class="badge green">已配置</span>'
             guide = '<span class="note">Key 已就绪，可直接调用。</span>'
         else:
-            env_k = f"MEDIAFLOW_KEY_{pid.upper()}"
-            guide = (f'<span class="note">尚未配置 Key：<br>1. 在 <span class="code">.env</span> 中添加 '
-                     f'<span class="code">{env_k}=你的Key</span> 后重启服务；<br>'
-                     f'2. 或前往「设置」页的模型服务配置中填写。</span>')
+            guide = ('<span class="note">尚未配置 Key：<br>前往「设置 → 模型服务」'
+                     '填写该通道的 API 地址与密钥并保存，立即生效。</span>')
             if tips:
                 guide += f'<br><span class="note">{html.escape(tips)}</span>'
             if doc_url:

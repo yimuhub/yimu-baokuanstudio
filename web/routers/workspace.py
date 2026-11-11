@@ -29,6 +29,7 @@ router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from core import diagnostics as diag  # noqa: E402,F811
 from core.llm import load_config, load_env  # noqa: E402,F811
+from core import provider_registry as _reg  # noqa: E402
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
 import time  # noqa: E402,F811
 import yaml  # noqa: E402,F811
@@ -220,10 +221,11 @@ def get_watermark_settings(request: Request):
 async def save_watermark_settings(request: Request):
     _a.guard(request)
     body = await request.json()
-    cfg = load_config()
+    # 写盘必须用 raw_config：load_config 返回的是派生视图（gateway.base_url 等
+    # 由当前活动通道现算），直接 dump 会把派生字段重新写回文件，又造出第二份事实。
+    cfg = _reg.raw_config()
     cfg['watermark'] = {'enabled': bool(body.get('enabled', False)), 'text': str(body.get('text', 'Designed with 一幕 YIMU')).strip(), 'position': str(body.get('position', 'bottom-right')), 'opacity': float(body.get('opacity', 0.45)), 'show_on_cards': bool(body.get('show_on_cards', True)), 'show_on_cover': bool(body.get('show_on_cover', True)), 'show_on_video': bool(body.get('show_on_video', True))}
-    with open(_a.CFG_PATH, 'w', encoding='utf-8') as f:
-        yaml.safe_dump(cfg, f, allow_unicode=True)
+    _reg.write_config(cfg)
     return {'ok': True, 'msg': '水印设置已保存'}
 
 @router.post('/api/editor/upload')
@@ -256,12 +258,19 @@ async def share_revoke(request: Request):
 async def settings(request: Request):
     _a.guard_admin(request)
     body = await request.json()
-    cfg = load_config()
+    # V15.8.3：设置页的「网关地址/模型」合并写入通道池，不再往 gateway 顶层
+    # 写第二份快照——两个表单各写一份正是「改了地址还打老地址」的来源。
+    cfg = _reg.raw_config()
+    cfg, _ = _reg.normalize(cfg)
     gw = body.get('gateway') or {}
-    if gw.get('base_url'):
-        cfg.setdefault('gateway', {})['base_url'] = gw['base_url'].strip()
-    if gw.get('model'):
-        cfg['gateway']['model'] = gw['model'].strip()
+    if gw.get('base_url') or gw.get('model'):
+        _pid = _reg.active_provider_id(cfg)
+        _entry = (cfg.setdefault('gateway', {}).setdefault('providers', {})
+                  .setdefault(_pid, {}))
+        if gw.get('base_url'):
+            _entry['base_url'] = gw['base_url'].strip().rstrip('/')
+        if gw.get('model'):
+            _entry['model'] = gw['model'].strip()
     if body.get('keywords') is not None:
         cfg.setdefault('topics', {})['keywords'] = [k.strip() for k in body['keywords'] if k.strip()]
     if body.get('image'):
@@ -288,9 +297,10 @@ async def settings(request: Request):
         for stage, patch in body['agents'].items():
             base[stage] = {**base.get(stage, {}), **patch}
         cfg['agents'] = base
-    _a.CFG_PATH.write_text(yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), encoding='utf-8')
+    _reg.write_config(cfg)
     if body.get('apipool_key'):
-        _a.write_env('MEDIAFLOW_APIPOOL_KEY', body['apipool_key'].strip())
+        # 全局键位统一由 registry 写入（用户目录 0600），避免再出现「写一处、读一处」
+        _reg.set_key(_reg.active_provider_id(cfg), body['apipool_key'].strip(), also_global=True)
     return {'ok': True}
 
 @router.get('/api/diagnostics/stats')

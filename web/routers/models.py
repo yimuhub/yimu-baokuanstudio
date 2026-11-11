@@ -114,7 +114,13 @@ async def model_save(request: Request):
     params = body.get('params', {})
     from core import llm
     ok = llm.save_provider_config(provider_id, base_url, api_key, model, agent_routing, params, configured_models=configured_models, provider_name=provider_name, is_set_active=is_set_active)
-    return {'ok': ok, 'msg': '模型服务与多Agent路由配置已持久化保存并立即热生效！'}
+    if not ok:
+        # V15.8.3：写盘失败时必须明确报错。旧实现无论成败都回「已持久化保存」，
+        # 用户以为存好了、实际没落盘，最后表现为「填了配置还是不可用」。
+        raise HTTPException(500, '配置未能写入磁盘（安装目录或数据目录不可写）。请以有写入权限的方式重新安装，或联系管理员。')
+    if api_key and api_key.strip() and not llm.provider_key_saved(provider_id):
+        raise HTTPException(500, '密钥未能保存到用户配置目录，请检查该目录的写入权限。')
+    return {'ok': True, 'msg': '模型服务与多Agent路由配置已持久化保存并立即热生效！'}
 
 @router.post('/api/models/provider/set_active')
 async def model_set_active_provider(request: Request):

@@ -397,6 +397,17 @@ def set_key(pid: str, api_key: str, *, also_global: bool = False) -> bool:
     return ok
 
 
+def key_persisted(pid: str) -> bool:
+    """该通道的 Key 是否**真的落盘**到用户配置文件（不看进程内存态）。
+
+    用于「保存成功」的诚实回报：只写进 ``os.environ`` 但没落盘的话，
+    重启后就丢了，用户会以为配置没生效。
+    """
+    from core.user_paths import read_env_file, secrets_env_path
+    vals = read_env_file(secrets_env_path())
+    return bool(str(vals.get(f"MEDIAFLOW_KEY_{pid.upper()}") or "").strip())
+
+
 def clear_key(pid: str) -> bool:
     """删除该供应商的 Key（用户目录与安装目录同时清理）。"""
     from core.user_paths import read_env_file, secrets_env_path, write_env_file

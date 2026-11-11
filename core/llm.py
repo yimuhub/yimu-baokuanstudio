@@ -672,6 +672,11 @@ def save_provider_config(provider_id: str, base_url: str, api_key: str, model: s
     return ok
 
 
+def provider_key_saved(provider_id: str) -> bool:
+    """Key 是否真的写进了用户配置文件（供「保存成功」做诚实回报）。"""
+    return _reg.key_persisted((provider_id or "").strip())
+
+
 def delete_provider(provider_id: str) -> bool:
     """删除供应商配置与其密钥（唯一真源统一处理）。"""
     pid = (provider_id or "").strip()

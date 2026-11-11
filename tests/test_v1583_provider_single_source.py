@@ -319,3 +319,11 @@ def test_diagnose_never_leaks_full_key(install):
     dumped = repr(diag)
     assert "sk-super-secret-key-1234" not in dumped
     assert diag["key_tail"] == "1234"
+
+
+def test_save_reports_failure_instead_of_pretending(install, monkeypatch):
+    """写盘失败必须如实返回 False——旧实现在这种情况下仍回「已持久化保存」。"""
+    from core import llm, provider_registry as reg
+
+    monkeypatch.setattr(reg, "write_config", lambda cfg: False)
+    assert llm.save_provider_config("custom", "https://x.example/v1", "sk-a", "m") is False

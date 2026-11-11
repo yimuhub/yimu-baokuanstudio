@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.8.4] - 朝晖颂 (Dawn Glow Ode) · 2026-11-12
+
+### Fixed & Optimized
+- `core/llm.py`：`load_config()` 新增基于 `config.yaml` 与 `data/config.local.yaml` 文件元数据（`inode / mtime_ns / size`）的进程级缓存与 `deepcopy` 隔离，消除高频重复磁盘读取与解析开销。
+- `web/admin.py` / `web/routers/drafts.py`：将 `thumbnail` 与 `preview_urls` 并入 `_draft_view()`，统一 `/api/status` 与 `GET /api/drafts` 输出口径，并消除列表接口重复 `glob` 扫描。
+- `core/watermark.py`：水印配置读取接入 `provider_registry.raw_config()`（兼容只读安装目录的 `data/config.local.yaml` 叠加），同时修复 Windows 字体路径 `Fonts\arial.ttf` 转义错误。
+- `web/admin.py`：将 `@app.on_event("startup")` 迁移至 FastAPI `lifespan` 上下文管理器，消除弃用警告。
+- `core/copilot.py`：`re.split` 的 `maxsplit=1` 改为关键字传参，消除 Python 3.14 弃用警告。
+- `web/routers/skills.py` / `web/routers/workspace.py`：清理不再使用的 `load_config, load_env` 死导入。
+
+---
+
 ## [15.8.3] - 朝晖颂 (Dawn Glow Ode) · 2026-11-11
 
 ### Fixed 通道配置「单一真源」（客户缺陷：填了地址与密钥仍提示大模型不可用）

@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.8.3"
+__version__ = "15.8.4"
 __codename__ = "朝晖颂"
 __codename_en__ = "Dawn Glow Ode"
-__slogan__ = "一念起 一幕开 万象生 · 通道配置单一真源、失败逐条可诊断"
-__slogan_cn__ = "一念起 一幕开 万象生 · 通道配置单一真源、失败逐条可诊断"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Single source of truth for channel config, per-channel failure diagnosis"
+__slogan__ = "一念起 一幕开 万象生 · 配置缓存隔离、草稿视图对齐与水印真源修复"
+__slogan_cn__ = "一念起 一幕开 万象生 · 配置缓存隔离、草稿视图对齐与水印真源修复"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Config cache isolation, unified draft view, and watermark source fix"
 
 
 def get_version() -> str:

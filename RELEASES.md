@@ -4,6 +4,16 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌅 Version 15.8.4 · 朝晖颂 (Dawn Glow Ode) · 全仓审查修复与全端同步重建 · 2026-11-12
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.8.4"`, `__codename__ = "朝晖颂"`)
+
+- **性能与配置缓存**：`core/llm.py` `load_config()` 新增基于文件元数据签名的缓存与 `deepcopy` 隔离，避免重复读盘与解析。
+- **接口与水印修复**：统一 `_draft_view()`（`/api/status` 与 `GET /api/drafts` 口径一致、消除重复 `glob`）；`core/watermark.py` 兼容 `data/config.local.yaml` 叠加并修复 Windows `arial.ttf` 路径。
+- **工程卫生**：`web/admin.py` 迁移至 FastAPI `lifespan`、`core/copilot.py` 修复 `maxsplit=1` 警告、清理路由死导入，并重建发布 Windows / macOS / Linux 全平台客户端。
+
+---
+
 ## 🌅 Version 15.8.3 · 朝晖颂 (Dawn Glow Ode) · 通道配置单一真源 · 2026-11-11
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.8.3"`, `__codename__ = "朝晖颂"`)

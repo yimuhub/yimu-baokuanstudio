@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.8.4"
-__codename__ = "朝晖颂"
-__codename_en__ = "Dawn Glow Ode"
-__slogan__ = "一念起 一幕开 万象生 · 配置缓存隔离、草稿视图对齐与水印真源修复"
-__slogan_cn__ = "一念起 一幕开 万象生 · 配置缓存隔离、草稿视图对齐与水印真源修复"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Config cache isolation, unified draft view, and watermark source fix"
+__version__ = "15.9.0"
+__codename__ = "星火继"
+__codename_en__ = "Spark Relay"
+__slogan__ = "一念起 一幕开 万象生 · 深审整改：上帝函数拆解、计量写盘节流、底栏协调、3 天改动全核对"
+__slogan_cn__ = "一念起 一幕开 万象生 · 深审整改：上帝函数拆解、计量写盘节流、底栏协调、3 天改动全核对"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Deep audit: god-function split, metering throttle, footer realigned, 3-day diff fully reconciled"
 
 
 def get_version() -> str:

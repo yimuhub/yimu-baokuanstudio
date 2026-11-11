@@ -1,8 +1,8 @@
 {
-  "current_version": "15.8.4",
-  "current_codename_zh": "朝晖颂",
-  "current_codename_en": "Dawn Glow Ode",
-  "next_index": 75,
+  "current_version": "15.9.0",
+  "current_codename_zh": "星火继",
+  "current_codename_en": "Spark Relay",
+  "next_index": 77,
   "sequence": [
     {
       "zh": "曦光序",
@@ -307,6 +307,14 @@
     {
       "zh": "锦绣程",
       "en": "Brocade Road"
+    },
+    {
+      "zh": "星火继",
+      "en": "Spark Relay"
+    },
+    {
+      "zh": "九州同",
+      "en": "Nine Provinces One"
     }
   ],
   "history": [
@@ -518,6 +526,12 @@
       "version": "v15.8.4",
       "zh": "朝晖颂",
       "en": "Dawn Glow Ode",
+      "date": "2026-11-12"
+    },
+    {
+      "version": "v15.9.0",
+      "zh": "星火继",
+      "en": "Spark Relay",
       "date": "2026-11-12"
     }
   ]

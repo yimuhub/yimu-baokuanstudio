@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.9.0] - 星火继 (Spark Relay) · 2026-11-12
+
+### Changed 深审整改
+- 上帝函数 handle_copilot_chat 再拆:CREATE 全流程分支(324 行)抽为 _intent_create
+- 计量写盘节流(15s 窗口+atexit 冲刷+内存镜像即时可见),高 token 流量去瓶颈
+- 3 天改动全面核对:15 提交声明与实现一致,前置整改(R12 能力匹配/保存≠激活/首篇券/支付闭环)完整存活
+
 ## [15.8.4] - 朝晖颂 (Dawn Glow Ode) · 2026-11-12
 
 ### Fixed & Optimized

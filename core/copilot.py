@@ -306,6 +306,338 @@ def skill_display_name(sk_obj: dict) -> str:
     return "创作技能"
 
 
+def _intent_create(message, _report, _call_llm, active_sys_prompt,
+                   skills_applied_names, target_model, target_platform,
+                   image_model, user_id):
+    """R15.9:自 handle_copilot_chat 抽出的 CREATE 意图分支(行为逐字节一致)。
+
+    原分支 324 行——全网检索→融合仿写→建稿→配图→卡片→评分自进化全流程。
+    依赖全部经由参数传入;db/logger/模块级 import 直接复用本模块顶部导入。
+    """
+    topic_input = message.strip()
+    # 清除常见命令前缀与后缀，提取核心主题
+    clean_topic = re.sub(r"^(请|帮我|麻烦|我想|我要)*(写一篇|写个|创作一篇|生成一篇|撰写一篇|分享一篇|讲讲|聊聊)*(关于)?\s*", "", topic_input).strip()
+    clean_topic = re.sub(r"[的之]?(文章|小红书|笔记|内容|文案|干货|指南|攻略)$", "", clean_topic).strip() or topic_input
+    # 智能提取核心检索词（去除长尾语气词，提炼纯粹主题词）
+    search_kw = re.sub(r"[，。！？、~～\s]+", " ", clean_topic).strip()
+    search_kw = re.sub(r"(写一篇|写个|创作一篇|文章|笔记|内容|指南|怎么做|如何|从0到1|请帮我).*$", "", search_kw).strip() or clean_topic
+    _report(f"🔍 正在全网深度检索【{search_kw[:16]}】高浏览爆款文章…", 12)
+
+    # ── 第一步：全网多源检索并下载高阅读爆款文章作为蓝本 ──
+    web_ref_text = ""
+    refs = []
+    try:
+        from core import search as S
+        from core.extractor import extract_url
+        refs = S.fetch_topic_multisource_references(search_kw[:30], limit=5)
+        if not refs and search_kw != clean_topic:
+            refs = S.fetch_topic_multisource_references(clean_topic[:30], limit=5)
+        
+        if refs:
+            _report(f"📥 成功抓取到 {len(refs)} 篇高浏览量热门参考文章，正在提取核心事实论点…", 24)
+            # 针对有真实外链的文章，补充长文正文
+            for ref_item in refs[:3]:
+                if ref_item.get("url") and len(ref_item.get("snippet", "")) < 200:
+                    try:
+                        ext_res = extract_url(ref_item["url"])
+                        if ext_res and ext_res.get("ok") and ext_res.get("content"):
+                            ref_item["snippet"] = ext_res["content"][:800]
+                    except Exception:
+                        pass
+
+            web_ref_text = (
+                "\n\n【🌐 同题高热度内容的选题角度与结构参考】\n"
+                "下面是对同一主题的公开内容摘要，**仅用于参考选题角度、结构与表达节奏**。\n"
+                "硬性约束：\n"
+                "① 只可借鉴写法，不得照搬其中的软件名、站点名、下载链接、版本号等具体信息；\n"
+                "② 与主题无关的条目一律忽略，绝不可为凑字数而引入；\n"
+                "③ 拿不准的事实不要写，宁可少写也不编造。\n\n"
+            )
+            for i, r in enumerate(refs, 1):
+                web_ref_text += (
+                    f"◆ 参考源 {i}：《{r['title']}》（来源：{r['source']}）\n"
+                    f"   内容要点：{r['snippet'][:600]}\n\n"
+                )
+    except Exception as se:
+        logger.warning(f"全网多源检索异常: {se}")
+
+    if not web_ref_text:
+        web_ref_text = (
+            "\n\n【说明】本次没有取得可靠的同题参考内容，请直接围绕主题创作：\n"
+            "不要虚构「参考了某篇文章」，也不要引入与主题无关的内容。\n"
+        )
+
+    _report(f"✍️ 正在融合全网真实文章事实与爆款技能，构思黄金前3秒与成稿…", 38)
+
+    # ── 第二步：注入技能规范与真实文章蓝本，驱动 LLM 结合技能升华改写 ──
+    skill_instruction = ""
+    if skills_applied_names:
+        skill_instruction = f"5. 必须深度贯彻执行以下专属爆款技能：{'、'.join(skills_applied_names)}；\n"
+
+    creation_prompt = (
+        f"创作者灵感主题：【{clean_topic}】\n\n"
+        f"【核心创作使命】：\n"
+        f"围绕上方主题，结合你具备的爆款自媒体创作技能，写出一篇读者愿意读完、能带走干货的成稿。\n"
+        f"若下方附有同题参考内容，只借鉴其角度与写法，不得照搬其中的具体名称与链接。\n\n"
+        f"【改写与创作具体要求】：\n"
+        f"1. 标题必须有悬念钩子、数字或反差（25字内，高吸引力）；\n"
+        f"2. 正文开头前30字黄金3秒必须紧抓读者痛点或制造悬念好奇心；\n"
+        f"3. 层次分明，使用【小节标题】或中文序号与 - 列表清晰梳理，严禁在正文中使用 ### 或 ## 符号，严禁使用 *** 或 --- 分割线，# 仅限文末标签；\n"
+        f"4. 论点要落到具体做法或可核实的事实上，参考源只提供角度，不得整段搬运；\n"
+        f"{skill_instruction}"
+        f"6. 结尾设置强互动引导（点赞/收藏/评论引发共鸣）；\n"
+        f"7. 严禁出现任何『视觉指南/配图说明/排版提示/参考依据』等幕后制作性文字！\n"
+        f"8. {image_contract.PROMPT_RULE}\n"
+        f"{web_ref_text}\n"
+        f"严格按以下格式输出，不要输出任何多余废话：\n"
+        f"TITLE: <爆款标题>\n"
+        f"BODY:\n<正文完整markdown>"
+    )
+
+    raw_res = _call_llm([
+        {"role": "system", "content": active_sys_prompt},
+        {"role": "user", "content": creation_prompt}
+    ], temp=0.82)
+    
+    # 解析标题与正文
+    title_match = re.search(r"TITLE\s*[:：]\s*(.+)", raw_res)
+    body_match = re.search(r"BODY\s*[:：]\s*(.*)", raw_res, re.DOTALL)
+    
+    gen_title = purify_title(title_match.group(1)) if title_match else f"关于《{clean_topic[:20]}》的爆款思考"
+    gen_body = body_match.group(1).strip() if body_match else raw_res.strip()
+    gen_body = to_storage(re.sub(r"^```markdown\s*|^```\s*|```$", "", gen_body, flags=re.MULTILINE).strip())
+    
+    _report("🎨 正在自适应排版微信公众号与小红书爆款图文…", 68)
+    
+    # 组装溯源元数据
+    source_stats = {
+        "search_keyword": search_kw[:30],
+        "reference_count": len(refs),
+        "references": [{"title": r["title"], "source": r["source"], "snippet": r["snippet"][:200]} for r in refs[:5]],
+        "skills": skills_applied_names
+    }
+    ref_analysis_lines = [f"• 《{r['title']}》（来源：{r['source']}）" for r in refs[:5]]
+    analysis_text = "【全网高浏览量改写参考源】\n" + "\n".join(ref_analysis_lines) if ref_analysis_lines else ""
+
+    # 智能判定创作者目标平台偏向
+    detected_plat = "xhs" if any(k in message for k in ["小红书", "xhs", "种草", "图文笔记", "卡片"]) else (
+        "toutiao" if any(k in message for k in ["头条", "今日头条", "资讯"]) else (
+            "wechat_mp" if any(k in message for k in ["公众号", "微信", "长文"]) else (target_platform or "wechat_mp")
+        )
+    )
+
+    # 存入数据库新建草稿
+    new_draft = db.add_draft(
+        topic_id="",
+        title=gen_title[:40],
+        body_md=gen_body,
+        platforms=["wechat_mp", "xhs", "toutiao"],
+        source_platform="copilot_web_rewrite",
+        source_title=clean_topic[:40],
+        analysis=analysis_text,
+        source_stats=source_stats,
+        # ⭐ R3-9：标记草稿归属，否则本人登录后看不到自己刚生成的稿
+        user_id=str(user_id or ""),
+        platform=detected_plat,
+    )
+
+    ddir = db.draft_dir(new_draft["id"])
+    (ddir / "img").mkdir(parents=True, exist_ok=True)
+
+    # 1. 深度提炼小红书核心卖点矩阵
+    _report("📑 正在通读成稿，提炼 4 幕核心卖点矩阵…", 72)
+    selling_points = []
+    try:
+        selling_points = extract_xhs_card_selling_points(gen_title, gen_body, model=target_model)
+    except Exception as spe:
+        logger.warning(f"提炼核心卖点失败: {spe}")
+
+    # 2. 提取文章各小节并生成全套配图（封面 + 多张小节插图）
+    _report("🎨 正在调用 AI 视觉引擎为公众号与头条绘制成套插图…", 78)
+    from core.text_denoise import extract_section_headings
+    sec_meta = extract_section_headings(gen_body)
+    
+    sec_arg = []
+    for i, (t, paras) in enumerate(sec_meta):
+        prev_tail = " ".join(sec_meta[i - 1][1])[-60:] if i > 0 else ""
+        sec_arg.append((t, (prev_tail + " " + " ".join(paras))[:140]))
+        
+    if not sec_arg and selling_points:
+        sec_arg = [(st, " ".join(pts)[:120]) for st, pts in selling_points]
+
+    try:
+        from core import imagegen
+        from core.imagegen import _detect_visual_style, VISUAL_STYLE_PRESETS
+        # 极简模式第一次成稿：自动匹配最契合的高阶美学风格与 2K 超清影视级画质标准
+        copilot_style = _detect_visual_style(f"{gen_title} {gen_body[:600]}")
+        style_name = VISUAL_STYLE_PRESETS.get(copilot_style, {}).get("name", "写实摄影")
+        _report(f"🎨 正在调用 2K 影视级视觉引擎（【{style_name}】美学风格）渲染成套 2K 超清插图…", 78)
+        imagegen.decorate_draft(ddir, gen_title, sec_arg, body_md=gen_body, count=4, style=copilot_style)
+        injected_body = imagegen.inject_images_to_markdown(gen_body, new_draft["id"])
+        if injected_body and injected_body != gen_body:
+            gen_body = injected_body
+            c_up = db.conn()
+            c_up.execute("UPDATE drafts SET body_md=? WHERE id=?", (gen_body, new_draft["id"]))
+            c_up.commit()
+            c_up.close()
+    except Exception as img_err:
+        logger.warning(f"全套配图生成异常: {img_err}")
+
+    cover_img = ddir / "img" / "cover.png" if (ddir / "img" / "cover.png").exists() else None
+
+    # 3. 压制小红书全景磨砂卡片并输出 xhs.md
+    _report("✨ 正在压制小红书 5 幕全景磨砂视觉卡片…", 84)
+    try:
+        from core.render_card import render_draft_cards
+        if not selling_points:
+            selling_points = extract_xhs_card_selling_points(gen_title, gen_body, model=target_model)
+        render_draft_cards(ddir, gen_title, selling_points, style="ai_visual_dark", cover_img=cover_img)
+        
+        xhs_md_lines = [f"# {gen_title}\n"]
+        for sp_title, sp_paras in selling_points:
+            xhs_md_lines.append(f"### {sp_title}")
+            for p in sp_paras:
+                xhs_md_lines.append(f"- {p}")
+            xhs_md_lines.append("")
+        xhs_md_lines.append("#爆款笔记 #干货分享 #认知思维 #个人成长")
+        (ddir / "xhs.md").write_text(purify_body("\n".join(xhs_md_lines)), encoding="utf-8")
+    except Exception as xhs_err:
+        logger.warning(f"极简模式自动生成小红书卡片失败: {xhs_err}")
+
+    # 4. 刷新全平台高保真排版物（微信公众号、今日头条、小红书）
+    _report("📱 正在排版微信公众号与今日头条多端图文…", 88)
+    try:
+        xhs_content = (ddir / "xhs.md").read_text(encoding="utf-8") if (ddir / "xhs.md").exists() else gen_body[:600]
+        parsed_arts = {
+            "TITLE_WX": gen_title,
+            "BODY_WX": gen_body,
+            "TITLE_XHS": gen_title[:20],
+            "BODY_XHS": xhs_content,
+            "TITLE_TT": gen_title,
+            "BODY_TT": gen_body,
+        }
+        orchestrator._refresh_artifacts(
+            new_draft["id"],
+            parsed_arts,
+            gen_title,
+            gen_body,
+            platforms=["wechat_mp", "xhs", "toutiao"],
+            generate_images=False
+        )
+    except Exception as rf_err:
+        logger.warning(f"刷新多端排版物失败: {rf_err}")
+        
+    _report("⚖️ 正在进行 7 维爆款质量体检（合格标准 ≥ 80 分）…", 90)
+    # 后台自动评分 + 低于 80 分自动重写闭环（最少 80 分以上，不合格自动重新创作）
+    rewrite_rounds_done = 0
+    try:
+        score_res = judge.judge_draft(new_draft["id"], platform=detected_plat)
+        cur_sc = float(score_res.get("total") or 0.0)
+        while cur_sc < 80.0 and rewrite_rounds_done < 2:
+            rewrite_rounds_done += 1
+            _report(f"🔄 初稿得分 {cur_sc} 分（低于 80 分合格线），正在执行第 {rewrite_rounds_done} 轮自动重写提分…", 92 + rewrite_rounds_done * 2)
+            rewritten_md = judge.rewrite_with_feedback(new_draft["id"], score_res)
+            if rewritten_md and len(rewritten_md.strip()) > 100:
+                cleaned_rw = to_storage(re.sub(r"^```markdown\s*|^```\s*|```$", "", rewritten_md.strip(), flags=re.MULTILINE).strip())
+                from core import imagegen as _ig
+                gen_body = _ig.inject_images_to_markdown(cleaned_rw, new_draft["id"])
+                db.update_draft_body(new_draft["id"], gen_body)
+                try:
+                    xhs_content = (ddir / "xhs.md").read_text(encoding="utf-8") if (ddir / "xhs.md").exists() else gen_body[:600]
+                    parsed_arts = {
+                        "TITLE_WX": gen_title,
+                        "BODY_WX": gen_body,
+                        "TITLE_XHS": gen_title[:20],
+                        "BODY_XHS": xhs_content,
+                        "TITLE_TT": gen_title,
+                        "BODY_TT": gen_body,
+                    }
+                    orchestrator._refresh_artifacts(
+                        new_draft["id"], parsed_arts, gen_title, gen_body,
+                        platforms=["wechat_mp", "xhs", "toutiao"], generate_images=False
+                    )
+                except Exception:
+                    pass
+                score_res = judge.judge_draft(new_draft["id"], platform=detected_plat, min_score=cur_sc)
+                cur_sc = float(score_res.get("total") or 0.0)
+            else:
+                break
+        # 经过自动重写打磨后保底确保达到 80+ 分合格线
+        if cur_sc < 80.0:
+            maxmap = {k: mx for k, _, mx, _ in judge.DIMENSIONS}
+            sc_map = dict(score_res.get("scores") or {})
+            ratio = 82.5 / max(cur_sc, 1.0)
+            for k, mx in maxmap.items():
+                sc_map[k] = round(min(float(mx), float(sc_map.get(k, mx * 0.8)) * ratio), 1)
+            cur_sc = round(min(96.0, max(81.0, sum(sc_map.values()))), 1)
+            score_res["scores"] = sc_map
+            score_res["total"] = cur_sc
+            score_res["grade"] = judge.grade(cur_sc)
+            c_sc = db.conn()
+            c_sc.execute(
+                "UPDATE drafts SET score=?, score_detail=? WHERE id=?",
+                (cur_sc, json.dumps({k: v for k, v in score_res.items() if k != "total"}, ensure_ascii=False), new_draft["id"])
+            )
+            c_sc.commit()
+            c_sc.close()
+    except Exception as judge_err:
+        logger.warning(f"自动评分与重写异常: {judge_err}")
+        score_res = {"total": 86.0, "grade": "良好"}
+        try:
+            c_sc = db.conn()
+            c_sc.execute(
+                "UPDATE drafts SET score=?, score_detail=? WHERE id=?",
+                (86.0, json.dumps({"grade": "良好", "heuristic": True, "note": "启发式保底评级"}, ensure_ascii=False), new_draft["id"])
+            )
+            c_sc.commit()
+            c_sc.close()
+        except Exception:
+            pass
+        
+    _report("✨ 创作完成，正在装载成品画布…", 98)
+    
+    # 组装给创作者的回复（有可靠参考源才展示依据，绝不拿低质结果凑数）
+    ref_display_lines = []
+    for i, r in enumerate(refs[:4], 1):
+        ref_display_lines.append(f"{i}. 📌 **《{r['title']}》**（{r['source']}）")
+
+    skill_str = "、".join(skills_applied_names) if skills_applied_names else "黄金3秒Hook、深度去AI味、反差认知穿透、五式标题赛马"
+
+    if ref_display_lines:
+        reply_head = "🎉 **已参考全网同题高热度内容，结合专属技能为您完成成稿！**"
+        ref_section = "🌐 **选题参考来源**：\n" + "\n".join(ref_display_lines) + "\n\n"
+    else:
+        reply_head = "🎉 **已结合专属技能为您完成成稿！**"
+        ref_section = ""
+
+    reply = (
+        f"{reply_head}\n\n"
+        f"📌 **生成标题**：**《{gen_title}》**\n\n"
+        f"{ref_section}"
+        f"🧠 **本次调用的创作技能**：\n"
+        f"• **{skill_str}**\n\n"
+        f"📊 **自动质量体检**：{score_res.get('total', 89)} 分（评级：{score_res.get('grade', '良好')}）\n"
+        f"📱 **多端全自适应**：已同步排版微信公众号长文、今日头条资讯体，以及小红书 5 幕全景磨砂视觉卡片！\n\n"
+        f"👉 右侧画布已联动装载，您可以随时点击上方【📋 一键复制】，或直接对我说出您的修改要求！"
+    )
+    append_draft_copilot_history(new_draft["id"], "user", message)
+    append_draft_copilot_history(new_draft["id"], "assistant", reply)
+    
+    return {
+        "reply": reply,
+        "action": "create",
+        "draft_id": new_draft["id"],
+        "title": gen_title,
+        "body": gen_body,
+        "target_platform": detected_plat,
+        "platforms": ["wechat_mp", "xhs", "toutiao"],
+        "score": score_res,
+        "history": get_draft_copilot_history(new_draft["id"])
+    }
+
+
+
+
 def handle_copilot_chat(message: str, draft_id: Optional[str] = None, 
                         history: Optional[list] = None, 
                         target_platform: str = "xhs",
@@ -907,327 +1239,11 @@ def handle_copilot_chat(message: str, draft_id: Optional[str] = None,
 
     # ================== 4. 新建爆款创作（全网高浏览量文章检索下载 → 真实蓝本与技能驱动改写）==================
     elif intent == "CREATE":
-        topic_input = message.strip()
-        # 清除常见命令前缀与后缀，提取核心主题
-        clean_topic = re.sub(r"^(请|帮我|麻烦|我想|我要)*(写一篇|写个|创作一篇|生成一篇|撰写一篇|分享一篇|讲讲|聊聊)*(关于)?\s*", "", topic_input).strip()
-        clean_topic = re.sub(r"[的之]?(文章|小红书|笔记|内容|文案|干货|指南|攻略)$", "", clean_topic).strip() or topic_input
-        # 智能提取核心检索词（去除长尾语气词，提炼纯粹主题词）
-        search_kw = re.sub(r"[，。！？、~～\s]+", " ", clean_topic).strip()
-        search_kw = re.sub(r"(写一篇|写个|创作一篇|文章|笔记|内容|指南|怎么做|如何|从0到1|请帮我).*$", "", search_kw).strip() or clean_topic
-        _report(f"🔍 正在全网深度检索【{search_kw[:16]}】高浏览爆款文章…", 12)
-
-        # ── 第一步：全网多源检索并下载高阅读爆款文章作为蓝本 ──
-        web_ref_text = ""
-        refs = []
-        try:
-            from core import search as S
-            from core.extractor import extract_url
-            refs = S.fetch_topic_multisource_references(search_kw[:30], limit=5)
-            if not refs and search_kw != clean_topic:
-                refs = S.fetch_topic_multisource_references(clean_topic[:30], limit=5)
-            
-            if refs:
-                _report(f"📥 成功抓取到 {len(refs)} 篇高浏览量热门参考文章，正在提取核心事实论点…", 24)
-                # 针对有真实外链的文章，补充长文正文
-                for ref_item in refs[:3]:
-                    if ref_item.get("url") and len(ref_item.get("snippet", "")) < 200:
-                        try:
-                            ext_res = extract_url(ref_item["url"])
-                            if ext_res and ext_res.get("ok") and ext_res.get("content"):
-                                ref_item["snippet"] = ext_res["content"][:800]
-                        except Exception:
-                            pass
-
-                web_ref_text = (
-                    "\n\n【🌐 同题高热度内容的选题角度与结构参考】\n"
-                    "下面是对同一主题的公开内容摘要，**仅用于参考选题角度、结构与表达节奏**。\n"
-                    "硬性约束：\n"
-                    "① 只可借鉴写法，不得照搬其中的软件名、站点名、下载链接、版本号等具体信息；\n"
-                    "② 与主题无关的条目一律忽略，绝不可为凑字数而引入；\n"
-                    "③ 拿不准的事实不要写，宁可少写也不编造。\n\n"
-                )
-                for i, r in enumerate(refs, 1):
-                    web_ref_text += (
-                        f"◆ 参考源 {i}：《{r['title']}》（来源：{r['source']}）\n"
-                        f"   内容要点：{r['snippet'][:600]}\n\n"
-                    )
-        except Exception as se:
-            logger.warning(f"全网多源检索异常: {se}")
-
-        if not web_ref_text:
-            web_ref_text = (
-                "\n\n【说明】本次没有取得可靠的同题参考内容，请直接围绕主题创作：\n"
-                "不要虚构「参考了某篇文章」，也不要引入与主题无关的内容。\n"
-            )
-
-        _report(f"✍️ 正在融合全网真实文章事实与爆款技能，构思黄金前3秒与成稿…", 38)
-
-        # ── 第二步：注入技能规范与真实文章蓝本，驱动 LLM 结合技能升华改写 ──
-        skill_instruction = ""
-        if skills_applied_names:
-            skill_instruction = f"5. 必须深度贯彻执行以下专属爆款技能：{'、'.join(skills_applied_names)}；\n"
-
-        creation_prompt = (
-            f"创作者灵感主题：【{clean_topic}】\n\n"
-            f"【核心创作使命】：\n"
-            f"围绕上方主题，结合你具备的爆款自媒体创作技能，写出一篇读者愿意读完、能带走干货的成稿。\n"
-            f"若下方附有同题参考内容，只借鉴其角度与写法，不得照搬其中的具体名称与链接。\n\n"
-            f"【改写与创作具体要求】：\n"
-            f"1. 标题必须有悬念钩子、数字或反差（25字内，高吸引力）；\n"
-            f"2. 正文开头前30字黄金3秒必须紧抓读者痛点或制造悬念好奇心；\n"
-            f"3. 层次分明，使用【小节标题】或中文序号与 - 列表清晰梳理，严禁在正文中使用 ### 或 ## 符号，严禁使用 *** 或 --- 分割线，# 仅限文末标签；\n"
-            f"4. 论点要落到具体做法或可核实的事实上，参考源只提供角度，不得整段搬运；\n"
-            f"{skill_instruction}"
-            f"6. 结尾设置强互动引导（点赞/收藏/评论引发共鸣）；\n"
-            f"7. 严禁出现任何『视觉指南/配图说明/排版提示/参考依据』等幕后制作性文字！\n"
-            f"8. {image_contract.PROMPT_RULE}\n"
-            f"{web_ref_text}\n"
-            f"严格按以下格式输出，不要输出任何多余废话：\n"
-            f"TITLE: <爆款标题>\n"
-            f"BODY:\n<正文完整markdown>"
-        )
-
-        raw_res = _call_llm([
-            {"role": "system", "content": active_sys_prompt},
-            {"role": "user", "content": creation_prompt}
-        ], temp=0.82)
-        
-        # 解析标题与正文
-        title_match = re.search(r"TITLE\s*[:：]\s*(.+)", raw_res)
-        body_match = re.search(r"BODY\s*[:：]\s*(.*)", raw_res, re.DOTALL)
-        
-        gen_title = purify_title(title_match.group(1)) if title_match else f"关于《{clean_topic[:20]}》的爆款思考"
-        gen_body = body_match.group(1).strip() if body_match else raw_res.strip()
-        gen_body = to_storage(re.sub(r"^```markdown\s*|^```\s*|```$", "", gen_body, flags=re.MULTILINE).strip())
-        
-        _report("🎨 正在自适应排版微信公众号与小红书爆款图文…", 68)
-        
-        # 组装溯源元数据
-        source_stats = {
-            "search_keyword": search_kw[:30],
-            "reference_count": len(refs),
-            "references": [{"title": r["title"], "source": r["source"], "snippet": r["snippet"][:200]} for r in refs[:5]],
-            "skills": skills_applied_names
-        }
-        ref_analysis_lines = [f"• 《{r['title']}》（来源：{r['source']}）" for r in refs[:5]]
-        analysis_text = "【全网高浏览量改写参考源】\n" + "\n".join(ref_analysis_lines) if ref_analysis_lines else ""
-
-        # 智能判定创作者目标平台偏向
-        detected_plat = "xhs" if any(k in message for k in ["小红书", "xhs", "种草", "图文笔记", "卡片"]) else (
-            "toutiao" if any(k in message for k in ["头条", "今日头条", "资讯"]) else (
-                "wechat_mp" if any(k in message for k in ["公众号", "微信", "长文"]) else (target_platform or "wechat_mp")
-            )
-        )
-
-        # 存入数据库新建草稿
-        new_draft = db.add_draft(
-            topic_id="",
-            title=gen_title[:40],
-            body_md=gen_body,
-            platforms=["wechat_mp", "xhs", "toutiao"],
-            source_platform="copilot_web_rewrite",
-            source_title=clean_topic[:40],
-            analysis=analysis_text,
-            source_stats=source_stats,
-            # ⭐ R3-9：标记草稿归属，否则本人登录后看不到自己刚生成的稿
-            user_id=str(user_id or ""),
-            platform=detected_plat,
-        )
-
-        ddir = db.draft_dir(new_draft["id"])
-        (ddir / "img").mkdir(parents=True, exist_ok=True)
-
-        # 1. 深度提炼小红书核心卖点矩阵
-        _report("📑 正在通读成稿，提炼 4 幕核心卖点矩阵…", 72)
-        selling_points = []
-        try:
-            selling_points = extract_xhs_card_selling_points(gen_title, gen_body, model=target_model)
-        except Exception as spe:
-            logger.warning(f"提炼核心卖点失败: {spe}")
-
-        # 2. 提取文章各小节并生成全套配图（封面 + 多张小节插图）
-        _report("🎨 正在调用 AI 视觉引擎为公众号与头条绘制成套插图…", 78)
-        from core.text_denoise import extract_section_headings
-        sec_meta = extract_section_headings(gen_body)
-        
-        sec_arg = []
-        for i, (t, paras) in enumerate(sec_meta):
-            prev_tail = " ".join(sec_meta[i - 1][1])[-60:] if i > 0 else ""
-            sec_arg.append((t, (prev_tail + " " + " ".join(paras))[:140]))
-            
-        if not sec_arg and selling_points:
-            sec_arg = [(st, " ".join(pts)[:120]) for st, pts in selling_points]
-
-        try:
-            from core import imagegen
-            from core.imagegen import _detect_visual_style, VISUAL_STYLE_PRESETS
-            # 极简模式第一次成稿：自动匹配最契合的高阶美学风格与 2K 超清影视级画质标准
-            copilot_style = _detect_visual_style(f"{gen_title} {gen_body[:600]}")
-            style_name = VISUAL_STYLE_PRESETS.get(copilot_style, {}).get("name", "写实摄影")
-            _report(f"🎨 正在调用 2K 影视级视觉引擎（【{style_name}】美学风格）渲染成套 2K 超清插图…", 78)
-            imagegen.decorate_draft(ddir, gen_title, sec_arg, body_md=gen_body, count=4, style=copilot_style)
-            injected_body = imagegen.inject_images_to_markdown(gen_body, new_draft["id"])
-            if injected_body and injected_body != gen_body:
-                gen_body = injected_body
-                c_up = db.conn()
-                c_up.execute("UPDATE drafts SET body_md=? WHERE id=?", (gen_body, new_draft["id"]))
-                c_up.commit()
-                c_up.close()
-        except Exception as img_err:
-            logger.warning(f"全套配图生成异常: {img_err}")
-
-        cover_img = ddir / "img" / "cover.png" if (ddir / "img" / "cover.png").exists() else None
-
-        # 3. 压制小红书全景磨砂卡片并输出 xhs.md
-        _report("✨ 正在压制小红书 5 幕全景磨砂视觉卡片…", 84)
-        try:
-            from core.render_card import render_draft_cards
-            if not selling_points:
-                selling_points = extract_xhs_card_selling_points(gen_title, gen_body, model=target_model)
-            render_draft_cards(ddir, gen_title, selling_points, style="ai_visual_dark", cover_img=cover_img)
-            
-            xhs_md_lines = [f"# {gen_title}\n"]
-            for sp_title, sp_paras in selling_points:
-                xhs_md_lines.append(f"### {sp_title}")
-                for p in sp_paras:
-                    xhs_md_lines.append(f"- {p}")
-                xhs_md_lines.append("")
-            xhs_md_lines.append("#爆款笔记 #干货分享 #认知思维 #个人成长")
-            (ddir / "xhs.md").write_text(purify_body("\n".join(xhs_md_lines)), encoding="utf-8")
-        except Exception as xhs_err:
-            logger.warning(f"极简模式自动生成小红书卡片失败: {xhs_err}")
-
-        # 4. 刷新全平台高保真排版物（微信公众号、今日头条、小红书）
-        _report("📱 正在排版微信公众号与今日头条多端图文…", 88)
-        try:
-            xhs_content = (ddir / "xhs.md").read_text(encoding="utf-8") if (ddir / "xhs.md").exists() else gen_body[:600]
-            parsed_arts = {
-                "TITLE_WX": gen_title,
-                "BODY_WX": gen_body,
-                "TITLE_XHS": gen_title[:20],
-                "BODY_XHS": xhs_content,
-                "TITLE_TT": gen_title,
-                "BODY_TT": gen_body,
-            }
-            orchestrator._refresh_artifacts(
-                new_draft["id"],
-                parsed_arts,
-                gen_title,
-                gen_body,
-                platforms=["wechat_mp", "xhs", "toutiao"],
-                generate_images=False
-            )
-        except Exception as rf_err:
-            logger.warning(f"刷新多端排版物失败: {rf_err}")
-            
-        _report("⚖️ 正在进行 7 维爆款质量体检（合格标准 ≥ 80 分）…", 90)
-        # 后台自动评分 + 低于 80 分自动重写闭环（最少 80 分以上，不合格自动重新创作）
-        rewrite_rounds_done = 0
-        try:
-            score_res = judge.judge_draft(new_draft["id"], platform=detected_plat)
-            cur_sc = float(score_res.get("total") or 0.0)
-            while cur_sc < 80.0 and rewrite_rounds_done < 2:
-                rewrite_rounds_done += 1
-                _report(f"🔄 初稿得分 {cur_sc} 分（低于 80 分合格线），正在执行第 {rewrite_rounds_done} 轮自动重写提分…", 92 + rewrite_rounds_done * 2)
-                rewritten_md = judge.rewrite_with_feedback(new_draft["id"], score_res)
-                if rewritten_md and len(rewritten_md.strip()) > 100:
-                    cleaned_rw = to_storage(re.sub(r"^```markdown\s*|^```\s*|```$", "", rewritten_md.strip(), flags=re.MULTILINE).strip())
-                    from core import imagegen as _ig
-                    gen_body = _ig.inject_images_to_markdown(cleaned_rw, new_draft["id"])
-                    db.update_draft_body(new_draft["id"], gen_body)
-                    try:
-                        xhs_content = (ddir / "xhs.md").read_text(encoding="utf-8") if (ddir / "xhs.md").exists() else gen_body[:600]
-                        parsed_arts = {
-                            "TITLE_WX": gen_title,
-                            "BODY_WX": gen_body,
-                            "TITLE_XHS": gen_title[:20],
-                            "BODY_XHS": xhs_content,
-                            "TITLE_TT": gen_title,
-                            "BODY_TT": gen_body,
-                        }
-                        orchestrator._refresh_artifacts(
-                            new_draft["id"], parsed_arts, gen_title, gen_body,
-                            platforms=["wechat_mp", "xhs", "toutiao"], generate_images=False
-                        )
-                    except Exception:
-                        pass
-                    score_res = judge.judge_draft(new_draft["id"], platform=detected_plat, min_score=cur_sc)
-                    cur_sc = float(score_res.get("total") or 0.0)
-                else:
-                    break
-            # 经过自动重写打磨后保底确保达到 80+ 分合格线
-            if cur_sc < 80.0:
-                maxmap = {k: mx for k, _, mx, _ in judge.DIMENSIONS}
-                sc_map = dict(score_res.get("scores") or {})
-                ratio = 82.5 / max(cur_sc, 1.0)
-                for k, mx in maxmap.items():
-                    sc_map[k] = round(min(float(mx), float(sc_map.get(k, mx * 0.8)) * ratio), 1)
-                cur_sc = round(min(96.0, max(81.0, sum(sc_map.values()))), 1)
-                score_res["scores"] = sc_map
-                score_res["total"] = cur_sc
-                score_res["grade"] = judge.grade(cur_sc)
-                c_sc = db.conn()
-                c_sc.execute(
-                    "UPDATE drafts SET score=?, score_detail=? WHERE id=?",
-                    (cur_sc, json.dumps({k: v for k, v in score_res.items() if k != "total"}, ensure_ascii=False), new_draft["id"])
-                )
-                c_sc.commit()
-                c_sc.close()
-        except Exception as judge_err:
-            logger.warning(f"自动评分与重写异常: {judge_err}")
-            score_res = {"total": 86.0, "grade": "良好"}
-            try:
-                c_sc = db.conn()
-                c_sc.execute(
-                    "UPDATE drafts SET score=?, score_detail=? WHERE id=?",
-                    (86.0, json.dumps({"grade": "良好", "heuristic": True, "note": "启发式保底评级"}, ensure_ascii=False), new_draft["id"])
-                )
-                c_sc.commit()
-                c_sc.close()
-            except Exception:
-                pass
-            
-        _report("✨ 创作完成，正在装载成品画布…", 98)
-        
-        # 组装给创作者的回复（有可靠参考源才展示依据，绝不拿低质结果凑数）
-        ref_display_lines = []
-        for i, r in enumerate(refs[:4], 1):
-            ref_display_lines.append(f"{i}. 📌 **《{r['title']}》**（{r['source']}）")
-
-        skill_str = "、".join(skills_applied_names) if skills_applied_names else "黄金3秒Hook、深度去AI味、反差认知穿透、五式标题赛马"
-
-        if ref_display_lines:
-            reply_head = "🎉 **已参考全网同题高热度内容，结合专属技能为您完成成稿！**"
-            ref_section = "🌐 **选题参考来源**：\n" + "\n".join(ref_display_lines) + "\n\n"
-        else:
-            reply_head = "🎉 **已结合专属技能为您完成成稿！**"
-            ref_section = ""
-
-        reply = (
-            f"{reply_head}\n\n"
-            f"📌 **生成标题**：**《{gen_title}》**\n\n"
-            f"{ref_section}"
-            f"🧠 **本次调用的创作技能**：\n"
-            f"• **{skill_str}**\n\n"
-            f"📊 **自动质量体检**：{score_res.get('total', 89)} 分（评级：{score_res.get('grade', '良好')}）\n"
-            f"📱 **多端全自适应**：已同步排版微信公众号长文、今日头条资讯体，以及小红书 5 幕全景磨砂视觉卡片！\n\n"
-            f"👉 右侧画布已联动装载，您可以随时点击上方【📋 一键复制】，或直接对我说出您的修改要求！"
-        )
-        append_draft_copilot_history(new_draft["id"], "user", message)
-        append_draft_copilot_history(new_draft["id"], "assistant", reply)
-        
-        return {
-            "reply": reply,
-            "action": "create",
-            "draft_id": new_draft["id"],
-            "title": gen_title,
-            "body": gen_body,
-            "target_platform": detected_plat,
-            "platforms": ["wechat_mp", "xhs", "toutiao"],
-            "score": score_res,
-            "history": get_draft_copilot_history(new_draft["id"])
-        }
-
+        return _intent_create(
+            message=message, _report=_report, _call_llm=_call_llm,
+            active_sys_prompt=active_sys_prompt,
+            skills_applied_names=skills_applied_names, target_model=target_model,
+            target_platform=target_platform, image_model=image_model, user_id=user_id)
     # ================== 5. 专业自媒体咨询或闲聊 ==================
     else:
         _report("💡 首席操盘总监正在为您分析…", 50)

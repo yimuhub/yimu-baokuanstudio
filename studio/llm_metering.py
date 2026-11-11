@@ -158,18 +158,44 @@ def free_demo_left_today(user_id: str) -> int:
 
 def _read_usage() -> dict:
     with _METERING_LOCK:
+        global _USAGE_MEM, _USAGE_MEM_PATH
+        # R15.9:内存镜像优先(即时可见);路径变更(测试/多库)时重载
+        if _USAGE_MEM is not None and _USAGE_MEM_PATH == str(_USAGE_PATH):
+            return _USAGE_MEM
         try:
             if _USAGE_PATH.exists():
                 data = json.loads(_USAGE_PATH.read_text(encoding="utf-8"))
                 if isinstance(data, dict):
+                    _USAGE_MEM = data
+                    _USAGE_MEM_PATH = str(_USAGE_PATH)
                     return data
         except Exception as exc:  # noqa: BLE001
             log.warning("[llm_metering] 读取用量统计失败: %s", exc)
+        _USAGE_MEM = {}
+        _USAGE_MEM_PATH = str(_USAGE_PATH)
         return {}
 
 
-def _write_usage(data: dict) -> None:
+_LAST_USAGE_FLUSH = 0.0
+_USAGE_MEM: dict | None = None   # R15.9 内存镜像:读写即时可见,磁盘节流持久化
+_USAGE_MEM_PATH: str | None = None
+_USAGE_FLUSH_INTERVAL = 15.0  # R15.9:磁盘写入节流(秒)——统计非资金真源,允许短窗丢失
+
+
+def _write_usage(data: dict, *, force: bool = False) -> None:
+    """写用量统计。R15.9 性能整改:高 token 流量下每次调用都全量落盘属于纯瓶颈
+    (资金权威在 DB 账本 deduct_credits,此处仅为统计),故加 15s 节流;
+    进程退出时 atexit 强制冲刷一次,窗口内丢失上限=15s 的统计。"""
+    global _LAST_USAGE_FLUSH, _USAGE_MEM, _USAGE_MEM_PATH
     with _METERING_LOCK:
+        import time as _time
+
+        _USAGE_MEM = data
+        _USAGE_MEM_PATH = str(_USAGE_PATH)
+        now = _time.time()
+        if not force and (now - _LAST_USAGE_FLUSH) < _USAGE_FLUSH_INTERVAL:
+            return
+        _LAST_USAGE_FLUSH = now
         try:
             _USAGE_PATH.parent.mkdir(parents=True, exist_ok=True)
             tmp = _USAGE_PATH.with_suffix(".tmp")
@@ -181,6 +207,22 @@ def _write_usage(data: dict) -> None:
 
 class InsufficientCreditsError(RuntimeError):
     """官方通道额度不足。"""
+
+
+
+import atexit as _atexit
+
+
+@_atexit.register
+def _flush_usage_on_exit() -> None:
+    """进程退出时把内存镜像(含节流窗口内的统计)强制落盘。"""
+    try:
+        if _USAGE_MEM is None:
+            return
+        _write_usage(_USAGE_MEM, force=True)
+    except Exception:
+        pass
+
 
 
 def estimate_tokens(text: str) -> int:

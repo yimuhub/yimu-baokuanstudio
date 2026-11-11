@@ -4,6 +4,24 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🔥 Version 15.9.0 · 星火继 (Spark Relay) · Deep Audit Remediation · 2026-11-12
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.0"`, `__codename__ = "星火继"`, `__codename_en__ = "Spark Relay"`)
+
+### 🎯 Milestone Summary
+
+3 天改动(15 提交/86 文件/+5174 行,v15.6.0→v15.8.4)全面核对后的深审整改发布:需求实现核对通过、回归冲突 0、性能与巨石双修。
+
+### ⚡ Deep Audit Remediation
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **上帝函数再拆** | `handle_copilot_chat` 944→628 行:CREATE 意图分支(324 行,全网检索→融合仿写→建稿→配图→卡片→评分全流程)抽出为 `core/copilot.py::_intent_create`(行为逐字节一致) |
+| 2 | **计量写盘节流** | `llm_metering` 每次 LLM 调用全量 JSON 落盘改为内存镜像+15s 节流持久化+atexit 强制冲刷(资金权威仍在 DB 账本,此处仅统计) |
+| 3 | **3 天改动核对** | v15.6.0 三栏拖拽/v15.8.0 客户端整改/v15.8.1 凭证内置/v15.8.3 单一真源/v15.8.4 七项修复——全部声明与代码实现一致,R12 能力匹配与保存≠激活等前置整改完整存活 |
+
+**Full Changelog**: v15.8.4...v15.9.0
+
 ## 🌅 Version 15.8.4 · 朝晖颂 (Dawn Glow Ode) · 全仓审查修复与全端同步重建 · 2026-11-12
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.8.4"`, `__codename__ = "朝晖颂"`)

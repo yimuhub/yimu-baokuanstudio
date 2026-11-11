@@ -41,10 +41,6 @@ import re  # noqa: E402,F811
 import time  # noqa: E402,F811
 import uuid  # noqa: E402,F811
 
-#: 前端平台切换条与预览 / 分享共用的六平台（含小红书）
-LIST_PLATFORMS = ('wechat_mp', 'xhs', 'toutiao', 'zhihu', 'weibo', 'twitter')
-
-
 @router.get('/api/drafts')
 def drafts_list(request: Request, limit: int = 50, offset: int = 0):
     """R10 / F6：统一的草稿列表接口。
@@ -64,30 +60,10 @@ def drafts_list(request: Request, limit: int = 50, offset: int = 0):
                           workspace_id=cur_ws_id)
     items = []
     for d in rows[offset:offset + limit]:
-        did = str(d.get('id') or '')
         try:
             view = _a._draft_view(d)
         except Exception:
-            view = dict(d)
-        thumb = ''
-        preview_urls = {}
-        try:
-            ddir = db.draft_dir(did)
-            if (ddir / 'img' / 'cover.png').is_file():
-                thumb = f'/img/{did}/cover.png'
-            else:
-                cards = sorted(ddir.glob('card-*.png'))
-                if cards:
-                    thumb = f'/card/{did}/{cards[0].name}'
-            preview_urls = {
-                p: f'/preview/{did}/{p}'
-                for p in LIST_PLATFORMS
-                if (ddir / f'preview-{p}.html').is_file()
-            }
-        except OSError:
-            pass
-        view['thumbnail'] = thumb
-        view['preview_urls'] = preview_urls
+            view = {**d, 'thumbnail': '', 'preview_urls': {}}
         items.append(view)
     return {'ok': True, 'total': len(rows), 'limit': limit, 'offset': offset, 'drafts': items}
 

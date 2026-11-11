@@ -297,7 +297,7 @@ def skill_display_name(sk_obj: dict) -> str:
     """
     desc = str((sk_obj or {}).get("description") or "").strip()
     if desc:
-        head = re.split(r"[（(]", desc, 1)[0].strip(" ：:，,、")
+        head = re.split(r"[（(]", desc, maxsplit=1)[0].strip(" ：:，,、")
         if head and re.search(r"[\u4e00-\u9fa5]", head) and len(head) <= 24:
             return head
     category = str((sk_obj or {}).get("category") or "").strip()

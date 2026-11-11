@@ -3,6 +3,7 @@
 支持主流全球与国产大模型供应商一键切换、毫秒级连通性测速 (Ping)、多 Agent 智能分工路由。
 """
 from __future__ import annotations
+import copy
 import logging
 import os
 import time
@@ -15,6 +16,8 @@ from core import provider_registry as _reg
 
 logger = logging.getLogger(__name__)
 BASE = Path(__file__).resolve().parent.parent
+_CFG_CACHE: dict = {}
+_ORIG_RAW_CONFIG = _reg.raw_config
 
 # 13 大主流模型供应商企业级预设（含国产主力：火山引擎、混元、星火、百川等）
 MODEL_PROVIDERS = {
@@ -415,6 +418,14 @@ def fetch_remote_models(base_url: str, api_key: str = "", provider_id: str = "")
     }
 
 
+def _cfg_stat_sig(path: Path) -> tuple:
+    try:
+        st = path.stat()
+        return (str(path), st.st_ino, st.st_mtime_ns, st.st_size)
+    except OSError:
+        return (str(path), None)
+
+
 def load_config() -> dict:
     """读配置，返回**已派生**的视图（v15.8.3 起）。
 
@@ -427,9 +438,23 @@ def load_config() -> dict:
     用户改了地址，请求仍然打向老地址。现在老代码照旧读 ``gateway.base_url``，
     但读到的永远等于活动供应商的真实值，无需逐处改造调用点。
     """
+    use_cache = _reg.raw_config is _ORIG_RAW_CONFIG
+    sig = None
+    if use_cache:
+        sig = (
+            _cfg_stat_sig(_reg.config_path()),
+            _cfg_stat_sig(_reg.BASE / "data" / "config.local.yaml"),
+        )
+        if _CFG_CACHE.get("sig") == sig and "view" in _CFG_CACHE:
+            return copy.deepcopy(_CFG_CACHE["view"])
     cfg = _reg.raw_config()
     cfg, _dirty = _reg.normalize(cfg, presets=MODEL_PROVIDERS)
-    return _reg.derive_view(cfg, presets=MODEL_PROVIDERS)
+    view = _reg.derive_view(cfg, presets=MODEL_PROVIDERS)
+    if use_cache:
+        _CFG_CACHE["sig"] = sig
+        _CFG_CACHE["view"] = view
+        return copy.deepcopy(view)
+    return view
 
 
 def load_env() -> dict:

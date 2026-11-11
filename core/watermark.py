@@ -9,12 +9,12 @@ from typing import Optional, Tuple, Union
 import yaml
 
 logger = logging.getLogger(__name__)
-BASE = Path(__file__).resolve().parent.parent
+_DEFAULT_BASE = Path(__file__).resolve().parent.parent
+BASE = _DEFAULT_BASE
 
 
 def get_watermark_config() -> dict:
-    """读取水印配置。"""
-    cfg_file = BASE / "config.yaml"
+    """读取水印配置（兼容 config.yaml + data/config.local.yaml 叠加）。"""
     default_cfg = {
         "enabled": True,
         "text": "Designed with 一幕 YIMU",
@@ -25,14 +25,26 @@ def get_watermark_config() -> dict:
         "show_on_cover": True,
         "show_on_video": True
     }
-    if cfg_file.exists():
+    data: dict = {}
+    if BASE == _DEFAULT_BASE:
         try:
-            with open(cfg_file, encoding="utf-8") as f:
-                data = yaml.safe_load(f) or {}
-                wm = data.get("watermark", {})
-                default_cfg.update(wm)
+            from core import provider_registry as _reg
+            data = _reg.raw_config()
         except Exception:
-            pass
+            data = {}
+    else:
+        for cfg_file in (BASE / "config.yaml", BASE / "data" / "config.local.yaml"):
+            if cfg_file.exists():
+                try:
+                    with open(cfg_file, encoding="utf-8") as f:
+                        loaded = yaml.safe_load(f) or {}
+                    if isinstance(loaded, dict):
+                        data.update(loaded)
+                except Exception:
+                    pass
+    wm = data.get("watermark", {}) if isinstance(data, dict) else {}
+    if isinstance(wm, dict):
+        default_cfg.update(wm)
     return default_cfg
 
 
@@ -79,7 +91,7 @@ def apply_image_watermark(
             "/System/Library/Fonts/Supplemental/Arial.ttf",
             "/Library/Fonts/Arial.ttf",
             r"C:\Windows\Fonts\msyh.ttc",
-            r"C:\Windows\Fontsrial.ttf"
+            r"C:\Windows\Fonts\arial.ttf"
         ]:
             if Path(fpath).exists():
                 try:

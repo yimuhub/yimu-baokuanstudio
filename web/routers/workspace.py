@@ -28,7 +28,6 @@ from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from core import diagnostics as diag  # noqa: E402,F811
-from core.llm import load_config, load_env  # noqa: E402,F811
 from core import provider_registry as _reg  # noqa: E402
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
 import time  # noqa: E402,F811

@@ -14,6 +14,7 @@ import json
 import sys
 import time
 import uuid
+from contextlib import asynccontextmanager
 from contextvars import ContextVar
 from pathlib import Path
 from typing import Optional, List, Dict, Any
@@ -59,12 +60,19 @@ for _k, _v in load_env().items():
 from core.themes import WECHAT_THEMES, XHS_CARD_STYLES  # noqa: E402
 from core import agents as AG                      # noqa: E402
 from core import layouter                          # noqa: E402
-from adapters.base import PLATFORMS, NAMES           # noqa: E402
+from adapters.base import PLATFORMS, NAMES, SUPPORTED_PREVIEW_PLATFORMS  # noqa: E402
 
 CFG_PATH = BASE / "config.yaml"
 ENV_PATH = BASE / ".env"
 
-app = FastAPI(title="一幕·YIMU 爆款工作室")
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    await on_startup()
+    yield
+
+
+app = FastAPI(title="一幕·YIMU 爆款工作室", lifespan=_lifespan)
 # ⭐ 性能：GZip 压缩（index.html 约 835KB → ~140KB，首屏加载显著加快）
 from starlette.middleware.gzip import GZipMiddleware  # noqa: E402
 
@@ -269,7 +277,6 @@ def _draft_table_health() -> str:
         return f"探测失败({e})"
 
 
-@app.on_event("startup")
 async def on_startup():
     # ⭐ 诊断日志：接管 asyncio 未处理异常，并把启动现场（环境快照）记一条，
     #    这样即使用户什么也没做，导出日志也能看到跑在什么环境上。
@@ -1086,7 +1093,8 @@ def render_dynamic_html(raw_html: str) -> str:
 # ---------------- status ----------------
 
 def _draft_view(d: dict) -> dict:
-    dd = db.draft_dir(d["id"])
+    did = str(d.get("id") or "")
+    dd = db.draft_dir(did)
     sc_total = d.get("score")
     if sc_total is not None and str(sc_total).strip() != "":
         try:
@@ -1096,16 +1104,34 @@ def _draft_view(d: dict) -> dict:
     else:
         sc_num = None
     grade = judge.grade(sc_num) if sc_num is not None else None
-    cards_count = len(list(dd.glob("card-*.png")))
-    imgs_dir = dd / "img"
-    imgs_count = len(list(imgs_dir.glob("*.png"))) if imgs_dir.exists() else 0
+    cards: list[Path] = []
+    imgs_count = 0
+    thumb = ""
+    preview_urls: dict[str, str] = {}
+    try:
+        cards = sorted(dd.glob("card-*.png")) if dd.exists() else []
+        imgs_dir = dd / "img"
+        imgs_count = len(list(imgs_dir.glob("*.png"))) if imgs_dir.exists() else 0
+        if (imgs_dir / "cover.png").is_file():
+            thumb = f"/img/{did}/cover.png"
+        elif cards:
+            thumb = f"/card/{did}/{cards[0].name}"
+        preview_urls = {
+            p: f"/preview/{did}/{p}"
+            for p in SUPPORTED_PREVIEW_PLATFORMS
+            if (dd / f"preview-{p}.html").is_file()
+        }
+    except OSError:
+        pass
     return {
         **d,
-        "cards": cards_count,
+        "cards": len(cards),
         "imgs": imgs_count,
         "score": sc_num,
         "grade": grade,
-        "round": d.get("score_round", 0) or 0
+        "round": d.get("score_round", 0) or 0,
+        "thumbnail": thumb,
+        "preview_urls": preview_urls,
     }
 
 

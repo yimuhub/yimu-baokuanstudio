@@ -91,10 +91,26 @@ def build_system_prompt(
 
 
 def resolve_target_model(provider: Optional[str], model: Optional[str]) -> Optional[str]:
-    """把「供应商 + 模型」组合为目标模型串；__default__ 视为未指定。"""
+    """把「供应商 + 模型」组合为目标模型串；__default__ 视为未指定。
+
+    v15.9.1 修复：只选供应商不选模型时，旧实现返回裸 ``"provider"``——
+    解析器把它当模型名去匹配，必然失配后静默回落主模型，用户的选择等于没选。
+    现在补上该供应商的默认主模型（预设 default_model 或用户池内保存的 model），
+    让「指定供应商」真正生效。
+    """
     if provider and provider != "__default__":
         if model and model != "__default__":
             return f"{provider}/{model}"
+        # 只选了供应商：补默认模型，形如 "deepseek/deepseek-chat"
+        try:
+            from core import llm
+            saved = llm.load_config().get("gateway", {}).get("providers", {}).get(provider, {}) or {}
+            default_m = (saved.get("model") or "").strip() \
+                or str(llm.MODEL_PROVIDERS.get(provider, {}).get("default_model") or "").strip()
+            if default_m:
+                return f"{provider}/{default_m}"
+        except Exception:
+            pass
         return f"{provider}"
     if model and model != "__default__":
         return model

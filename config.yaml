@@ -3,7 +3,7 @@ admin:
 agents:
   ad_creative:
     instruction: ''
-    model: agnes-3.0-flash
+    model: ''
     skills:
     - ad-category-playbook
     - ad-creative-evaluator
@@ -11,12 +11,12 @@ agents:
     - ad-video-creative
   ad_video:
     instruction: ''
-    model: agnes-video-2.5-flash
+    model: ''
     skills:
     - ad-video-prompt-craft
   analyze:
     instruction: ''
-    model: agnes-3.0-flash
+    model: ''
     skills:
     - colloquial
     - title-forge
@@ -24,7 +24,7 @@ agents:
     - xhs-style
   collect:
     instruction: ''
-    model: agnes-3.0-flash
+    model: ''
     skills:
     - colloquial
     - title-forge
@@ -32,34 +32,36 @@ agents:
     - xhs-style
   director:
     instruction: ''
-    model: agnes-3.0-flash
+    model: ''
     skills:
     - director-beat-sheet
   image:
     instruction: 电影级分镜头视觉总监：深度通读全文稿，解构分镜头节拍，95%+ 图文匹配度，现代高端审美
-    model: agnes-image-2.5-flash
+    model: ''
     skills:
     - cinematic-optics-lighting
     - storyboard-visual-grammar
   layout:
     instruction: ''
-    model: agnes-3.0-flash
+    model: ''
     skills:
     - pro-layout
   review:
     instruction: ''
-    model: agnes-3.0-flash
+    model: ''
     skills:
     - judge-strict
   write:
     instruction: ''
-    model: agnes-3.0-flash
+    model: ''
     skills:
     - colloquial
     - de-ai
     - title-forge
     - viral-copy
     - viral-formulas
+content_guard:
+  enabled: true
 creation:
   card_style: ai_visual_dark
   draft_expire_days: 0
@@ -77,81 +79,32 @@ gateway:
   deleted_providers:
   - spark
   - hunyuan
-  provider_id: agnes
+  provider_id: yimu_official
   providers:
-    agnes:
+    yimu_official:
+      name: 一幕·YIMU 官方
+      base_url: https://gateway.yimu.studio/v1
+      model: yimu-chat
       agent_routing:
         analyzer: ''
         critic: ''
         drama: ''
-        image: agnes-image-2.5-flash
-        video: agnes-video-2.5-flash
+        image: ''
+        video: ''
         writer: ''
-      base_url: https://apihub.agnes-ai.com/v1
       configured_models:
-      - category: text
-        id: agnes-2.5-pro-alpha
+      - id: yimu-chat
+        name: yimu-chat
+        category: text
         is_enabled: true
-        name: agnes-2.5-pro-alpha
-      - category: video
-        id: agnes-video-2.5-flash
+      - id: yimu-reasoner
+        name: yimu-reasoner
+        category: text
         is_enabled: true
-        name: agnes-video-2.5-flash
-      - category: text
-        id: agnes-3.0-flash
+      - id: yimu-vision
+        name: yimu-vision
+        category: text
         is_enabled: true
-        name: agnes-3.0-flash
-      - category: image
-        id: agnes-image-2.1-flash
-        is_enabled: true
-        name: agnes-image-2.1-flash
-      - category: video
-        id: agnes-video-2.5
-        is_enabled: true
-        name: agnes-video-2.5
-      - category: image
-        id: agnes-image-2.0-flash
-        is_enabled: true
-        name: agnes-image-2.0-flash
-      - category: text
-        id: agnes-2.5-flash
-        is_enabled: true
-        name: agnes-2.5-flash
-      - category: text
-        id: agnes-2.5-pro
-        is_enabled: true
-        name: agnes-2.5-pro
-      - category: text
-        id: agnes-2.5-pro-beta
-        is_enabled: true
-        name: agnes-2.5-pro-beta
-      - category: image
-        id: agnes-image-2.5-flash
-        is_enabled: true
-        name: agnes-image-2.5-flash
-      model: agnes-3.0-flash
-      name: Agnes AI 官方
-    custom:
-      base_url: https://gateway.yimu.studio/v1
-      configured_models:
-      - category: text
-        id: agnes-2.5-flash
-        is_enabled: true
-        name: agnes-2.5-flash
-      - category: text
-        id: agnes-3.0-flash
-        is_enabled: true
-        name: agnes-3.0-flash
-      - category: image
-        id: agnes-image-2.5-flash
-        is_enabled: true
-        name: agnes-image-2.5-flash
-      - category: video
-        id: agnes-video-v2.0
-        is_enabled: false
-        name: agnes-video-v2.0
-      model: agnes-3.0-flash
-      name: 自定义聚合网关 (硅基流动 / OneAPI)
     deepseek:
       base_url: https://api.deepseek.com
       model: deepseek-chat
@@ -159,101 +112,29 @@ gateway:
       base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
       model: qwen-max
     volcengine:
-      agent_routing: {}
+      name: 火山引擎 Ark
       base_url: https://ark.cn-beijing.volces.com/api/v3
       model: doubao-pro-32k
-      name: 火山引擎 Ark
-    yimu_official:
+      agent_routing: {}
+    custom:
+      name: 自定义聚合网关 (硅基流动 / OneAPI)
+      base_url: https://gateway.yimu.studio/v1
+      model: ''
       agent_routing:
-        analyzer: Sage-A1.5
-        critic: Atria-Dawn
-        drama: Agents-A1
-        image: agnes-image-2.5-flash
-        video: agnes-video-2.5-flash
-        writer: Atria-Dawn
-      base_url: http://127.0.0.1:8787/v1
-      configured_models:
-      - category: text
-        id: agnes-2.5-flash
-        is_enabled: true
-        name: agnes-2.5-flash
-      - category: text
-        id: agnes-3.0-flash
-        is_enabled: true
-        name: agnes-3.0-flash
-      - category: image
-        id: agnes-image-2.1-flash
-        is_enabled: true
-        name: agnes-image-2.1-flash
-      - category: image
-        id: agnes-image-2.5-flash
-        is_enabled: true
-        name: agnes-image-2.5-flash
-      - category: video
-        id: agnes-video-2.5-flash
-        is_enabled: true
-        name: agnes-video-2.5-flash
-      - category: text
-        id: intern-s2
-        is_enabled: true
-        name: intern-s2
-      - category: text
-        id: Atria-Dawn
-        is_enabled: true
-        name: Atria-Dawn
-      - category: text
-        id: Agents-A1
-        is_enabled: true
-        name: Agents-A1
-      - category: text
-        id: Sage-A1.5
-        is_enabled: true
-        name: Sage-A1.5
-      - category: text
-        id: deepseek-v4.1-flash-1017
-        is_enabled: true
-        name: deepseek-v4.1-flash-1017
-      - category: text
-        id: deepseek-v4-pro-0813
-        is_enabled: true
-        name: deepseek-v4-pro-0813
-      - category: text
-        id: glm-5.3
-        is_enabled: true
-        name: glm-5.3
-      - category: text
-        id: kimi-k2.6
-        is_enabled: true
-        name: kimi-k2.6
-      - category: text
-        id: minimax-m3
-        is_enabled: true
-        name: minimax-m3
-      - category: text
-        id: qwen3.8-27b
-        is_enabled: true
-        name: qwen3.8-27b
-      - category: text
-        id: Atria-Dawn-Preview
-        is_enabled: true
-        name: Atria-Dawn-Preview
-      - category: text
-        id: deepseek-v4-flash-0731
-        is_enabled: true
-        name: deepseek-v4-flash-0731
-      - category: text
-        id: deepseek-v4-flash-vision
-        is_enabled: true
-        name: deepseek-v4-flash-vision
-      model: Sage-A1.5
-      name: 一幕·YIMU 官方
+        analyzer: ''
+        critic: ''
+        drama: ''
+        image: ''
+        video: ''
+        writer: ''
+      configured_models: []
   timeout_s: 180
 image:
   card_bg: true
   count: 5
   cover: true
   enabled: true
-  model: agnes-image-2.5-flash
+  model: ''
   resolution: 2k
   sections: true
   size: 2048x1152

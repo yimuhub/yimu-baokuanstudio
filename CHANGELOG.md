@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.9.1] - 九州同 (Nine Provinces One) · 2026-11-14
+
+### Fixed 系统设置 / 个人中心逻辑治理（专项深审 15 项 + 首次引导重做）
+
+**① 舞台导航根因修复（「点配置没反应」）**
+- `workbench-stage.js`：`bindNav` 只绑定了第一个 `.nav-group`，而「控制中心 / 个人中心」
+  在底部组 `.nav-group.nav-group-bottom`——点它们面板类名切换、舞台永不打开。
+  现两组全部接管，未配置大模型弹窗的「去配置」直达「系统与 API 配置」并自动弹出
+  「模型服务配置」弹窗（浏览器实测验证）。
+
+**② 出厂默认清洗：Agnes 全部退场，统一「系统默认」**
+- 出厂 `config.yaml` 不再预置任何具体模型：`agents.*.model` / `image.model` 全空，
+  主通道 `yimu_official` 指向云端网关，供应商池移除 Agnes 测试通道；
+- 新增 `core/llm.resolve_default_model(category)`：空绑定 = 活动通道模型池首个
+  该类别模型；生图无池选模型时走免 Key 保底引擎，视频无池选模型时给出明确
+  「未配置视频大模型」指引（`short_drama` / `ad_video` / `prompt_polish` 同步去硬编码）；
+- 移动端/双语文案去掉 Agnes 字样；Copilot 生图下拉不再提供后端不存在的虚构模型。
+
+**③ 四步完整首次引导（可随时跳过）**
+- 引导重构为 ① 免费额度 → ② 主链路（官方 / 自备 Key，供应商下拉对齐真实预设）→
+  ③ 出图与出视频（跟随系统默认 / 指定）→ ④ 文字审核开关 + 配置摘要；
+- 引导 JS 整体外置 `web/static/js/onboarding.js`（巨石拆分）。
+
+**④ 设置逻辑修复清单**
+- 移动端水印保存是静默空操作：`/api/settings` 补 `watermark` 分支，`/api/status` 回显；
+- 移动端保存供应商强制抢占主通道：改「保存≠激活」+ 独立「设为主网关」；
+- 跨模型服务路由污染：编辑新通道不再预填别家的 Agent 路由；
+- 个人中心「媒体名称」假保存：新增 `users.media_name` + `GET/POST /api/user/media_name`；
+- 双轨模型绑定（Agent 配置 vs 模型服务路由）在两处 UI 标注优先级关系；
+- `/api/models/save` 回复语义诚实化：仅保存不再宣称「已立即热生效」；
+- 文字审核设置 UI 落地：`content_guard.enabled` 进 config.yaml（环境变量仍可强制覆盖），
+  新增 `GET/POST /api/compliance/settings`（仅管理员）+ 设置页开关卡片；
+- Copilot「只选供应商不选模型」失效：补默认模型，不再回裸供应商名；
+- 水印 API 改管理员权限（全局品牌配置）；图床 Token 已存状态可见；
+- 移动端移除「云端网关参数直连」旧表单（无 Key 字段却覆盖活动通道），统一入口；
+- 清理 `/api/settings` 的 `apipool_key` 与顶层 `draft_expire_days` 死分支。
+
+**⑤ 性能与巨石**
+- `/api/status` 过期清理从「每轮询全表扫描」节流为每小时一次；
+- `studio/releases_page.py` 790 行巨石函数拆为模板文件 + 40 行渲染器；
+- 残留 `console.log` 清零。
+
+**回归锁**：`tests/test_v1590_settings_logic.py`（21 项）。全量 821 用例 + CI 四道门禁全绿。
+
+---
+
 ## [15.9.0] - 星火继 (Spark Relay) · 2026-11-12
 
 ### Changed 深审整改

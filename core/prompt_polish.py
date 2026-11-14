@@ -41,9 +41,11 @@ MIN_TEXT_LEN = 40
 
 PREFERRED_MODELS = [
     m.strip()
-    for m in (os.environ.get("YIMU_POLISH_MODELS") or "agnes-3.0-flash,agnes-2.5-flash").split(",")
+    for m in (os.environ.get("YIMU_POLISH_MODELS") or "").split(",")
     if m.strip()
 ]
+# v15.9.1：出厂不再预置任何测试模型（Agnes 是测试通道）。空列表 = 只走
+# 「默认通道」（活动供应商主模型）；运营想指定改写模型时设 YIMU_POLISH_MODELS。
 
 _cache: dict[tuple[str, str], tuple[float, dict]] = {}
 _cache_lock = threading.Lock()

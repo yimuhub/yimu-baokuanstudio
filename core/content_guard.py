@@ -196,9 +196,23 @@ def _load_whitelist() -> list[str]:
 # ---------------------------------------------------------------------------
 
 def is_enabled() -> bool:
-    """内容安全闸是否启用（CONTENT_GUARD_ENABLED，默认启用）。"""
-    raw = os.environ.get("CONTENT_GUARD_ENABLED", "")
-    return raw.strip().lower() not in _FALSE_VALUES
+    """内容安全闸是否启用。
+
+    真源优先级：进程环境变量 ``CONTENT_GUARD_ENABLED`` > config.yaml
+    ``content_guard.enabled`` > 默认启用。v15.9.1 起设置页提供开关
+    （写 config.yaml），环境变量仍留给部署方做强制覆盖。
+    """
+    raw = os.environ.get("CONTENT_GUARD_ENABLED", "").strip()
+    if raw:
+        return raw.lower() not in _FALSE_VALUES
+    try:
+        from core.llm import load_config
+        cg = (load_config().get("content_guard") or {})
+        if isinstance(cg, dict) and "enabled" in cg:
+            return bool(cg.get("enabled"))
+    except Exception:
+        pass
+    return True
 
 
 def _review_only() -> bool:

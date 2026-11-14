@@ -1,6 +1,6 @@
 [project]
 name = "yimu-baokuanstudio"
-version = "15.9.0"
+version = "15.9.1"
 description = "一幕·YIMU 爆款工作室 V15.8.1 (朝晖颂 · Dawn Glow Ode) — 全自主 Multi-Agent 全媒体内容与影视短剧创作系统"
 readme = "README.md"
 requires-python = ">=3.9"

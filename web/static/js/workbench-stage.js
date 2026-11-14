@@ -211,19 +211,30 @@
   /* ------------------------------------------------------------------ 事件 */
 
   function bindNav() {
-    var nav = DOC.querySelector('body > .side .nav-group');
-    if (!nav || nav.getAttribute('data-stage-bound') === '1') return;
-    nav.setAttribute('data-stage-bound', '1');
+    /* v15.9.1 修复：旧实现 querySelector 只取第一个 .nav-group（主组：
+       dashboard/lite/inspire/drafts/studio），而「控制中心 / 个人中心」在
+       底部组 .nav-group.nav-group-bottom 里——点它们面板类名切了、舞台却永远
+       不打开，用户看到的就是「点了没反应、还停在对话页」。
+       未配置大模型弹窗的「去配置」正是跳 console，客户可见的直接后果就是
+       「弹出框让配置大模型，点配置后没到配置页」。现在两组全部接管。 */
+    var groups = DOC.querySelectorAll('body > .side .nav-group');
+    for (var i = 0; i < groups.length; i++) {
+      var nav = groups[i];
+      if (nav.getAttribute('data-stage-bound') === '1') continue;
+      nav.setAttribute('data-stage-bound', '1');
 
-    /* 冒泡阶段之后再执行：先让业务把 .panel.on 切好，我们再搬家 */
-    nav.addEventListener('click', function (e) {
-      var item = e.target && e.target.closest ? e.target.closest('.nav-item') : null;
-      if (!item) return;
-      var key = item.getAttribute('data-p');
-      if (key === 'lite') { setTimeout(close, 0); return; }
-      if (!PAGES[key]) return;
-      setTimeout(function () { open(key); }, 0);
-    });
+      /* 冒泡阶段之后再执行：先让业务把 .panel.on 切好，我们再搬家 */
+      (function (navEl) {
+        navEl.addEventListener('click', function (e) {
+          var item = e.target && e.target.closest ? e.target.closest('.nav-item') : null;
+          if (!item) return;
+          var key = item.getAttribute('data-p');
+          if (key === 'lite') { setTimeout(close, 0); return; }
+          if (!PAGES[key]) return;
+          setTimeout(function () { open(key); }, 0);
+        });
+      })(nav);
+    }
   }
 
   /* 左栏二级树里也有直接跳功能页的入口 */

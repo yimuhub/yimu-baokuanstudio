@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.9.0"
-__codename__ = "星火继"
-__codename_en__ = "Spark Relay"
-__slogan__ = "一念起 一幕开 万象生 · 深审整改：上帝函数拆解、计量写盘节流、底栏协调、3 天改动全核对"
-__slogan_cn__ = "一念起 一幕开 万象生 · 深审整改：上帝函数拆解、计量写盘节流、底栏协调、3 天改动全核对"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Deep audit: god-function split, metering throttle, footer realigned, 3-day diff fully reconciled"
+__version__ = "15.9.1"
+__codename__ = "九州同"
+__codename_en__ = "Nine Provinces One"
+__slogan__ = "一念起 一幕开 万象生 · 设置治理：系统默认统一、舞台导航修复、完整首次引导、水印与审核断链清零"
+__slogan_cn__ = "一念起 一幕开 万象生 · 设置治理：系统默认统一、舞台导航修复、完整首次引导、水印与审核断链清零"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Settings governance: system-default everywhere, stage nav fix, full first-run onboarding, watermark & review links restored"
 
 
 def get_version() -> str:

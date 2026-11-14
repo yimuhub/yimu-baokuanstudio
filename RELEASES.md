@@ -4,6 +4,35 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🧭 Version 15.9.1 · 九州同 (Nine Provinces One) · Settings Governance · 2026-11-14
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.1"`, `__codename__ = "九州同"`, `__codename_en__ = "Nine Provinces One"`)
+
+### 🎯 Milestone Summary
+
+系统设置与个人中心专项深审整改：15 项逻辑混乱逐项修复；出厂默认统一「系统默认」（Agnes 测试通道全退场）；四步完整首次引导（可跳过）；舞台导航根因修复；性能与巨石双修。全量 821 用例 + CI 四道门禁全绿，浏览器实测走查通过。
+
+### ⚡ Highlights
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **舞台导航根因修复** | `workbench-stage.js bindNav` 只绑第一个 `.nav-group`，「控制中心/个人中心」在底部组——点了没反应。全组接管后「去配置」直达模型服务配置弹窗 |
+| 2 | **Agnes 默认全退场** | 出厂 `agents.*.model`/`image.model` 全空 = 系统默认；新增 `resolve_default_model(category)` 解析链；生图无池走免 Key 保底、视频无池给明确指引；`prompt_polish`/`short_drama`/`ad_video` 去硬编码 |
+| 3 | **四步完整首次引导** | 免费额度 → 主链路 → 出图/出视频 → 审核与完成，右上角随时跳过；供应商下拉对齐真实预设（移除幽灵 `siliconflow`）；JS 外置 `web/static/js/onboarding.js` |
+| 4 | **水印断链修复** | 移动端水印保存此前是静默空操作（`/api/settings` 无 watermark 分支、`/api/status` 不回显）——保存与回显双双修复 |
+| 5 | **移动端激活语义对齐** | 保存供应商不再强制抢占主通道（与 PC「保存≠激活」一致）+ 独立「设为主网关」；移除无 Key 字段的「云端网关参数直连」旧表单 |
+| 6 | **跨通道路由污染修复** | 编辑新模型服务不再预填别家的 Agent 路由（旧实现兜底到活动通道的 routing，保存即写脏） |
+| 7 | **媒体名称真持久化** | `users.media_name` 列 + `GET/POST /api/user/media_name`；此前只存 localStorage 却提示「已保存」，换设备即丢 |
+| 8 | **审核设置 UI 落地** | `content_guard.enabled` 进 config.yaml（环境变量仍可强制覆盖）+ 设置页开关卡片 + 词库统计展示；`GET/POST /api/compliance/settings`（仅管理员） |
+| 9 | **Copilot 选择修复** | 只选供应商不选模型：补默认模型而非回裸供应商名（旧实现必失配后静默回落）；生图下拉移除后端不存在的虚构模型 |
+| 10 | **保存语义诚实化** | `/api/models/save` 仅保存时不再宣称「已立即热生效」，明确提示「保存≠激活」+ 当前主通道 |
+| 11 | **性能节流** | `/api/status` 过期清理从每轮询全表扫描 → 每小时一次 |
+| 12 | **巨石拆分** | `studio/releases_page.py` 790 行单函数 → 模板文件 + 40 行渲染器；引导 JS 外置；残留 `console.log` 清零 |
+
+**Full Changelog**: v15.9.0...v15.9.1
+
+---
+
 ## 🔥 Version 15.9.0 · 星火继 (Spark Relay) · Deep Audit Remediation · 2026-11-12
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.0"`, `__codename__ = "星火继"`, `__codename_en__ = "Spark Relay"`)

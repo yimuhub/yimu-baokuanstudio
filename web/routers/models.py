@@ -120,7 +120,16 @@ async def model_save(request: Request):
         raise HTTPException(500, '配置未能写入磁盘（安装目录或数据目录不可写）。请以有写入权限的方式重新安装，或联系管理员。')
     if api_key and api_key.strip() and not llm.provider_key_saved(provider_id):
         raise HTTPException(500, '密钥未能保存到用户配置目录，请检查该目录的写入权限。')
-    return {'ok': True, 'msg': '模型服务与多Agent路由配置已持久化保存并立即热生效！'}
+    # v15.9.1：回复语义诚实化——「仅保存」的通道并未激活，其 agent_routing
+    # 也只在该通道被激活后才生效，不许再一律宣称「已立即热生效」。
+    active_now = llm.load_config().get('gateway', {}).get('provider_id') == provider_id
+    if is_set_active and active_now:
+        msg = f'模型服务 [{provider_name or provider_id}] 已保存并设为主通道，配置即时生效。'
+    else:
+        msg = (f'模型服务 [{provider_name or provider_id}] 已保存（保存≠激活：当前主通道仍是 '
+               f'{llm.load_config().get("gateway", {}).get("provider_id") or "未设置"}）。'
+               f'要启用它请点「设为主网关」；其 Agent 路由也将在该通道激活后生效。')
+    return {'ok': True, 'active': active_now, 'msg': msg}
 
 @router.post('/api/models/provider/set_active')
 async def model_set_active_provider(request: Request):

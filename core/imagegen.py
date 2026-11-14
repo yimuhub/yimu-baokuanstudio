@@ -472,10 +472,16 @@ def build_prompt(title: str, context: str, angle: str) -> str:
 def image_cfg() -> dict:
     raw_cfg = load_config()
     cfg = raw_cfg.get("image", {})
-    # 优先采用 agent_routing.image 或 agents.image.model 路由绑定的生图模型
+    # 生图模型解析链：Agent 路由绑定 > 阶段绑定 > 设置页显式选择 > 系统默认(活动供应商
+    # 模型池首个图像模型) > 免 Key 保底引擎。空值一律意味着「跟随系统默认」，
+    # 绝不回退到某个写死的测试模型（v15.9.1 起出厂配置不再预置 Agnes）。
     routing_img = raw_cfg.get("gateway", {}).get("agent_routing", {}).get("image", "").strip()
     agent_img = raw_cfg.get("agents", {}).get("image", {}).get("model", "").strip()
-    model = routing_img or agent_img or cfg.get("model", "flux-schnell")
+    explicit = str(cfg.get("model", "") or "").strip()
+    if not (routing_img or agent_img or explicit):
+        from core.llm import resolve_default_model
+        explicit = resolve_default_model("image")
+    model = routing_img or agent_img or explicit or "flux-schnell"
     return {
         "enabled": bool(cfg.get("enabled", True)),
         "model": model,

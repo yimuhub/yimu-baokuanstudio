@@ -351,6 +351,8 @@ _CORE_USER_COLUMNS: tuple[tuple[str, str], ...] = (
     # R2-1：额度默认取定价真源（禁止在此硬编码额度数字）
     ("quota_max", f"INTEGER DEFAULT {TIER_CREDITS['free']}"),
     ("last_login", "REAL"),
+    # v15.9.1：创作者媒体名称（个人中心「媒体名称」此前只存 localStorage，换设备即丢）
+    ("media_name", "TEXT DEFAULT ''"),
 )
 
 

@@ -8238,7 +8238,10 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
       <div id="sp-agent-config" class="sub-view" style="display:none">
         <div class="card">
           <div style="font-size:15px;font-weight:700;color:#fff;margin-bottom:6px">🤖 企业级多 Agent 矩阵中枢</div>
-          <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:14px">涵盖「新媒体内容图文矩阵」与「AI 短剧影视制作矩阵」共 11 个专职 Agent。每个岗位支持独立模型引擎、专属专业技能库与系统级行为指令。</div>
+          <div style="font-size:12.5px;color:var(--text-muted);margin-bottom:6px">涵盖「新媒体内容图文矩阵」与「AI 短剧影视制作矩阵」共 11 个专职 Agent。每个岗位支持独立模型引擎、专属专业技能库与系统级行为指令。</div>
+          <div style="font-size:11.5px;color:var(--text-muted);line-height:1.6;margin-bottom:14px;background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:8px;padding:8px 10px">
+            ⚠️ 模型绑定优先级：<b style="color:var(--text)">此处单阶段绑定</b> &gt; 「模型服务 → 多 Agent 路由」 &gt; 系统默认。每个 Agent 的模型选「跟随系统默认」即可全链路统一走主通道主模型。
+          </div>
           <div id="agent-config-list" style="display:flex;flex-direction:column;gap:12px"></div>
         </div>
       </div>
@@ -8395,6 +8398,19 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
               <div class="hd"><div class="ic">🎯</div><div><div class="tt">AI 质量考核与自动迭代</div></div></div>
               <div class="ds" id="st-quality-info"></div>
               <div class="ft"><span class="meta">未达标自动重写</span><button class="btn btn-sm ghost" onclick="modal('m-quality')">配置考核</button></div>
+            </div>
+            <div class="set20-card">
+              <div class="hd"><div class="ic">🛡️</div><div><div class="tt">文字审核与内容安全闸</div></div></div>
+              <div class="ds" id="st-guard-info">加载中…</div>
+              <div class="ft">
+                <span class="meta">发布前独立拦截：伪医疗 / 绝对化用语等违规内容</span>
+                <span style="display:flex;gap:6px;align-items:center">
+                  <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+                    <input type="checkbox" id="st-guard-toggle" onchange="saveGuardToggle(this.checked)"> 启用审核
+                  </label>
+                  <button class="btn btn-sm ghost" onclick="loadGuardSettings()">↻</button>
+                </span>
+              </div>
             </div>
           </div>
 
@@ -11417,8 +11433,12 @@ async function deleteUserAccount(uid, username) {
 
     <!-- 4. 多 Agent 角色专业分工模型路由 -->
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:18px">
-      <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+      <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:6px">
         <span>🤖</span> 多 Agent 角色专属模型路由 (下拉选择已激活模型)
+      </div>
+      <div style="font-size:11.5px;color:var(--text-muted);line-height:1.6;margin-bottom:10px;background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:8px;padding:8px 10px">
+        ⚠️ 绑定优先级：<b style="color:var(--text)">「Agent 配置」页的单阶段绑定</b> &gt; 此处（各模型服务内的路由） &gt; 系统默认（主通道主模型）。
+        留空即「跟随系统默认」。若某阶段在「Agent 配置」里单独绑定了模型，这里的设置会被覆盖。
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
@@ -11509,6 +11529,7 @@ async function deleteUserAccount(uid, username) {
 <div class="mask" id="m-imgbed"><div class="modal-box">
   <h3>☁ GitHub 图床配置</h3>
   <label>Personal Access Token (repo权限)</label><input type="password" id="ib-token" placeholder="ghp_...">
+  <div id="ib-token-status" style="font-size:11.5px;color:var(--text-muted);margin:-4px 0 8px">○ 尚未配置 Token</div>
   <label>仓库路径 (格式: 用户名/仓库名)</label><input type="text" id="ib-repo" placeholder="owner/repo">
   <div class="modal-acts"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn" onclick="saveImgbed()">保存</button></div>
 </div></div>
@@ -11842,30 +11863,31 @@ async function deleteUserAccount(uid, username) {
      ② 选择主链路：直接开始（走官方通道 + 免费体验额度）或填入自备 Key
      ③ 完成/跳过（POST /api/onboarding/done 持久化，不再打扰） -->
 <div class="mask" id="m-wizard" style="z-index:1000">
-  <div class="modal-box" style="width:min(560px,94vw);background:linear-gradient(145deg,#161c28,#0d121c);border:1px solid rgba(64,184,190,0.4);box-shadow:0 16px 50px rgba(0,0,0,.8)">
+  <div class="modal-box" style="width:min(600px,94vw);background:linear-gradient(145deg,#161c28,#0d121c);border:1px solid rgba(64,184,190,0.4);box-shadow:0 16px 50px rgba(0,0,0,.8)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.08)">
       <div style="display:flex;align-items:center;gap:8px">
         <img src="/static/img/logo-icon.png" style="width:24px;height:24px;border-radius:5px;object-fit:contain" alt="Logo">
         <div>
           <div style="font-weight:700;font-size:15px;color:#fff" data-i18n="wizard_title">🚀 一步上手 · 让第一次成功先于第一次付费</div>
-          <div style="font-size:11px;color:var(--text-muted)" data-i18n="wizard_sub">30 秒完成引导，即可开始生成你的第一条爆款内容</div>
+          <div style="font-size:11px;color:var(--text-muted)" data-i18n="wizard_sub">2 分钟完成首次配置：主链路 · 出图 · 出视频 · 审核，全部一次配完</div>
         </div>
       </div>
-      <button type="button" class="btn btn-sm ghost" aria-label="关闭引导" title="关闭（视为已完成，不再打扰）" style="padding:6px 12px;border-radius:6px;font-size:14px;line-height:1" onclick="closeWizard()">✕</button>
+      <button type="button" class="btn btn-sm ghost" aria-label="跳过引导" title="跳过引导（以后可随时在「控制中心 → 系统与 API 配置」里补配）" style="padding:6px 12px;border-radius:6px;font-size:13px;line-height:1" onclick="closeWizard()">跳过 ✕</button>
     </div>
 
     <!-- 步骤条（可点回看已完成步骤，不能跳到未走到的步骤） -->
     <div style="display:flex;gap:6px;margin-bottom:16px" id="wizard-steps">
       <div class="wz-step on" data-step="1" onclick="wizardStepClick(1)" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(64,184,190,.15);color:#40b8be;border-radius:6px" data-i18n="wizard_step1">1 · 免费额度</div>
-      <div class="wz-step" data-step="2" onclick="wizardStepClick(2)" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.04);color:var(--text-muted);border-radius:6px" data-i18n="wizard_step2">2 · 选主链路</div>
-      <div class="wz-step" data-step="3" onclick="wizardStepClick(3)" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.04);color:var(--text-muted);border-radius:6px" data-i18n="wizard_step3">3 · 完成</div>
+      <div class="wz-step" data-step="2" onclick="wizardStepClick(2)" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.04);color:var(--text-muted);border-radius:6px" data-i18n="wizard_step2">2 · 主链路</div>
+      <div class="wz-step" data-step="3" onclick="wizardStepClick(3)" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.04);color:var(--text-muted);border-radius:6px">3 · 出图与出视频</div>
+      <div class="wz-step" data-step="4" onclick="wizardStepClick(4)" style="flex:1;text-align:center;padding:6px 0;font-size:11.5px;font-weight:700;background:rgba(255,255,255,.04);color:var(--text-muted);border-radius:6px">4 · 审核与完成</div>
     </div>
 
     <!-- 第 1 步：认识免费体验额度 -->
     <div id="wizard-step-1" class="wizard-page">
       <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:14px">
         <div style="background:rgba(64,184,190,.06);border:1px solid rgba(64,184,190,.3);border-radius:10px;padding:14px">
-          <div style="font-weight:700;font-size:13px;color:#40b8be;margin-bottom:6px">🎁 官方通道 · 每日免费体验额度（V10.0.0 新增）</div>
+          <div style="font-weight:700;font-size:13px;color:#40b8be;margin-bottom:6px">🎁 官方通道 · 每日免费体验额度</div>
           <div style="font-size:12.5px;color:var(--text);line-height:1.6">
             新用户注册即享 <b style="color:#40b8be">每日 3 次免费轻量 AI 生成</b>（单次 ≤512 tokens），
             <b>无需自备任何 API Key</b>。免费体验次数耗尽后自动切换到正常算力扣费，不会额外计费。
@@ -11898,7 +11920,7 @@ async function deleteUserAccount(uid, username) {
     <!-- 第 2 步：选主链路 -->
     <div id="wizard-step-2" class="wizard-page" style="display:none">
       <div style="font-size:12.5px;color:var(--text);line-height:1.6;margin-bottom:14px">
-        想让系统"开箱就出活"，选一条主链路：
+        想让系统"开箱就出活"，先选一条主链路（以后随时可在「控制中心 → 系统与 API 配置」更换）：
       </div>
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
         <label style="display:flex;gap:10px;background:rgba(64,184,190,.06);border:1px solid rgba(64,184,190,.35);border-radius:10px;padding:12px;cursor:pointer" onclick="document.getElementById('wz-choice-official').checked=true">
@@ -11915,40 +11937,80 @@ async function deleteUserAccount(uid, username) {
           <div>
             <div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:2px">🔑 填入自备 API Key（更便宜 · 更高上限）</div>
             <div style="font-size:11.5px;color:var(--text-muted)">
-              已有 DeepSeek / OpenAI / Claude 等平台账号？填 Key 后直接走自备通道，不消耗官方算力点。
+              已有 DeepSeek / OpenAI / Claude / 通义等平台账号？填 Key 后直接走自备通道，不消耗官方算力点。
             </div>
-            <div style="display:flex;gap:8px;margin-top:8px">
-              <select id="wz-key-provider" onchange="onWizardProviderChange()" style="width:140px;background:#0d1117;border:1px solid var(--border);padding:6px;border-radius:6px;color:#fff;font-size:12px">
-                <option value="deepseek">DeepSeek</option>
-                <option value="openai">OpenAI</option>
-                <option value="claude">Anthropic Claude</option>
-                <option value="qwen">通义千问 DashScope</option>
-                <option value="siliconflow">硅基流动</option>
-                <option value="custom">自定义</option>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+              <select id="wz-key-provider" onchange="onWizardProviderChange()" style="flex:1;min-width:170px;background:#0d1117;border:1px solid var(--border);padding:6px;border-radius:6px;color:#fff;font-size:12px">
+                <option value="deepseek">🚀 DeepSeek 官方</option>
+                <option value="openai">🧠 OpenAI (GPT)</option>
+                <option value="claude">🟣 Anthropic Claude</option>
+                <option value="gemini">🔷 Google Gemini</option>
+                <option value="qwen">🔴 阿里通义千问</option>
+                <option value="glm">🟢 智谱 GLM</option>
+                <option value="kimi">🌙 月之暗面 Kimi</option>
+                <option value="volcengine">🔥 火山引擎 Ark</option>
+                <option value="custom">🌐 自定义网关 (硅基流动/OneAPI)</option>
               </select>
-              <input type="password" id="wz-key-value" placeholder="sk-..." style="flex:1;background:#0d1117;border:1px solid var(--border);padding:6px 10px;border-radius:6px;color:#fff;font-size:12px">
+              <input type="password" id="wz-key-value" placeholder="sk-..." style="flex:1;min-width:150px;background:#0d1117;border:1px solid var(--border);padding:6px 10px;border-radius:6px;color:#fff;font-size:12px">
+            </div>
+            <div id="wz-baseurl-row" style="display:none;margin-top:8px">
+              <input type="text" id="wz-key-baseurl" placeholder="Base URL，如 https://api.siliconflow.cn/v1" style="width:100%;background:#0d1117;border:1px solid var(--border);padding:6px 10px;border-radius:6px;color:#fff;font-size:12px">
             </div>
           </div>
         </label>
       </div>
       <div class="wz-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
         <button type="button" class="btn ghost" style="font-size:12px" onclick="wizardGo(1)" data-i18n="wizard_prev">← 上一步</button>
-        <button type="button" id="wz-finish-btn" class="btn ok" style="flex:1;padding:10px" onclick="wizardFinish()" data-i18n="wizard_finish">完成引导 ➔</button>
+        <button type="button" class="btn ok" style="flex:1;padding:10px" onclick="wizardGo(3)">下一步：出图与出视频 →</button>
       </div>
     </div>
 
-    <!-- 第 3 步：完成 -->
+    <!-- 第 3 步：出图与出视频（管理员可改，普通用户跟随系统默认） -->
     <div id="wizard-step-3" class="wizard-page" style="display:none">
-      <div style="text-align:center;padding:10px 0 14px">
-        <div style="font-size:42px;margin-bottom:8px">🎉</div>
-        <div style="font-weight:700;font-size:15px;color:#fff;margin-bottom:6px" data-i18n="wizard_done_title">引导完成</div>
-        <div style="font-size:12.5px;color:var(--text);line-height:1.6;margin-bottom:14px" id="wz-done-msg">
-          现在可以直接在「灵感生成器」里输入一句话，开始生成你的第一条爆款。
+      <div style="font-size:12.5px;color:var(--text);line-height:1.6;margin-bottom:12px">
+        生成模型建议<b style="color:#40b8be">跟随系统默认</b>（自动用主通道里最好的模型）。想手动指定也可以：
+      </div>
+      <div id="wz-genprefs">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">🎨 出图模型</label>
+            <select id="wz-image-model" style="width:100%;background:#0d1117;border:1px solid var(--border);padding:7px;border-radius:6px;color:#fff;font-size:12px"></select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text-muted);display:block;margin-bottom:4px">🎬 出视频模型</label>
+            <select id="wz-video-model" style="width:100%;background:#0d1117;border:1px solid var(--border);padding:7px;border-radius:6px;color:#fff;font-size:12px"></select>
+          </div>
         </div>
-        <div class="wz-footer" style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;text-align:center">
-          <button type="button" class="btn ok" style="padding:9px 18px" onclick="closeWizard();goInspire()" data-i18n="wizard_done_cta1">去写第一条爆款 ➔</button>
-          <button type="button" class="btn ghost" style="padding:9px 18px" onclick="closeWizard()" data-i18n="wizard_done_cta2">留在当前页</button>
-        </div>
+        <div id="wz-genpref-note" style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:12px"></div>
+      </div>
+      <div class="wz-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <button type="button" class="btn ghost" style="font-size:12px" onclick="wizardGo(2)">← 上一步</button>
+        <button type="button" class="btn ok" style="flex:1;padding:10px" onclick="wizardGo(4)">下一步：内容审核 →</button>
+      </div>
+    </div>
+
+    <!-- 第 4 步：文字审核 + 完成 -->
+    <div id="wizard-step-4" class="wizard-page" style="display:none">
+      <div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px">
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="wz-guard-enabled" checked style="margin-top:2px">
+          <div>
+            <div style="font-weight:700;font-size:13px;color:#fff;margin-bottom:2px">🛡️ 开启文字审核与内容安全闸（推荐）</div>
+            <div style="font-size:11.5px;color:var(--text-muted);line-height:1.6">
+              发布前自动拦截违规内容（伪医疗、绝对化用语等）：明确违规阻断发布，灰区标记人工复核。关闭后内容不再做安全检查。
+            </div>
+          </div>
+        </label>
+      </div>
+      <div style="font-size:12.5px;color:var(--text-muted);line-height:1.7;margin-bottom:14px">
+        ✅ 配置摘要：主链路 <b id="wz-sum-link" style="color:#40b8be">官方通道</b>
+        · 出图 <b id="wz-sum-img" style="color:#40b8be">系统默认</b>
+        · 出视频 <b id="wz-sum-video" style="color:#40b8be">系统默认</b>
+        。以后所有配置都能在「控制中心 → 系统与 API 配置」里随时修改。
+      </div>
+      <div class="wz-footer" style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <button type="button" class="btn ghost" style="font-size:12px" onclick="wizardGo(3)">← 上一步</button>
+        <button type="button" id="wz-finish-btn" class="btn ok" style="flex:1;padding:10px" onclick="wizardFinish()" data-i18n="wizard_finish">完成引导，开始创作 ➔</button>
       </div>
     </div>
   </div>
@@ -13705,15 +13767,37 @@ function syncProfileCenterData() {
   }
 }
 
-function saveProfileMediaName() {
+async function saveProfileMediaName() {
   const input = $('profile-media-name-input');
   if (!input) return;
   const val = (input.value || '').trim();
   if (!val) return toast('请输入有效的自媒体或机构名称');
-  if (typeof syncUserMediaName === 'function') syncUserMediaName(val);
-  const nameText = $('profile-media-name-text');
-  if (nameText) nameText.textContent = val;
-  toast('✅ 创作者媒体名称已保存: ' + val);
+  // v15.9.1：真持久化——此前只写 localStorage（换设备/浏览器即丢），却提示「已保存」
+  try {
+    const res = await api('/api/user/media_name', {
+      method: 'POST',
+      body: JSON.stringify({ media_name: val })
+    });
+    if (typeof syncUserMediaName === 'function') syncUserMediaName(val);
+    const nameText = $('profile-media-name-text');
+    if (nameText) nameText.textContent = val;
+    toast((res && res.msg) || '✅ 创作者媒体名称已保存: ' + val);
+  } catch (e) {
+    toast('保存失败: ' + e.message);
+  }
+}
+
+/* 登录后从服务端拉取持久化的媒体名称（localStorage 只是回退） */
+async function loadUserMediaNameFromServer() {
+  try {
+    const res = await api('/api/user/media_name');
+    const name = (res && res.media_name || '').trim();
+    if (name && name !== getUserMediaName()) syncUserMediaName(name);
+    const nameText = $('profile-media-name-text');
+    if (nameText) nameText.textContent = getUserMediaName();
+    const nameInput = $('profile-media-name-input');
+    if (nameInput && name) nameInput.value = name;
+  } catch (e) { /* 未登录/网络失败静默跳过 */ }
 }
 
 function setThemeModeDirect(mode) {
@@ -13761,6 +13845,9 @@ function switchSubTab(parentPanel, subId) {
   }
   if (subId === 'sp-settings' && typeof loadAccessMode === 'function') {
     try { loadAccessMode(); } catch(e) { /* ignore */ }
+  }
+  if (subId === 'sp-settings' && typeof loadGuardSettings === 'function') {
+    try { loadGuardSettings(); } catch(e) { /* ignore */ }
   }
   /* ⭐ AI 短视频生成及文案改写模型列表刷新 */
   if (subId === 'sp-aivideo' && typeof populateAivRewriteModels === 'function') {
@@ -15421,9 +15508,9 @@ async function openCopilotSettingsModal() {
   // 2. 联动填充模型下拉
   populateCopilotModels(pSel ? pSel.value : savedProvider, savedModel);
 
-  // 3. 填充生图模型
-  const imgSel = $('copilot-image-model-select');
-  if (imgSel) imgSel.value = savedImageModel;
+  // 3. 填充生图模型（v15.9.1：改为动态——旧实现硬编码 jimeng/stable-diffusion 等
+  //    后端根本没有实现的模型 ID，选中即 404；现在只列模型池里真实存在的图像模型）
+  populateCopilotImageModels(pSel ? pSel.value : savedProvider, savedImageModel);
 
   // 4. 填充名家文风音色库
   const personaSel = $('copilot-persona-select');
@@ -15445,6 +15532,32 @@ async function openCopilotSettingsModal() {
 
 function onCopilotProviderChange(providerId) {
   populateCopilotModels(providerId, '__default__');
+  populateCopilotImageModels(providerId, '__default__');
+}
+
+function populateCopilotImageModels(providerId, selectedModel) {
+  const imgSel = $('copilot-image-model-select');
+  if (!imgSel) return;
+  const pData = cachedProvidersData || { providers: {}, active_provider_id: 'custom' };
+  const targetPid = (providerId === '__default__' || !providerId) ? (pData.active_provider_id || 'custom') : providerId;
+  const p = pData.providers ? pData.providers[targetPid] : null;
+  let opts = `<option value="__default__">⚙️ 默认生图引擎 (继承后台图像设置)</option>`;
+  (p && p.models ? p.models : []).forEach(m => {
+    const cat = m.category || '';
+    const id = String(m.id || '');
+    if (cat === 'image' || (!cat && /image|dall|flux|sd|imagen/i.test(id))) {
+      opts += `<option value="${escapeHtml(m.id)}">🎨 ${escapeHtml(m.name || m.id)}</option>`;
+    }
+  });
+  // 跨模型服务已配置密钥的图像模型也纳入可选
+  (window._cachedCrossModels || []).forEach(m => {
+    if (m.category === 'image' && m.has_key !== false && m.provider_id !== targetPid) {
+      opts += `<option value="${escapeHtml(m.id)}">🎨 ${escapeHtml(m.name || m.id)} [${escapeHtml(m.provider_name || m.provider_id || '')}]</option>`;
+    }
+  });
+  imgSel.innerHTML = opts;
+  imgSel.value = selectedModel || '__default__';
+  if (imgSel.value !== (selectedModel || '__default__')) imgSel.value = '__default__';
 }
 
 function populateCopilotModels(providerId, selectedModel) {
@@ -15950,7 +16063,7 @@ async function sendCopilotMessage() {
       renderCopilotAttachments();
     }
     if (e.name === 'AbortError') {
-      console.log('Copilot generation aborted by user.');
+      /* 用户主动停止，静默处理（v15.8.2 卫生基线：不留 console 输出） */
     } else {
       const errBubble = document.createElement('div');
       errBubble.className = 'copilot-msg assistant';
@@ -21311,6 +21424,42 @@ function updateThemeToggleDisplay() {
   if (selEl) selEl.value = mode;
 }
 
+/* ============ 文字审核与内容安全闸（v15.9.1 新增设置 UI） ============ */
+async function loadGuardSettings() {
+  try {
+    const res = await api('/api/compliance/settings');
+    const box = $('st-guard-info');
+    const tgl = $('st-guard-toggle');
+    if (tgl) tgl.checked = !!res.enabled;
+    if (box) {
+      const libs = (res.libraries && typeof res.libraries === 'object')
+        ? Object.entries(res.libraries).map(([k, v]) => `${k}（阻断 ${v.block} / 复核 ${v.review}）`).join(' · ')
+        : '';
+      box.innerHTML = `当前状态：<b style="color:${res.enabled ? '#3fb950' : '#f85149'}">${res.enabled ? '已启用' : '已关闭'}</b>`
+        + (res.env_override ? ' <span class="badge gold" style="font-size:10px">环境变量强制中</span>' : '')
+        + `<br><span style="font-size:11px">词库共 ${res.total ?? 0} 条：${libs || '内置 blocklists'}</span>`
+        + `<br><span style="font-size:11px">白名单 ${res.whitelist ?? 0} 条 · 命中「阻断档」不进入评分，灰区标记人工复核</span>`;
+    }
+  } catch (e) {
+    const box = $('st-guard-info');
+    if (box) box.textContent = '加载失败: ' + e.message;
+  }
+}
+
+async function saveGuardToggle(enabled) {
+  try {
+    const res = await api('/api/compliance/settings', {
+      method: 'POST',
+      body: JSON.stringify({ enabled: !!enabled })
+    });
+    toast((res && res.msg) || (enabled ? '文字审核已开启' : '文字审核已关闭'));
+    loadGuardSettings();
+  } catch (e) {
+    toast('保存失败: ' + e.message);
+    loadGuardSettings();
+  }
+}
+
 function renderSettingsData() {
   if(!S.gateway) return;
   updateThemeToggleDisplay();
@@ -21998,7 +22147,7 @@ function updateGatewayModelDropdowns(targetDefault, targetRouting) {
     if (!el) return;
     const curVal = (targetRouting && targetRouting[f.key]) !== undefined ? targetRouting[f.key] : el.value;
     const pool = (f.list && f.list.length > 0) ? f.list : (enabledModels.length > 0 ? enabledModels : []);
-    let html = `<option value="">（跟随全局默认模型）</option>`;
+    let html = `<option value="">（跟随系统默认 · 主通道主模型）</option>`;
     html += pool.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
     if (curVal && !pool.some(m => m.id === curVal) && curVal.trim()) {
       html += `<option value="${curVal}">${curVal} (指定值)</option>`;
@@ -22077,7 +22226,7 @@ function populateAgentModelDropdown(curVal, stage) {
   const imgModels = allModels.filter(x => x.category === 'image' && x.is_enabled);
   const videoModels = allModels.filter(x => x.category === 'video' && x.is_enabled);
 
-  let html = `<option value="">（跟随全局主模型服务默认模型）</option>`;
+  let html = `<option value="">（跟随系统默认 · 主通道主模型）</option>`;
   if (textModels.length > 0) {
     html += `<optgroup label="⭐ 当前主模型服务 · 文字与逻辑推理模型">` + textModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('') + `</optgroup>`;
   }
@@ -22298,9 +22447,13 @@ function selectProvider(id, doToast = true, customRouting = null) {
     renderModelSelectionGrid();
 
     // 智能恢复已保存的多 Agent 路由
+    // v15.9.1 修复「跨模型服务路由污染」：只读**当前这家**自己保存的路由。
+    // 旧实现回退链最后兜到活动模型服务的 agent_routing，把别家的模型 ID 预填进
+    // 新家，点保存后 A 家模型被写进 B 家配置（运行时必然失配回退）。
     const curGw = window._cachedGatewayCurrent || (S && S.gateway) || {};
-    const effectiveRouting = customRouting || (curGw.provider_id === id ? curGw.agent_routing : null) || curGw.agent_routing || {};
-    updateGatewayModelDropdowns(p.default_model, effectiveRouting);
+    const ownRouting = customRouting
+      || (curGw.provider_id === id ? (curGw.agent_routing || {}) : {});
+    updateGatewayModelDropdowns(p.default_model, ownRouting);
     if (doToast) toast(`已载入 ${p.name} 参数与模型库`);
   }
 }
@@ -22489,7 +22642,8 @@ async function saveModelProviderConfig(setAsActive = true) {
     if (setAsActive) {
       activeProviderId = pid;
     }
-    toast(`✅ 模型服务 [${pname || pid}] 参数与模型库已保存成功！${setAsActive ? ' (已设为主网关)' : ''}`, 3500);
+    // v15.9.1：以后端回复为准——「仅保存」未激活时不再宣称「已生效」
+    toast('✅ ' + ((res && res.msg) || `模型服务 [${pname || pid}] 已保存`), 3500);
     await loadModelProvidersModal();
     if (typeof refresh === 'function') refresh();
   } catch (e) {
@@ -22703,6 +22857,11 @@ modal = function(id) {
   } else if (id === 'm-imgbed' && S.imgbed) {
     $('ib-repo').value = S.imgbed.repo || '';
     $('ib-token').value = '';
+    // v15.9.1：Token 已配置时给明确提示（留空=不修改），不再让用户猜
+    const ibHint = $('ib-token-status');
+    if (ibHint) ibHint.textContent = S.imgbed.configured
+      ? '● Token 已保存（出于安全不回显，留空则不修改）'
+      : '○ 尚未配置 Token';
   }
   origModal(id);
 };
@@ -22738,191 +22897,14 @@ updateThemeToggleDisplay();
     updateAuthUI(false);
   } finally {
     refresh();
+    loadUserMediaNameFromServer();
     setTimeout(() => { checkSystemUpdate(false); }, 1500);
   }
 })();
 
-/* =================== 🚀 首次引导 Wizard（V10.0.0 · 审查报告 P1-1） ===================
-   设计原则（与后端 /api/auth/status 的 wizard.show 判定保持单一真源）：
-   - 只在"已登录 且 尚未完成/跳过 且 未配置任何自备 Key"时展示一次；
-   - 任何一步可关闭/跳过，关闭即 POST /api/onboarding/done 持久化标记，绝不反复打扰；
-   - 展示"官方通道每日 3 次免费体验额度"，让第一次成功先于第一次付费；
-   - 自备 Key 路径直接走 /api/user/vault/keys 加密保存（复用既有 Vault 机制）。 */
-// 当前已走到第几步（步骤条点击只允许回看 ≤ 该步，不允许跳到还没走到的步骤）
-window._WIZ_MAX_STEP = 1;
-
-function wizardGo(step) {
-  const s = Math.min(3, Math.max(1, Number(step) || 1));
-  window._WIZ_MAX_STEP = Math.max(window._WIZ_MAX_STEP || 1, s);
-  document.querySelectorAll('#wizard-steps .wz-step').forEach(el => {
-    const cur = Number(el.dataset.step);
-    el.classList.toggle('on', cur === s);
-    el.style.background = cur === s ? 'rgba(64,184,190,.15)' : 'rgba(255,255,255,.04)';
-    el.style.color = cur === s ? '#40b8be' : 'var(--text-muted)';
-    // 未走到的步骤不可点（避免空跑到"完成"页）
-    el.dataset.locked = cur > window._WIZ_MAX_STEP ? '1' : '0';
-  });
-  [1, 2, 3].forEach(i => {
-    const p = $('wizard-step-' + i);
-    if (p) p.style.display = i === s ? 'block' : 'none';
-  });
-  if (s === 2) {
-    // 刷新"今日剩余"展示（与第 1 步同源）
-    const leftEl = $('wz-free-left-2');
-    if (leftEl && window._WIZ_FREE_LEFT != null) leftEl.textContent = window._WIZ_FREE_LEFT;
-  }
-  // 切换步骤后把弹窗滚回顶部，避免停在上一屏的滚动位置（矮屏尤其明显）
-  const box = document.querySelector('#m-wizard > .modal-box');
-  if (box) box.scrollTop = 0;
-  wizardSyncScrollFlag();
-}
-
-// 内容溢出时才给底部操作条上实色底（否则完成页会多一条难看的色带）
-function wizardSyncScrollFlag() {
-  const box = document.querySelector('#m-wizard > .modal-box');
-  if (!box) return;
-  box.classList.toggle('is-scroll', box.scrollHeight - box.clientHeight > 4);
-}
-
-// 窗口尺寸变化（拖窗口 / 投屏切换分辨率）时重新判定是否需要实色底栏
-window.addEventListener('resize', () => {
-  const wz = $('m-wizard');
-  if (wz && wz.classList.contains('on')) wizardSyncScrollFlag();
-});
-// 弹窗从 display:none 变为显示时 clientHeight 才有效，用 ResizeObserver 兜住这次变化
-try {
-  const _wzBox = document.querySelector('#m-wizard > .modal-box');
-  if (_wzBox && window.ResizeObserver) {
-    new ResizeObserver(() => wizardSyncScrollFlag()).observe(_wzBox);
-  }
-} catch (_e) { /* 老浏览器没有 ResizeObserver 也不影响主流程 */ }
-
-// 步骤条点击：只允许回看已走过的步骤
-function wizardStepClick(step) {
-  const s = Number(step) || 1;
-  if (s > (window._WIZ_MAX_STEP || 1)) return;
-  wizardGo(s);
-}
-
-function closeWizard() {
-  /* 任何时刻关闭（✕ / 背景 / Esc / 完成页按钮）都算"完成/跳过"并落标记，避免反复打扰。
-     🔴 修复：此前这里写的是 modal('m-wizard').classList.remove('on')，
-        而 modal() 没有返回值 → 必然抛 TypeError，✕ 和完成页两个按钮全部点不动，
-        POST /api/onboarding/done 也永远发不出去 → 引导关不掉、每次刷新都弹。 */
-  try {
-    const w = $('m-wizard');
-    if (w) w.classList.remove('on');
-  } catch (_e) { /* DOM 缺失也不阻塞标记 */ }
-  window._WIZ_MAX_STEP = 1;
-  fetch('/api/onboarding/done', {method: 'POST'})
-    .catch(() => { /* 标记失败不阻塞 */ });
-}
-
-function goInspire() {
-  /* 向导第 3 步「去写第一条爆款 ➔」的落点：切到「灵感生成器」并聚焦关键词输入框。
-     🔴 修复：这个函数此前**全仓没有定义**，而按钮 onclick 里直接调它，
-        点下去只会在 Console 报 ReferenceError——全产品唯一一处手把手引导，
-        最后一步是死链。 */
-  try {
-    const nav = document.querySelector('.nav-item[data-p=inspire]');
-    if (nav) nav.click();
-    const kw = $('sk-kw');
-    if (kw) {
-      setTimeout(() => {
-        try { kw.scrollIntoView({block: 'center'}); kw.focus(); } catch (e) {}
-      }, 200);
-    }
-  } catch (e) { /* 引导跳转失败不影响主界面 */ }
-}
-
-function onWizardProviderChange() {
-  const sel = $('wz-key-provider');
-  const inp = $('wz-key-value');
-  if (!sel || !inp) return;
-  const ph = sel.value === 'custom' ? 'https://api.example.com/v1' : 'sk-...';
-  inp.placeholder = sel.value === 'custom' ? 'sk-... 并填写 Base URL（可在控制中心补填）' : ph;
-}
-
-async function wizardFinish() {
-  const btn = $('wz-finish-btn');
-  const choice = (document.querySelector('input[name="wz-choice"]:checked') || {}).value || 'official';
-  if (choice === 'key') {
-    const selEl = $('wz-key-provider');
-    const inpEl = $('wz-key-value');
-    const provider = selEl ? selEl.value : 'deepseek';
-    const key = inpEl ? inpEl.value.trim() : '';
-    if (!key) {
-      toast('请填写 API Key，或改选"官方通道（免 Key）"');
-      // 把焦点送到真正要填的地方，而不是让用户对着"点了没反应"发呆
-      if (inpEl) {
-        try { inpEl.scrollIntoView({block: 'center'}); inpEl.focus(); } catch (_e) {}
-        inpEl.style.borderColor = '#f85149';
-        setTimeout(() => { inpEl.style.borderColor = ''; }, 1800);
-      }
-      return;
-    }
-    if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
-    try {
-      const r = await fetch('/api/user/vault/keys', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({provider: provider, api_key: key, model_id: '', label: 'Wizard 引导'})
-      });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) {
-        // 保存失败不能继续走"完成"页，否则用户会以为自己配好了
-        toast('❌ ' + (d.detail || d.message || '保存失败'), 4000);
-        return;
-      }
-      toast('✅ 自备 API Key 已加密保存并生效');
-    } catch(e) {
-      toast('❌ 网络错误：' + e.message, 4000);
-      return;
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '完成引导 ➔'; }
-    }
-  }
-  // 进入完成页
-  wizardGo(3);
-  const left = (window._WIZ_FREE_LEFT != null) ? window._WIZ_FREE_LEFT : 3;
-  const doneMsg = $('wz-done-msg');
-  if (doneMsg) {
-    doneMsg.innerHTML =
-      (choice === 'official'
-        ? '主链路已设为「官方通道」，今日剩余 '
-        : '已启用自备 Key 主链路。官方通道今日剩余 ')
-      + '<b style="color:#40b8be">' + left + '</b> 次免费体验额度 · 随时可在「控制中心 → 模型服务」切换。';
-  }
-  // 持久化标记（防反复打扰）
-  fetch('/api/onboarding/done', {method: 'POST'}).catch(() => {});
-}
-
-// 页面加载时调用：展示 或 静默跳过
-async function checkWizard(statusData) {
-  // 从 /api/auth/status 响应取 wizard.show 判定（后端已综合 登录态 + 未标记 两条件）
-  const show = !!(statusData && statusData.wizard && statusData.wizard.show);
-  if (!show) { window._WIZ_FREE_LEFT = null; return; }
-  window._WIZ_FREE_LEFT = (statusData.wizard && statusData.wizard.free_left_today) != null
-    ? statusData.wizard.free_left_today : null;
-  // 二次确认：已配置自备 Key 则不再引导（直接静默标记完成）
-  try {
-    const r = await fetch('/api/user/vault/keys');
-    const d = await r.json().catch(() => ({}));
-    const hasKey = !!(d && d.using_platform_default === false);
-    if (hasKey) { fetch('/api/onboarding/done', {method: 'POST'}).catch(() => {}); return; }
-  } catch(e) { /* 网络失败也照显示，引导不阻塞 */ }
-  const freeLeft = $('wz-free-left');
-  if (freeLeft && window._WIZ_FREE_LEFT != null) {
-    freeLeft.textContent = window._WIZ_FREE_LEFT;
-  }
-  const w = $('m-wizard');
-  if (!w) return;                       // DOM 缺失就安静退出，绝不抛错打断主流程
-  if (w.classList.contains('on')) return; // 已在展示中，别重复初始化
-  window._WIZ_MAX_STEP = 1;
-  wizardGo(1);
-  modal('m-wizard');
-  wizardSyncScrollFlag();   // 弹窗刚显示时才算得准 clientHeight
-}
+/* =================== 🚀 首次引导 Wizard（v15.9.1 完整重构） ===================
+   四步完整引导：免费额度 → 主链路 → 出图/出视频 → 审核与完成；右上角随时可跳过。
+   全部逻辑外置在 web/static/js/onboarding.js（巨石拆分：本文件不再内联引导 JS）。 */
 
 /* =================== 🖼️ 配图管理器 =================== */
 
@@ -25745,10 +25727,28 @@ window.addEventListener('DOMContentLoaded', () => {
 /* ==================== 未配置大模型时的引导弹窗 ==================== */
 function goToModelSettings() {
   closeModal();
-  // 先切到「控制中心」主面板，再切到「系统与 API 配置」子标签
-  const nav = document.querySelector('.nav-item[data-p=console]');
-  if (nav) nav.click();
-  setTimeout(() => { try { switchSubTab('console', 'sp-settings'); } catch(e) {} }, 200);
+  /* v15.9.1 修复「点去配置没反应」：
+     ① 统一走 switchToPage()（v2 舞台下会被 workbench-stage 接管打开舞台，
+        经典布局下等价于点导航）；旧实现手动 nav.click() 在舞台外壳下
+        面板类名切了但舞台不开，界面纹丝不动。
+     ② 先切到「系统与 API 配置」子页，再自动弹出「模型服务配置」弹窗，
+        少一次寻找。 */
+  try {
+    if (typeof switchToPage === 'function') switchToPage('console');
+    else {
+      const nav = document.querySelector('.nav-item[data-p="console"]');
+      if (nav) nav.click();
+    }
+  } catch (e) {}
+  setTimeout(() => {
+    try { switchSubTab('console', 'sp-settings'); } catch (e) {}
+    setTimeout(() => {
+      try {
+        modal('m-gateway');
+        if (typeof loadModelProvidersModal === 'function') loadModelProvidersModal();
+      } catch (e) {}
+    }, 320);
+  }, 200);
 }
 
 function showLlmMissingModal() {
@@ -26312,11 +26312,6 @@ document.addEventListener('DOMContentLoaded', () => {
         <label style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:6px;display:block">🎨 小红书实景卡片与配图模型</label>
         <select id="copilot-image-model-select" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);font-size:12.5px">
           <option value="__default__">⚙️ 默认生图引擎 (继承后台图像设置)</option>
-          <option value="dall-e-3">OpenAI DALL-E 3 (高清逼真真实感)</option>
-          <option value="flux-schnell">FLUX.1 Schnell (极速海报制图)</option>
-          <option value="flux-dev">FLUX.1 Dev (电影级光影细节)</option>
-          <option value="jimeng">即梦 AI / 字节豆包视觉 (中文理解最佳)</option>
-          <option value="stable-diffusion">Stable Diffusion XL (工业级渲染)</option>
         </select>
       </div>
 
@@ -26482,6 +26477,8 @@ function switchMobileNav(panelKey) {
 <script src="/static/js/workbench-rail.js"></script>
 <!-- V12 右栏舞台：左栏恒定 / 中栏恒定对话 / 功能页在右栏打开并可全屏 -->
 <script src="/static/js/workbench-stage.js"></script>
+<!-- V15.9 首次引导 Wizard（四步完整引导 · 可跳过） -->
+<script src="/static/js/onboarding.js"></script>
 <!-- V15.6 内容工作台双栏可拖拽分栏（编辑区 / 成稿预览） -->
 <script src="/static/js/workbench-split.js"></script>
 

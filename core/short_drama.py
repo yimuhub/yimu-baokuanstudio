@@ -1162,15 +1162,16 @@ def generate_ai_video_clip(
     out_mp4: Path,
     aspect: str = "9:16",
     duration_s: int = 5,
-    preferred_model: str = "agnes-video-2.5-flash"
+    preferred_model: str = ""
 ) -> bool:
-    """调用原生 AI 视频大模型（agnes-video-2.5-flash），以首帧参考图驱动生成真实连续动态视频切片。
+    """调用原生 AI 视频大模型，以首帧参考图驱动生成真实连续动态视频切片。
     新 schema(2026-10):mode=keyframe + first_frame;时长字段 seconds(字符串);分辨率 size=720P。
-    agnes-video-v2.0 上游已无渠道(503 model_not_found),不再作为兜底。"""
+    模型解析链：agent_routing.video > preferred_model > 系统默认(活动供应商池首个视频模型)；
+    全部为空时明确报「未配置视频模型」——绝不偷偷回退到写死的测试模型(v15.9.1)。"""
     if not img_path.exists() or img_path.stat().st_size < 1000:
         return False
 
-    from core.llm import load_config, resolve_provider_key
+    from core.llm import load_config, resolve_provider_key, resolve_default_model
     cfg = load_config()
     gw_pid = str(cfg.get("gateway", {}).get("provider_id") or "")
     # V15.8.3：视频接口的 Key 也走统一解析器（含占位值过滤与全局键位回退），
@@ -1187,13 +1188,16 @@ def generate_ai_video_clip(
     if not any(k in motion_prompt.lower() for k in ("motion", "camera", "dolly", "pan", "movement", "cinematic")):
         motion_prompt = f"{motion_prompt}, smooth cinematic slow motion, subtle alive micro-movements, 4k 60fps"
 
-    # 读取网关中绑定的专属视频生成 Agent 路由模型
+    # 读取网关中绑定的专属视频生成 Agent 路由模型；全空 = 跟随系统默认
     routed_video_m = cfg.get("gateway", {}).get("agent_routing", {}).get("video", "").strip()
-    active_preferred = routed_video_m or preferred_model or "agnes-video-2.5-flash"
+    active_preferred = routed_video_m or (preferred_model or "").strip() or resolve_default_model("video")
+    if not active_preferred:
+        logger.error(
+            "AI 视频切片未执行：当前主通道 [%s] 模型池没有任何视频模型，"
+            "请在「模型服务 → 多 Agent 路由 → 视频」绑定一个视频大模型", gw_pid or "未设置")
+        return False
 
     models_to_try = [active_preferred]
-    if active_preferred != "agnes-video-2.5-flash":
-        models_to_try.append("agnes-video-2.5-flash")
 
     for model_id in models_to_try:
         try:

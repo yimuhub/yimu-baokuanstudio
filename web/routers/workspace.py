@@ -218,7 +218,9 @@ def get_watermark_settings(request: Request):
 
 @router.post('/api/watermark/settings')
 async def save_watermark_settings(request: Request):
-    _a.guard(request)
+    # v15.9.1：全局品牌水印是运营层配置，改用管理员权限（与 /api/settings 口径一致；
+    # 多用户模式下此前任何登录用户都能改全站水印）。
+    _a.guard_admin(request)
     body = await request.json()
     # 写盘必须用 raw_config：load_config 返回的是派生视图（gateway.base_url 等
     # 由当前活动通道现算），直接 dump 会把派生字段重新写回文件，又造出第二份事实。
@@ -278,8 +280,16 @@ async def settings(request: Request):
         cfg['quality'] = {**cfg.get('quality', {}), **body['quality']}
     if body.get('creation'):
         cfg['creation'] = {**cfg.get('creation', {}), **body['creation']}
-    if 'draft_expire_days' in body:
-        cfg.setdefault('creation', {})['draft_expire_days'] = int(body['draft_expire_days'])
+    if body.get('content_guard'):
+        # v15.9.1：文字审核开关收进 config.yaml（环境变量仍可强制覆盖）
+        cg = body['content_guard']
+        cfg['content_guard'] = {**cfg.get('content_guard', {}),
+                                'enabled': bool(cg.get('enabled', True))}
+    if body.get('watermark'):
+        # v15.9.1 修复：此前 /api/settings 没有 watermark 分支，移动端/个人中心的
+        # 水印保存是静默空操作（前端却提示「已保存生效」）。现在真正落盘。
+        wm = body['watermark']
+        cfg['watermark'] = {**cfg.get('watermark', {}), **wm}
     if body.get('imgbed'):
         ib = body['imgbed']
         if ib.get('token'):
@@ -297,9 +307,6 @@ async def settings(request: Request):
             base[stage] = {**base.get(stage, {}), **patch}
         cfg['agents'] = base
     _reg.write_config(cfg)
-    if body.get('apipool_key'):
-        # 全局键位统一由 registry 写入（用户目录 0600），避免再出现「写一处、读一处」
-        _reg.set_key(_reg.active_provider_id(cfg), body['apipool_key'].strip(), also_global=True)
     return {'ok': True}
 
 @router.get('/api/diagnostics/stats')

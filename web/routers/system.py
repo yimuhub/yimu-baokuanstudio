@@ -30,6 +30,7 @@ from core import agents as AG  # noqa: E402,F811
 from core import db, judge, orchestrator  # noqa: E402,F811
 from core import layouter  # noqa: E402,F811
 from core.llm import load_config, load_env  # noqa: E402,F811
+from core import provider_registry as _reg  # noqa: E402,F811
 from core.themes import WECHAT_THEMES, XHS_CARD_STYLES  # noqa: E402,F811
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
 import asyncio  # noqa: E402,F811
@@ -69,6 +70,33 @@ def guard_stats(request: Request):
     _a.guard(request)
     from core import content_guard
     return content_guard.library_stats()
+
+@router.get('/api/compliance/settings')
+def compliance_settings(request: Request):
+    """文字审核设置读取：开关状态 + 词库规模（设置页「内容与质量」卡片数据源）。"""
+    _a.guard(request)
+    from core import content_guard
+    cfg = load_config()
+    cg = cfg.get('content_guard') if isinstance(cfg.get('content_guard'), dict) else {}
+    env_override = bool(str(load_env().get('CONTENT_GUARD_ENABLED') or '').strip())
+    return {'ok': True, 'enabled': content_guard.is_enabled(), 'env_override': env_override,
+            'config_enabled': bool(cg.get('enabled', True)), **content_guard.library_stats()}
+
+
+@router.post('/api/compliance/settings')
+async def compliance_settings_save(request: Request):
+    """文字审核开关（**仅管理员**）：写入 config.yaml content_guard.enabled 并热生效。"""
+    _a.guard_admin(request)
+    body = await request.json()
+    enabled = bool(body.get('enabled', True))
+    cfg = _reg.raw_config()
+    cfg['content_guard'] = {**cfg.get('content_guard', {}), 'enabled': enabled}
+    _reg.write_config(cfg)
+    from core import content_guard
+    return {'ok': True, 'enabled': content_guard.is_enabled(),
+            'msg': '文字审核已开启，发布前将自动拦截违规内容' if enabled
+            else '文字审核已关闭（环境变量 CONTENT_GUARD_ENABLED 仍可强制覆盖）'}
+
 
 @router.post('/api/compliance/topics/sweep')
 async def guard_sweep_topics(request: Request):
@@ -128,6 +156,10 @@ async def guard_check_draft(did: str, request: Request):
     res = content_guard.pre_publish_check(d.get('body_md'), d.get('title'))
     return res.to_dict()
 
+_EXPIRE_SWEEP_INTERVAL_S = 3600
+_expire_last_sweep: list[float] = [0.0]
+
+
 @router.get('/api/status')
 def status(request: Request):
     user = _a.guard(request)
@@ -135,22 +167,32 @@ def status(request: Request):
     env = load_env()
     cr = cfg.get('creation', {})
     exp_days = int(cr.get('draft_expire_days', 0))
+    # v15.9.1 性能修复：过期清理从「每次 /api/status 轮询都全表扫描」节流为
+    # 每小时最多一次——状态轮询是高频调用，不该附带全局写副作用。
     if exp_days > 0:
-        try:
-            db.delete_old_drafts(exp_days)
-        except Exception:
-            pass
+        import time as _time
+        now = _time.time()
+        if now - _expire_last_sweep[0] >= _EXPIRE_SWEEP_INTERVAL_S:
+            _expire_last_sweep[0] = now
+            try:
+                db.delete_old_drafts(exp_days)
+            except Exception:
+                pass
     cur_ws_id = db.get_active_workspace().get('id', 'ws-default')
     # 6.3：新装环境官方通道 Key 为空时要给出明确的可执行提示，而不是让用户先撞 401。
     # V15.8.1：客户端不再联网申领试用凭证；缺 Key 时引导「管理员配置内置官方凭证 / 用户填自备 Key」。
     # V15.8.3：状态统一取 llm.diagnose()，与真正发请求时的解析结果**同源**，
     # 杜绝「界面显示已配置、一点就 401」这种两边口径不一致。
     _diag = orchestrator.llm.diagnose()
+    # v15.9.1：水印配置随 /api/status 回显——此前移动端/个人中心读不到，
+    # 保存与回显双断链（UI 却提示已生效）。
+    from core.content_guard import is_enabled as _cg_enabled
+    _guard_cfg = cfg.get('content_guard') if isinstance(cfg.get('content_guard'), dict) else {}
     # 客户支持口径：任何「用不了」的提示都必须指到设置入口，并说明随包通道的获取方式
     _guide = ('请在「设置 → 模型服务」填入自己的 API Key 并保存；'
               '若使用内置官方凭证，请联系管理员获取已开通的版本')
     _key_hint = '' if _diag['ready'] else f"{_diag.get('advice') or '当前 AI 通道尚未配置密钥。'} {_guide}"
-    return {'topics': db.list_topics(workspace_id=cur_ws_id), 'drafts': [_a._draft_view(d) for d in db.list_drafts(_a._current_user_id(user), is_admin=_a._is_admin_user(user), workspace_id=cur_ws_id)], 'workspace_id': cur_ws_id, 'jobs': db.list_jobs(), 'gateway': {'base_url': _diag['base_url'], 'model': _diag['model'], 'provider_id': _diag['provider_id'], 'configured_models': orchestrator.llm.get_configured_models(), 'agent_routing': cfg.get('gateway', {}).get('agent_routing', {}), 'key_set': _diag['key_present'], 'active_key_set': _diag['key_present'], 'key_hint': _key_hint, 'llm_ok': _diag['ready'], 'diagnosis': _diag}, 'keywords': cfg.get('topics', {}).get('keywords', []), 'platform_names': NAMES, 'themes': {'wechat': {**{k: v['name'] + '（规则）' for k, v in WECHAT_THEMES.items()}, **{k: v['name'] for k, v in layouter.list_themes().items() if v.get('has_prompt')}}, 'card': {k: v['name'] for k, v in XHS_CARD_STYLES.items()}, 'current': {'wechat_theme': cr.get('wechat_theme', 'caozhou'), 'card_style': cr.get('card_style', 'magazine')}}, 'target_platforms': cr.get('target_platforms') or ['wechat_mp', 'xhs', 'toutiao', 'zhihu', 'weibo', 'twitter'], 'draft_expire_days': int(cr.get('draft_expire_days', 0)), 'quality': judge.quality_cfg(), 'image': cfg.get('image', {}), 'ticket': {'enabled': env.get('TICKET_ENABLED') == '1', 'time': env.get('TICKET_TIME', '07:30'), 'dingtalk': _a.notify_ok()}, 'imgbed': {'configured': bool(env.get('GITHUB_IMGBED_TOKEN') and env.get('GITHUB_IMGBED_REPO')), 'repo': env.get('GITHUB_IMGBED_REPO', '')}, 'agents': AG.agents_cfg(), 'stages': AG.STAGES, 'skills': {k: v['description'] for k, v in AG.list_skills().items()}, 'search_sources': {'xhs': '小红书', 'toutiao': '今日头条', 'douyin': '抖音', 'weibo': '微博', 'kuaishou': '快手', 'bilibili': 'B站'}}
+    return {'topics': db.list_topics(workspace_id=cur_ws_id), 'drafts': [_a._draft_view(d) for d in db.list_drafts(_a._current_user_id(user), is_admin=_a._is_admin_user(user), workspace_id=cur_ws_id)], 'workspace_id': cur_ws_id, 'jobs': db.list_jobs(), 'gateway': {'base_url': _diag['base_url'], 'model': _diag['model'], 'provider_id': _diag['provider_id'], 'configured_models': orchestrator.llm.get_configured_models(), 'agent_routing': cfg.get('gateway', {}).get('agent_routing', {}), 'key_set': _diag['key_present'], 'active_key_set': _diag['key_present'], 'key_hint': _key_hint, 'llm_ok': _diag['ready'], 'diagnosis': _diag}, 'keywords': cfg.get('topics', {}).get('keywords', []), 'platform_names': NAMES, 'themes': {'wechat': {**{k: v['name'] + '（规则）' for k, v in WECHAT_THEMES.items()}, **{k: v['name'] for k, v in layouter.list_themes().items() if v.get('has_prompt')}}, 'card': {k: v['name'] for k, v in XHS_CARD_STYLES.items()}, 'current': {'wechat_theme': cr.get('wechat_theme', 'caozhou'), 'card_style': cr.get('card_style', 'magazine')}}, 'target_platforms': cr.get('target_platforms') or ['wechat_mp', 'xhs', 'toutiao', 'zhihu', 'weibo', 'twitter'], 'draft_expire_days': int(cr.get('draft_expire_days', 0)), 'quality': judge.quality_cfg(), 'image': cfg.get('image', {}), 'watermark': cfg.get('watermark', {}), 'content_guard': {'enabled': _cg_enabled(), 'configured': bool(_guard_cfg)}, 'ticket': {'enabled': env.get('TICKET_ENABLED') == '1', 'time': env.get('TICKET_TIME', '07:30'), 'dingtalk': _a.notify_ok()}, 'imgbed': {'configured': bool(env.get('GITHUB_IMGBED_TOKEN') and env.get('GITHUB_IMGBED_REPO')), 'repo': env.get('GITHUB_IMGBED_REPO', '')}, 'agents': AG.agents_cfg(), 'stages': AG.STAGES, 'skills': {k: v['description'] for k, v in AG.list_skills().items()}, 'search_sources': {'xhs': '小红书', 'toutiao': '今日头条', 'douyin': '抖音', 'weibo': '微博', 'kuaishou': '快手', 'bilibili': 'B站'}}
 
 @router.get('/api/health/services')
 def health_services(request: Request):

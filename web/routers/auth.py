@@ -253,6 +253,27 @@ def onboarding_done(request: Request):
     p.write_text(_json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
     return {'ok': True}
 
+@router.get('/api/user/media_name')
+def user_media_name_get(request: Request):
+    """读取当前登录用户的创作者媒体名称（空串=未设置）。"""
+    u = _a.guard(request)
+    from core import auth
+    return {'ok': True, 'media_name': auth.get_user_media_name(str(u.get('id') or ''))}
+
+
+@router.post('/api/user/media_name')
+async def user_media_name_set(request: Request):
+    """持久化创作者媒体名称（v15.9.1：此前只存 localStorage，换设备即丢）。"""
+    u = _a.guard(request)
+    body = await request.json()
+    from core import auth
+    try:
+        name = auth.set_user_media_name(str(u.get('id') or ''), str(body.get('media_name') or ''))
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {'ok': True, 'media_name': name, 'msg': f'创作者媒体名称已保存：{name}'}
+
+
 @router.post('/api/auth/logout')
 def logout():
     resp = JSONResponse({'ok': True, 'msg': '已退出登录'})

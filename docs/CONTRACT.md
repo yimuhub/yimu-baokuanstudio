@@ -150,6 +150,8 @@
 - `GET /api/user/vault/keys` → vault_keys：用户自备模型 Key 列表【V7.0】[B]
 - `POST /api/user/vault/keys` → vault_save：添加/配置自备 Key【V7.0】[B]
 - `DELETE /api/user/vault/keys/{kid}` → vault_delete：删除自备 Key【V7.0】[B]
+- `GET /api/user/media_name` → user_media_name_get：读取创作者媒体名称（个人中心回显）【V15.9.1】
+- `POST /api/user/media_name` → user_media_name_set：持久化创作者媒体名称（users.media_name）【V15.9.1】
 
 ### 5.3 热榜选题 /api/topics【V7.0 保留 B；V7.1 由 studio/hot/ 增强】
 - `GET /api/topics` → topics_list：热榜选题列表（前端下拉/选题池，按状态+来源筛选）【V7.0】[NEW]
@@ -439,6 +441,8 @@
 - `GET /api/compliance/drafts/review` → guard_drafts_review：列出待人工复核草稿【R4】[NEW]
 - `POST /api/compliance/drafts/{did}/clear_review` → guard_clear_review：人工复核通过后清除标记【R4】[NEW]
 - `POST /api/compliance/drafts/{did}/check` → guard_check_draft：单篇草稿发布前检查（不写库）【R4】[NEW]
+- `GET /api/compliance/settings` → compliance_settings：审核开关状态 + 词库规模（设置页卡片）【V15.9.1】
+- `POST /api/compliance/settings` → compliance_settings_save：审核开关写入 config.yaml（仅管理员）【V15.9.1】
 
 ### 5.14c R5 留存与增长（通知 / 定时 / 邀请 / 分享 / 埋点 / 频控）【R5 批次新增】
 > 用户侧通知走可插拔 provider（`core/notify.py`，邮件通道标准库 smtplib）；钉钉保留给运营。

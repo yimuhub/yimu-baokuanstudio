@@ -222,11 +222,18 @@ def test_polish_has_time_budget_and_token_cap() -> None:
 
 
 def test_polish_prefers_direct_output_models() -> None:
-    """交互短任务优先直出型模型，且允许用环境变量覆盖。"""
+    """改写链模型链契约（V15.9.1 更新）。
+
+    旧实现硬编码 Agnes 测试模型作为「直出型优先链」；出厂配置清洗后默认链为空，
+    只走「默认通道」（活动模型服务主模型——运营选择的主模型即直出型），
+    仍允许用 YIMU_POLISH_MODELS 环境变量覆盖；正文过短时降级到模板补全，
+    「直出」保障由模板兜底 + 运营主模型共同承担，不再依赖写死的测试模型。
+    """
     from core import prompt_polish as pp
 
-    assert pp.PREFERRED_MODELS, "缺少优先模型链，会退回推理型模型导致正文为空"
-    assert "YIMU_POLISH_MODELS" in Path("core/prompt_polish.py").read_text(encoding="utf-8")
+    assert pp.PREFERRED_MODELS == [], "出厂不得预置任何具体模型（Agnes 是测试通道）"
+    src = Path("core/prompt_polish.py").read_text(encoding="utf-8")
+    assert "YIMU_POLISH_MODELS" in src, "必须保留环境变量覆盖能力"
 
 
 def test_polish_cache_roundtrip() -> None:

@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.0",
-  "current_codename_zh": "星火继",
-  "current_codename_en": "Spark Relay",
-  "next_index": 77,
+  "current_version": "15.9.1",
+  "current_codename_zh": "九州同",
+  "current_codename_en": "Nine Provinces One",
+  "next_index": 78,
   "sequence": [
     {
       "zh": "曦光序",
@@ -315,6 +315,10 @@
     {
       "zh": "九州同",
       "en": "Nine Provinces One"
+    },
+    {
+      "zh": "万象衡",
+      "en": "Balance of All Things"
     }
   ],
   "history": [
@@ -533,6 +537,12 @@
       "zh": "星火继",
       "en": "Spark Relay",
       "date": "2026-11-12"
+    },
+    {
+      "version": "v15.9.1",
+      "zh": "九州同",
+      "en": "Nine Provinces One",
+      "date": "2026-11-14"
     }
   ]
 }

@@ -381,6 +381,32 @@ def create_user_crud(username: str, password: str, email: str = "", role: str = 
     return {"id": uid, "username": username, "email": email, "role": role, "plan": plan, "quota_max": quota_max}
 
 
+def get_user_media_name(user_id: str) -> str:
+    """读取用户的创作者媒体名称（个人中心设置；空串表示未设置）。"""
+    c = _db()
+    r = c.execute("SELECT media_name FROM users WHERE id=?", (user_id,)).fetchone()
+    c.close()
+    return str(r[0] or "").strip() if r else ""
+
+
+def set_user_media_name(user_id: str, media_name: str) -> str:
+    """持久化用户的创作者媒体名称（v15.9.1：此前只存 localStorage，换设备即丢）。"""
+    name = str(media_name or "").strip()
+    if not name:
+        raise ValueError("媒体名称不能为空")
+    if len(name) > 60:
+        raise ValueError("媒体名称过长（≤60 字符）")
+    c = _db()
+    r = c.execute("SELECT id FROM users WHERE id=?", (user_id,)).fetchone()
+    if not r:
+        c.close()
+        raise ValueError("指定用户不存在")
+    c.execute("UPDATE users SET media_name=? WHERE id=?", (name, user_id))
+    c.commit()
+    c.close()
+    return name
+
+
 def update_user_crud(user_id: str, email: str | None = None, role: str | None = None, plan: str | None = None, quota_max: int | None = None, is_active: int | None = None) -> dict:
     """更新用户资料、角色、套餐档位及额度"""
     c = _db()

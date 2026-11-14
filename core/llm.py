@@ -856,6 +856,40 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
     return active_base, active_key, active_model, active_pid
 
 
+def resolve_default_model(category: str) -> str:
+    """解析「系统默认」的指定类别（text/image/video）模型 ID。
+
+    语义：所有「跟随系统默认」的配置项（agents.*.model 为空、agent_routing.* 为空、
+    image.model 为空等）最终落到这里——取**当前活动供应商模型池里第一个
+    已启用**的该类别模型；池里没有该类别模型时返回空串，由调用方决定
+    降级策略（生图走免 Key 保底引擎，视频给出明确的「未配置」提示）。
+
+    出厂配置自 v15.9.1 起不再预置任何具体模型（Agnes 是测试通道，
+    不得作为默认值绑进任何阶段），全链路默认统一由此解析。
+    """
+    try:
+        cfg = load_config()
+    except Exception:
+        return ""
+    pool = (cfg.get("gateway", {}) or {}).get("configured_models") or []
+    for m in pool:
+        if not isinstance(m, dict) or not m.get("is_enabled", True):
+            continue
+        mid = str(m.get("id") or "").strip()
+        if not mid:
+            continue
+        cat = str(m.get("category") or "").strip() or classify_model(mid)
+        if cat == category:
+            return mid
+    # 池里没有标注类别的条目时，按模型名启发式兜底
+    for m in pool:
+        if isinstance(m, dict) and m.get("is_enabled", True):
+            mid = str(m.get("id") or "").strip()
+            if mid and classify_model(mid) == category:
+                return mid
+    return ""
+
+
 def _get_fallback_candidates(exclude_pid: str) -> list[tuple[str, str, str, str]]:
     """获取所有具备**真实**密钥/可用连接的备选供应商 (base, key, default_model, pid)。
 

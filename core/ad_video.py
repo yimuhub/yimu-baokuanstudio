@@ -387,9 +387,22 @@ def ad_video_model_info(model_override: str = "") -> dict:
     """
     from core import agents
     from core.llm import resolve_llm_endpoint, classify_model
-    model = (model_override or (agents.model_for("ad_video", "") or "")).strip()
+    # v15.9.1：阶段绑定与路由绑定为空 = 「跟随系统默认」→ 取活动供应商模型池里
+    # 第一个视频模型；池里也没有时给出明确的可执行指引，绝不回退到写死的测试模型。
+    bound = ""
+    try:
+        bound = (agents.agents_cfg().get("ad_video", {}).get("model", "") or "").strip() \
+            or str(agents.load_config().get("gateway", {}).get("agent_routing", {}).get("video", "") or "").strip()
+    except Exception:
+        bound = ""
+    model = (model_override or bound).strip()
     if not model:
-        return {"ok": False, "reason": "ad_video stage 未配置视频大模型（去「🤖 Agent 配置 → 🎬 广告视频生成 Agent」选择模型）"}
+        from core.llm import resolve_default_model
+        model = resolve_default_model("video")
+    if not model:
+        return {"ok": False, "reason": "未配置视频大模型：当前主通道模型池没有任何视频模型，"
+                                       "请到「模型服务 → 多 Agent 路由 → 视频生成」绑定一个，"
+                                       "或在本通道模型池启用一个视频模型"}
     try:
         base, key, resolved, pid = resolve_llm_endpoint(model)
     except Exception as exc:  # noqa: BLE001

@@ -1609,7 +1609,7 @@ body {
                 <span style="font-size:10.5px;color:var(--text-muted)">负责镜头首帧驱动、物理运镜动态合成</span>
               </div>
               <select id="m-routing-video" class="m-input" style="width:100%;border-radius:6px;font-size:12px;padding:7px">
-                <option value="">▼ 跟随全局默认视频模型 (agnes-video / wanx)</option>
+                <option value="">▼ 跟随系统默认（主通道主模型）</option>
               </select>
             </div>
           </div>
@@ -1747,18 +1747,16 @@ body {
           <input type="password" id="m-set-imgbed-token" class="m-input" style="width:100%;border-radius:8px;font-size:12px;padding:7px" placeholder="Personal Access Token (留空沿用)">
         </div>
 
-        <!-- 8. 云端网关参数直连 -->
+        <!-- 8. 网关入口指引（v15.9.1：旧「云端网关参数直连」表单已移除——
+             它不带 Key 字段却直接覆盖活动模型服务的地址/模型，极易把官方预设改坏；
+             通道与密钥统一到上方「模型绑定与路由」里配置） -->
         <div class="m-card" style="margin-bottom:0">
-          <div class="m-card-title"><span>📡 云端网关参数直连</span></div>
-          <div>
-            <label style="font-size:11.5px;color:var(--text-muted);display:block;margin-bottom:4px">快捷网关 Base URL</label>
-            <input type="text" id="m-set-gw-url" class="m-input" style="width:100%;border-radius:8px;font-size:12px" placeholder="https://api.deepseek.com/v1">
+          <div class="m-card-title"><span>📡 模型服务与网关</span></div>
+          <div style="font-size:11.5px;color:var(--text-muted);line-height:1.7">
+            模型服务的地址、密钥与各 Agent 路由，请统一在<b style="color:var(--text)">「模型绑定与路由」</b>标签页配置——
+            那里会同时保存密钥并支持连通性测速，不会出现「改了地址不生效」。
           </div>
-          <div style="margin-top:8px">
-            <label style="font-size:11.5px;color:var(--text-muted);display:block;margin-bottom:4px">快捷默认主模型</label>
-            <input type="text" id="m-set-gw-model" class="m-input" style="width:100%;border-radius:8px;font-size:12px" placeholder="deepseek-chat">
-          </div>
-          <button class="btn-block btn-secondary" style="margin-top:10px;font-size:12px" onclick="saveMobileGatewaySettings()">💾 仅同步全局网关</button>
+          <button class="btn-block btn-secondary" style="margin-top:10px;font-size:12px" onclick="openSheet('sheet-settings');switchMobileSettingsTab('llm')">⚙️ 前往模型绑定与路由</button>
         </div>
       </div>
     </div>
@@ -4655,20 +4653,38 @@ async function saveMobileModelProviderConfig() {
     model: defaultModel,
     api_key: key,
     configured_models: currentMobileModelsList,
-    is_set_active: true,
+    // v15.9.1：与 PC 端对齐——保存≠激活。旧实现写死 is_set_active:true，
+    // 手机上编辑任意一家模型服务就悄悄抢占了全站主通道（还把它的 Key 同步为全局键）。
+    is_set_active: false,
     agent_routing: newRouting
   };
 
   try {
-    await api('/api/models/save', {
+    const res = await api('/api/models/save', {
       method: 'POST',
       body: JSON.stringify(body)
     });
     currentMobileAgentRouting = newRouting;
-    toast(`🎉 模型服务 [${pname}] 与全环节 Agent 路由绑定成功！已实时生效`, 3500);
+    toast('✅ ' + ((res && res.msg) || `模型服务 [${pname}] 已保存（保存≠激活，激活请点「设为主网关」）`), 3500);
     await loadMobileModelProviders();
   } catch(e) {
     toast('保存失败: ' + e.message);
+  }
+}
+
+async function activateMobileProvider() {
+  const sel = document.getElementById('m-prov-select');
+  const pid = (sel && sel.value) || '';
+  if (!pid) return toast('请先选择要启用的模型服务');
+  try {
+    const res = await api('/api/models/provider/set_active', {
+      method: 'POST',
+      body: JSON.stringify({ provider_id: pid })
+    });
+    toast('🌟 ' + ((res && res.msg) || `已把 [${pid}] 设为全站主网关`), 3000);
+    await loadMobileModelProviders();
+  } catch(e) {
+    toast('激活失败: ' + e.message);
   }
 }
 
@@ -4945,21 +4961,6 @@ async function runMobileDraftCleanNow() {
     await loadDraftsList();
   } catch(e) {
     toast('清理失败: ' + e.message);
-  }
-}
-
-async function saveMobileGatewaySettings() {
-  const url = document.getElementById('m-set-gw-url').value.trim();
-  const model = document.getElementById('m-set-gw-model').value.trim();
-  try {
-    await api('/api/settings', {
-      method: 'POST',
-      body: JSON.stringify({ gateway: { base_url: url, model: model } })
-    });
-    toast('🎉 大模型网关参数已成功更新！');
-    loadMobileGatewayData();
-  } catch(e) {
-    toast('保存失败: ' + e.message);
   }
 }
 

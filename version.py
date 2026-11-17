@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.9.1"
-__codename__ = "九州同"
-__codename_en__ = "Nine Provinces One"
-__slogan__ = "一念起 一幕开 万象生 · 设置治理：系统默认统一、舞台导航修复、完整首次引导、水印与审核断链清零"
-__slogan_cn__ = "一念起 一幕开 万象生 · 设置治理：系统默认统一、舞台导航修复、完整首次引导、水印与审核断链清零"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Settings governance: system-default everywhere, stage nav fix, full first-run onboarding, watermark & review links restored"
+__version__ = "15.9.2"
+__codename__ = "万象衡"
+__codename_en__ = "Balance of All Things"
+__slogan__ = "一念起 一幕开 万象生 · 窗口启动加固：系统浏览器优先、内置内核兜底、启动存活探测与崩溃降级"
+__slogan_cn__ = "一念起 一幕开 万象生 · 窗口启动加固：系统浏览器优先、内置内核兜底、启动存活探测与崩溃降级"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Window launch hardening: system browser first, bundled kernel as fallback, liveness probe and crash degradation"
 
 
 def get_version() -> str:

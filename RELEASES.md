@@ -4,6 +4,30 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🧭 Version 15.9.2 · 万象衡 (Balance of All Things) · Window Launch Hardening · 2026-11-17
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.2"`, `__codename__ = "万象衡"`, `__codename_en__ = "Balance of All Things"`)
+
+### 🎯 Milestone Summary
+
+客户机（macOS 27.x + Apple Silicon）双击客户端弹出「Google Chrome for Testing 意外退出」、窗口不出现。崩溃报告显示进程只活了 **0.15 毫秒**、`crashed on child side of fork pre-exec`、`EXC_BREAKPOINT / SIGTRAP` —— 渲染子进程在 `fork` 之后 `exec` 之前被系统打断，Chromium 的 main 一行都没执行，与本项目业务代码无关。本次从"启动链路"和"崩溃兜底"两侧修复。
+
+### 🩺 What changed
+
+| # | Area | Detail |
+|---|------|--------|
+| 1 | **系统浏览器优先** | 客户端窗口候选顺序改为 Chrome / Edge / Brave 优先，内置内核降为兜底。内置 Chrome for Testing 是 ad-hoc 签名、无 hardened runtime / entitlements，在部分新版 macOS 上建不出沙箱子进程；客户机装了浏览器就没必要冒这个险 |
+| 2 | **启动存活探测** | `desktop.py::_launch_and_probe()`：启动后探测 1.2s，进程已退出即跳过并换下一个候选。旧实现 `Popen` 不抛异常就返回成功，进程 0.15 秒后暴毙，界面毫不知情，用户只看到崩溃弹窗 |
+| 3 | **窗口启动参数规范化** | 统一补 `--user-data-dir=<用户目录>/browser-profile`（与日常 Chrome 分开，避免 profile 锁冲突）、`--no-first-run`、`--no-default-browser-check`；内置内核额外 `--no-sandbox`（窗口只加载本机 localhost） |
+| 4 | **Playwright 内核降级** | `core/browser_path.py::launch_chromium()` 新增 `_probe_browser()`：启动后真建一个 `about:blank` 页并导航，失败则关闭该内核、降级到系统浏览器。此前只在 `launch()` 抛异常时降级，而崩溃发生在连接建立之后的渲染子进程里 |
+| 5 | **全失败有明确出口** | 所有候选都失败时打印原因并退回系统默认浏览器，不再"弹崩溃窗 + 界面干等" |
+
+### ✅ 验收
+
+- 新增 `tests/test_v1592_browser_launch_fallback.py` 9 项回归，覆盖候选顺序、参数结构、存活/暴毙判定、Playwright 降级与全失败抛错。
+
+**Full Changelog**: https://github.com/yimuhub/yimu-baokuanstudio/compare/v15.9.1...v15.9.2
+
 ## 🧭 Version 15.9.1 · 九州同 (Nine Provinces One) · Settings Governance · 2026-11-14
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.1"`, `__codename__ = "九州同"`, `__codename_en__ = "Nine Provinces One"`)

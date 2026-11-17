@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.9.2] - 万象衡 (Balance of All Things) · 2026-11-17
+
+### Fixed 客户端窗口起不来：内置浏览器被系统在 fork 后终止
+
+客户机（macOS 27.x + Apple Silicon）双击客户端后弹出「Google Chrome for Testing 意外退出」，
+窗口不出现。崩溃报告关键事实：父子进程 procPath 相同、`crashed on child side of fork pre-exec`、
+`EXC_BREAKPOINT / SIGTRAP`、进程存活 **0.15 毫秒**——即 Chromium 的 main 一行都没执行，
+渲染子进程在 `fork` 之后、`exec` 之前就被系统打断。与本项目业务代码无关。
+
+根因有两层：内置 Chrome for Testing 是 ad-hoc 签名、无 hardened runtime / entitlements，
+在这类系统上建不出沙箱子进程；而客户端又**把内置内核排在系统浏览器前面**，且启动后没有任何存活性判断。
+
+- `desktop.py`：候选顺序改为「系统 Chrome / Edge / Brave 优先，内置内核兜底」；新增
+  `_launch_and_probe()`，启动后探测 1.2s，进程已退出即跳过并换下一个候选；全程失败时打印明确
+  原因并退回系统默认浏览器（不再"弹崩溃窗 + 界面干等"）。
+- `desktop.py`：应用窗口统一补 `--user-data-dir=<用户目录>/browser-profile`（与用户日常 Chrome
+  分开，避免 profile 锁冲突）、`--no-first-run`、`--no-default-browser-check`；内置内核额外加
+  `--no-sandbox`（ad-hoc 签名内核的唯一可用路径，窗口只加载本机 localhost 页面）。
+- `core/browser_path.py`：`launch_chromium()` 新增 `_probe_browser()` —— 启动后真建一个
+  `about:blank` 页并导航，失败则关闭该内核、降级到系统浏览器，全部候选失败才抛异常。此前只在
+  `launch()` 抛异常时降级，而崩溃发生在连接建立之后的渲染子进程里，等于不降级。
+- `core/browser_path.py`：内置内核仍在 Playwright 链路里优先（离线包客户机可能没装浏览器），
+  但探活不过就自动让位。
+
+### Added 回归测试
+
+- `tests/test_v1592_browser_launch_fallback.py`（9 项）：系统优先顺序、内置兜底必带 `--no-sandbox`、
+  立即退出判定为失败、存活判定为成功、启动参数结构、Playwright 探活失败降级、全失败抛异常、
+  无内置内核时行为不变。
+
+---
+
 ## [15.9.1] - 九州同 (Nine Provinces One) · 2026-11-14
 
 ### Fixed 系统设置 / 个人中心逻辑治理（专项深审 15 项 + 首次引导重做）

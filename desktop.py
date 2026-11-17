@@ -361,8 +361,79 @@ def run_uvicorn_server():
     server.run()
 
 
+def _app_mode_profile_dir() -> str:
+    """应用窗口专用的浏览器 profile 目录。
+
+    与用户日常 Chrome 分开，避免抢同一份 profile 锁（同一 profile 下 ``--app``
+    会被并进用户已有窗口，或直接因锁冲突起不来）。
+    """
+    try:
+        d = _user_data_dir() / "browser-profile"
+        d.mkdir(parents=True, exist_ok=True)
+        return str(d)
+    except Exception:
+        return ""
+
+
+def _resolve_exe(exe: str) -> str:
+    """候选可执行文件 -> 绝对路径；不存在返回空串。"""
+    if not exe:
+        return ""
+    if os.path.isabs(exe) or os.sep in exe:
+        return exe if os.path.exists(exe) else ""
+    import shutil
+    return shutil.which(exe) or ""
+
+
+def _launch_and_probe(exe: str, url: str, extra: list[str], probe: float = 1.2) -> bool:
+    """启动候选浏览器并做存活探测。
+
+    V15.9.2：macOS 上新版系统里，ad-hoc 签名的内置 Chrome for Testing 会在
+    fork 子进程时被系统以 SIGTRAP 终止（EXC_BREAKPOINT，0.15ms 内就死，连
+    Chromium 的 main 都没执行）。旧实现 ``Popen`` 不抛异常就 return True，
+    进程随后暴毙而界面毫不知情，用户只看到一个崩溃弹窗。
+
+    这里启动后探测一小段时间：进程已退出即判定失败，交由调用方换下一个候选。
+    """
+    cmd = [exe, f"--app={url}", "--no-first-run", "--no-default-browser-check"]
+    profile = _app_mode_profile_dir()
+    if profile:
+        cmd.append(f"--user-data-dir={profile}")
+    cmd.extend(extra)
+    try:
+        proc = subprocess.Popen(
+            cmd,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            close_fds=True,
+        )
+    except Exception as e:
+        print(f"⚠️ 候选浏览器无法启动，已跳过（{exe}）：{e!r}", flush=True)
+        return False
+
+    deadline = time.time() + probe
+    while time.time() < deadline:
+        code = proc.poll()
+        if code is not None:
+            print(f"⚠️ 候选浏览器启动后立即退出（code={code}），已跳过：{exe}", flush=True)
+            return False
+        time.sleep(0.1)
+    return True
+
+
 def try_launch_browser_app_mode(url: str) -> bool:
-    """尝试使用 Chrome / Edge 的应用模式 (--app) 打开独立窗体。"""
+    """尝试使用 Chrome / Edge 的应用模式 (--app) 打开独立窗体。
+
+    V15.9.2 两处改动：
+
+    1. **系统浏览器优先、内置内核兜底**。内置 Chrome for Testing 是 adhoc 签名、
+       无 hardened runtime / entitlements，在部分新版 macOS（实测 27.x + Apple
+       Silicon）上连子进程都 fork 不出来。客户机装了 Chrome / Edge 就没必要冒这个
+       险；内置内核只作"客户机没装任何浏览器也能用"的最后保障。
+    2. **启动后存活探测**（见 :func:`_launch_and_probe`），避免"弹了崩溃窗、界面
+       还在干等"。
+    """
     candidates = []
     if sys.platform == "win32":
         candidates.extend([
@@ -384,31 +455,28 @@ def try_launch_browser_app_mode(url: str) -> bool:
             "chromium", "microsoft-edge-stable",
         ])
 
-    # A2 离线包自带 Chrome for Testing，优先于系统浏览器（客户机无需安装任何浏览器）
-    try:
-        from core.browser_path import bundled_chromium
-        _builtin = bundled_chromium()
-        if _builtin:
-            candidates.insert(0, _builtin)
-    except Exception:
-        pass
-
+    launched = False
     for exe in candidates:
-        if sys.platform.startswith("linux"):
-            import shutil
-            if shutil.which(exe):
-                try:
-                    subprocess.Popen([exe, f"--app={url}"])
-                    return True
-                except Exception:
-                    pass
-        elif os.path.exists(exe):
-            try:
-                subprocess.Popen([exe, f"--app={url}"])
-                return True
-            except Exception:
-                pass
-    return False
+        path = _resolve_exe(exe)
+        if path and _launch_and_probe(path, url, []):
+            launched = True
+            break
+
+    if not launched:
+        # 内置内核是 adhoc 签名，部分系统上无法建沙箱子进程，显式关沙箱再试一次。
+        # 窗口只加载本机 localhost 页面，不加载外部不可信内容，风险可控。
+        builtin = ""
+        try:
+            from core.browser_path import bundled_chromium
+            builtin = bundled_chromium()
+        except Exception:
+            builtin = ""
+        if builtin:
+            launched = _launch_and_probe(builtin, url, ["--no-sandbox"])
+
+    if not launched:
+        print("⚠️ 系统浏览器与内置内核均未能拉起应用窗口，将退回系统默认浏览器。", flush=True)
+    return launched
 
 
 def start_desktop_app():

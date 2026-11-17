@@ -179,7 +179,6 @@ TRANS_MAP = {
     "输入自定义视频模型ID，如 cogvideox": "Enter custom video model ID, e.g. cogvideox",
     "例如：科技数码、职场干货、商业财经、情感育儿": "e.g.: Consumer Tech, Career Wisdom, Finance, Parenting",
     "支持小红书短链 / 微信公众号 / 今日头条链接": "Supports Xiaohongshu links / WeChat MP / Toutiao URLs",
-    "一幕·YIMU 移动工作室 V9.1.1": "YIMU Mobile Studio V9.1.1",
     "小白极速": "Beginner Fast",
     "⚡ 全能模式": "⚡ Pro Mode",
     "专业操盘": "Pro Trading",

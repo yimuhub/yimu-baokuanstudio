@@ -127,7 +127,10 @@ def skills_ref(request: Request, path: str=''):
     _a.guard(request)
     base = (_a.BASE / 'skills' / 'refs').resolve()
     f = (base / path).resolve()
-    if not str(f).startswith(str(base)) or not f.exists() or f.suffix != '.md':
+    # 字符串前缀判定会放过 skills/refs_other/x.md（同前缀的兄弟目录），
+    # 改为按路径组件判断，详见 core/pathsafe.py。
+    from core.pathsafe import is_within
+    if not is_within(f, base) or not f.exists() or f.suffix != '.md':
         raise HTTPException(404, '文件不存在')
     return FileResponse(f)
 

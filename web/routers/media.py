@@ -214,8 +214,11 @@ def advideo_ref_file(request: Request, path: str=''):
     p = pathlib.Path(path)
     try:
         rp = p.resolve()
-        allowed = [pathlib.Path('runs/advideo_refs').resolve(), pathlib.Path('runs/advideo_audio').resolve(), pathlib.Path('runs/avatars').resolve()]
-        if not any((str(rp).startswith(str(a)) for a in allowed)):
+        # 用路径组件比较，不用字符串前缀：'runs/avatars_backup/x' 同样以
+        # 'runs/avatars' 开头，曾据此绕过（详见 core/pathsafe.py 模块注释）。
+        from core.pathsafe import is_within
+        allowed = [pathlib.Path('runs/advideo_refs'), pathlib.Path('runs/advideo_audio'), pathlib.Path('runs/avatars')]
+        if not any(is_within(rp, a) for a in allowed):
             raise HTTPException(403, '非法路径')
         if not rp.exists():
             raise HTTPException(404, '文件不存在')
@@ -513,8 +516,10 @@ def aivideo_avatar_file(filename: str, request: Request):
     import pathlib
     from fastapi.responses import FileResponse
     p = (pathlib.Path('runs/avatars') / filename).resolve()
-    base = pathlib.Path('runs/avatars').resolve()
-    if not str(p).startswith(str(base)) or not p.exists():
+    base = pathlib.Path('runs/avatars')
+    # 此前是 str(p).startswith(str(base))：runs/avatars_backup/x.png 也算通过。
+    from core.pathsafe import is_within
+    if not is_within(p, base) or not p.exists():
         raise HTTPException(404, '照片不存在')
     return FileResponse(p)
 
@@ -558,8 +563,16 @@ def aivideo_file(jid: str, request: Request):
     """下载/预览生成的 AI 短视频。"""
     _a.guard(request)
     from pathlib import Path as _P
-    base = _P(__file__).resolve().parent.parent / 'runs' / 'ai_video' / jid
-    if not str(base.resolve()).startswith(str(base.parent.resolve())):
+    # job id 由服务端生成，只可能是 [A-Za-z0-9_-]，任何其它字符（'/'、'..'、
+    # Windows 盘符）一律拒绝。此前的校验写成
+    #   str(base.resolve()).startswith(str(base.parent.resolve()))
+    # 子目录必然以父目录开头，条件恒真——等于没写。
+    if not re.fullmatch(r'[A-Za-z0-9_-]{1,64}', jid or ''):
+        raise HTTPException(400, '非法任务号')
+    root = _P(__file__).resolve().parent.parent / 'runs' / 'ai_video'
+    base = root / jid
+    from core.pathsafe import is_within
+    if not is_within(base, root):
         raise HTTPException(400, '非法路径')
     for _f in base.glob('final-*.mp4'):
         from fastapi.responses import FileResponse
@@ -596,12 +609,22 @@ async def video_upload_script_file(request: Request, file: UploadFile=File(...))
     _a.guard(request)
     try:
         contents = await file.read()
+        # 这个端点不落盘、只解析文本，但 read() 是整份读进内存的：
+        # 没有上限时一个 2GB 的"文稿"就能把进程内存打满。20MB 足够装下
+        # 任何正常口播稿（约 1000 万字）。
+        if len(contents) > 20 * 1024 * 1024:
+            raise HTTPException(413, '文档超过 20MB，请拆分后再上传')
         filename = (file.filename or '').lower()
         text = ''
         if filename.endswith('.docx'):
             try:
                 import io, zipfile, xml.etree.ElementTree as ET
                 with zipfile.ZipFile(io.BytesIO(contents)) as z:
+                    # docx 是 zip，20MB 的压缩包可以解出几十 GB（zip bomb）。
+                    # 先看声明大小再决定要不要真解压。
+                    _info = z.getinfo('word/document.xml')
+                    if _info.file_size > 40 * 1024 * 1024:
+                        raise HTTPException(413, '文档正文过大（解压后超过 40MB），请拆分后再上传')
                     xml_content = z.read('word/document.xml')
                     tree = ET.fromstring(xml_content)
                     paragraphs = []
@@ -610,6 +633,8 @@ async def video_upload_script_file(request: Request, file: UploadFile=File(...))
                         if texts:
                             paragraphs.append(''.join(texts))
                     text = '\n\n'.join(paragraphs)
+            except HTTPException:
+                raise  # 超限提示要原样返回 413，不能被下面的退回解码吞掉
             except Exception:
                 text = contents.decode('utf-8', errors='ignore')
         else:
@@ -624,6 +649,8 @@ async def video_upload_script_file(request: Request, file: UploadFile=File(...))
         cleaned = re.sub('^[-*>]\\s+', '', cleaned, flags=re.MULTILINE)
         cleaned = re.sub('\\n{3,}', '\n\n', cleaned).strip()
         return {'ok': True, 'filename': file.filename, 'text': cleaned, 'char_count': len(cleaned.replace(' ', '').replace('\n', ''))}
+    except HTTPException:
+        raise  # 413 之类的明确拒绝原样透出，不要裹成 500
     except Exception as e:
         raise HTTPException(500, f'文档解析失败: {e}')
 

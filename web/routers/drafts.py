@@ -553,7 +553,9 @@ async def draft_platform_scores(did: str, request: Request):
 @router.post('/api/drafts/{did}/publish_xhs')
 async def draft_publish_xhs(did: str, request: Request):
     _a.guard(request)
-    body = await request.json()
+    # 这个接口不接受任何参数，此前却先 await request.json() 又丢掉结果：
+    # 用 curl / SDK 调用时不带 body 会直接 json 解析失败 → 500。发布逻辑
+    # 完全不依赖请求体，索性不读。
     import uuid
     jid = uuid.uuid4().hex[:12]
     _a.JOBS[jid] = {'step': '准备发布…', 'status': 'running', 'result': None, 'error': ''}

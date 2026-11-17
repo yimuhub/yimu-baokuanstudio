@@ -805,6 +805,11 @@
 
     // 导航点击后刷新选中态与二级展开
     DOC.addEventListener('click', function (ev) {
+      /* 点「展开箭头」只由箭头自己 toggle 展开/收起，不能进入下面的「切页强制展开」。
+         否则表现为：点箭头收起 → 30ms 后被这里重新 add('on') → 永远收不起来。
+         注意 chev 上虽然写了 ev.stopPropagation()，但那是**冒泡阶段**，而本监听是
+         捕获阶段（第三个参数 true），冒泡阶段的阻止拦不住它，必须在源头跳过。 */
+      if (ev.target && ev.target.closest && ev.target.closest('.rail-chev')) return;
       var item = ev.target && ev.target.closest ? ev.target.closest('.nav-item') : null;
       if (!item) return;
       setTimeout(function () {

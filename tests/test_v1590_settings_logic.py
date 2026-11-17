@@ -329,6 +329,22 @@ def test_copilot_provider_only_maps_to_default_model(iso_app):
 
 
 def test_copilot_image_select_has_no_fictional_models():
+    """Agent 弹窗不再提供第二个生图模型下拉框（V15.9.4）。
+
+    旧断言：弹窗里的 `<select id="copilot-image-model-select">` 不得包含
+    jimeng / stable-diffusion 这类后端没有实现的虚构 ID（选中即 404）。
+
+    新设计更彻底：这个下拉框本身已被移除。生图模型全站只有一处设置
+    （「系统设置 → AI 配图设置」，单一真源 yimu_image_model），弹窗里只做
+    只读回显 + 跳转，从根上消除了「两处设置互相打架」。
+    因此这里改为锁「不再有下拉框、只读回显存在、且全站无虚构 ID」。
+    """
     html = (ROOT / "web" / "templates" / "index.html").read_text(encoding="utf-8")
-    seg = html.split('id="copilot-image-model-select"', 1)[1].split("</select>", 1)[0]
-    assert "jimeng" not in seg and "stable-diffusion" not in seg, "虚构模型 ID 选中即 404"
+    assert 'id="copilot-image-model-select"' not in html, (
+        "Agent 弹窗里又出现了生图模型下拉框：会与「系统设置 → AI 配图设置」"
+        "构成第二个入口，正是用户反馈的“设置重复、互相冲突”。"
+    )
+    assert 'id="copilot-image-model-readout"' in html, "缺少生图模型的只读回显"
+    # 虚构模型 ID 不得以硬编码 option 的形式出现在任何下拉里
+    assert '<option value="jimeng">' not in html
+    assert '<option value="stable-diffusion">' not in html

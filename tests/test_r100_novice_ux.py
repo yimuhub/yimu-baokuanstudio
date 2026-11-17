@@ -22,10 +22,15 @@ class TestNoviceTermReduction:
     def test_key_guide_card_exists_with_action(self):
         html = INDEX_HTML.read_text(encoding="utf-8")
         assert 'id="key-guide-card"' in html, "缺少 Key 入口小白说明卡"
-        assert "小白点这里配置" in html, "说明卡必须有直达配置入口"
-        # 三个入口的通俗解释都要在卡里
+        # V15.9.4：说明卡从「平铺三列大卡」收成一行提示条 + 可展开细节，
+        # 按钮文案也换成了「去填 Key →」。这里锁的是**能力**（有直达配置入口），
+        # 不再锁某一句死文案，否则改一次文案就误报一次。
+        card = html.split('id="key-guide-card"', 1)[1]
+        card = card.split('id="sp-ticket"', 1)[0]
+        assert "modal('m-gateway')" in card, "说明卡必须有直达模型配置的动作，不能是死胡同"
+        # 三个入口的通俗解释仍要能在卡里展开看到
         for kw in ("系统与 API 配置", "我的 API", "API 网关服务"):
-            assert kw in html
+            assert kw in card, f"说明卡缺少「{kw}」的通俗解释"
 
     def test_key_entries_have_hover_hints(self):
         html = INDEX_HTML.read_text(encoding="utf-8")

@@ -980,7 +980,18 @@
       }
       if (act === 'zoom') {
         var idx = parseInt(t.getAttribute('data-idx'), 10) || 0;
-        openLB(ST.imgs, idx);
+        /* 主路径走资产台自己的灯箱（带上一张/下一张）；万一它因为样式或状态没弹出来，
+           退回全局图片预览，保证「点了总有反应」。 */
+        try {
+          openLB(ST.imgs, idx);
+        } catch (e) {
+          var it = (ST.imgs || [])[idx];
+          if (it && it.url && typeof WIN.openImageLightbox === 'function') {
+            WIN.openImageLightbox(it.url, it.name || '图片预览');
+          } else {
+            toast('暂无可预览的图片');
+          }
+        }
         return;
       }
       if (act === 'restore') {

@@ -77,6 +77,13 @@ def draft_images(did: str, request: Request):
     if imgdir.exists():
         for f in sorted(imgdir.glob('*.png')):
             out.append({'name': f.stem, 'url': f'/img/{did}/{f.name}'})
+    # 小红书／AI 画报的切片卡片落在草稿根目录（card-N.png），此前没被收进这个接口，
+    # 于是资产台的「图片」里根本看不到它们，自然也点不开放大。
+    def _card_no(p):
+        digits = ''.join(ch for ch in p.stem if ch.isdigit())
+        return int(digits) if digits else 0
+    for f in sorted(ddir.glob('card-*.png'), key=_card_no):
+        out.append({'name': f'卡片 {_card_no(f) + 1}', 'url': f'/card/{did}/{f.name}'})
     return out
 
 @router.get('/api/drafts/{did}/images_detail')

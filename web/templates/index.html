@@ -2811,6 +2811,47 @@ body.wb-split-drag iframe { pointer-events: none !important; }
   color: var(--text);
   border-top-left-radius: 2px;
 }
+/* ---- 思考中的气泡：让"在干活"这件事出现在对话流里，而不是只有按钮转圈 ---- */
+.copilot-msg.assistant.copilot-thinking .copilot-bubble {
+  background: rgba(240,136,62,0.07);
+  border: 1px dashed rgba(240,136,62,0.42);
+  border-top-left-radius: 2px;
+}
+.ct-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary);
+}
+.ct-dots { display: inline-flex; gap: 3px; flex: 0 0 auto; }
+.ct-dots i {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--primary); display: block;
+  animation: ctBounce 1.1s infinite ease-in-out;
+}
+.ct-dots i:nth-child(2) { animation-delay: .15s; }
+.ct-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes ctBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: .35; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+.ct-steps {
+  margin-top: 7px;
+  padding-left: 2px;
+  border-left: 2px solid rgba(240,136,62,0.22);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+.ct-step { padding-left: 8px; }
+.ct-step.done::before { content: "✓ "; color: #22c55e; }
+.ct-step.now::before { content: "▸ "; color: var(--primary); }
+[data-theme="light"] .copilot-msg.assistant.copilot-thinking .copilot-bubble {
+  background: #fff7ef;
+  border-color: rgba(240,136,62,0.45);
+}
 .copilot-msg.user .copilot-bubble {
   background: linear-gradient(135deg, rgba(240,136,62,0.2), rgba(240,136,62,0.25));
   border: 1px solid rgba(240,136,62,0.4);
@@ -8160,29 +8201,38 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
         <div class="sub-tab" data-sp="sp-video-config" onclick="switchSubTab('console','sp-video-config')">🎬 视频合成配置</div>
       </div>
 
-      <!-- R10 小白术语减负：Key 入口统一说明卡（折叠，不打扰老手） -->
-      <div class="card" id="key-guide-card" style="border:1px solid rgba(64,184,190,.35);background:rgba(64,184,190,.05)">
+      <!-- R10 小白术语减负：Key 入口统一说明卡
+           V15.9.4：原来这里平铺三张卡讲「3 个 API 入口」，和「系统与 API 配置」页里新建的
+           「三件事」状态总览完全重复，用户看到的是两套说法。这里收成一行提示条 + 可展开，
+           且只在「系统与 API 配置」以外的子页出现（那一页本身已有权威说明）。 -->
+      <div class="card" id="key-guide-card" style="border:1px solid rgba(64,184,190,.28);background:rgba(64,184,190,.04);padding:10px 16px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
-          <div style="font-size:14px;font-weight:700;color:#40b8be">🔑 写稿前要配 Key 吗？30 秒看懂 3 个「API」入口的区别</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn ok btn-sm" onclick="switchSubTab('console','sp-settings');modal('m-gateway')">小白点这里配置 →</button>
-            <button class="btn ghost btn-sm" onclick="document.getElementById('key-guide-card').style.display='none'">我知道了</button>
+          <div style="font-size:12.5px;color:var(--text-muted)">
+            🔑 <b style="color:#40b8be">还没填 Key？</b> 99% 的用户只需在「⚙ 系统与 API 配置」填一次；其他地方都不用管。
+          </div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn ok btn-sm" onclick="switchSubTab('console','sp-settings');modal('m-gateway')">去填 Key →</button>
+            <button class="btn ghost btn-sm" style="font-size:11.5px" onclick="document.getElementById('key-guide-more').open=!document.getElementById('key-guide-more').open">区别说明</button>
+            <button class="btn ghost btn-sm" style="font-size:11.5px" onclick="try{localStorage.setItem('yimu_key_guide_off','1')}catch(e){};document.getElementById('key-guide-card').style.display='none'">不再提示</button>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-top:12px;font-size:12.5px;line-height:1.7">
-          <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px">
-            <b style="color:#40b8be">① 系统与 API 配置</b><br>
-            <span style="color:var(--text-muted)">给「本系统」的 AI 充值大脑：填一次 Key，写稿/配图/排版全都用。<b>99% 的用户只需要这里。</b>不填也行——默认官方通道每日 3 次免 Key 体验。</span>
+        <details id="key-guide-more" style="margin-top:0">
+          <summary style="cursor:pointer;list-style:none;font-size:0"></summary>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;margin-top:10px;font-size:12px;line-height:1.65">
+            <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:9px 11px">
+              <b style="color:#40b8be">① 系统与 API 配置</b><br>
+              <span style="color:var(--text-muted)">给「本系统」的 AI 充大脑：填一次 Key，写稿/配图/排版全都用。<b>只需这里。</b>不填也有官方通道每日 3 次体验。</span>
+            </div>
+            <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:9px 11px">
+              <b style="color:#ffb25e">② 个人中心 · 我的 API Key</b><br>
+              <span style="color:var(--text-muted)">用自己的 Key 替代系统通道（不扣算力点）。进阶省钱玩法，可以后再管。</span>
+            </div>
+            <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:9px 11px">
+              <b style="color:#58a6ff">③ API 网关服务</b><br>
+              <span style="color:var(--text-muted)">反过来把本系统 AI 开放给别的软件调用（团队/转售）。写稿完全用不到。</span>
+            </div>
           </div>
-          <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px">
-            <b style="color:#ffb25e">② 个人中心 · 我的 API</b><br>
-            <span style="color:var(--text-muted)">用你自己的 Key 替代系统通道（自备 Key 不扣算力点）。属于进阶省钱玩法，可以以后再管。</span>
-          </div>
-          <div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px">
-            <b style="color:#58a6ff">③ API 网关服务</b><br>
-            <span style="color:var(--text-muted)">反向操作：把本系统的 AI 能力开放给别的软件调用（团队/转售用）。写稿排版完全用不到，可无视。</span>
-          </div>
-        </div>
+        </details>
       </div>
 
       <!-- 子视图：每日工单 -->
@@ -8339,30 +8389,72 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
           .set20-card .ft{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid rgba(255,255,255,.05)}
           .set20-card .meta{font-size:11.5px;color:var(--text-muted)}
           .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#34d399;margin-right:5px;box-shadow:0 0 6px rgba(52,211,153,.8)}
+          /* ── 设置中心 · 三件事（小白引导） ── */
+          .set-hub{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:14px}
+          .set-hub .h{background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;flex-direction:column;gap:7px}
+          .set-hub .h.done{border-color:rgba(52,211,153,.45)}
+          .set-hub .h.pending{border-color:rgba(240,136,62,.45)}
+          .set-hub .h b{font-size:13px;color:#fff;display:flex;align-items:center;gap:6px}
+          .set-hub .h .val{font-size:12px;color:var(--text-muted);line-height:1.55;min-height:34px}
+          .set-hub .h .val em{font-style:normal;color:#ffb25e;font-weight:700}
+          .set-hub .h button{align-self:flex-start;margin-top:2px}
+          .set20-adv{margin-top:20px;border:1px dashed var(--border);border-radius:12px;padding:0;background:rgba(255,255,255,.02)}
+          .set20-adv>summary{cursor:pointer;list-style:none;padding:13px 18px;font-size:13px;font-weight:700;color:var(--text-muted);display:flex;align-items:center;gap:8px;user-select:none}
+          .set20-adv>summary::-webkit-details-marker{display:none}
+          .set20-adv>summary::after{content:"展开 ▾";margin-left:auto;font-size:11.5px;font-weight:600;color:var(--primary)}
+          .set20-adv[open]>summary::after{content:"收起 ▴"}
+          .set20-adv[open]>summary{border-bottom:1px solid var(--border)}
+          .set20-adv .set20-adv-body{padding:4px 18px 18px}
+          /* 个人中心「进阶 Key」卡：默认折叠，展开后提示文字换成「收起」 */
+          .pc-adv-card>summary{list-style:none}
+          .pc-adv-card>summary::-webkit-details-marker{display:none}
+          .pc-adv-card[open] .pc-adv-hint{font-size:0}
+          .pc-adv-card[open] .pc-adv-hint::after{content:"收起 ▴";font-size:11.5px}
+          [data-theme="light"] .set-hub .h{background:#fff}
+          [data-theme="light"] .set20-adv{background:#fff}
+          /* 浅色主题下这些卡片标题原本写死 #fff，等于白底白字、标题直接消失。
+             这是「设置页看起来很乱、不知道卡片讲什么」的一部分原因，一并修掉。 */
+          [data-theme="light"] .set20-hero h2,
+          [data-theme="light"] .set20-card .tt,
+          [data-theme="light"] .set-hub .h b,
+          [data-theme="light"] .set20-tier .t b{color:#1a1a1a}
+          [data-theme="light"] .set-hub .h .val{color:#5b6470}
+          [data-theme="light"] .set-hub .h .val em{color:#c2410c}
+          [data-theme="light"] .set20-hero p,
+          [data-theme="light"] .set-hub .h .val,
+          [data-theme="light"] .set20-adv>summary{color:#5b6470}
+          [data-theme="light"] .set20-tier .t{background:#fff}
         </style>
 
         <div class="set20">
-          <!-- ══ AI 连接 · 三层架构总览 ══ -->
+          <!-- ══ 只需关心三件事（小白引导 · 每件事只有一个按钮） ══ -->
           <div class="set20-hero">
-            <h2>⚡ AI 连接与模型服务</h2>
-            <p>平台采用「三层通道」架构，各层职责独立、互不干扰：配置前先确认你要改的是哪一层。</p>
-            <div class="set20-tier">
-              <div class="t">
-                <b>① 运营层 · 模型服务（上游）</b>
-                <span>驱动全站创作能力的官方大模型通道。配置 Key 后所有 Agent（写稿/配图/视频）自动可用，官方通道按 Token 计量扣费。</span>
-                <span class="go" onclick="modal('m-gateway')">配置模型服务 →</span>
+            <h2>⚡ 设置中心 · 其实只要管三件事</h2>
+            <p>
+              下面三张卡显示的是<b>当前实际生效</b>的配置。要改哪一项，就点那张卡上的按钮——
+              全站所有入口（工作台 / 极简模式 / Agent 弹窗）读的都是这里同一份设置，改一次处处生效，不会再有第二处要你重复填。
+            </p>
+            <div class="set-hub">
+              <div class="h pending" id="set-hub-key">
+                <b>① 🔑 模型与 Key</b>
+                <div class="val" id="set-hub-key-val">加载中…</div>
+                <button class="btn btn-sm ok" style="font-weight:700" onclick="modal('m-gateway')">⚙️ 去填 Key</button>
               </div>
-              <div class="t">
-                <b>② 用户层 · 个人专属 Key</b>
-                <span>用你自己的 Key 替代系统通道（BYOK）：自备 Key 不扣算力点，AES-256 加密存于个人保险箱。</span>
-                <span class="go" onclick="openUserVaultModal()">管理我的 API →</span>
+              <div class="h" id="set-hub-img">
+                <b>② 🎨 生图引擎</b>
+                <div class="val" id="set-hub-img-val">加载中…</div>
+                <button class="btn btn-sm ghost" onclick="modal('m-image')">🎨 换生图模型</button>
               </div>
-              <div class="t">
-                <b>③ 网关层 · 对外 API 转售</b>
-                <span>反向操作：把平台 AI 能力以 OpenAI 兼容接口开放给外部软件调用（团队/二次分销），与创作链路完全隔离。</span>
-                <span class="go" onclick="switchSubTab('console','sp-gateway')">进入 API 网关服务 →</span>
+              <div class="h" id="set-hub-style">
+                <b>③ ✍️ 写作默认风格</b>
+                <div class="val" id="set-hub-style-val">加载中…</div>
+                <button class="btn btn-sm ghost" onclick="modal('m-theme')">✍️ 换默认风格</button>
               </div>
             </div>
+            <p style="margin-top:12px;font-size:12px;color:var(--text-muted)">
+              其余开关（关键词、质量考核、过期清理、在线升级、访问模式）都收在最下面的
+              <b>「高级设置」</b>里，平时完全不用动。
+            </p>
           </div>
 
           <!-- ══ 模型服务与用量 ══ -->
@@ -8414,8 +8506,10 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
             </div>
           </div>
 
-          <!-- ══ 系统维护 ══ -->
-          <div class="set20-sec"><h3>系统维护</h3></div>
+          <!-- ══ 高级设置（默认折叠，避免干扰小白） ══ -->
+          <details class="set20-adv">
+            <summary>🧰 高级设置 · 系统维护与升级（平时不用动）</summary>
+            <div class="set20-adv-body">
           <div class="set20-grid">
             <div class="set20-card">
               <div class="hd"><div class="ic">⏳</div><div><div class="tt">草稿箱自动过期清理</div></div></div>
@@ -8463,10 +8557,12 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
           </div>
 
           <!-- 个人偏好迁移提示 -->
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:12px;padding:14px 18px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:12px;padding:14px 18px;margin-top:14px">
             <div style="font-size:12.5px;color:var(--text-muted)">👤 6 维画像 / 个人模型 API Vault / 水印 / 图床等个人偏好已归至「个人中心」</div>
             <button class="btn btn-sm ghost" onclick="switchToProfileCenter()">进入个人中心 →</button>
           </div>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -8871,27 +8967,36 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
           <div style="font-size:11.5px;color:var(--text-muted)">驱动全自动创作 Copilot、爆款仿写与仿生分发的核心基石</div>
         </div>
 
-        <!-- 3. 我的专属模型 API 凭证 (User API Vault) -->
-        <div class="card" style="display:flex;flex-direction:column;gap:12px;border-left:3px solid #ff9d55">
-          <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+        <!-- 3. 我的专属模型 API 凭证 (User API Vault)
+             ⚠ 与「系统设置 → 系统与 API 配置」是两个层次，不是重复：
+                那边是「全站默认走哪个渠道」，这里是「我个人的 Key（可选，进阶）」。
+                但小白容易以为必须两处都填，所以整张卡默认折叠成一行摘要。 -->
+        <details class="card pc-adv-card" style="border-left:3px solid #ff9d55;padding:0">
+          <summary style="cursor:pointer;list-style:none;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;gap:10px">
             <div>
               <div style="font-weight:700;font-size:14px;color:#ff9d55;display:flex;align-items:center;gap:6px">
-                <span>🔑</span> 我的专属模型 API 凭证 (API Vault)
+                <span>🔑</span> 进阶 · 用我自己的 Key（可选，不填也能正常用）
               </div>
-              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">自备 Key 直连 · 0加价 · AES-GCM 硬件加密安全</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">日常不用动这里 · 全站默认模型与 Key 在「⚙ 系统与 API 配置」设一次即可</div>
             </div>
-            <button class="btn btn-sm" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;border:none;font-weight:600" onclick="openUserVaultModal()">🔑 配置我的 API</button>
+            <span class="pc-adv-hint" style="font-size:11.5px;color:var(--primary);font-weight:700;white-space:nowrap">展开 ▾</span>
+          </summary>
+          <div style="padding:0 18px 16px;display:flex;flex-direction:column;gap:12px">
+            <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
+              这一张是可选的：把你自己的 OpenAI / DeepSeek / Claude / 智谱 / 通义 / Kimi Key 填进来，
+              就会优先用你的额度直连（不扣平台算力点）；不填则自动使用平台托管通道，功能完全一样。
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn btn-sm" style="background:linear-gradient(135deg,#f0883e,#e05a10);color:#fff;border:none;font-weight:600" onclick="openUserVaultModal()">🔑 配置我的 Key</button>
+              <button class="btn btn-sm ghost" onclick="document.querySelector('.nav-item[data-p=console]').click();switchSubTab('console','sp-settings');">⚙ 去系统设置配默认模型</button>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:2px">
+              <span class="badge green">AES-256 加密</span>
+              <span class="badge blue">无缝热切换</span>
+              <span class="badge gold">自备直连零损耗</span>
+            </div>
           </div>
-          <div style="font-size:12px;color:var(--text-muted);line-height:1.6">
-            支持自备 OpenAI、DeepSeek、Claude、智谱 GLM、通义千问、Kimi 等私人 Key。<br>
-            未配置自备 Key 时，系统将自动无缝平滑切回一幕平台企业级托管网关。
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
-            <span class="badge green">AES-256 加密</span>
-            <span class="badge blue">无缝热切换</span>
-            <span class="badge gold">自备直连零损耗</span>
-          </div>
-        </div>
+        </details>
 
         <!-- 4. 界面外观与排版风格偏好 -->
         <div class="card" style="display:flex;flex-direction:column;gap:12px">
@@ -10652,7 +10757,7 @@ async function initStudioModelSelects() {
     const sortedVideoPids = sortGroups(videoGroups);
 
     // 填充生图模型下拉框
-    const savedImgModel = localStorage.getItem('yimu_studio_image_model') || '';
+    const savedImgModel = getImageModel();
     STUDIO_IMAGE_SELECT_IDS.forEach(id => {
       const el = $(id);
       if (!el) return;
@@ -10813,7 +10918,7 @@ function updateStudioRuleTipBox(boxEl, rule, type, modelVal) {
 }
 
 function updateAllStudioModelRuleTips() {
-  const curImg = localStorage.getItem('yimu_studio_image_model') || '';
+  const curImg = getImageModel();
   const curVid = localStorage.getItem('yimu_studio_video_model') || '';
   const imgRule = studioGetModelRule('image', curImg);
   const vidRule = studioGetModelRule('video', curVid);
@@ -10856,10 +10961,86 @@ function updateAllStudioModelRuleTips() {
 }
 
 // 下拉切换事件响应
+/* ===== 生图模型：唯一真源 =====
+   这个设置历史上散在两个 localStorage 键里（yimu_studio_image_model 与
+   yimu_copilot_image_model）。在「个人中心 → 配图设置」里改，短剧工作台读不到；
+   在短剧工作台改，Agent 侧又看不到——这正是用户说的"设置互相打架、怎么设都不对"。
+   现在统一读写 yimu_image_model，旧键自动迁移并继续双写，兼容尚未改造的读取点。
+
+   ⚠ V15.9.4 修两个隐患：
+   1) 原实现里 ``localStorage.getItem('yimu_copilot_image_model') || getImageModel()``
+      在三个键都为空时会**自己调自己**，首装/清缓存后每次读取都递归到栈溢出
+      （被 try/catch 吞掉后静默返回空串，表现为"设置莫名其妙丢了"）。改为单向迁移。
+   2) 哨兵值 '__default__' 原样返回，会被当成"一个真实模型 id"发给后端。统一归一为空串
+      （空串语义 = 跟随系统默认生图引擎）。 */
+const IMAGE_MODEL_KEY = 'yimu_image_model';
+const IMAGE_MODEL_LEGACY_KEYS = ['yimu_studio_image_model', 'yimu_copilot_image_model'];
+
+function getImageModel() {
+  try {
+    var v = localStorage.getItem(IMAGE_MODEL_KEY);
+    if (v === null) {
+      // 首次升级：从两个旧键里取第一个有效值迁过来（只读一次，绝不递归）
+      var legacy = '';
+      for (var i = 0; i < IMAGE_MODEL_LEGACY_KEYS.length; i++) {
+        var old = localStorage.getItem(IMAGE_MODEL_LEGACY_KEYS[i]);
+        if (old && old !== '__default__') { legacy = old; break; }
+      }
+      v = legacy;
+      localStorage.setItem(IMAGE_MODEL_KEY, legacy);
+    }
+    return (v === '__default__') ? '' : v;
+  } catch (e) { /* 隐私模式下 localStorage 不可用 */ }
+  return '';
+}
+
+function setImageModel(v) {
+  var val = (v && v !== '__default__') ? v : '';
+  try {
+    localStorage.setItem(IMAGE_MODEL_KEY, val);
+    // 继续双写旧键：仓库里仍有少量读取点没改造完，写一份可避免它们读到旧值
+    localStorage.setItem('yimu_studio_image_model', val);
+    localStorage.setItem('yimu_copilot_image_model', val || '__default__');
+  } catch (e) { /* 同上 */ }
+  // 下拉组一起刷新——否则「改了这处、那处还是旧值」的观感依旧存在
+  try {
+    STUDIO_IMAGE_SELECT_IDS.forEach(function (id) {
+      var el = $(id);
+      if (el && el.value !== val) el.value = val;
+    });
+  } catch (e) {}
+  try {
+    renderImageModelReadouts(val);
+  } catch (e) {}
+  return val;
+}
+
+/** 把「当前生图模型」同步渲染到 Agent 弹窗里的只读展示位。 */
+function renderImageModelReadouts(val) {
+  var v = (val === undefined) ? getImageModel() : val;
+  var ro = $('copilot-image-model-readout');
+  if (ro) ro.textContent = v ? harnessModelLabel(v) : '跟随系统默认生图引擎';
+}
+
+/** 模型 id 转成好读的名字：优先取下拉里已渲染的 option 文本。 */
+function harnessModelLabel(v) {
+  var ids = ['drama-image-model-sel', 'vd-image-model-sel', 'sb-image-model-sel', 'im-model'];
+  for (var i = 0; i < ids.length; i++) {
+    var el = $(ids[i]);
+    if (!el || !el.options) continue;
+    for (var j = 0; j < el.options.length; j++) {
+      if (el.options[j].value === v) {
+        return String(el.options[j].textContent || '').replace(/\s*\((推荐|当前激活)\)\s*/g, '').trim();
+      }
+    }
+  }
+  return String(v).split('/').pop();
+}
+
 function onStudioModelChange(slot, value) {
   const isVideo = slot.includes('video');
-  const storageKey = isVideo ? 'yimu_studio_video_model' : 'yimu_studio_image_model';
-  localStorage.setItem(storageKey, value || '');
+  if (isVideo) localStorage.setItem('yimu_studio_video_model', value || '');
+  else setImageModel(value);
 
   // 自动同步联动同类型全部下拉框
   const targets = isVideo ? STUDIO_VIDEO_SELECT_IDS : STUDIO_IMAGE_SELECT_IDS;
@@ -13821,6 +14002,14 @@ function switchSubTab(parentPanel, subId) {
   const p = $('p-' + parentPanel);
   p.querySelectorAll('.sub-tab').forEach(t => t.classList.toggle('on', t.dataset.sp === subId));
   p.querySelectorAll('.sub-view').forEach(v => v.style.display = (v.id === subId ? 'block' : 'none'));
+  /* 🔑 Key 引导条去重：进入「系统与 API 配置」时隐藏——那一页顶部的「三件事」
+     总览本身就是权威说明，两条并列只会让用户以为还有第三套配置。 */
+  const _kg = $('key-guide-card');
+  if (_kg) {
+    let _off = false;
+    try { _off = localStorage.getItem('yimu_key_guide_off') === '1'; } catch (_e) {}
+    _kg.style.display = (_off || subId === 'sp-settings') ? 'none' : '';
+  }
   /* ⭐ 影音工坊子标签切换时自动初始化/刷新已绑定密钥模型下拉 */
   if (parentPanel === 'studio' && typeof initStudioModelSelects === 'function') {
     try { initStudioModelSelects(); } catch(e) { console.warn('[studio-models] 刷新失败:', e); }
@@ -14234,7 +14423,7 @@ async function renderLitePlatformPreview(plat) {
           rawHtml = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body{margin:0;padding:28px 36px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#222;line-height:1.8;background:#fff;word-break:break-word;}img{max-width:100%;height:auto;border-radius:8px;display:block;margin:16px auto;box-shadow:0 4px 16px rgba(0,0,0,0.08);}</style></head><body>${rawHtml}
 </body></html>`;
         }
-        iframe.srcdoc = rawHtml;
+        iframe.srcdoc = injectImgZoom(rawHtml);
       }
     }
 
@@ -14859,6 +15048,39 @@ function openFullLightbox(url) {
   }
 }
 
+/* ===== 预览 iframe 里的图片点击放大 =====
+   内容工作台右侧和极简模式画布都是 <iframe srcdoc>，里面是独立文档，
+   点击事件不会冒泡到父页面，所以那里的图「点了没反应」。
+   做法：往 iframe 文档里注入一小段脚本，把 <img> 点击通过 postMessage 抛回来。 */
+const IMG_ZOOM_BOOT = '<!--yimu-zoom-boot--><scr' + 'ipt>(function(){' +
+  'var st=document.createElement("style");' +
+  'st.textContent="img{cursor:zoom-in}";' +
+  'if(document.head){document.head.appendChild(st);}' +
+  'document.addEventListener("click",function(e){' +
+  '  var t=e.target;' +
+  '  if(t&&t.tagName==="IMG"&&(t.naturalWidth||t.getAttribute("src"))){' +
+  '    e.preventDefault();' +
+  '    try{parent.postMessage({__yimuZoom:(t.currentSrc||t.src||"")},"*");}catch(_){}' +
+  '  }' +
+  '},true);' +
+  '})();</scr' + 'ipt>';
+
+function injectImgZoom(html) {
+  if (!html || html.indexOf('yimu-zoom-boot') >= 0) return html || '';
+  if (/<\/body\s*>/i.test(html)) return html.replace(/<\/body\s*>/i, IMG_ZOOM_BOOT + '</body>');
+  if (/<\/html\s*>/i.test(html)) return html.replace(/<\/html\s*>/i, IMG_ZOOM_BOOT + '</html>');
+  return html + IMG_ZOOM_BOOT;
+}
+
+window.addEventListener('message', function (ev) {
+  const d = ev && ev.data;
+  if (d && typeof d === 'object' && d.__yimuZoom) {
+    if (typeof openImageLightbox === 'function') {
+      openImageLightbox(d.__yimuZoom, '图片预览 · 点击空白处关闭');
+    }
+  }
+});
+
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeImageLightbox();
@@ -14876,6 +15098,7 @@ let agentTaskAutoCloseTimer = null;
 function openAgentTaskModal(title, subtitle) {
   const modal = $('agent-task-progress-modal');
   if (!modal) return;
+  if (typeof reparentFixedModals === 'function') reparentFixedModals();  // 兜底：脱离隐藏祖先
   if (agentTaskAutoCloseTimer) {
     clearTimeout(agentTaskAutoCloseTimer);
     agentTaskAutoCloseTimer = null;
@@ -15462,9 +15685,31 @@ async function applyScoreImprovement() {
 let cachedProvidersData = null;
 let cachedVoicesData = null;
 
+/* =================== 🔴 结构性修复：被「藏起来」的两个全屏弹窗 ===================
+   模板里 #copilot-settings-modal 与 #agent-task-progress-modal 被误写在了
+   #lite-drafts-modal 内部，而后者默认 display:none —— 即便把子元素设成
+   display:flex，也永远不可见。用户侧表现就是：
+     · 点顶部「🤖 / ⚙ Agent 配置」完全没反应（其实函数跑了，弹窗在隐藏祖先里）；
+     · 发起 Agent 长任务时没有「执行中」进度窗，只能干等，像卡死。
+   这里把它们统一搬到 <body> 直属，一劳永逸摆脱隐藏祖先。幂等，可重复调用。 */
+function reparentFixedModals() {
+  ['agent-task-progress-modal', 'copilot-settings-modal'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el && el.parentElement && el.parentElement !== document.body) {
+      try { document.body.appendChild(el); } catch (e) { /* ignore */ }
+    }
+  });
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', reparentFixedModals);
+} else {
+  reparentFixedModals();
+}
+
 async function openCopilotSettingsModal() {
   const modal = $('copilot-settings-modal');
   if (!modal) return;
+  reparentFixedModals();  // 兜底：确保不被隐藏的父容器吞掉
   modal.style.display = 'flex';
 
   try {
@@ -15479,11 +15724,14 @@ async function openCopilotSettingsModal() {
   }
 
   const pData = cachedProvidersData || { providers: {}, active_provider_id: 'custom' };
-  const vList = cachedVoicesData || [];
+  /* 防御：音色接口若因网关/代理返回了非数组（例如 {ok:true} 这类错误体），
+     旧代码直接 vList.forEach 会抛 TypeError，导致**整个 Agent 设置弹窗打不开**。
+     这里退回空列表，弹窗照常可用。 */
+  const vList = Array.isArray(cachedVoicesData) ? cachedVoicesData : [];
 
   const savedProvider = localStorage.getItem('yimu_copilot_provider') || '__default__';
   const savedModel = localStorage.getItem('yimu_copilot_model') || '__default__';
-  const savedImageModel = localStorage.getItem('yimu_copilot_image_model') || '__default__';
+  const savedImageModel = getImageModel() || '__default__';
   const savedPersona = localStorage.getItem('yimu_copilot_persona') || '';
   const savedStyle = localStorage.getItem('yimu_copilot_style') || 'default';
 
@@ -15535,29 +15783,14 @@ function onCopilotProviderChange(providerId) {
   populateCopilotImageModels(providerId, '__default__');
 }
 
+/* 生图模型在 Agent 弹窗里已改为「只读回显 + 跳转」——不再提供第二个下拉框。
+   原因：全站生图模型只有一份设置（「系统设置 → AI 配图设置」，单一真源 yimu_image_model），
+   在这里再放一个下拉框，只会让用户以为要在两处各配一次，且两边很容易不同步。
+   函数名保留，避免调用点报错。 */
 function populateCopilotImageModels(providerId, selectedModel) {
-  const imgSel = $('copilot-image-model-select');
-  if (!imgSel) return;
-  const pData = cachedProvidersData || { providers: {}, active_provider_id: 'custom' };
-  const targetPid = (providerId === '__default__' || !providerId) ? (pData.active_provider_id || 'custom') : providerId;
-  const p = pData.providers ? pData.providers[targetPid] : null;
-  let opts = `<option value="__default__">⚙️ 默认生图引擎 (继承后台图像设置)</option>`;
-  (p && p.models ? p.models : []).forEach(m => {
-    const cat = m.category || '';
-    const id = String(m.id || '');
-    if (cat === 'image' || (!cat && /image|dall|flux|sd|imagen/i.test(id))) {
-      opts += `<option value="${escapeHtml(m.id)}">🎨 ${escapeHtml(m.name || m.id)}</option>`;
-    }
-  });
-  // 跨模型服务已配置密钥的图像模型也纳入可选
-  (window._cachedCrossModels || []).forEach(m => {
-    if (m.category === 'image' && m.has_key !== false && m.provider_id !== targetPid) {
-      opts += `<option value="${escapeHtml(m.id)}">🎨 ${escapeHtml(m.name || m.id)} [${escapeHtml(m.provider_name || m.provider_id || '')}]</option>`;
-    }
-  });
-  imgSel.innerHTML = opts;
-  imgSel.value = selectedModel || '__default__';
-  if (imgSel.value !== (selectedModel || '__default__')) imgSel.value = '__default__';
+  void providerId;
+  void selectedModel;
+  renderImageModelReadouts();
 }
 
 function populateCopilotModels(providerId, selectedModel) {
@@ -15591,26 +15824,27 @@ function closeCopilotSettingsModal() {
 function saveCopilotSettings() {
   const pSel = $('copilot-provider-select');
   const mSel = $('copilot-model-select');
-  const imgSel = $('copilot-image-model-select');
   const personaSel = $('copilot-persona-select');
   const styleRadio = document.querySelector('input[name="copilot-style"]:checked');
 
   const provider = pSel ? pSel.value : '__default__';
   const model = mSel ? mSel.value : '__default__';
-  const imgModel = imgSel ? imgSel.value : '__default__';
   const persona = personaSel ? personaSel.value : '';
   const style = styleRadio ? styleRadio.value : 'default';
 
   localStorage.setItem('yimu_copilot_provider', provider);
   localStorage.setItem('yimu_copilot_model', model);
-  localStorage.setItem('yimu_copilot_image_model', imgModel);
+  /* 生图模型不在这里改写：它是全站共用的一处设置（入口已归到「系统设置 → AI 配图设置」）。
+     之前这里读下拉框再 setImageModel，下拉框去掉后 imgSel 为 null、imgModel 退化成
+     '__default__'，会导致每次保存 Agent 配置都把用户选好的生图模型清空——现已移除。 */
+  renderImageModelReadouts();
   localStorage.setItem('yimu_copilot_persona', persona);
   localStorage.setItem('yimu_copilot_style', style);
 
   initCopilotSettingsBadge();
   if (typeof loadCopilotQuickModels === 'function') loadCopilotQuickModels();
   closeCopilotSettingsModal();
-  toast(`✅ Agent 配置已生效！对话模型与生图引擎已更新。`, 3000);
+  toast(`✅ Agent 配置已生效！对话模型与创作调性已更新。`, 3000);
 }
 
 // 页面初始化恢复 Agent 模型 Badge
@@ -15763,12 +15997,14 @@ async function sendWbAgentMessage() {
   input.value = '';
   chatBox.scrollTop = chatBox.scrollHeight;
 
+  const thinkBubble = appendThinkingBubble(chatBox, '正在理解你的修改意图…');
+
   // v5.3 PRO: 立即弹出全局高质感任务执行中模态视窗
   openAgentTaskModal('内容工作台 Agent 任务执行中', '正在锁定草稿微创靶位并执行定点重构…');
 
   const savedProvider = localStorage.getItem('yimu_copilot_provider') || '__default__';
   const savedModel = localStorage.getItem('yimu_copilot_model') || '__default__';
-  const savedImageModel = localStorage.getItem('yimu_copilot_image_model') || '__default__';
+  const savedImageModel = getImageModel() || '__default__';
   const savedPersona = localStorage.getItem('yimu_copilot_persona') || '';
   const savedStyle = localStorage.getItem('yimu_copilot_style') || 'default';
 
@@ -15819,6 +16055,7 @@ async function sendWbAgentMessage() {
             const ev = JSON.parse(jsonStr);
             if (ev.type === 'step') {
               updateAgentTaskStep(ev.step, ev.progress);
+              updateThinkingBubble(thinkBubble, ev.step);
             } else if (ev.type === 'result') {
               finalResult = ev.data;
             } else if (ev.type === 'error') {
@@ -15836,6 +16073,7 @@ async function sendWbAgentMessage() {
     }
 
     finishAgentTaskModal('定点微创精修已就地生效！');
+    dropThinkingBubble(thinkBubble);
 
     const aiBubble = document.createElement('div');
     aiBubble.className = 'copilot-msg assistant';
@@ -15882,6 +16120,7 @@ async function sendWbAgentMessage() {
       toast(actionNotice, 3500);
     }
   } catch(e) {
+    dropThinkingBubble(thinkBubble);
     closeAgentTaskModal();
     const errBubble = document.createElement('div');
     errBubble.className = 'copilot-msg assistant';
@@ -15895,6 +16134,53 @@ async function sendWbAgentMessage() {
 }
 
 // 6. 极简模式 sendCopilotMessage：真实进度流式接收与即时停止支持
+/* ===== 思考气泡：把 Agent 的执行过程放进对话流 =====
+   以前发完消息，只有发送按钮变成转圈，界面上看不出"它正在想什么"，
+   等待久了就像卡死。现在先落一个带三点动画的气泡，随 step 事件实时更新。 */
+function appendThinkingBubble(chatBox, text) {
+  if (!chatBox) return null;
+  const el = document.createElement('div');
+  el.className = 'copilot-msg assistant copilot-thinking';
+  el.innerHTML =
+    '<div class="copilot-avatar">✨</div>' +
+    '<div class="copilot-bubble">' +
+      '<div class="ct-line"><span class="ct-dots"><i></i><i></i><i></i></span>' +
+      '<span class="ct-text">' + escapeHtml(text || '正在思考…') + '</span></div>' +
+      '<div class="ct-steps"></div>' +
+    '</div>';
+  chatBox.appendChild(el);
+  chatBox.scrollTop = chatBox.scrollHeight;
+  return el;
+}
+
+const THINK_STEP_CAP = 5;
+
+function updateThinkingBubble(el, text) {
+  if (!el || !el.isConnected) return;
+  const t = el.querySelector('.ct-text');
+  const list = el.querySelector('.ct-steps');
+  if (list) {
+    const last = list.lastElementChild;
+    if (last) { last.classList.remove('now'); last.classList.add('done'); }
+    if (text) {
+      const line = document.createElement('div');
+      line.className = 'ct-step now';
+      line.textContent = text;
+      list.appendChild(line);
+      while (list.children.length > THINK_STEP_CAP) {
+        list.removeChild(list.firstElementChild);
+      }
+    }
+  }
+  if (t && text) t.textContent = text;
+  const box = el.parentElement;
+  if (box) box.scrollTop = box.scrollHeight;
+}
+
+function dropThinkingBubble(el) {
+  if (el && el.parentElement) el.parentElement.removeChild(el);
+}
+
 async function sendCopilotMessage() {
   const input = $('copilot-input');
   const btnSend = $('btn-copilot-send');
@@ -15927,6 +16213,9 @@ async function sendCopilotMessage() {
   clearCopilotAttachments();
   chatBox.scrollTop = chatBox.scrollHeight;
 
+  // 立刻在对话流里给出"它已经开始想了"，不要只让按钮转圈
+  const thinkBubble = appendThinkingBubble(chatBox, '正在理解你的需求…');
+
   // 状态切换：隐藏发送键，显示停止键
   if (btnSend) {
     btnSend.style.display = 'none';
@@ -15943,7 +16232,7 @@ async function sendCopilotMessage() {
 
   const savedProvider = localStorage.getItem('yimu_copilot_provider') || '__default__';
   const savedModel = localStorage.getItem('yimu_copilot_model') || '__default__';
-  const savedImageModel = localStorage.getItem('yimu_copilot_image_model') || '__default__';
+  const savedImageModel = getImageModel() || '__default__';
   const savedPersona = localStorage.getItem('yimu_copilot_persona') || '';
   const savedStyle = localStorage.getItem('yimu_copilot_style') || 'default';
 
@@ -15998,6 +16287,7 @@ async function sendCopilotMessage() {
             if (ev.type === 'step') {
               showLiteGeneratingStep(ev.step);
               updateAgentTaskStep(ev.step, ev.progress);
+              updateThinkingBubble(thinkBubble, ev.step);
             } else if (ev.type === 'result') {
               finalResult = ev.data;
             } else if (ev.type === 'error') {
@@ -16015,6 +16305,7 @@ async function sendCopilotMessage() {
     }
 
     finishAgentTaskModal('爆款成稿与微创处理圆满完成！');
+    dropThinkingBubble(thinkBubble);
 
     const aiBubble = document.createElement('div');
     aiBubble.className = 'copilot-msg assistant';
@@ -16057,6 +16348,7 @@ async function sendCopilotMessage() {
       if (typeof refresh === 'function') refresh();
     }
   } catch(e) {
+    dropThinkingBubble(thinkBubble);
     // 发送失败/中止：把附件 chip 还原，避免用户重发时要重新选文件
     if (_attachSnapshot.length) {
       copilotAttachments = _attachSnapshot;
@@ -17245,7 +17537,7 @@ function renderWorkbenchIframe(htmlContent) {
   if (!finalHtml.includes('<!doctype') && !finalHtml.includes('<html')) {
     finalHtml = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body{margin:0;padding:32px 40px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;color:#222;line-height:1.8;background:#fff;word-break:break-word;box-sizing:border-box;}img{max-width:100%;height:auto;border-radius:8px;display:block;margin:16px auto;box-shadow:0 4px 12px rgba(0,0,0,0.08);}</style></head><body>${finalHtml}</body></html>`;
   }
-  ifr.srcdoc = finalHtml;
+  ifr.srcdoc = injectImgZoom(finalHtml);
 }
 
 async function loadAndRenderPlatformData(d, tab) {
@@ -19725,7 +20017,7 @@ async function runDramaBatchAssets(isContinuous) {
   if (!did) return toast('请选择草稿');
   const btn = $('btn-drama-step4-batch');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 正在并发生成四视图与全部资产…'; }
-  const curImgModel = ($('drama-step4-image-model-sel')?.value || $('drama-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
+  const curImgModel = ($('drama-step4-image-model-sel')?.value || $('drama-image-model-sel')?.value || getImageModel() || '').trim();
   toast('🚀 正在启动 AI 生图引擎并发绘制角色四视图蓝图、场景与道具…', 5000);
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step4_batch_assets`, {
@@ -19783,7 +20075,7 @@ async function runDramaGenShot(shotId) {
   const sc = currentDramaScenes.find(x => x.shot_id === shotId);
   const promptInput = $(`sc-prompt-${shotId}`);
   const promptEn = promptInput ? promptInput.value.trim() : (sc ? sc.image_prompt_en : '');
-  const curImgModel = ($('drama-step6-image-model-sel')?.value || $('drama-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
+  const curImgModel = ($('drama-step6-image-model-sel')?.value || $('drama-image-model-sel')?.value || getImageModel() || '').trim();
   toast(`正在生成镜头 #${shotId} 关键帧画面…`, 3500);
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step6_gen_shot`, {
@@ -19808,7 +20100,7 @@ async function runDramaBatchShots(isContinuous) {
   if (!did) return toast('请先选择草稿');
   const btn = $('btn-drama-step6-batch');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 正在批量绘制关键帧画面…'; }
-  const curImgModel = ($('drama-step6-image-model-sel')?.value || $('drama-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
+  const curImgModel = ($('drama-step6-image-model-sel')?.value || $('drama-image-model-sel')?.value || getImageModel() || '').trim();
   toast('🚀 正在启动 AI 生图双引擎绘制全部分镜头关键帧…', 5000);
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step6_batch_shots`, {
@@ -21044,7 +21336,7 @@ async function runVideoMake() {
         text_fore_color: subColor,
         material_source: matSource,
         video_materials: vdCustomMaterials,
-        image_model: ($('vd-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim()
+        image_model: ($('vd-image-model-sel')?.value || getImageModel() || '').trim()
       })
     });
     while(true) {
@@ -21114,7 +21406,7 @@ async function runStoryboardBatchGenImages() {
   if (!did) return toast('请先选择草稿');
   const btn = $('btn-sb-batch-gen');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ 批量出图中…'; }
-  const curImgModel = ($('sb-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
+  const curImgModel = ($('sb-image-model-sel')?.value || getImageModel() || '').trim();
   toast('🚀 正在启动真实 AI 生图双引擎为电影分镜全量生成 16:9 画卷…', 6000);
   try {
     const res = await api(`/api/drafts/${did}/storyboard/batch_gen_images`, {
@@ -21137,7 +21429,7 @@ async function regenStoryboardShotImage(shotIndex) {
   if (!did) return;
   const s = (currentStoryboardData.shots || []).find(x => x.shot_index === shotIndex);
   if (!s) return;
-  const curImgModel = ($('sb-image-model-sel')?.value || localStorage.getItem('yimu_studio_image_model') || '').trim();
+  const curImgModel = ($('sb-image-model-sel')?.value || getImageModel() || '').trim();
   toast(`正在为电影分镜 #${shotIndex} 生成真实 AI 画面…`, 4000);
   try {
     const res = await api(`/api/drafts/${did}/storyboard/gen_image`, {
@@ -21466,7 +21758,8 @@ function renderSettingsData() {
   $('st-gw-info').textContent = `${S.gateway.base_url} · 模型 ${S.gateway.model} · Key: ${S.gateway.key_set?'已配置':'未设置'}`;
   $('st-kw-info').textContent = S.keywords?.length ? S.keywords.join(' · ') : '未配置白名单（抓取全量热榜）';
   $('st-quality-info').textContent = `合格基准线 ${S.quality?.threshold} 分 · 最多自动重写 ${S.quality?.max_rounds} 轮`;
-  $('st-image-info').textContent = `${S.image?.enabled?'已开启':'已关闭'} · 2K 影视级画质 (2048x1152) · 模型 ${S.image?.model} · 每篇配图 ${S.image?.count} 张`;
+  const _effImgModel = getImageModel() || S.image?.model || '跟随系统';
+  $('st-image-info').textContent = `${S.image?.enabled?'已开启':'已关闭'} · 2K 影视级画质 (2048x1152) · 模型 ${_effImgModel} · 每篇配图 ${S.image?.count} 张`;
   $('st-theme-info').textContent = `公众号「${S.themes?.wechat[S.themes?.current?.wechat_theme]||S.themes?.current?.wechat_theme}」 · 卡片「${S.themes?.card[S.themes?.current?.card_style]}」`;
   if ($('pc-set-draft-expire-sel')) {
     const expDays = S.draft_expire_days != null ? String(S.draft_expire_days) : (localStorage.getItem('yimu_draft_expire_days') || '0');
@@ -21476,6 +21769,68 @@ function renderSettingsData() {
   loadPcProfileSummary();
   renderAgentList();
   renderSkillsList();
+  renderSettingsHub();
+}
+
+/* =================== ⚡ 设置中心 ·「三件事」状态总览 ===================
+   用户反馈：同一项设置在四五个地方都能改，不知道该改哪一处，也不知道哪个才算数。
+   所以这一页**不再新增任何控件**，只回答「我现在是什么配置 + 要改去哪儿改」：
+   三张只读状态卡 + 每张一个跳转按钮。真正的开关仍然各只有一处：
+     · 模型/Key   → m-gateway（系统与 API 配置）
+     · 生图模型   → m-image（与工作台/极简模式/Agent 弹窗共用 getImageModel 单一真源）
+     · 写作默认   → m-theme（公众号排版主题 + 卡片风格）
+   —— 三项设置、三个入口，一一对应，不再有第四处。 */
+
+//: Agent 弹窗「核心创作技能与调性」单选项的中文名（与 copilot 弹窗 value 一一对应）
+const SET_HUB_STYLE_NAMES = {
+  'default': '🔥 万赞黄金钩子',
+  'wangxiaobo': '✨ 王小波幽默犀利',
+  'xhs_seed': '📕 小红书短句种草',
+  'deep_resonance': '💬 微信深度情感',
+  'dry_goods': '🛡️ 避坑干货清单',
+  'story_conflict': '🎬 电影级戏剧冲突'
+};
+
+function renderSettingsHub() {
+  // ① 模型与 Key
+  const keyEl = $('set-hub-key-val'), keyBox = $('set-hub-key');
+  if (keyEl) {
+    const hasKey = Boolean(S.gateway && S.gateway.key_set);
+    const modelName = (S.gateway && S.gateway.model) ? String(S.gateway.model).split('/').pop() : '未选择';
+    keyEl.innerHTML = hasKey
+      ? `已接通 · 当前模型 <em>${escapeHtml(modelName)}</em>`
+      : '还没填 Key，填完才能开始创作（只需填一家的 Key）';
+    if (keyBox) { keyBox.classList.toggle('done', hasKey); keyBox.classList.toggle('pending', !hasKey); }
+  }
+
+  // ② 生图引擎（读的就是工作台 / 极简模式 / Agent 弹窗共用的那一份）
+  const imgEl = $('set-hub-img-val'), imgBox = $('set-hub-img');
+  if (imgEl) {
+    const cur = getImageModel() || (S.image && S.image.model) || '';
+    const shown = cur ? harnessModelLabel(cur) : '跟随系统推荐';
+    const on = S.image ? (S.image.enabled ? '已开启' : '已关闭') : '—';
+    const cnt = (S.image && S.image.count) ? S.image.count : 3;
+    imgEl.innerHTML = `模型 <em>${escapeHtml(shown)}</em> · ${on} · 每篇 ${cnt} 张`;
+    if (imgBox) { imgBox.classList.toggle('done', Boolean(cur)); imgBox.classList.toggle('pending', !cur); }
+  }
+
+  // ③ 写作默认风格
+  const stEl = $('set-hub-style-val'), stBox = $('set-hub-style');
+  if (stEl) {
+    const th = S.themes || {};
+    const wechatKey = th.current && th.current.wechat_theme;
+    const wechatName = (th.wechat && th.wechat[wechatKey]) || wechatKey || '默认';
+    const cardKey = th.current && th.current.card_style;
+    const cardName = (th.card && th.card[cardKey]) || cardKey || '默认';
+    let skill = '';
+    try {
+      const raw = localStorage.getItem('yimu_copilot_style') || 'default';
+      skill = SET_HUB_STYLE_NAMES[raw] || '';
+    } catch (_e) { skill = ''; }
+    stEl.innerHTML = `公众号「<em>${escapeHtml(wechatName)}</em>」· 卡片「<em>${escapeHtml(cardName)}</em>」`
+      + (skill ? `<br>调性 ${escapeHtml(skill)}` : '');
+    if (stBox) { stBox.classList.add('done'); stBox.classList.remove('pending'); }
+  }
 }
 
 function updatePcDraftExpireInfo(days) {
@@ -22787,7 +23142,10 @@ async function saveImageCfg() {
       }
     })
   });
-  closeModal(); toast('生图设置已更新'); refresh();
+  /* 双写：后端 config.image.model 决定服务端默认生图模型，localStorage 决定前端各处显示什么。
+     此前只写后端 → 前端下拉还是旧值，这正是「同一项设置两处显示不一致」的根因。 */
+  setImageModel(selectedModel);
+  closeModal(); toast('生图设置已更新（工作台、短剧、Agent 弹窗同步生效）'); refresh();
 }
 async function saveThemes() {
   await api('/api/settings', {
@@ -22846,7 +23204,9 @@ modal = function(id) {
     $('qc-rounds').value = S.quality.max_rounds;
   } else if (id === 'm-image' && S.image) {
     $('im-enabled').checked = S.image.enabled;
-    populateImageModelDropdown(S.image.model || '');
+    /* 预填用单一真源优先：此前只读后端 S.image.model，而工作台/Agent 弹窗读 localStorage，
+       两边一旦不同步，用户就会看到「同一项设置在这里是 A、在那里是 B」。 */
+    populateImageModelDropdown(getImageModel() || S.image.model || '');
     $('im-count').value = S.image.count || 3;
   } else if (id === 'm-theme') {
     if ($('th-ui-mode')) $('th-ui-mode').value = getThemeMode();
@@ -26287,8 +26647,15 @@ document.addEventListener('DOMContentLoaded', () => {
     </div>
 
     <div style="padding:20px;display:flex;flex-direction:column;gap:16px;max-height:75vh;overflow-y:auto">
-      <div style="background:rgba(240,136,62,0.08);border:1px solid rgba(240,136,62,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text);line-height:1.5">
-        💡 <strong>默认配置机制</strong>：如不做任何修改，系统将 100% 自动继承后台「控制中心」中配置生效的默认模型服务、对话模型与生图引擎。
+      <div style="background:rgba(240,136,62,0.08);border:1px solid rgba(240,136,62,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text);line-height:1.6">
+        💡 <strong>这里只选「这一次用什么」</strong>：什么都不改，就自动跟随「系统设置 → 系统与 API 配置」里的默认模型。<br>
+        Key 没配、或者想加一个新的模型渠道，都在那一个页面里完成——不用在这儿再填一遍。
+        <div style="margin-top:8px">
+          <button type="button" class="btn btn-xs" style="background:rgba(240,136,62,0.2);border:1px solid rgba(240,136,62,0.5);color:#ffb25e;font-weight:700"
+                  onclick="closeCopilotSettingsModal();document.querySelector('.nav-item[data-p=console]').click();switchSubTab('console','sp-settings');">
+            ⚙ 去配置模型服务与 Key →
+          </button>
+        </div>
       </div>
 
       <!-- 1. 模型服务与对话模型双级联动 -->
@@ -26307,12 +26674,16 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </div>
 
-      <!-- 2. 小红书/配图视觉生图模型配置 -->
+      <!-- 2. 生图模型：只读展示 + 跳转到唯一设置处（此处不再放第二个下拉框） -->
       <div>
         <label style="font-size:12.5px;font-weight:700;color:var(--text);margin-bottom:6px;display:block">🎨 小红书实景卡片与配图模型</label>
-        <select id="copilot-image-model-select" style="width:100%;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);font-size:12.5px">
-          <option value="__default__">⚙️ 默认生图引擎 (继承后台图像设置)</option>
-        </select>
+        <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:rgba(255,255,255,0.02)">
+          <span id="copilot-image-model-readout" style="flex:1;font-size:12.5px;font-weight:600;color:var(--text)">跟随系统默认生图引擎</span>
+          <button type="button" class="btn btn-xs ghost" onclick="closeCopilotSettingsModal();modal('m-image')">更换 →</button>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin-top:5px;line-height:1.6">
+          与「系统设置 → AI 配图设置」是<b>同一项</b>设置：在那改一次，这里和工作台全部同步，不需要两边各填一遍。
+        </div>
       </div>
 
       <!-- 3. 名家文风与自蒸馏大师指纹选择 (动态拉取) -->

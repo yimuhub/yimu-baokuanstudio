@@ -58,7 +58,19 @@ _TAG_LINE_RE = re.compile(r"^\s*(?:#[^\s#]+[\s,，、]*)+$")
 _INLINE_TAG_RE = re.compile(r"#[^\s#，。！？；：、（）()\[\]{}<>\"]{1,24}#?")
 
 #: HTML 标签
-_HTML_TAG_RE = re.compile(r"</?[a-zA-Z][a-zA-Z0-9]{0,10}(?:\s[^<>]{0,120})?/?>")
+#: HTML 标签。标签名上限 24 个字符——曾写成 `{0,10}`（合计 11），
+#: 而模型会吐出 `<WritingBlock variant="document">` 这类 12 字符的包装标签，
+#: 于是整对标签被当成正文留在成稿开头和结尾，用户直接看到。
+_HTML_TAG_RE = re.compile(r"</?[a-zA-Z][a-zA-Z0-9]{0,24}(?:\s[^<>]{0,160})?/?>")
+
+#: 模型自带的"内容包装标签"，语义上只是外壳，必须连同其边界一起剥掉。
+#: 这类标签不是 HTML，长度也常常超出上面的范围，单列一条更稳。
+_MODEL_WRAPPER_RE = re.compile(
+    r"</?(?:WritingBlock|WriteBlock|DraftBlock|ContentBlock|Document|Artifact"
+    r"|ArtifactContent|FunctionCalls|FunctionResults|FunctionCall"
+    r"|antml:[A-Za-z_]+|anthropic:[A-Za-z_]+)\b[^<>]{0,300}>",
+    re.IGNORECASE,
+)
 
 #: HTML 实体
 _ENTITY_MAP = {
@@ -194,6 +206,7 @@ def to_storage(text: str) -> str:
     # `<img src="x">` → `![图片](x)`，先于通用标签清理，避免把配图一起删掉
     s = re.sub(r"<img\b[^>]*\bsrc=['\"]([^'\"]+)['\"][^>]*/?>",
                lambda m: f"![图片]({m.group(1)})", s, flags=re.I)
+    s = _MODEL_WRAPPER_RE.sub("", s)
     s = _HTML_TAG_RE.sub("", s)
 
     out: list[str] = []
@@ -305,6 +318,7 @@ def purify_body(text: str) -> str:
         s = _INLINE_TAG_RE.sub(_keep, s)
 
         s = _strip_markdown_marks(s)
+        s = _MODEL_WRAPPER_RE.sub("", s)
         s = _HTML_TAG_RE.sub("", s)
         s = _strip_links(s)
         s = _strip_tables(s)
@@ -324,6 +338,21 @@ def purify_body(text: str) -> str:
     text = _SAFE_RE.sub(_restore_local, text)
     text = _MULTI_BLANK_RE.sub("\n\n", text)
     return text.strip()
+
+
+def strip_model_wrappers(text: str) -> str:
+    """只剥模型包装标签，保留其余格式（对话回复这类富文本出口用）。
+
+    与 :func:`purify_body` 的区别：这里的输入会原样显示在聊天气泡里，`**加粗**`
+    之类的标记仍有意义，不能一并洗掉；要清掉的只有 ``<WritingBlock …>`` 这类
+    模型自己加的外壳。
+    """
+    if not text:
+        return ""
+    s = _MODEL_WRAPPER_RE.sub("", str(text))
+    s = re.sub(r"[ \t]+\n", "\n", s)
+    s = re.sub(r"\n{3,}", "\n\n", s)
+    return s.strip()
 
 
 def purify_title(text: str) -> str:

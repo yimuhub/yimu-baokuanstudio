@@ -72,6 +72,22 @@ async def clear_tasks_endpoint(request: Request):
     from core import task_queue
     return task_queue.clear_tasks(status_filter, days)
 
+def _sanitize_copilot_result(res):
+    """统一剥掉模型塞进回复里的包装标签（如 ``<WritingBlock …>``）。
+
+    模型偶尔会把整段内容包一层 ``<WritingBlock id="…" variant="document">``，
+    这层壳对读者毫无意义，但会原样显示在聊天气泡开头和结尾。这里只剥壳，
+    不动 ``**加粗**`` 等仍有渲染意义的标记。
+    """
+    try:
+        from core.text_purity import strip_model_wrappers
+        if isinstance(res, dict) and isinstance(res.get('reply'), str):
+            res['reply'] = strip_model_wrappers(res['reply'])
+    except Exception:
+        pass
+    return res
+
+
 @router.post('/api/copilot/chat')
 async def copilot_chat_endpoint(request: Request):
     u = _a.guard(request)
@@ -94,7 +110,7 @@ async def copilot_chat_endpoint(request: Request):
     skills = body.get('skills')
     try:
         res = await asyncio.get_event_loop().run_in_executor(None, lambda: copilot.handle_copilot_chat(message, draft_id=draft_id, history=history, target_platform=platform, model=model, provider=provider, style=style, persona=persona, image_model=image_model, skills=skills, user_id=str(u.get('id') or '')))
-        return res
+        return _sanitize_copilot_result(res)
     except Exception as e:
         raise HTTPException(500, f'Copilot 响应失败: {str(e)}')
 
@@ -135,7 +151,7 @@ async def copilot_chat_stream_endpoint(request: Request):
             def _emit(step_txt, prog):
                 q.put({'type': 'step', 'step': step_txt, 'progress': prog})
             res = copilot.handle_copilot_chat(message, draft_id=draft_id, history=history, target_platform=platform, model=model, provider=provider, style=style, persona=persona, image_model=image_model, skills=skills, user_id=str(u.get('id') or ''), emit_step=_emit)
-            q.put({'type': 'result', 'data': res})
+            q.put({'type': 'result', 'data': _sanitize_copilot_result(res)})
         except Exception as e:
             q.put({'type': 'error', 'error': str(e)})
         finally:

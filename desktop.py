@@ -425,12 +425,18 @@ def _launch_and_probe(exe: str, url: str, extra: list[str], probe: float = 1.2) 
 def try_launch_browser_app_mode(url: str) -> bool:
     """尝试使用 Chrome / Edge 的应用模式 (--app) 打开独立窗体。
 
-    V15.9.2 两处改动：
+    V15.9.3 把"内置内核启动即崩"的真因修掉了：不是签名问题，而是解压时
+    ``zipfile.extractall()`` 不还原权限位，``chrome_crashpad_handler`` 与
+    Renderer/GPU Helper 等 13 个 Mach-O 全是 0644，Chromium spawn 它们时
+    ``EACCES`` → ``CHECK`` 失败 → ``__builtin_trap()``（客户机看到的就是
+    「意外退出 / EXC_BREAKPOINT / crashed on child side of fork pre-exec」）。
+    现在打包侧解压即还原权限并作出厂断言，运行期 :func:`heal_executable_perms`
+    再兜一层自愈。
 
-    1. **系统浏览器优先、内置内核兜底**。内置 Chrome for Testing 是 adhoc 签名、
-       无 hardened runtime / entitlements，在部分新版 macOS（实测 27.x + Apple
-       Silicon）上连子进程都 fork 不出来。客户机装了 Chrome / Edge 就没必要冒这个
-       险；内置内核只作"客户机没装任何浏览器也能用"的最后保障。
+    候选顺序仍保持"系统浏览器优先、内置内核兜底"：
+
+    1. **系统浏览器优先**。客户机装了 Chrome / Edge 就走它们，版本更新、体验更好；
+       内置内核只服务"一台浏览器都没装"的机器，守住完全自给的承诺。
     2. **启动后存活探测**（见 :func:`_launch_and_probe`），避免"弹了崩溃窗、界面
        还在干等"。
     """
@@ -463,12 +469,15 @@ def try_launch_browser_app_mode(url: str) -> bool:
             break
 
     if not launched:
-        # 内置内核是 adhoc 签名，部分系统上无法建沙箱子进程，显式关沙箱再试一次。
-        # 窗口只加载本机 localhost 页面，不加载外部不可信内容，风险可控。
+        # 内置内核兜底。V15.9.3 起"启动即崩"的真因（解压丢执行位）已根治：
+        # chrome_crashpad_handler 等 13 个 Mach-O 之前没有 x 位，spawn 直接 EACCES。
+        # 若某台机器上另有原因起不来，core.browser_path 会落 .broken 标记，这里
+        # 就不再重试，避免每次开机都弹一次崩溃窗。
         builtin = ""
         try:
-            from core.browser_path import bundled_chromium
-            builtin = bundled_chromium()
+            from core.browser_path import bundled_chromium, _is_marked_broken
+            if not _is_marked_broken():
+                builtin = bundled_chromium()
         except Exception:
             builtin = ""
         if builtin:

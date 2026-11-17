@@ -7,7 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
-## [15.9.2] - 万象衡 (Balance of All Things) · 2026-11-17
+## [15.9.3] - 千秋盛 (Thousand Autumns Prosperous) · 2026-11-17
+
+### Fixed 内置浏览器「启动即崩」的真正原因：13 个可执行文件没有执行位
+
+V15.9.2 的判断是错的。那一版把崩溃归因为「ad-hoc 签名 / 无 entitlements 建不出沙箱子进程」，
+于是把内置内核降为兜底、加了探活降级——治的是症状，客户机装上后**依旧弹同一个崩溃窗**。
+
+重新在 macOS 27.2.1 + Apple Silicon 上复现，拿到了 Chromium 自己吐的 FATAL 日志：
+
+```
+FATAL:crashpad/util/posix/spawn_subprocess.cc:231
+posix_spawnp .../Helpers/chrome_crashpad_handler: Permission denied (13)
+```
+
+真因是打包时的一个疏漏：`ZipFile.extractall()` **不还原** `external_attr` 里的权限位，
+解压出来一律 `0644`。`setup_chromium()` 只对主可执行文件单点 `chmod`，于是：
+
+- `Helpers/chrome_crashpad_handler`（启动第一步就要 spawn）
+- `Helper (Renderer).app` / `Helper (GPU).app` / `Helper (Alerts).app` 等全部子进程
+- `app_mode_loader`、`web_app_shortcut_copier`
+
+**共 13 个 Mach-O 全是 `-rw-r--r--`**。主进程能起来，但 spawn crashpad handler 就 `EACCES`，
+Chromium 的 `CHECK()` 失败触发 `__builtin_trap()` —— 这就是崩溃报告里的
+`EXC_BREAKPOINT / SIGTRAP / brk 0`、`crashed on child side of fork pre-exec`、
+进程只活 0.05~0.15 ms。跟签名、SIP、系统版本、沙箱、渲染、大模型都没有关系。
+
+**只补执行位、别的一行不改**，同版本 CfT 立刻正常起窗（实测连续存活 5 秒未崩），
+Playwright 也能正常建页导航。
+
+- `scripts/build_full_bundle.py`：新增 `restore_zip_perms()`，解压时按 `ZipInfo.external_attr`
+  逐条还原权限；再按魔数（Mach-O 各字节序 + ELF）兜底扫描，缺 `x` 位就补。覆盖 macOS 与 Linux
+  两个平台（Linux 包同样受 `extractall()` 影响）。
+- `scripts/build_full_bundle.py`：新增 `assert_executables()`，出厂断言——凡是可执行映像必须
+  有执行位，否则**构建直接失败**。此前没有任何检查，所以缺 13 个执行位的包顺利发了出去。
+- `core/browser_path.py`：新增 `heal_executable_perms()`，运行期首次解析内置内核时再兜一层
+  自愈，覆盖已经装了旧包、或用第三方工具二次解压丢权限的目录（幂等，进程内只做一次）。
+- `core/browser_path.py`：内置内核**重回第一候选**（版本可控、离线可用）。探活失败会落
+  `chromium/.broken` 标记，后续不再反复重试，直接走系统浏览器——避免每次开机弹一次崩溃窗。
+  `desktop.py` 的窗口兜底同样尊重该标记。
+- `desktop.py`：更新注释，把"ad-hoc 签名"的错误结论改成真实根因。
+
+### Added 回归测试
+
+- `tests/test_v1593_bundled_exec_perms.py`（9 项）：zip 权限还原、0644 元数据按魔数兜底、
+  普通数据文件不误加执行位、出厂断言拒绝缺执行位、干净目录通过、运行期自愈与幂等、
+  `bundled_chromium()` 首次自愈、内置内核优先、`.broken` 标记跳过重试。
+
+---
 
 ### Fixed 客户端窗口起不来：内置浏览器被系统在 fork 后终止
 

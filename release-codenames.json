@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.2",
-  "current_codename_zh": "万象衡",
-  "current_codename_en": "Balance of All Things",
-  "next_index": 79,
+  "current_version": "15.9.3",
+  "current_codename_zh": "千秋盛",
+  "current_codename_en": "Thousand Autumns Prosperous",
+  "next_index": 80,
   "sequence": [
     {
       "zh": "曦光序",
@@ -323,6 +323,10 @@
     {
       "zh": "千秋盛",
       "en": "Thousand Autumns Prosperous"
+    },
+    {
+      "zh": "四海宁",
+      "en": "Four Seas Tranquil"
     }
   ],
   "history": [
@@ -552,6 +556,12 @@
       "version": "v15.9.2",
       "zh": "万象衡",
       "en": "Balance of All Things",
+      "date": "2026-11-17"
+    },
+    {
+      "version": "v15.9.3",
+      "zh": "千秋盛",
+      "en": "Thousand Autumns Prosperous",
       "date": "2026-11-17"
     }
   ]

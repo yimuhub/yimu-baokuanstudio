@@ -4,6 +4,49 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🧱 Version 15.9.3 · 千秋盛 (Thousand Autumns Prosperous) · Bundled Kernel Exec-Bit Fix · 2026-11-17
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.3"`, `__codename__ = "千秋盛"`, `__codename_en__ = "Thousand Autumns Prosperous"`)
+
+### 🎯 Milestone Summary
+
+V15.9.2 把「内置浏览器启动即崩」误判为 ad-hoc 签名问题，客户机装上后**仍然弹同一个崩溃窗**。
+V15.9.3 在相同环境（macOS 27.2.1 + Apple Silicon）复现并拿到 Chromium 自己的 FATAL 日志，
+定位到真正原因——**打包解压丢了执行位**：
+
+```
+FATAL:crashpad/util/posix/spawn_subprocess.cc:231
+posix_spawnp .../Helpers/chrome_crashpad_handler: Permission denied (13)
+```
+
+`ZipFile.extractall()` 不还原 `external_attr` 里的权限位，解压出来一律 `0644`；旧脚本只给主
+可执行文件单点 `chmod`，于是 `chrome_crashpad_handler` 与 Renderer / GPU / Alerts Helper 等
+**13 个 Mach-O 全部不可执行**。Chromium 启动第一步 spawn crashpad handler 就 `EACCES`，
+`CHECK()` 失败触发 `__builtin_trap()` —— 对应崩溃报告的 `EXC_BREAKPOINT / SIGTRAP`、
+`crashed on child side of fork pre-exec`、进程只活 0.05~0.15 ms。与签名、SIP、沙箱、
+渲染、大模型均无关。
+
+**验证方式**：同版本 CfT 只补执行位、其他一行不改 → 窗口立刻正常启动（连续存活 5 秒未崩），
+Playwright 也能正常建页导航。
+
+### 🔧 What Changed
+
+| 层 | 改动 |
+|---|---|
+| 构建 | `restore_zip_perms()`：解压时按 `ZipInfo.external_attr` 还原权限，并按魔数（Mach-O / ELF）兜底补 `x` 位，覆盖 macOS 与 Linux |
+| 构建 | `assert_executables()`：出厂断言，可执行映像缺执行位则**构建失败**，不再放出必崩的包 |
+| 运行 | `heal_executable_perms()`：首次解析内置内核时自愈旧目录（幂等），老用户不必重装 |
+| 运行 | 内置内核重回第一候选；探活失败落 `chromium/.broken` 标记，后续直接走系统浏览器，不再反复弹窗 |
+| 文档 | 更正 V15.9.2 中「ad-hoc 签名」的错误结论 |
+
+### 🧪 Verification
+
+- `tests/test_v1593_bundled_exec_perms.py`：9 项新增回归全部通过
+- `ci.sh` 四道门禁全过
+- 真机复现 → 只补执行位 → 窗口正常启动，Playwright 建页导航成功
+
+---
+
 ## 🧭 Version 15.9.2 · 万象衡 (Balance of All Things) · Window Launch Hardening · 2026-11-17
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.2"`, `__codename__ = "万象衡"`, `__codename_en__ = "Balance of All Things"`)

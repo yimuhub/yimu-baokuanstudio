@@ -360,6 +360,90 @@ def setup_runtime(stage: Path, plat: str, skip: bool) -> dict:
 # 3. 内置 Chromium（窗口 + Playwright 共用）
 # ---------------------------------------------------------------------------
 
+MACHO_MAGICS = (
+    b"\xcf\xfa\xed\xfe",  # Mach-O 64 little-endian（arm64 / x86_64）
+    b"\xce\xfa\xed\xfe",  # Mach-O 32 little-endian
+    b"\xca\xfe\xba\xbe",  # FAT / universal
+    b"\xfe\xed\xfa\xcf",  # Mach-O 64 big-endian（保险）
+    b"\x7fELF",           # Linux 可执行
+)
+
+
+def restore_zip_perms(z: Path, out: Path) -> int:
+    """解压并把 Unix 权限位还原，再兜底给所有可执行映像补 ``x`` 位。
+
+    为什么要自己写：``ZipFile.extractall()`` **不还原** ``external_attr`` 里的
+    st_mode，解压出来一律是 ``0644``。而 Chrome for Testing 的 macOS / Linux
+    包里，除了主可执行文件之外还有 13 个需要执行的 Mach-O / ELF：
+
+      * ``Helpers/chrome_crashpad_handler``（启动第一步就要 spawn）
+      * ``Helper (Renderer).app`` / ``Helper (GPU).app`` 等全部子进程
+      * ``app_mode_loader`` / ``web_app_shortcut_copier``
+
+    V15.9.2 及之前只对主可执行文件单点 ``chmod``，所以主进程能起来，但
+    Chromium 一 spawn crashpad handler 就 ``EACCES``，``CHECK`` 直接失败并
+    ``__builtin_trap()`` —— 这就是客户机看到的「Google Chrome for Testing
+    意外退出 / EXC_BREAKPOINT / crashed on child side of fork pre-exec」，
+    0.05~0.15 ms 内结束，跟渲染、网络、大模型毫无关系。
+
+    返回补过权限的文件数。
+    """
+    fixed = 0
+    with zipfile.ZipFile(z) as zf:
+        for info in zf.infolist():
+            zf.extract(info, out)
+            mode = (info.external_attr >> 16) & 0o777
+            target = out / info.filename
+            if mode and target.is_file() and not target.is_symlink():
+                try:
+                    target.chmod(mode)
+                except OSError:
+                    pass
+
+    # 兜底：不依赖 zip 元数据，按魔数找可执行映像，缺 x 位就补
+    for p in out.rglob("*"):
+        if p.is_symlink() or not p.is_file():
+            continue
+        try:
+            if os.access(p, os.X_OK):
+                continue
+            with open(p, "rb") as f:
+                head = f.read(4)
+        except OSError:
+            continue
+        if head in MACHO_MAGICS:
+            try:
+                p.chmod(p.stat().st_mode | 0o555)
+                fixed += 1
+            except OSError:
+                pass
+    return fixed
+
+
+def assert_executables(out: Path) -> None:
+    """出厂断言：凡是可执行映像，必须有执行位。
+
+    这个检查是给「包一旦产错就构建失败」用的。V15.9.2 之前没有任何检查，
+    所以缺 13 个执行位的包顺利发布，客户机全崩。
+    """
+    broken = []
+    for p in out.rglob("*"):
+        if p.is_symlink() or not p.is_file():
+            continue
+        try:
+            with open(p, "rb") as f:
+                head = f.read(4)
+        except OSError:
+            continue
+        if head in MACHO_MAGICS and not os.access(p, os.X_OK):
+            broken.append(str(p.relative_to(out)))
+    if broken:
+        raise RuntimeError(
+            "内置浏览器有 %d 个可执行映像缺少执行位，客户端会启动即崩：%s"
+            % (len(broken), ", ".join(broken[:5]))
+        )
+
+
 def setup_chromium(stage: Path, plat: str, skip: bool) -> dict:
     out = stage / "chromium"
     ensure_dir(out)
@@ -376,8 +460,9 @@ def setup_chromium(stage: Path, plat: str, skip: bool) -> dict:
         raise RuntimeError(f"Chrome for Testing 没有 {want} 的下载项")
     info["version"] = meta["channels"]["Stable"]["version"]
     z = _download(entry["url"], DIST / "cache" / f"chrome-{want}.zip", timeout=300)
-    with zipfile.ZipFile(z) as zf:
-        zf.extractall(out)
+    info["perms_fixed"] = restore_zip_perms(z, out)
+    if info["perms_fixed"]:
+        log(f"内置浏览器权限位修正 {info['perms_fixed']} 个可执行映像")
     rel = {
         "win64": "chrome-win64/chrome.exe",
         "linux64": "chrome-linux64/chrome",
@@ -393,6 +478,7 @@ def setup_chromium(stage: Path, plat: str, skip: bool) -> dict:
         pass
     (out / "EXECUTABLE").write_text(rel, encoding="utf-8")
     info["executable"] = "chromium/" + rel
+    assert_executables(out)   # 出厂门禁：缺执行位直接构建失败，绝不流到客户机
     log(f"内置 Chrome for Testing {info['version']} 就绪")
     return info
 

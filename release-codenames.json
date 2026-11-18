@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.3",
-  "current_codename_zh": "千秋盛",
-  "current_codename_en": "Thousand Autumns Prosperous",
-  "next_index": 80,
+  "current_version": "15.9.4",
+  "current_codename_zh": "四海宁",
+  "current_codename_en": "Four Seas Tranquil",
+  "next_index": 81,
   "sequence": [
     {
       "zh": "曦光序",
@@ -327,6 +327,54 @@
     {
       "zh": "四海宁",
       "en": "Four Seas Tranquil"
+    },
+    {
+      "zh": "云程赋",
+      "en": "Cloud Journey Ode"
+    },
+    {
+      "zh": "星槎引",
+      "en": "Star Raft Prelude"
+    },
+    {
+      "zh": "松风令",
+      "en": "Pine Wind Edict"
+    },
+    {
+      "zh": "月泉吟",
+      "en": "Moon Spring Chant"
+    },
+    {
+      "zh": "鹤鸣篇",
+      "en": "Crane Call Chapter"
+    },
+    {
+      "zh": "江天阔",
+      "en": "Broad River Sky"
+    },
+    {
+      "zh": "竹溪曲",
+      "en": "Bamboo Brook Melody"
+    },
+    {
+      "zh": "兰台章",
+      "en": "Orchid Terrace Verse"
+    },
+    {
+      "zh": "石泉境",
+      "en": "Stone Spring Realm"
+    },
+    {
+      "zh": "青崖纪",
+      "en": "Green Cliff Record"
+    },
+    {
+      "zh": "雁回时",
+      "en": "Wild Geese Return"
+    },
+    {
+      "zh": "灯山图",
+      "en": "Lantern Hill Scroll"
     }
   ],
   "history": [
@@ -563,6 +611,12 @@
       "zh": "千秋盛",
       "en": "Thousand Autumns Prosperous",
       "date": "2026-11-17"
+    },
+    {
+      "version": "v15.9.4",
+      "zh": "四海宁",
+      "en": "Four Seas Tranquil",
+      "date": "2026-11-18"
     }
   ]
 }

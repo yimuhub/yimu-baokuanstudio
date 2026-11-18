@@ -7,6 +7,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.9.4] - 四海宁 (Four Seas Tranquil) · 2026-11-18
+
+### Changed 设置收口为一处：填一次 Key、选一次引擎、定一次风格
+
+V15.9.0 起系统设置里有三套东西在说同一件事：生图模型在「生图设置」和「写作默认设置」
+里各存一份，`localStorage` 还分叉成 `yimu_studio_image_model` / `yimu_copilot_image_model`
+/ `yimu_image_model` 三个键；智能体弹窗里那个生图下拉写回的又是第二个键。于是**换个地方选
+模型，另一个地方不跟着变**。本次把设置页顶部改成「三件事总览」，每一项只显示当前值和
+一个按钮，其余细节收进折叠区：
+
+- 设置顶部：`① 模型与 Key` / `② 生图引擎` / `③ 写作默认风格`，各自一行只读值 + 一个入口按钮
+- 生图模型收敛为单一真源 `yimu_image_model`，旧键首次读取时单向迁移，三个键此后同写
+- 智能体弹窗里的第二个生图下拉**删除**，改为只读回显 +「更换 →」跳转；`saveCopilotSettings()`
+  不再改写生图模型
+- 「系统维护」4 张卡片收进 `<details>` 默认折叠；个人中心的 API Vault 同样折叠
+- 首次引导的「Key 说明」从大卡片收成一行提示条，进设置页自动隐藏，「不再提示」记本地开关
+
+### Added 聊天流式思考过程
+
+发完消息立刻在气泡里出现「正在思考」，并按步骤推进（读题 → 检索 → 起草 → 校核），
+而不是只让发送按钮转圈——后者在长任务里看起来就是卡死。异常与中断分支同样收尾，
+不会留下一个永远在跳的气泡。
+
+### Added 图片在页面内点开看大图
+
+极简模式右侧面板、资产台的卡片图此前点不动：预览在 `iframe.srcdoc` 里，子文档的点击
+**不会冒泡到父页面**；另有一部分图被放在 `display:none` 的容器里，量出来是 0×0。
+本次向 `srcdoc` 注入缩放脚本，点击时用 `postMessage` 把图片地址送回父页面开灯箱；
+`/api/drafts/{did}/images` 补上 `card-*.png` 扫描口径，卡片图才出现在列表里。
+
+### Fixed 成稿首尾露出 `<WritingBlock id="...">`
+
+模型会把正文包一层 `<WritingBlock variant="document">`，旧的清洗正则把标签名截断在
+11 个字符，`WritingBlock`（12 字符）正好匹配不到，标签原样留在用户看到的稿子里。
+现在标签名放宽到 24 字符，另加一张模型包装标签黑名单（`WritingBlock` / `antml:*` /
+`FunctionCalls` 等），对话出口单独用 `strip_model_wrappers()` 只剥壳、不动正文格式。
+
+### Fixed 左栏展开后收不起来
+
+折叠监听挂在捕获阶段（第三个参数 `true`），而箭头按钮上写的 `stopPropagation()` 是冒泡
+阶段——拦不住捕获阶段的监听，于是子菜单刚收起就被 30ms 后的定时器重新展开。改为在监听
+入口直接跳过箭头按钮。
+
+### Fixed 两个全屏弹窗完全不显示
+
+`#copilot-settings-modal` 与 `#agent-task-progress-modal` 被误放进 `#lite-drafts-modal`
+内部，而后者默认 `display:none`，导致弹窗量出来是 0×0。新增 `reparentFixedModals()`
+把固定定位弹窗搬到 `<body>`，两个打开函数内幂等调用（实测由 0×0 变为 1440×1100）。
+
+### Fixed 浅色主题下白底白字
+
+设置页若干标题写死了 `#fff`，浅色主题下等于隐形，补深色覆盖。
+
+### Security 路径包含判定收口
+
+`str(path).startswith(str(base))` 这类判定放过同前缀的兄弟目录（`runs/avatars_backup`
+对 `runs/avatars` 判定为「在内部」）；更糟的是 `str(base).startswith(str(base.parent))`
+恒为真，等于没有校验。新增 `core/pathsafe.py`：
+
+- `is_within()` 用 `Path.relative_to` 做组件级判定，解析失败一律 False，默认不允许等于 base
+- `safe_join()` 拒绝绝对路径把 base 顶掉
+- `media.py` 4 处、`skills.py` 1 处全部换用；`aivideo_file` 的 job id 加 `[A-Za-z0-9_-]{1,64}` 白名单
+- 上传上限：视频整包 20MB、docx 正文解压后 40MB，堵住 zip bomb 打满内存
+- 去掉 `draft_publish_xhs` 里未被使用的 `await request.json()`
+
+### Added 发版脚本补齐六处真源
+
+`scripts/release.py` 以前只改 `version.py`，`pyproject.toml`、代号登记簿、中英语言包、
+README 徽章全靠手补，漏一处就被门禁打红（本次发版就漏了两处）。现在一次写全六处，
+代号序列耗尽时明确报错而不是写出越界指针；同时新增 `--status` 显示下一个待用代号。
+
+### Tests
+
+- `tests/test_v1594_settings_dedup.py`：13 项（单一真源、旧键迁移、设置总览、折叠区）
+- `tests/test_v1594_pathsafe.py`：13 项（组件级判定、兄弟目录、恒真表达式、源码禁用 `startswith(str(`）
+- 全量 865 项通过，`ci.sh` 四道门禁全过
+
+---
+
 ## [15.9.3] - 千秋盛 (Thousand Autumns Prosperous) · 2026-11-17
 
 ### Fixed 内置浏览器「启动即崩」的真正原因：13 个可执行文件没有执行位

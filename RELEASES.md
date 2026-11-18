@@ -4,6 +4,49 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌊 Version 15.9.4 · 四海宁 (Four Seas Tranquil) · Settings Consolidated · 2026-11-18
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.4"`, `__codename__ = "四海宁"`, `__codename_en__ = "Four Seas Tranquil"`)
+
+### 🎯 Milestone Summary
+
+本版的主题是**收口**：设置只留一处，路径判定只留一种，成稿只出现正文。
+
+设置页此前有三套东西在讲同一件事——「生图设置」和「写作默认设置」各存一份生图模型，
+`localStorage` 还分叉成三个键，智能体弹窗里的下拉写回的又是第二个键，换个地方选模型
+别处不跟着变。现在设置页顶部只留「三件事」：**① 模型与 Key / ② 生图引擎 / ③ 写作默认
+风格**，每项一行只读值加一个按钮，细节收进折叠区；生图模型收敛为单一真源，旧键首次
+读取时单向迁移，弹窗里那个重复下拉直接删除。
+
+安全侧，`str(path).startswith(str(base))` 这类判定被彻底替换：它放过同前缀的兄弟目录，
+而 `str(base).startswith(str(base.parent))` 更是恒为真。新增 `core/pathsafe.py` 用
+`Path.relative_to` 做组件级判定，并给上传加上整包与解压双上限。
+
+### 🔧 What Changed
+
+| 层 | 改动 |
+|---|---|
+| 设置 | 顶部「三件事」总览；生图模型单一真源 `yimu_image_model`，三键同写、旧键单向迁移 |
+| 设置 | 智能体弹窗重复的生图下拉删除，改只读回显 +「更换 →」；系统维护 4 卡与 API Vault 收进折叠区 |
+| 交互 | 聊天发消息即出现「正在思考」气泡并逐步推进步骤，异常与中断同样收尾 |
+| 交互 | 左栏子菜单可正常收起（捕获阶段监听跳过箭头按钮） |
+| 交互 | 页面内图片点击放大：`srcdoc` 注入 + `postMessage` 回父页面开灯箱；接口补扫 `card-*.png` |
+| 修复 | 成稿首尾不再露出 `<WritingBlock variant="document">`：标签名上限 11 → 24，另加包装标签黑名单 |
+| 修复 | 两个全屏弹窗被塞进 `display:none` 容器（0×0）：`reparentFixedModals()` 搬到 `<body>` |
+| 修复 | 浅色主题白底白字（写死 `#fff`）补深色覆盖 |
+| 安全 | `is_within()` / `safe_join()` 替换 5 处前缀判定；job id 白名单；上传 20MB / 解压 40MB 上限 |
+| 工程 | `scripts/release.py` 一次同步六处真源（version.py / pyproject / 代号簿 / 中英语言包 / README 徽章 / 指针推进） |
+
+### 🧪 Verification
+
+- `tests/test_v1594_settings_dedup.py`（13 项）、`tests/test_v1594_pathsafe.py`（13 项）全部通过
+- 全量 `865 passed`，`ci.sh` 四道门禁全过
+- 临时实例实测：`/api/aivideo/file/a..b` → 400，`?path=../refs_evil/x.md` → 404，`?path=../config.yaml` → 403
+- 浏览器走查：无 JS 报错、无 5xx；弹窗实测 1440×1100；原图 2053×1152 正常放大
+- 三平台安装包与本提交同源构建（源码与安装包一致）
+
+---
+
 ## 🧱 Version 15.9.3 · 千秋盛 (Thousand Autumns Prosperous) · Bundled Kernel Exec-Bit Fix · 2026-11-17
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.3"`, `__codename__ = "千秋盛"`, `__codename_en__ = "Thousand Autumns Prosperous"`)

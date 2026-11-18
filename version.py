@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.9.3"
-__codename__ = "千秋盛"
-__codename_en__ = "Thousand Autumns Prosperous"
-__slogan__ = "一念起 一幕开 万象生 · 内置内核执行位根治：解压即还原权限、出厂断言、运行期自愈"
-__slogan_cn__ = "一念起 一幕开 万象生 · 内置内核执行位根治：解压即还原权限、出厂断言、运行期自愈"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Bundled kernel exec-bit fix: perms restored on extract, build-time assertion, runtime self-heal"
+__version__ = "15.9.4"
+__codename__ = "四海宁"
+__codename_en__ = "Four Seas Tranquil"
+__slogan__ = "一念起 一幕开 万象生 · 设置收口一处：填一次 Key、选一次引擎、定一次风格"
+__slogan_cn__ = "一念起 一幕开 万象生 · 设置收口一处：填一次 Key、选一次引擎、定一次风格"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · One place for every setting: one Key, one engine, one style"
 
 
 def get_version() -> str:

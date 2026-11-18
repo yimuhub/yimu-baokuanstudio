@@ -4,6 +4,41 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🗺️ Version 15.9.5 · 云程赋 (Cloud Journey Ode) · Every Channel Deletable · 2026-11-18
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.5"`, `__codename__ = "云程赋"`, `__codename_en__ = "Cloud Journey Ode"`)
+
+### 🎯 Milestone Summary
+
+你删掉了能删的 7 家，剩下 OpenAI / Claude / Gemini / 智谱 GLM / Kimi / Ollama / 百川
+**七家怎么点删除都没反应**——卡片一直挂在列表里。原因有三层：删除函数第一步就用
+「不在供应商池里」把它挡掉了（没保存过的内置预设本来就不在池里）；删掉活动通道会被
+下一次读取原地复活成空条目；接口还一律回「已成功删除」，把失败盖得严严实实。
+
+本版把删除语义改成「池里有就清池、没有就只拉黑」，**任意一家都能删**；已删的通道
+不复活、不被路由命中、不能被设为活动通道；一家不剩时列表给明确空态而不是留白。
+
+### 🔧 What Changed
+
+| 层 | 改动 |
+|---|---|
+| 删除 | `delete_provider()` 不再要求「必须先保存过」；内置预设同样可删 |
+| 删除 | 活动通道被删自动换一家还活着的；一家不剩则置空，不再默认回落 DeepSeek |
+| 防复活 | `normalize()` 不再把 `provider_id or "deepseek"` 硬补进池；已删条目读取时一律剔除 |
+| 路由 | 跨供应商查找跳过已删通道；空配置时 `chat()` 报「尚未配置任何模型服务」而不是拼空地址 |
+| 接口 | 单删/批删如实回报，失败不再假报成功；批删给出 `missed` 明细 |
+| 存储 | 运行时写入改为落 `data/config.local.yaml` 覆盖层，出厂 `config.yaml` 恢复只读 |
+| 界面 | 列表删空的空态文案（添加自定义 / 快速载入预设 → 填 Key → 设为主通道） |
+
+### 🧪 Verification
+
+- `tests/test_v1595_provider_delete_all.py`：15 项全新回归
+- 真实配置实测：那 7 家逐一删除成功 → 列表 0 家；重启进程后依旧 0 家（状态进覆盖层）
+- 仓库 `config.yaml` 全程零改动（`git status` 干净）
+- 全量 `880 passed`，`ci.sh` 四道门禁全过
+
+---
+
 ## 🌊 Version 15.9.4 · 四海宁 (Four Seas Tranquil) · Settings Consolidated · 2026-11-18
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.4"`, `__codename__ = "四海宁"`, `__codename_en__ = "Four Seas Tranquil"`)

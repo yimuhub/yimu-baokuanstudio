@@ -151,12 +151,25 @@ async def model_delete_provider(request: Request):
     from core import llm
     if provider_ids and isinstance(provider_ids, list):
         del_count = 0
+        missed = []
         for pid in provider_ids:
-            if pid and llm.delete_provider(str(pid)):
+            pid = str(pid or '').strip()
+            if not pid:
+                continue
+            if llm.delete_provider(pid):
                 del_count += 1
-        return {'ok': True, 'msg': f'已成功批量删除 {del_count} 家模型服务配置', 'count': del_count}
+            else:
+                missed.append(pid)
+        msg = f'已成功批量删除 {del_count} 家模型服务配置'
+        if missed:
+            msg += f'；{len(missed)} 家本来就不在列表里（{", ".join(missed[:5])}）'
+        return {'ok': del_count > 0, 'msg': msg, 'count': del_count, 'missed': missed}
     if not provider_id:
         raise HTTPException(400, 'provider_id 或 provider_ids 不能为空')
     ok = llm.delete_provider(provider_id)
-    return {'ok': ok, 'msg': f'已成功删除模型服务 [{provider_id}]'}
+    # V15.9.5：删除失败要如实回报，不能再一律说「已成功删除」——
+    # 用户就是被这句假成功骗着以为删掉了，实际上还挂在列表里。
+    msg = (f'已成功删除模型服务 [{provider_id}]' if ok
+           else f'[{provider_id}] 本来就不在列表里，无需删除')
+    return {'ok': ok, 'msg': msg}
 

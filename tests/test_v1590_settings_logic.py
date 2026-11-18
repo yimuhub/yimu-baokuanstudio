@@ -65,7 +65,12 @@ def iso_app(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_watermark_settings_branch_persists(iso_app):
-    """水印写入 config.yaml 后必须真实落盘（此前 /api/settings 无该分支 = 静默空操作）。"""
+    """水印写入配置后必须真实落盘（此前 /api/settings 无该分支 = 静默空操作）。
+
+    V15.9.5 起运行时写入落在用户覆盖层 ``data/config.local.yaml``（``config.yaml``
+    是跟着仓库走的出厂样本，不再被用户操作改写），所以这里断言「写入目标文件」，
+    而不是写死某个路径。
+    """
     app, _ = iso_app
     from core import provider_registry as reg
 
@@ -73,7 +78,9 @@ def test_watermark_settings_branch_persists(iso_app):
     cfg = reg.raw_config()
     cfg["watermark"] = {**cfg.get("watermark", {}), **body["watermark"]}
     assert reg.write_config(cfg)
-    persisted = yaml.safe_load((app / "config.yaml").read_text(encoding="utf-8"))
+    target = reg.writable_config_path()
+    assert app in target.parents, "写入目标必须落在本应用目录内"
+    persisted = yaml.safe_load(target.read_text(encoding="utf-8"))
     assert persisted["watermark"]["text"] == "YIMU TEST"
     assert persisted["watermark"]["position"] == "top-right"
 

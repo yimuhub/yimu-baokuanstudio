@@ -97,7 +97,11 @@ def test_config_file_keeps_single_source(install):
 
     llm.save_provider_config("custom", "https://new.example/v1", "sk-1", "m1")
 
-    raw = yaml.safe_load((app / "config.yaml").read_text(encoding="utf-8"))
+    from core import provider_registry as reg
+
+    target = reg.writable_config_path()
+    assert app in target.parents, "写入目标必须落在本应用目录内"
+    raw = yaml.safe_load(target.read_text(encoding="utf-8"))
     gw = raw["gateway"]
     for field in ("base_url", "model", "configured_models", "agent_routing"):
         assert field not in gw, f"gateway.{field} 不该再作为独立事实落盘"

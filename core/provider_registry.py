@@ -58,19 +58,29 @@ def config_path() -> Path:
 
 
 def writable_config_path() -> Path:
-    """真正用于写入的配置文件。
+    """真正用于写入的配置文件：**优先用户覆盖层** ``data/config.local.yaml``。
 
-    安装到 ``Program Files`` 一类只读位置时，写 ``config.yaml`` 会 OSError；
-    此时退到 ``data/config.local.yaml``——``load_config()`` 本来就会把它
-    叠加在主配置之上，所以读写仍然自洽。
+    为什么要改（V15.9.5）：``config.yaml`` 是**出厂样本**，跟着仓库走；用户在
+    设置页做的每一次改动（删除通道、改水印、换风格）以前都直接写回它，于是
+
+    * 开发机的工作区永远是脏的，``git pull`` 天天冲突；
+    * 更新器为了能拉代码会先 ``git checkout -- config.yaml`` 再还原，稍有不慎
+      用户删掉的通道就"复活"了；
+    * 「出厂配置不得预置模型」这类门禁读到的是开发机被改过的文件，直接变红。
+
+    ``data/`` 本来就被 git 忽略，``raw_config()`` 也早就把它叠加在主配置之上，
+    所以用户状态落这里既不影响出厂样本，也不会被更新流程动到。
+    安装目录连 ``data/`` 都不可写时（极少见），退回安装目录的 ``config.yaml``。
     """
-    main = config_path()
+    override = BASE / "data" / "config.local.yaml"
     try:
-        if main.exists():
-            return main if os.access(main, os.W_OK) else BASE / "data" / "config.local.yaml"
-        return main if os.access(main.parent, os.W_OK) else BASE / "data" / "config.local.yaml"
+        if override.exists():
+            return override if os.access(override, os.W_OK) else config_path()
+        if os.access(override.parent, os.W_OK) or os.access(BASE, os.W_OK):
+            return override
+        return config_path()
     except OSError:
-        return main
+        return config_path()
 
 
 def install_env_path() -> Path:
@@ -100,10 +110,11 @@ def raw_config() -> dict:
                 local_cfg = yaml.safe_load(fh) or {}
             if isinstance(local_cfg, dict):
                 for k, v in local_cfg.items():
-                    if isinstance(v, dict) and isinstance(cfg.get(k), dict):
-                        cfg[k].update(v)
-                    else:
-                        cfg[k] = v
+                    # 覆盖层是**整段快照**（write_config 每次写的是完整配置），
+                    # 所以这里整段替换而不是逐键合并：逐键合并会让主配置里
+                    # 已被清理掉的旧字段（如 gateway.base_url）在每次读取时
+                    # 又冒回来，normalize 于是永远「不干净」，回写也不再幂等。
+                    cfg[k] = v
         except (OSError, yaml.YAMLError) as e:
             logger.warning("[registry] 读取 %s 失败：%s", local, e)
     return cfg if isinstance(cfg, dict) else {}
@@ -136,6 +147,25 @@ def _pool(gw: dict) -> dict:
     return p
 
 
+def _deleted_set(gw: dict) -> set[str]:
+    """已删除（拉黑）的供应商 ID 集合；脏数据一律忽略。"""
+    return {str(p).strip() for p in (gw.get("deleted_providers") or []) if str(p).strip()}
+
+
+def _pick_replacement(pool: dict, deleted: set[str]) -> str:
+    """活动通道被删后挑替补：优先「有地址的」，其次任意未删的，都没有就返回空串。
+
+    为什么不能返回 ``"deepseek"``：那会把刚被用户删掉的通道原地复活——
+    用户删完刷新，列表里又冒出一家空的 DeepSeek，看起来就是「删不掉」。
+    """
+    live = [pid for pid in pool.keys() if pid not in deleted]
+    for pid in live:
+        entry = pool.get(pid)
+        if isinstance(entry, dict) and str(entry.get("base_url") or "").strip():
+            return pid
+    return live[0] if live else ""
+
+
 def normalize(cfg: dict, *, presets: dict | None = None) -> tuple[dict, bool]:
     """把配置折叠成单一真源，返回 ``(cfg, 是否需要回写)``。
 
@@ -144,33 +174,51 @@ def normalize(cfg: dict, *, presets: dict | None = None) -> tuple[dict, bool]:
        保存的地方，也是 UI 展示的地方）；池里没有时用顶层值补进池。
     2. 折叠后删除顶层冗余字段，之后 ``gateway`` 只保留 ``provider_id``
        与供应商池，其余字段由 :func:`derive_view` 现算。
+    3. **已删除的通道不得再被选为活动通道**（v15.9.5）：旧实现在这里无条件
+       ``active = provider_id or "deepseek"``，活动通道一被删就又把它补回池里，
+       于是「删掉 DeepSeek → 刷新又出现一家空 DeepSeek」。
     """
     gw = cfg.get("gateway")
     if not isinstance(gw, dict):
         gw = {}
         cfg["gateway"] = gw
     pool = _pool(gw)
-    active = str(gw.get("provider_id") or "").strip() or "deepseek"
-    gw["provider_id"] = active
+    deleted = _deleted_set(gw)
 
-    dirty = False
-    entry = pool.get(active)
-    if not isinstance(entry, dict):
+    # 被删掉的通道不该继续占着池子（旧版本残留的空条目会让人误以为「删了还在」）
+    stale = [p for p in list(pool.keys()) if p in deleted]
+    for pid in stale:
+        pool.pop(pid, None)
+
+    want = str(gw.get("provider_id") or "").strip()
+    active = want
+    if active and active in deleted:
+        active = _pick_replacement(pool, deleted)
+    elif not active:
+        # 没有指定主通道时，从池里挑一家还在的；池空则保持空（不再硬塞 deepseek）
+        active = _pick_replacement(pool, deleted)
+    if active != want:
+        gw["provider_id"] = active
+    dirty = bool(stale) or active != want
+
+    entry = pool.get(active) if active else None
+    if active and not isinstance(entry, dict):
         entry = {}
         pool[active] = entry
         dirty = True
 
     # 顶层旧字段 -> 池（仅当池里缺该字段时才搬，避免覆盖用户最近保存的值）
-    for field in DERIVED_FIELDS:
-        legacy = gw.get(field)
-        if legacy in (None, "", [], {}):
-            continue
-        if entry.get(field) in (None, "", [], {}):
-            entry[field] = legacy
-            dirty = True
+    if active:
+        for field in DERIVED_FIELDS:
+            legacy = gw.get(field)
+            if legacy in (None, "", [], {}):
+                continue
+            if entry.get(field) in (None, "", [], {}):
+                entry[field] = legacy
+                dirty = True
 
     # 预设兜底：池里连 base_url 都没有时，用内置预设补齐（不落盘，只在视图里补）
-    if presets:
+    if active and presets:
         preset = presets.get(active) or {}
         if not entry.get("base_url") and preset.get("base_url"):
             entry["base_url"] = preset["base_url"]
@@ -192,18 +240,20 @@ def derive_view(cfg: dict, *, presets: dict | None = None) -> dict:
     """原地生成派生视图，让所有读 ``gateway.base_url`` 的老代码拿到正确值。
 
     这是**兼容层**：调用点无需改造即可受益；新代码请直接用访问器。
+    一家供应商都没有时（用户把它们全删了）派生值一律为空，让上游给出
+    明确的「尚未配置」提示，而不是偷偷用某个已被删掉的通道的出厂地址。
     """
     gw = cfg.get("gateway")
     if not isinstance(gw, dict):
         return cfg
     pool = gw.get("providers") if isinstance(gw.get("providers"), dict) else {}
-    active = str(gw.get("provider_id") or "").strip() or "deepseek"
-    entry = pool.get(active) if isinstance(pool.get(active), dict) else {}
-    preset = (presets or {}).get(active) or {}
+    active = str(gw.get("provider_id") or "").strip()
+    entry = pool.get(active) if active and isinstance(pool.get(active), dict) else {}
+    preset = ((presets or {}).get(active) or {}) if active else {}
 
     gw["provider_id"] = active
     gw["base_url"] = str(entry.get("base_url") or preset.get("base_url") or "").rstrip("/")
-    gw["model"] = entry.get("model") or preset.get("default_model") or "deepseek-chat"
+    gw["model"] = entry.get("model") or preset.get("default_model") or ""
 
     models = entry.get("configured_models")
     if not models and presets:
@@ -215,6 +265,7 @@ def derive_view(cfg: dict, *, presets: dict | None = None) -> dict:
 
     gw["agent_routing"] = entry.get("agent_routing") or {}
     return cfg
+
 
 
 def migrate(*, presets: dict | None = None) -> bool:
@@ -234,9 +285,10 @@ def migrate(*, presets: dict | None = None) -> bool:
 # ---------------------------------------------------------------------------
 
 def active_provider_id(cfg: dict | None = None) -> str:
+    """当前活动供应商；一家都没配置时返回空串（不再假报 deepseek）。"""
     cfg = cfg if cfg is not None else raw_config()
     gw = cfg.get("gateway") or {}
-    return str(gw.get("provider_id") or "").strip() or "deepseek"
+    return str(gw.get("provider_id") or "").strip()
 
 
 def provider_entry(pid: str, cfg: dict | None = None) -> dict:
@@ -305,24 +357,51 @@ def set_active(pid: str) -> bool:
         return False
     cfg = raw_config()
     cfg, _ = normalize(cfg)
-    cfg.setdefault("gateway", {})["provider_id"] = pid
+    gw = cfg.setdefault("gateway", {})
+    # 已删除的通道不许被激活（否则列表里没有它，调用却还在用它）
+    if pid in _deleted_set(gw):
+        logger.warning("[registry] 拒绝把已删除的通道 %s 设为主通道", pid)
+        return False
+    gw["provider_id"] = pid
     return write_config(cfg)
 
 
 def delete_provider(pid: str) -> bool:
+    """删除一家供应商：池里有就清池，没有就只拉黑。
+
+    V15.9.5 客户缺陷：旧实现第一步是 ``if pid not in pool: return False``。
+    内置预设（OpenAI / Claude / Gemini / 智谱 …）只要用户没保存过，就不在池里，
+    于是点删除**毫无反应**——用户删掉 7 家能删的，剩下 7 家怎么点都还在。
+    「所有必须全部都能删除」的要求下，删除语义改为：
+
+    1. 在池里：清掉该条目，同时拉黑（防止 ``normalize`` 的预设兜底又把它补回来）；
+    2. 不在池里：只拉黑——对内置预设同样生效，列表随即不再显示；
+    3. 既不在池里、又已在黑名单：才算「无事可做」，返回 False。
+
+    活动通道被删时立刻挑一个未删的替补（没有就置空），不再沿用已删地址。
+    """
+    pid = (pid or "").strip()
+    if not pid:
+        return False
     cfg = raw_config()
     cfg, _ = normalize(cfg)
     gw = cfg.setdefault("gateway", {})
     pool = _pool(gw)
-    if pid not in pool:
+    deleted = _deleted_set(gw)
+
+    in_pool = pid in pool
+    if not in_pool and pid in deleted:
         return False
-    pool.pop(pid, None)
-    deleted = set(gw.get("deleted_providers") or [])
+
+    if in_pool:
+        pool.pop(pid, None)
     deleted.add(pid)
     gw["deleted_providers"] = sorted(deleted)
+
     if str(gw.get("provider_id") or "") == pid:
-        # 活动通道被删：清空，让解析器给出明确的「尚未配置」而不是沿用已删地址
-        gw["provider_id"] = ""
+        # 活动通道被删：换一家还在的；一家都不剩就置空，
+        # 让解析器明确报「尚未配置」，而不是继续打已删地址。
+        gw["provider_id"] = _pick_replacement(pool, deleted)
     return write_config(cfg)
 
 

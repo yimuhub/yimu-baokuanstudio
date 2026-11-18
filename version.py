@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.9.4"
-__codename__ = "四海宁"
-__codename_en__ = "Four Seas Tranquil"
-__slogan__ = "一念起 一幕开 万象生 · 设置收口一处：填一次 Key、选一次引擎、定一次风格"
-__slogan_cn__ = "一念起 一幕开 万象生 · 设置收口一处：填一次 Key、选一次引擎、定一次风格"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · One place for every setting: one Key, one engine, one style"
+__version__ = "15.9.5"
+__codename__ = "云程赋"
+__codename_en__ = "Cloud Journey Ode"
+__slogan__ = "一念起 一幕开 万象生 · 通道想删就删：列表里不再有删不掉的那一家"
+__slogan_cn__ = "一念起 一幕开 万象生 · 通道想删就删：列表里不再有删不掉的那一家"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Every channel is yours to delete: no more undeletable presets"
 
 
 def get_version() -> str:

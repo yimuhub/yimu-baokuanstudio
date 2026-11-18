@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.4",
-  "current_codename_zh": "四海宁",
-  "current_codename_en": "Four Seas Tranquil",
-  "next_index": 81,
+  "current_version": "15.9.5",
+  "current_codename_zh": "云程赋",
+  "current_codename_en": "Cloud Journey Ode",
+  "next_index": 82,
   "sequence": [
     {
       "zh": "曦光序",
@@ -616,6 +616,12 @@
       "version": "v15.9.4",
       "zh": "四海宁",
       "en": "Four Seas Tranquil",
+      "date": "2026-11-18"
+    },
+    {
+      "version": "v15.9.5",
+      "zh": "云程赋",
+      "en": "Cloud Journey Ode",
       "date": "2026-11-18"
     }
   ]

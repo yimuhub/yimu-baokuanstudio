@@ -552,7 +552,7 @@ def get_all_configured_providers() -> dict:
     cfg = load_config()
     gw = cfg.get("gateway", {})
     saved_providers = gw.get("providers", {})
-    active_pid = gw.get("provider_id", "deepseek")
+    active_pid = gw.get("provider_id") or ""
 
     result = {}
 
@@ -628,7 +628,9 @@ def get_configured_models() -> list[dict]:
     """返回当前活动供应商已配置/已启用的模型清单（若尚未配置则回退到预设精品模型池）。"""
     cfg = load_config()
     gw = cfg.get("gateway", {})
-    provider_id = gw.get("provider_id", "deepseek")
+    provider_id = gw.get("provider_id") or ""
+    if not provider_id:
+        return []
 
     # 优先读取 gateway.configured_models
     models = gw.get("configured_models")
@@ -640,7 +642,7 @@ def get_configured_models() -> list[dict]:
     if p_saved.get("configured_models"):
         return p_saved["configured_models"]
 
-    p_info = MODEL_PROVIDERS.get(provider_id, MODEL_PROVIDERS.get("deepseek", {}))
+    p_info = MODEL_PROVIDERS.get(provider_id) or {}
     res = []
     for m in p_info.get("models", []):
         res.append({
@@ -786,11 +788,11 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
     cfg = load_config()
     gw = cfg.get("gateway", {})
 
-    active_pid = gw.get("provider_id") or "deepseek"
-    active_pinfo = MODEL_PROVIDERS.get(active_pid, MODEL_PROVIDERS.get("deepseek", {}))
+    active_pid = gw.get("provider_id") or ""
+    active_pinfo = MODEL_PROVIDERS.get(active_pid) or {}
 
-    active_base = (gw.get("base_url") or active_pinfo.get("base_url", "https://api.deepseek.com")).rstrip("/")
-    active_model = gw.get("model") or active_pinfo.get("default_model", "deepseek-chat")
+    active_base = (gw.get("base_url") or active_pinfo.get("base_url") or "").rstrip("/")
+    active_model = gw.get("model") or active_pinfo.get("default_model") or ""
     # 取键统一走 registry：占位值（test_key 等）一律视为「没有 Key」，
     # 这样才能触发备用通道，而不是带着示例值去必然 401。
     active_key = _reg.key_for(active_pid, allow_global=True)
@@ -824,9 +826,11 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
         return active_base, active_key, req_model, active_pid
 
     # 4. 跨供应商智能查找：检索其他已配置并具有密钥的供应商
+    #    已被用户删除的通道不参与路由——否则「删掉了还在被调用」。
+    deleted_pids = {str(x) for x in (gw.get("deleted_providers") or [])}
     saved_providers = gw.get("providers", {})
     for pid, pdata in saved_providers.items():
-        if pid == active_pid:
+        if pid == active_pid or pid in deleted_pids:
             continue
         p_models = [m.get("id") if isinstance(m, dict) else str(m) for m in pdata.get("configured_models", [])]
         if not p_models and pid in MODEL_PROVIDERS:
@@ -840,7 +844,7 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
 
     # 5. 跨供应商查找未存入 providers 但在内置预设中的供应商（且环境变量配置了该密钥）
     for pid, pinfo in MODEL_PROVIDERS.items():
-        if pid == active_pid:
+        if pid == active_pid or pid in deleted_pids:
             continue
         if req_model in pinfo.get("models", []):
             p_key = _reg.key_for(pid, allow_global=False)
@@ -924,7 +928,7 @@ def _get_fallback_candidates(exclude_pid: str) -> list[tuple[str, str, str, str]
         is_local = "11434" in base or "127.0.0.1" in base or "localhost" in base
         key = _reg.key_for(pid, allow_global=(pid == active_pid))
         if key or is_local:
-            model = saved.get("model") or p_info.get("default_model", "deepseek-chat")
+            model = saved.get("model") or p_info.get("default_model") or ""
             out.append((base, key, model, pid))
     return out
 
@@ -948,6 +952,19 @@ def chat(messages: list[dict], *, model: str | None = None,
             pass
     base, key, target_model, provider_id = resolve_llm_endpoint(model, stage=stage, user_id=user_id)
 
+    if not base:
+        # 一家供应商都没有（用户把它们全删了）：别拿空地址去拼 URL，
+        # 也别让报错写成「当前通道「」」这种看不懂的话。
+        _fb = _get_fallback_candidates(provider_id)
+        if _fb:
+            base, key, target_model, provider_id = _fb[0]
+        else:
+            raise RuntimeError(
+                "尚未配置任何模型服务：本次生成没有发出请求。\n"
+                "请到「设置 → 模型与 Key」添加一家并填入地址、模型与 API Key。"
+            )
+
+
     # 针对本地 Ollama 允许无 key 调用
     if not key and "localhost:11434" not in base and "127.0.0.1" not in base:
         fallbacks = _get_fallback_candidates(provider_id)
@@ -963,8 +980,8 @@ def chat(messages: list[dict], *, model: str | None = None,
 
     # 对话接口安全保护：若解析出的目标模型是生图/视频模型，回退到当前主文本模型
     if classify_model(target_model) in ("image", "video"):
-        p_info = MODEL_PROVIDERS.get(provider_id, MODEL_PROVIDERS.get("deepseek", {}))
-        target_model = p_info.get("default_model", "deepseek-chat")
+        p_info = MODEL_PROVIDERS.get(provider_id) or {}
+        target_model = p_info.get("default_model") or target_model
 
     cfg = load_config().get("gateway", {})
     timeout = timeout_s if timeout_s is not None else cfg.get("timeout_s", 60)
@@ -1056,6 +1073,19 @@ def chat_stream(messages: list[dict], *, model: str | None = None,
                 user_id: str | None = None):
     """流式打字机输出生成器，实时 yield 文本 chunk (SSE)。"""
     base, key, target_model, provider_id = resolve_llm_endpoint(model, stage=stage)
+
+    if not base:
+        # 一家供应商都没有（用户把它们全删了）：别拿空地址去拼 URL，
+        # 也别让报错写成「当前通道「」」这种看不懂的话。
+        _fb = _get_fallback_candidates(provider_id)
+        if _fb:
+            base, key, target_model, provider_id = _fb[0]
+        else:
+            raise RuntimeError(
+                "尚未配置任何模型服务：本次生成没有发出请求。\n"
+                "请到「设置 → 模型与 Key」添加一家并填入地址、模型与 API Key。"
+            )
+
     if not key and "localhost:11434" not in base and "127.0.0.1" not in base:
         fallbacks = _get_fallback_candidates(provider_id)
         if fallbacks:
@@ -1064,8 +1094,8 @@ def chat_stream(messages: list[dict], *, model: str | None = None,
             raise RuntimeError(f"供应商 [{provider_id}] 尚未配置 API Key")
 
     if classify_model(target_model) in ("image", "video"):
-        p_info = MODEL_PROVIDERS.get(provider_id, MODEL_PROVIDERS.get("deepseek", {}))
-        target_model = p_info.get("default_model", "deepseek-chat")
+        p_info = MODEL_PROVIDERS.get(provider_id) or {}
+        target_model = p_info.get("default_model") or target_model
 
     body = {
         "model": target_model,
@@ -1151,7 +1181,7 @@ def available() -> bool:
     registry 的取键规则：空值与占位值一律等同于没有 Key。
     """
     cfg = load_config().get("gateway", {})
-    pid = str(cfg.get("provider_id") or "deepseek")
+    pid = str(cfg.get("provider_id") or "")
     base = str(cfg.get("base_url") or "")
     if "11434" in base or "127.0.0.1" in base or "localhost" in base:
         return True  # 本机 Ollama 允许无 Key
@@ -1169,7 +1199,7 @@ def diagnose() -> dict:
     注意：**绝不返回 Key 明文**，只返回来源标识与末四位。
     """
     cfg = load_config().get("gateway", {})
-    pid = str(cfg.get("provider_id") or "deepseek")
+    pid = str(cfg.get("provider_id") or "")
     preset = MODEL_PROVIDERS.get(pid, {})
     entry = (cfg.get("providers") or {}).get(pid) or {}
 

@@ -22644,12 +22644,13 @@ async function loadModelProvidersModal() {
     window._cachedPresets = res.all_presets || {};
     const cur = res.current || {};
     window._cachedGatewayCurrent = cur;
-    activeProviderId = res.active_provider_id || cur.provider_id || 'deepseek';
+    // 一家都没配置时不要假报 deepseek：否则表单会预填一家用户已经删掉的通道
+    activeProviderId = res.active_provider_id || cur.provider_id || '';
 
     renderProviderList();
 
     // 加载当前选中的模型服务，并正确载入保存的多 Agent 路由配置
-    selectProvider(activeProviderId, false, cur.agent_routing);
+    if (activeProviderId) selectProvider(activeProviderId, false, cur.agent_routing);
   } catch (e) {
     toast('加载模型服务列表失败: ' + e.message);
   }
@@ -22661,6 +22662,19 @@ function renderProviderList() {
   if (countBadge) countBadge.textContent = `已配置 ${cachedProviders.length} 家`;
 
   if (!pGrid) return;
+  if (!cachedProviders.length) {
+    // 全部删完后的空态：说清楚下一步该点什么，而不是留一片空白让人以为坏了
+    pGrid.innerHTML = `
+      <div style="grid-column:1/-1;padding:22px 16px;border:1px dashed var(--border);border-radius:10px;text-align:center">
+        <div style="font-size:13.5px;font-weight:700;color:#fff;margin-bottom:6px">还没有任何模型服务</div>
+        <div style="font-size:12px;color:var(--text-muted);line-height:1.7">
+          点右上角「＋ 添加自定义模型服务」，或用「⚡ 快速载入官方预设通道」选一家常用的（DeepSeek / OpenAI / 智谱 …），<br>
+          填好地址与 API Key 后点「保存并设为主通道」即可开始生成。
+        </div>
+      </div>`;
+    onProviderCheckChanged();
+    return;
+  }
   pGrid.innerHTML = cachedProviders.map(p => {
     const isAct = p.id === activeProviderId;
     const isCustom = p.is_custom || (p.badge === '自定义') || (!p.is_builtin && !['deepseek','openai','claude','gemini','qwen','glm','kimi','ollama','custom'].includes(p.id));
@@ -22681,11 +22695,11 @@ function renderProviderList() {
             </div>
           </div>
           <div style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.base_url}">
-            🌐 ${p.base_url || 'https://api.deepseek.com'}
+            🌐 ${p.base_url || '未填写地址'}
           </div>
           <div style="font-size:11px;display:flex;justify-content:space-between;align-items:center;margin-top:4px">
             <span style="color:#58a6ff;font-family:monospace;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px" title="${p.default_model}">
-              🧠 ${p.default_model || 'deepseek-chat'}
+              🧠 ${p.default_model || '未选模型'}
             </span>
             <span class="badge ${p.has_key ? 'green' : 'gray'}" style="font-size:9.5px;padding:0 4px">
               ${p.has_key ? '● 密钥就绪' : '○ 缺密钥'}
@@ -22745,7 +22759,7 @@ async function batchDeleteProviders() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ provider_ids: ids })
     });
-    toast(`✅ ${res.msg || '批量删除成功！'}`);
+    toast(res.ok === false ? `⚠️ ${res.msg || '批量删除未生效'}` : `✅ ${res.msg || '批量删除成功！'}`);
     await loadModelProvidersModal();
     if (typeof refresh === 'function') refresh();
   } catch(e) {
@@ -22879,7 +22893,7 @@ async function deleteCustomProvider(id) {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({ provider_id: id })
     });
-    toast(`✅ ${res.msg || '已成功删除模型服务'}`);
+    toast(res.ok === false ? `⚠️ ${res.msg || '删除未生效'}` : `✅ ${res.msg || '已成功删除模型服务'}`);
     await loadModelProvidersModal();
     if (typeof refresh === 'function') refresh();
   } catch (e) {

@@ -85,7 +85,8 @@ def compliance_settings(request: Request):
 
 @router.post('/api/compliance/settings')
 async def compliance_settings_save(request: Request):
-    """文字审核开关（**仅管理员**）：写入 config.yaml content_guard.enabled 并热生效。"""
+    """文字审核开关（**仅管理员**）：写入用户覆盖层 data/config.local.yaml
+    （V15.9.5 起出厂 config.yaml 只读）content_guard.enabled 并热生效。"""
     _a.guard_admin(request)
     body = await request.json()
     enabled = bool(body.get('enabled', True))

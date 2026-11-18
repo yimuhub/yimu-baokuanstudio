@@ -10687,6 +10687,12 @@ async function vdCfgSaveLocalModel(){
 // 🎨 影音工坊统一模型选择与规则自动联动中枢
 let _studioProvidersData = null;
 
+// V15.9.7：通道/能力线变更后必须失效，否则影音工坊下拉一直显示旧的
+// resolved_capabilities，直到整页刷新（此前这个缓存没有任何失效点）。
+function invalidateStudioProvidersCache() {
+  _studioProvidersData = null;
+}
+
 async function fetchStudioProvidersData() {
   if (_studioProvidersData) return _studioProvidersData;
   try {
@@ -10769,8 +10775,9 @@ async function initStudioModelSelects() {
       const defOpt = document.createElement('option');
       defOpt.value = '';
       const imgCap = caps.image || {};
+      // V15.9.7：预设目录模型参与自动挑选时明示来源（私钥计费可见性）
       defOpt.textContent = imgCap.model_tag
-        ? ('▼ 系统默认 · ' + imgCap.model_tag + '（可跨通道任选）')
+        ? ('▼ 系统默认 · ' + imgCap.model_tag + '（可跨通道任选）' + (imgCap.preset_only ? '［预设目录模型］' : ''))
         : '▼ 系统默认生图模型（当前没有可用模型）';
       el.appendChild(defOpt);
 
@@ -10814,7 +10821,7 @@ async function initStudioModelSelects() {
       defOpt.textContent = id === 'aivCfg-model'
         ? ('▼ 留空 · 跟随系统默认' + (vidCap.model_tag ? ('（' + vidCap.model_tag + '）') : ''))
         : (vidCap.model_tag
-            ? ('▼ 系统默认 · ' + vidCap.model_tag + '（可跨通道任选）')
+            ? ('▼ 系统默认 · ' + vidCap.model_tag + '（可跨通道任选）' + (vidCap.preset_only ? '［预设目录模型］' : ''))
             : '▼ 系统默认视频大模型（当前没有可用模型）');
       el.appendChild(defOpt);
 
@@ -11653,8 +11660,8 @@ async function deleteUserAccount(uid, username) {
         <span>🤖</span> 多 Agent 角色专属模型路由 (下拉选择已激活模型)
       </div>
       <div style="font-size:11.5px;color:var(--text-muted);line-height:1.6;margin-bottom:10px;background:rgba(255,255,255,.03);border:1px dashed var(--border);border-radius:8px;padding:8px 10px">
-        ⚠️ 绑定优先级：<b style="color:var(--text)">「Agent 配置」页的单阶段绑定</b> &gt; 此处（各模型服务内的路由） &gt; 系统默认（主通道主模型）。
-        留空即「跟随系统默认」。若某阶段在「Agent 配置」里单独绑定了模型，这里的设置会被覆盖。
+        ⚠️ 绑定优先级：<b style="color:var(--text)">「Agent 配置」页的单阶段绑定</b> &gt; 能力线默认（卡片「设为默认… → 生图/生视频」） &gt; 此处（各模型服务内的路由，兼容保留） &gt; 系统默认。
+        留空即「跟随系统默认」。生图/生视频线推荐用卡片上的「设为默认…」；此处路由只在未设置能力线默认时生效。
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <div>
@@ -22612,7 +22619,10 @@ async function populateImageModelDropdown(curVal) {
   function autoLabel(cat) {
     const cap = caps[cat] || null;
     if (!cap || !cap.model_tag) return '自动（跨通道挑选 · 当前没有可用模型）';
-    return '自动（跨通道挑选 · 当前 → ' + cap.model_tag + '）';
+    // V15.9.7：预设目录模型参与自动挑选时明示来源——用户可能只为文字存过
+    // 某家 Key，生图/生视频会自动落到该家的预设模型（私有 Key 计费），必须可见。
+    const src = cap.preset_only ? ' · 预设目录模型，未在该通道保存过清单' : '';
+    return '自动（跨通道挑选 · 当前 → ' + cap.model_tag + src + '）';
   }
 
   function fill(el, cat, extraHtml) {
@@ -22896,6 +22906,7 @@ async function batchDeleteProviders() {
       body: JSON.stringify({ provider_ids: ids })
     });
     toast(res.ok === false ? `⚠️ ${res.msg || '批量删除未生效'}` : `✅ ${res.msg || '批量删除成功！'}`);
+    invalidateStudioProvidersCache();
     await loadModelProvidersModal();
     if (typeof refresh === 'function') refresh();
   } catch(e) {
@@ -23020,6 +23031,7 @@ async function setProviderDefault(pid, scope, el) {
       try { localStorage.removeItem('yimu_studio_video_model'); } catch (e) {}
     }
     toast((res.ok ? '✅ ' : '⚠️ ') + (res.msg || (labels[scope] + '已设置')));
+    invalidateStudioProvidersCache();
     await loadModelProvidersModal();
     if (typeof initStudioModelSelects === 'function') initStudioModelSelects();
     if (typeof refresh === 'function') refresh();
@@ -23039,6 +23051,7 @@ async function setActiveProvider(id) {
     });
     activeProviderId = id;
     toast(`✅ ${res.msg || '主网关切换成功！'}`);
+    invalidateStudioProvidersCache();
     await loadModelProvidersModal();
     if (typeof refresh === 'function') refresh();
   } catch (e) {
@@ -23055,6 +23068,7 @@ async function deleteCustomProvider(id) {
       body: JSON.stringify({ provider_id: id })
     });
     toast(res.ok === false ? `⚠️ ${res.msg || '删除未生效'}` : `✅ ${res.msg || '已成功删除模型服务'}`);
+    invalidateStudioProvidersCache();
     await loadModelProvidersModal();
     if (typeof refresh === 'function') refresh();
   } catch (e) {
@@ -23174,6 +23188,7 @@ async function saveModelProviderConfig(setAsActive = true) {
     }
     // v15.9.1：以后端回复为准——「仅保存」未激活时不再宣称「已生效」
     toast('✅ ' + ((res && res.msg) || `模型服务 [${pname || pid}] 已保存`), 3500);
+    invalidateStudioProvidersCache();
     await loadModelProvidersModal();
     if (typeof refresh === 'function') refresh();
   } catch (e) {

@@ -734,6 +734,8 @@ def set_active_provider(provider_id: str) -> bool:
 
 
 def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, user_id: str | None = None) -> tuple[str, str, str, str]:
+    # 注：``stage`` 仅为调用方兼容保留（阶段路由由 agents.model_for 在调用方完成），
+    # 本函数不按阶段分支——避免出现第二套路由逻辑。
     """统一模型端点与凭据解析器 (Universal Endpoint Resolver)。
 
     返回四元组：(base_url, api_key, resolved_model, provider_id)
@@ -989,8 +991,19 @@ def resolve_capability_default(category: str) -> dict:
         model = first_model_of(pid, cat, cfg)
         if model:
             tag = model if pid == active else f"{pid}/{model}"
+            # V15.9.7：标记这份默认是否来自**内置预设目录**（用户从未在该通道
+            # 保存/启用过模型清单）。预设目录模型参与自动挑选意味着「只为文字
+            # 存过 openai Key 的用户，生图会自动落到 openai/dall-e-3 走私钥计费」
+            # ——这是 V15.9.6 的设计选择，但必须可见：前端「自动」标签与
+            # /api/status 回显都会带上 preset_only，明示「这是预设目录给的」。
+            saved_entry = pool.get(pid) if isinstance(pool.get(pid), dict) else {}
+            saved_models = (saved_entry.get("configured_models") if isinstance(saved_entry, dict) else None) or []
+            saved_ids = {str(m.get("id") if isinstance(m, dict) else m) for m in saved_models}
+            if str(saved_entry.get("model") or "").strip():
+                saved_ids.add(str(saved_entry["model"]).strip())
             return {"category": cat, "provider_id": pid, "model": model,
-                    "model_tag": tag, "source": "auto"}
+                    "model_tag": tag, "source": "auto",
+                    "preset_only": not (saved_ids and model in saved_ids)}
     return {}
 
 
@@ -1148,10 +1161,20 @@ def chat(messages: list[dict], *, model: str | None = None,
                 "若使用随包提供的通道，请联系管理员获取已开通的版本（内置官方凭证）。"
             )
 
-    # 对话接口安全保护：若解析出的目标模型是生图/视频模型，回退到当前主文本模型
+    # 对话接口安全保护：若解析出的目标模型是生图/视频模型，回退到文字默认。
+    # V15.9.7：优先用「文字能力线」的解析结果（capability_defaults.text /
+    # 跨通道自动），而不是该供应商的预设 default——预设可能与用户配置
+    # 的文字线不一致，且预设 default_model 也可能是图像类模型。
     if classify_model(target_model) in ("image", "video"):
-        p_info = MODEL_PROVIDERS.get(provider_id) or {}
-        target_model = p_info.get("default_model") or target_model
+        _cap_text = resolve_capability_default("text")
+        _fallback_m = str((_cap_text or {}).get("model") or "").strip()
+        if not _fallback_m:
+            p_info = MODEL_PROVIDERS.get(provider_id) or {}
+            _fallback_m = str(p_info.get("default_model") or "").strip()
+        if _fallback_m and classify_model(_fallback_m) == "text":
+            logger.warning(
+                "[LLM] 对话请求解析到非文字模型 [%s]，回退文字默认 [%s]", target_model, _fallback_m)
+            target_model = _fallback_m
 
     cfg = load_config().get("gateway", {})
     timeout = timeout_s if timeout_s is not None else cfg.get("timeout_s", 60)

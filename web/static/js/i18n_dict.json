@@ -2172,5 +2172,8 @@
   "所有已配置通道": "all configured providers",
   "默认生图模型（跨通道任选）": "Default image model (any provider)",
   "默认生视频模型（跨通道任选）": "Default video model (any provider)",
-  "留空 = 自动选择；当前所有通道都没有视频模型时，会明确提示去添加，不会偷偷换成一个文本模型。": "Leave empty to auto-select; if no provider has a video model, you will be told to add one instead of silently falling back to a text model."
+  "留空 = 自动选择；当前所有通道都没有视频模型时，会明确提示去添加，不会偷偷换成一个文本模型。": "Leave empty to auto-select; if no provider has a video model, you will be told to add one instead of silently falling back to a text model.",
+  "> 能力线默认（卡片「设为默认… → 生图/生视频」） > 此处（各模型服务内的路由，兼容保留） > 系统默认。\n        留空即「跟随系统默认」。生图/生视频线推荐用卡片上的「设为默认…」；此处路由只在未设置能力线默认时生效。": "> Capability default (card \"Set as default… → Image/Video\") > per-provider routing here (legacy compat) > System default.\n        Leave empty to follow the system default. For image/video, prefer the card's \"Set as default…\"; routing here only applies when no capability default is set.",
+  "📝 文字: 加载中… · 🎨 生图: 加载中… · 🎬 生视频: 加载中…": "📝 Text: loading… · 🎨 Image: loading… · 🎬 Video: loading…",
+  "▼ 跟随系统默认（生图能力线 · 免 Key 有保底引擎）": "▼ Follow System default (image capability line · free fallback engine, no Key needed)"
 }

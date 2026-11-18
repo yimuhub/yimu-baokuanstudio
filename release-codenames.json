@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.6",
-  "current_codename_zh": "星槎引",
-  "current_codename_en": "Star Raft Prelude",
-  "next_index": 83,
+  "current_version": "15.9.7",
+  "current_codename_zh": "松风令",
+  "current_codename_en": "Pine Wind Edict",
+  "next_index": 84,
   "sequence": [
     {
       "zh": "曦光序",
@@ -629,6 +629,12 @@
       "zh": "星槎引",
       "en": "Star Raft Prelude",
       "date": "2026-11-18"
+    },
+    {
+      "version": "v15.9.7",
+      "zh": "松风令",
+      "en": "Pine Wind Edict",
+      "date": "2026-11-19"
     }
   ]
 }

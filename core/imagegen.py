@@ -472,11 +472,13 @@ def build_prompt(title: str, context: str, angle: str) -> str:
 def image_cfg() -> dict:
     raw_cfg = load_config()
     cfg = raw_cfg.get("image", {})
-    # 生图模型解析链：Workbench 单次指定 > Agent 路由绑定 > 阶段绑定
-    # > 能力线显式默认（设置页/通道卡片选的「生图默认」）> 旧字段 image.model
-    # > 跨通道自动（活动通道优先，其次其它已配置通道）> 免 Key 保底引擎。
-    # V15.9.6：新增「能力线默认 + 跨通道自动」——A 家只有文字模型时，
-    # 生图不再被迫回落到 flux-schnell，而是能自动选到 B 家的生图模型。
+    # 生图模型解析链（V15.9.7 统一，四条消费链同序）：
+    #   ① Workbench 单次指定 > ② Agent 配置页阶段绑定(agents.image.model)
+    #   > ③ 能力线显式默认(设置页/卡片「设为生图默认」capability_defaults.image)
+    #   > ④ 通道内路由(agent_routing.image，兼容遗留——旧客户端/移动端写入的旧值)
+    #   > ⑤ 旧字段 image.model(现仅免 Key 保底槽位) > ⑥ 跨通道自动 > ⑦ flux-schnell。
+    # ③ 必须压过 ④：PC 上「设为生图默认」后，移动端/旧弹窗残留的通道路由
+    #   不得把它静默盖掉（这是两套 UI 双源冲突的直接后果）。
     from core.llm import resolve_capability_default
     routing_img = raw_cfg.get("gateway", {}).get("agent_routing", {}).get("image", "").strip()
     agent_img = raw_cfg.get("agents", {}).get("image", {}).get("model", "").strip()
@@ -484,7 +486,7 @@ def image_cfg() -> dict:
     cap = resolve_capability_default("image")
     cap_explicit = cap.get("model_tag", "") if cap.get("source") == "explicit" else ""
     cap_auto = cap.get("model_tag", "") if cap.get("source") == "auto" else ""
-    model = routing_img or agent_img or cap_explicit or explicit or cap_auto or "flux-schnell"
+    model = agent_img or cap_explicit or routing_img or explicit or cap_auto or "flux-schnell"
     return {
         "enabled": bool(cfg.get("enabled", True)),
         "model": model,

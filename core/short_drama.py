@@ -1183,13 +1183,24 @@ def generate_ai_video_clip(
     if not any(k in motion_prompt.lower() for k in ("motion", "camera", "dolly", "pan", "movement", "cinematic")):
         motion_prompt = f"{motion_prompt}, smooth cinematic slow motion, subtle alive micro-movements, 4k 60fps"
 
-    # 读取网关中绑定的专属视频生成 Agent 路由模型；全空 = 跟随系统默认
+    # V15.9.7 视频线解析链（与 ad_video/imagegen 同序）：
+    #   入参单次指定 > 能力线显式默认(「设为生视频默认」)
+    #   > 通道内路由(兼容遗留) > 跨通道自动。
+    # 旧实现把 routing 放在入参之上——调用方明确指定的模型反被配置覆盖，
+    # 与 ad_video 链行为相反；能力线显式也必须压过通道内路由（双源冲突修复）。
+    try:
+        from core.llm import resolve_capability_default
+        _cap = resolve_capability_default("video")
+        cap_explicit = _cap.get("model_tag", "") if _cap.get("source") == "explicit" else ""
+    except Exception:
+        cap_explicit = ""
     routed_video_m = cfg.get("gateway", {}).get("agent_routing", {}).get("video", "").strip()
-    active_preferred = routed_video_m or (preferred_model or "").strip() or resolve_default_model("video")
+    active_preferred = ((preferred_model or "").strip() or cap_explicit
+                        or routed_video_m or resolve_default_model("video"))
     if not active_preferred:
         logger.error(
-            "AI 视频切片未执行：当前主通道 [%s] 模型池没有任何视频模型，"
-            "请在「模型服务 → 多 Agent 路由 → 视频」绑定一个视频大模型", gw_pid or "未设置")
+            "AI 视频切片未执行：所有已配置通道的模型池里都没有视频模型——"
+            "请在「模型服务 → 设为默认… → 生视频默认」指定一家有视频模型的通道")
         return False
 
     models_to_try = [active_preferred]

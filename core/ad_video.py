@@ -386,23 +386,32 @@ def ad_video_model_info(model_override: str = "") -> dict:
     ok=False 时调用方走 AI 图片保底。
     """
     from core import agents
-    from core.llm import resolve_llm_endpoint, classify_model
-    # v15.9.1：阶段绑定与路由绑定为空 = 「跟随系统默认」→ 取活动供应商模型池里
-    # 第一个视频模型；池里也没有时给出明确的可执行指引，绝不回退到写死的测试模型。
-    bound = ""
+    from core.llm import resolve_llm_endpoint, classify_model, resolve_capability_default
+    # V15.9.7 视频线解析链（与 short_drama/imagegen 同序）：
+    #   单次显式指定 > 阶段绑定(agents.ad_video.model) > 能力线显式默认
+    #   (「设为生视频默认」) > 通道内路由(兼容遗留) > 跨通道自动。
+    # 能力线显式必须压过通道内路由：PC 上设了生视频默认后，
+    # 旧弹窗/移动端残留的 routing.video 不得把它静默盖掉。
+    override = (model_override or "").strip()
+    stage_bound = ""
+    routing_video = ""
+    cap_explicit = ""
     try:
-        bound = (agents.agents_cfg().get("ad_video", {}).get("model", "") or "").strip() \
-            or str(agents.load_config().get("gateway", {}).get("agent_routing", {}).get("video", "") or "").strip()
+        stage_bound = (agents.agents_cfg().get("ad_video", {}).get("model", "") or "").strip()
+        routing_video = str(agents.load_config().get("gateway", {}).get("agent_routing", {})
+                            .get("video", "") or "").strip()
+        cap = resolve_capability_default("video")
+        cap_explicit = cap.get("model_tag", "") if cap.get("source") == "explicit" else ""
     except Exception:
-        bound = ""
-    model = (model_override or bound).strip()
+        pass
+    model = override or stage_bound or cap_explicit or routing_video
     if not model:
         from core.llm import resolve_default_model
         model = resolve_default_model("video")
     if not model:
-        return {"ok": False, "reason": "未配置视频大模型：当前主通道模型池没有任何视频模型，"
-                                       "请到「模型服务 → 多 Agent 路由 → 视频生成」绑定一个，"
-                                       "或在本通道模型池启用一个视频模型"}
+        return {"ok": False, "reason": "未配置视频大模型：所有已配置通道的模型池里都没有视频模型，"
+                                       "请到「模型服务 → 模型服务卡片 → 设为默认… → 生视频默认」"
+                                       "指定一家有视频模型的通道（或先在本通道模型池启用一个视频模型）"}
     try:
         base, key, resolved, pid = resolve_llm_endpoint(model)
     except Exception as exc:  # noqa: BLE001

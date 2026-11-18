@@ -174,3 +174,13 @@ def pytest_sessionfinish(session, exitstatus):  # noqa: ARG001
                 print(f"\n[守护] 测试期间 {p.name} 被改写，已自动还原（说明有用例未隔离 provider_registry）")
         except OSError:
             pass
+    # V15.9.7：v15.9.5 起运行时写入统一落 data/config.local.yaml——全新 clone 上
+    # 该文件本不存在，漏隔离用例新建的它不属于「改写」而属于「新增」，同样要清掉。
+    if str(Path(__file__).resolve().parent.parent / "data" / "config.local.yaml") not in _CONFIG_SNAPSHOT:
+        ghost = Path(__file__).resolve().parent.parent / "data" / "config.local.yaml"
+        try:
+            if ghost.is_file():
+                ghost.unlink()
+                print(f"\n[守护] 测试期间新建了 {ghost.name}，已删除（说明有用例未隔离 provider_registry）")
+        except OSError:
+            pass

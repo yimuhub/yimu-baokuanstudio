@@ -1477,6 +1477,11 @@ body {
       <!-- 视图 A: 模型服务绑定与多 Agent 独立路由 (完全对齐 PC 端) -->
       <div id="m-set-view-llm" style="display:flex;flex-direction:column;gap:12px">
         
+        <!-- 0. 三条能力线当前归属（文字/生图/生视频各自用哪家） -->
+        <div id="m-caps-line" style="background:rgba(64,184,190,.06);border:1px solid rgba(64,184,190,.3);border-radius:8px;padding:8px 10px;font-size:11.5px;color:var(--text);margin-bottom:10px;line-height:1.6">
+          📝 文字: 加载中… · 🎨 生图: 加载中… · 🎬 生视频: 加载中…
+        </div>
+
         <!-- 1. 当前主网关状态与模型服务选择 -->
         <div class="m-card" style="margin-bottom:0">
           <div class="m-card-title">
@@ -1598,7 +1603,7 @@ body {
                 <span style="font-size:10.5px;color:var(--text-muted)">负责爆款封面、卡片配图与分镜首帧</span>
               </div>
               <select id="m-routing-image" class="m-input" style="width:100%;border-radius:6px;font-size:12px;padding:7px">
-                <option value="">▼ 跟随全局默认生图模型 (Flux / DALL-E)</option>
+                <option value="">▼ 跟随系统默认（生图能力线 · 免 Key 有保底引擎）</option>
               </select>
             </div>
 
@@ -4374,6 +4379,16 @@ async function loadMobileModelProviders(doToast = false) {
     if (badge) {
       badge.innerHTML = `当前主网关: <strong style="color:var(--success)">${activeMobileProviderId}</strong> · 默认模型: <code style="color:var(--primary)">${res.current && res.current.model || '未设定'}</code>`;
     }
+    // V15.9.7：三线归属随状态回显——移动端此前完全看不到「生图/生视频用的是谁」。
+    try {
+      const st = await api('/api/status');
+      const caps = (st && st.capabilities) || {};
+      const fmt = (c) => c && c.model_tag ? `${c.model_tag}${c.preset_only ? '（预设目录）' : ''}` : '未配置';
+      const line = document.getElementById('m-caps-line');
+      if (line) {
+        line.innerHTML = `📝 文字: <b>${fmt(caps.text)}</b> · 🎨 生图: <b>${fmt(caps.image)}</b> · 🎬 生视频: <b>${fmt(caps.video)}</b>`;
+      }
+    } catch (e) { /* 状态拉取失败不影响主流程 */ }
 
     if (sel) {
       sel.innerHTML = cachedMobileProviders.map(p => {
@@ -4484,11 +4499,17 @@ function updateMobileModelDropdowns(targetDefault) {
     }
     
     // 跨模型服务可用模型补充 (仅展示已配置密钥模型服务的模型)
+    // V15.9.7：值统一用「通道/模型」前缀——同名模型在两家都有时，裸 id
+    // 会被解析器「活动通道池优先」静默路由回主通道（桌面端 v15.9.6 已修，移动端补齐）。
     const crossCategory = cfg.key === 'image' ? 'image' : (cfg.key === 'video' ? 'video' : 'text');
     const crossMatches = validCrossModels.filter(m => m.category === crossCategory && !cfg.models.some(x => x.id === m.id));
     if (crossMatches.length > 0) {
       html += `<optgroup label="🌐 其它已配置密钥模型服务 · ${cfg.label}可用模型">`;
-      html += crossMatches.map(m => `<option value="${m.id}">${m.name || m.id} [${m.provider_name || m.provider_id}]</option>`).join('');
+      html += crossMatches.map(m => {
+        const pid = m.provider_id || '';
+        const val = pid ? (pid + '/' + (m.id || m.name)) : (m.id || m.name);
+        return `<option value="${val}">${m.name || m.id} [${m.provider_name || pid}]</option>`;
+      }).join('');
       html += `</optgroup>`;
     }
 

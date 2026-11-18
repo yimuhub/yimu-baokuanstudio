@@ -266,6 +266,11 @@ async def settings(request: Request):
     gw = body.get('gateway') or {}
     if gw.get('base_url') or gw.get('model'):
         _pid = _reg.active_provider_id(cfg)
+        # V15.9.7：全部通道被删后 active 可能为空串——空键 setdefault 会在池里
+        # 造出「幽灵条目」（normalize 还可能把它扶正当主通道）。没有活动通道
+        # 时明确拒绝这份表单写入，让前端提示先添加模型服务。
+        if not _pid:
+            raise HTTPException(400, '当前没有任何模型服务，请先在「模型服务」里添加并保存一家')
         _entry = (cfg.setdefault('gateway', {}).setdefault('providers', {})
                   .setdefault(_pid, {}))
         if gw.get('base_url'):

@@ -7,6 +7,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.9.7] - 松风令 (Pine Wind Edict) · 2026-11-19
+
+### Fixed 能力线默认统一收口：显式默认压得过通道内遗留路由
+
+v15.9.6 引入 `capability_defaults` 后，消费侧有四条解析链各写各的排序，留下
+两处真实的双源冲突：
+
+1. **移动端/旧弹窗残留的 `agent_routing.image/video` 会静默压过 PC 上的
+   「设为生图/生视频默认」**——`imagegen.image_cfg()` 旧链把通道路由排在
+   能力线显式默认之前；手机上历史上保存过的路由值会让新设置「看起来没生效」。
+2. **视频线两条链排序相反**：`ad_video` 把调用方单次指定的 `model_override`
+   放最高，`short_drama` 却把配置里的 routing 放在入参之上——调用方明确指定
+   的模型反被配置覆盖。
+
+统一后的解析链（四链同序，`imagegen.py` / `ad_video.py` / `short_drama.py` /
+`agents.model_for`）：
+
+    单次显式指定 > 阶段绑定(agents.*) > 能力线显式默认(capability_defaults)
+    > 通道内路由(agent_routing，兼容遗留) > 跨通道自动 > 兜底
+
+- `agents.model_for` 末级兜底不再硬编码 `deepseek-chat`（出厂预设不该从代码
+  里冒出来），改为跟随文字能力线跨通道解析，全空返回空串交给 `llm.chat`
+  的「未配置」人话提示。
+- `llm.chat` 的防串台护栏（文字请求解析到图像/视频模型时）改为回退
+  **文字能力线默认**，而不是该供应商的预设 `default_model`。
+
+### Added 预设目录模型可见性（preset_only）
+
+自动跨通道挑选会读取内置预设目录（openai 含 dall-e-3/sora、qwen 含 wanx-video
+等）：用户可能**只为文字**在某家存过 Key，生图/生视频却会自动落到该家的预设
+模型并走私钥计费。这是 V15.9.6 的设计选择，但此前完全不可见。现在
+`resolve_capability_default()` 的 auto 结果带 `preset_only` 标记，设置页自动项
+与影音工坊系统默认项都会显示「［预设目录模型］」。
+
+### Fixed 移动端同步 v15.9.6（此前零改动）
+
+- 跨模型服务下拉的值统一加 `通道/模型` 前缀——同名模型在两家都有时，裸 id
+  会被解析器「活动通道池优先」静默路由回主通道（桌面端已修，移动端补齐）；
+- 模型绑定视图顶部新增「三线归属」一行：文字 / 生图 / 生视频当前各自解析到
+  哪家（读 `/api/status capabilities`，与桌面同源）；
+- 生图路由首项文案对齐系统默认语义。
+
+### Fixed 边界与卫生
+
+- **幽灵供应商**：全部通道删除后 `active_provider_id` 为空串，`/api/settings`
+  的网关表单写入会以空键落池（normalize 还可能把它扶正当主通道）——现在明确
+  拒绝并提示先添加模型服务；
+- **测试守护补口**：全新 clone 上测试期间新建的 `data/config.local.yaml`
+  会话结束一并删除（此前只还原已存在的文件）；
+- **影音工坊缓存失效**：`_studioProvidersData` 此前没有任何失效点——设默认/
+  保存/删除/切主网关后下拉一直显示旧的能力归属直到整页刷新；现在五个变更点
+  统一失效；
+- `resolve_llm_endpoint` 的 `stage` 形参注明为调用方兼容保留（阶段路由由
+  `agents.model_for` 完成，本函数不按阶段分支）；
+- 系统注释与实际写入位置对齐（v15.9.5 起运行时写 `data/config.local.yaml`）。
+
+### Tests
+
+- `tests/test_v1597_capability_priority.py`（10 项）：显式默认压过遗留路由、
+  路由兼容语义保留、阶段绑定最优先、两条视频链同序、对话兜底走文字能力线、
+  preset_only 标记、幽灵供应商拒绝、model_for 不再硬编码出厂预设。
+- 全量 `912 passed`，CI 四道门禁全过；浏览器实测走查通过
+  （桌面七页舞台导航 / 设默认菜单 / 能力线回显 / 移动端三线归属）。
+
+---
+
 ## [15.9.6] - 星槎引 (Star Raft Prelude) · 2026-11-18
 
 ### Added 文字、生图、生视频可以各用一家通道

@@ -258,7 +258,18 @@ def model_for(stage: str, default: str = "") -> str:
     if gw_model:
         return gw_model
 
-    return "deepseek-chat"
+    # V15.9.7：主通道没有文字模型时，跟随文字能力线（跨通道自动挑选）；
+    # 全部通道都没有文字模型时返回空——由 llm.chat 给出「未配置」人话提示，
+    # 不再硬编码 deepseek-chat（出厂预设不该从代码里冒出来）。
+    try:
+        from core.llm import resolve_capability_default
+        cap = resolve_capability_default("text")
+        if cap.get("model_tag"):
+            # 用 model_tag（跨通道时带 通道/模型 前缀），解析器据此切到正确端点
+            return str(cap["model_tag"])
+    except Exception:
+        pass
+    return ""
 
 
 def compose_system(stage: str, base_prompt: str) -> str:

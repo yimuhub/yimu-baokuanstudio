@@ -4,6 +4,31 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌲 Version 15.9.7 · 松风令 (Pine Wind Edict) · Capability Defaults Unification · 2026-11-19
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.7"`, `__codename__ = "松风令"`, `__codename_en__ = "Pine Wind Edict"`)
+
+### 🎯 Milestone Summary
+
+V15.9.2→V15.9.6 五个版本（浏览器启动链路 / 执行位修复 / 设置收口+路径安全 / 任意删+运行时写入隔离 / 三通道分离）的周期性深审整改：四条能力线解析链统一同序，双源冲突逐项修复；预设目录计费可见性；移动端补齐 V15.9.6 同步。全量 912 用例 + CI 四道门禁全绿，浏览器实测走查通过。
+
+### ⚡ Highlights
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **四链统一排序** | 生图/生视频解析链统一为「单次指定 > 阶段绑定 > 能力线显式默认 > 通道内路由 > 自动」——移动端/旧弹窗残留的 agent_routing 不再压过 PC「设为默认」；ad_video 与 short_drama 排序相反的历史不一致对齐 |
+| 2 | **文字线兜底** | `agents.model_for` 不再硬编码 `deepseek-chat`，跟随文字能力线跨通道解析；`llm.chat` 防串台护栏回退文字能力线而非预设 default |
+| 3 | **preset_only 可见性** | 自动挑选落到内置预设目录模型（用户只为文字存过 Key）时全链路标注「［预设目录模型］」，私钥计费不再静默 |
+| 4 | **移动端补同步** | 跨通道下拉值加 `通道/模型` 前缀（同名模型不再串台）+ 三线归属一行展示 + 文案对齐——此前移动端对 V15.9.6 零改动 |
+| 5 | **幽灵供应商防护** | 全部通道删除后网关表单写入明确拒绝，不再落空键条目进池 |
+| 6 | **缓存失效** | `_studioProvidersData` 五个变更点统一失效（此前永不失效，能力归属显示陈旧） |
+| 7 | **测试守护补口** | 会话期间新建的 `data/config.local.yaml` 结束时删除；出厂样本零写入 |
+| 8 | **回归锁** | `tests/test_v1597_capability_priority.py`（10 项）钉死全部修复 |
+
+**Full Changelog**: v15.9.6...v15.9.7
+
+---
+
 ## 🛶 Version 15.9.6 · 星槎引 (Star Raft Prelude) · Per-Capability Providers · 2026-11-18
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.6"`, `__codename__ = "星槎引"`, `__codename_en__ = "Star Raft Prelude"`)

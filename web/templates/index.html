@@ -8441,9 +8441,10 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                 <button class="btn btn-sm ok" style="font-weight:700" onclick="modal('m-gateway')">⚙️ 去填 Key</button>
               </div>
               <div class="h" id="set-hub-img">
-                <b>② 🎨 生图引擎</b>
+                <b>② 🎨 生图 / 🎬 生视频引擎</b>
                 <div class="val" id="set-hub-img-val">加载中…</div>
-                <button class="btn btn-sm ghost" onclick="modal('m-image')">🎨 换生图模型</button>
+                <div class="val" id="set-hub-video-val" style="margin-top:4px">加载中…</div>
+                <button class="btn btn-sm ghost" onclick="modal('m-image')">🎨 换模型（可跨通道）</button>
               </div>
               <div class="h" id="set-hub-style">
                 <b>③ ✍️ 写作默认风格</b>
@@ -10721,6 +10722,8 @@ async function initStudioModelSelects() {
     const cross = (res.cross_models || []);
     const providers = res.providers || {};
     const activePid = res.active_provider_id || '';
+    const caps = res.resolved_capabilities || {};
+    window._cachedCaps = caps;
 
     // 严格过滤：只保留已绑定密钥（has_key === true）的模型服务
     const imageGroups = new Map(); // pid -> { name, models: Set }
@@ -10765,7 +10768,10 @@ async function initStudioModelSelects() {
       el.innerHTML = '';
       const defOpt = document.createElement('option');
       defOpt.value = '';
-      defOpt.textContent = '▼ 系统默认生图模型 (推荐)';
+      const imgCap = caps.image || {};
+      defOpt.textContent = imgCap.model_tag
+        ? ('▼ 系统默认 · ' + imgCap.model_tag + '（可跨通道任选）')
+        : '▼ 系统默认生图模型（当前没有可用模型）';
       el.appendChild(defOpt);
 
       sortedImagePids.forEach(pid => {
@@ -10797,13 +10803,19 @@ async function initStudioModelSelects() {
     STUDIO_VIDEO_SELECT_IDS.forEach(id => {
       const el = $(id);
       if (!el) return;
-      const cur = el.value || savedVidModel;
+      let cur = el.value || savedVidModel;
       el.innerHTML = '';
       const defOpt = document.createElement('option');
       defOpt.value = '';
+      const vidCap = caps.video || {};
+      // 视频配置里的下拉代表「系统默认」，打开时必须回显已保存的显式默认；
+      // 否则用户只是看了一眼再点保存，就会把默认清成「自动」。
+      if (!cur && id === 'aivCfg-model' && vidCap.source === 'explicit') cur = vidCap.model_tag;
       defOpt.textContent = id === 'aivCfg-model'
-        ? '▼ 留空 · 跟随「广告视频生成 Agent」默认模型'
-        : '▼ 系统默认视频大模型 (推荐)';
+        ? ('▼ 留空 · 跟随系统默认' + (vidCap.model_tag ? ('（' + vidCap.model_tag + '）') : ''))
+        : (vidCap.model_tag
+            ? ('▼ 系统默认 · ' + vidCap.model_tag + '（可跨通道任选）')
+            : '▼ 系统默认视频大模型（当前没有可用模型）');
       el.appendChild(defOpt);
 
       sortedVideoPids.forEach(pid => {
@@ -11078,13 +11090,36 @@ function updateAivModelTip() {
 }
 async function aivCfgSave(){
   try{
+    const vm = (($('aivCfg-model')||{}).value || '').trim();
     await api('/api/aivideo/config',{method:'PUT',body:JSON.stringify({
       segment_seconds: parseInt(($('aivCfg-seg')||{}).value || '8', 10),
       interval_seconds: parseInt(($('aivCfg-interval')||{}).value || '2', 10),
       max_parallel: parseInt(($('aivCfg-parallel')||{}).value || '1', 10),
-      video_model: (($('aivCfg-model')||{}).value || '').trim(),
+      video_model: vm,
     })});
-    toast('✅ AI 视频生成配置已保存');
+    // 这里的下拉是「系统默认生视频模型」：只写 JSON 文件的话，真正生成时
+    // 读的是能力线默认，用户会以为「设了没用」。所以同时写能力线并同步各处。
+    const i = vm.indexOf('/');
+    if (i > 0) {
+      await api('/api/models/provider/set_default', {
+        method: 'POST',
+        body: JSON.stringify({ provider_id: vm.slice(0, i), scope: 'video', model: vm.slice(i + 1) })
+      });
+    } else {
+      await api('/api/models/provider/set_default', {
+        method: 'POST',
+        body: JSON.stringify({ provider_id: '', scope: 'video' })
+      });
+    }
+    try {
+      localStorage.setItem('yimu_studio_video_model', vm);
+      STUDIO_VIDEO_SELECT_IDS.forEach(function (id) {
+        const el = $(id);
+        if (el && el.value !== vm) el.value = vm;
+      });
+      window._cachedCaps = null;
+    } catch (e) {}
+    toast('✅ AI 视频生成配置已保存（系统默认生视频模型已同步）');
   }catch(e){toast('保存失败：'+e.message);}
 }
 function vdCfgEditKey(p){
@@ -11677,15 +11712,24 @@ async function deleteUserAccount(uid, username) {
 </div></div>
 
 <div class="mask" id="m-image"><div class="modal-box">
-  <h3>🎨 AI 配图设置</h3>
+  <h3>🎨 生图 / 🎬 生视频设置</h3>
+  <div style="font-size:11.5px;color:var(--text-muted);line-height:1.7;margin:-4px 0 10px">
+    下拉里列的是<b>所有已配置通道</b>的模型，按通道分组——文字主通道只有文本模型也没关系，
+    生图/生视频可以各选另一家的模型。留空 = 自动在全部通道里挑第一个可用的。
+  </div>
   <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="im-enabled"> 启用 AI 智能生图</label>
-  <label>生图模型 (下拉选择已激活的图像模型)</label>
+  <label>默认生图模型（跨通道任选）</label>
   <div style="display:flex;gap:8px;margin-bottom:8px">
     <select id="im-model" style="flex:1" onchange="handleImModelSelectChange(this)"></select>
   </div>
   <div id="im-model-custom-box" style="display:none;margin-bottom:8px">
     <label style="font-size:11px;color:var(--text-muted)">自定义生图模型名称：</label>
     <input type="text" id="im-model-custom" placeholder="输入自定义模型ID，如 dall-e-3">
+  </div>
+  <label>默认生视频模型（跨通道任选）</label>
+  <select id="im-video-model" style="width:100%;margin-bottom:4px"></select>
+  <div id="im-video-hint" style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:8px">
+    留空 = 自动选择；当前所有通道都没有视频模型时，会明确提示去添加，不会偷偷换成一个文本模型。
   </div>
   <label>每篇配图数量（1-5 张，含封面）</label><input type="number" id="im-count" min="1" max="5">
   <div class="modal-acts"><button class="btn ghost" onclick="closeModal()">取消</button><button class="btn" onclick="saveImageCfg()">保存</button></div>
@@ -21803,15 +21847,28 @@ function renderSettingsHub() {
     if (keyBox) { keyBox.classList.toggle('done', hasKey); keyBox.classList.toggle('pending', !hasKey); }
   }
 
-  // ② 生图引擎（读的就是工作台 / 极简模式 / Agent 弹窗共用的那一份）
+  // ② 生图 / 生视频引擎
+  //    不再只看「当前主通道」：显示的是能力线解析结果，能明确看出用的是哪一家。
   const imgEl = $('set-hub-img-val'), imgBox = $('set-hub-img');
+  const vidEl = $('set-hub-video-val');
+  const caps = (S && S.capabilities) || {};
   if (imgEl) {
-    const cur = getImageModel() || (S.image && S.image.model) || '';
-    const shown = cur ? harnessModelLabel(cur) : '跟随系统推荐';
+    const override = getImageModel();
+    const cap = caps.image || {};
+    const tag = override || cap.model_tag || (S.image && S.image.model) || '';
+    const shown = tag ? harnessModelLabel(tag) : '未配置（未选到生图模型）';
+    const owner = override ? '手动指定' : (cap.provider_id ? ('来自 ' + cap.provider_id) : '自动');
     const on = S.image ? (S.image.enabled ? '已开启' : '已关闭') : '—';
     const cnt = (S.image && S.image.count) ? S.image.count : 3;
-    imgEl.innerHTML = `模型 <em>${escapeHtml(shown)}</em> · ${on} · 每篇 ${cnt} 张`;
-    if (imgBox) { imgBox.classList.toggle('done', Boolean(cur)); imgBox.classList.toggle('pending', !cur); }
+    imgEl.innerHTML = `🎨 生图 <em>${escapeHtml(shown)}</em> · ${owner} · ${on} · 每篇 ${cnt} 张`;
+    if (imgBox) { imgBox.classList.toggle('done', Boolean(tag)); imgBox.classList.toggle('pending', !tag); }
+  }
+  if (vidEl) {
+    const vcap = caps.video || {};
+    const vtag = vcap.model_tag || '';
+    vidEl.innerHTML = vtag
+      ? `🎬 生视频 <em>${escapeHtml(harnessModelLabel(vtag))}</em> · 来自 ${escapeHtml(vcap.provider_id || '')}`
+      : '🎬 生视频 未配置（所有通道都没有视频模型）';
   }
 
   // ③ 写作默认风格
@@ -22512,48 +22569,108 @@ function updateGatewayModelDropdowns(targetDefault, targetRouting) {
   });
 }
 
-function populateImageModelDropdown(curVal) {
+async function populateImageModelDropdown(curVal) {
   const sel = $('im-model');
-  if (!sel) return;
-  const activeP = (typeof cachedProviders !== 'undefined') ? cachedProviders.find(p => p.id === activeProviderId) : null;
-  const activeHasKey = activeP ? Boolean(activeP.has_key) : true;
+  const vidSel = $('im-video-model');
+  if (!sel && !vidSel) return;
 
-  const allModels = (activeHasKey && currentModelsList && currentModelsList.length > 0) ? currentModelsList : [];
-  const imgModels = allModels.filter(x => x.category === 'image' && x.is_enabled);
-  const otherModels = allModels.filter(x => x.category !== 'image' && x.is_enabled);
-
-  let html = '';
-  html += `<optgroup label="🎨 专职高质量生图模型">`;
-  html += `<option value="flux-schnell">flux-schnell (全球开源 Flux.1 高清免Key推荐)</option>`;
-  if (imgModels.length > 0) {
-    html += imgModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+  let cross = (window._cachedCrossModels || []).slice();
+  let caps = window._cachedCaps || ((typeof S !== 'undefined' && S && S.capabilities) || {});
+  if (!cross.length) {
+    try {
+      const d = await api('/api/models/providers');
+      cross = d.cross_models || [];
+      window._cachedCrossModels = cross;
+      caps = d.resolved_capabilities || caps;
+      window._cachedCaps = caps;
+      if (!activeProviderId && d.active_provider_id) activeProviderId = d.active_provider_id;
+    } catch (e) { /* 拉不到就只剩「自动」与自定义，至少不误导 */ }
   }
-  html += `</optgroup>`;
+  const activePid = activeProviderId || (window._cachedGatewayCurrent || {}).provider_id || '';
 
-  if (otherModels.length > 0) {
-    html += `<optgroup label="🌐 其它已配置密钥模型">`;
-    html += otherModels.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-    html += `</optgroup>`;
+  function groupsFor(cat) {
+    const map = new Map();
+    cross.forEach(function (m) {
+      if (!m || m.has_key === false) return;
+      if ((m.category || 'text') !== cat) return;
+      if (m.is_enabled === false) return;
+      const pid = m.provider_id || '';
+      const mid = m.id || m.name || '';
+      if (!mid) return;
+      if (!map.has(pid)) map.set(pid, { name: m.provider_name || pid, models: new Map() });
+      map.get(pid).models.set(mid, m.name || mid);
+    });
+    const keys = Array.from(map.keys());
+    keys.sort(function (a, b) {
+      if (a === activePid) return -1;
+      if (b === activePid) return 1;
+      return String(map.get(a).name).localeCompare(String(map.get(b).name));
+    });
+    return { map: map, keys: keys };
   }
 
-  html += `<option value="__custom__">✏️ 自定义手动输入模型名称…</option>`;
-  sel.innerHTML = html;
+  function autoLabel(cat) {
+    const cap = caps[cat] || null;
+    if (!cap || !cap.model_tag) return '自动（跨通道挑选 · 当前没有可用模型）';
+    return '自动（跨通道挑选 · 当前 → ' + cap.model_tag + '）';
+  }
 
-  if (curVal) {
-    const hasOption = [...sel.options].some(o => o.value === curVal);
-    if (hasOption) {
-      sel.value = curVal;
-      if ($('im-model-custom-box')) $('im-model-custom-box').style.display = 'none';
-    } else {
-      sel.value = '__custom__';
-      if ($('im-model-custom-box')) {
-        $('im-model-custom-box').style.display = 'block';
-        $('im-model-custom').value = curVal;
-      }
+  function fill(el, cat, extraHtml) {
+    if (!el) return;
+    const g = groupsFor(cat);
+    let html = '<option value="">' + escapeHtml(autoLabel(cat)) + '</option>';
+    html += extraHtml || '';
+    g.keys.forEach(function (pid) {
+      const item = g.map.get(pid);
+      if (!item.models.size) return;
+      html += '<optgroup label="' + escapeHtml((cat === 'image' ? '🎨 ' : '🎬 ') + item.name +
+              (pid === activePid ? '（文字主通道）' : '')) + '">';
+      item.models.forEach(function (label, mid) {
+        const val = pid ? (pid + '/' + mid) : mid;
+        html += '<option value="' + escapeHtml(val) + '">' + escapeHtml(label) + '</option>';
+      });
+      html += '</optgroup>';
+    });
+    el.innerHTML = html;
+  }
+
+  fill(sel, 'image', '<option value="flux-schnell">flux-schnell（免 Key 保底引擎）</option>');
+  if (sel) sel.innerHTML += '<option value="__custom__">✏️ 自定义手动输入模型名称…</option>';
+  fill(vidSel, 'video', '');
+
+  function pick(el, want) {
+    if (!el) return;
+    if (!want) { el.value = ''; return; }
+    const options = Array.from(el.options || []);
+    let hit = options.find(function (o) { return o.value === want; });
+    if (!hit) {
+      const plain = String(want).split('/').pop();
+      hit = options.find(function (o) { return o.value && o.value.split('/').pop() === plain; });
     }
-  } else {
-    sel.value = "flux-schnell";
-    if ($('im-model-custom-box')) $('im-model-custom-box').style.display = 'none';
+    el.value = hit ? hit.value : '';
+  }
+
+  const cur = curVal !== undefined
+    ? curVal
+    : ((caps.image && caps.image.source === 'explicit') ? caps.image.model_tag : '');
+  pick(sel, cur);
+  if (sel && !sel.value && cur === '') sel.value = '';
+  if ($('im-model-custom-box')) {
+    const isCustom = sel && sel.value === '__custom__';
+    $('im-model-custom-box').style.display = isCustom ? 'block' : 'none';
+  }
+
+  // 视频默认：localStorage 的 yimu_studio_video_model 是工作台单次覆盖，
+  // 这里显示的是「系统默认」，所以优先读能力线解析结果。
+  const vidWant = (caps.video && caps.video.source === 'explicit') ? caps.video.model_tag : '';
+  pick(vidSel, vidWant);
+
+  const hint = $('im-video-hint');
+  if (hint) {
+    const hasVideo = cross.some(function (m) { return (m.category === 'video') && m.has_key !== false; });
+    hint.textContent = hasVideo
+      ? '留空 = 自动选择；下拉按通道分组，可直接选另一家的视频模型。'
+      : '当前所有通道都没有视频模型：选「跟随系统默认」也不会硬凑一个文本模型，生视频前请先给某家启用一个视频模型。';
   }
 }
 
@@ -22597,7 +22714,10 @@ function populateAgentModelDropdown(curVal, stage) {
   const otherProvModels = crossList.filter(m => !m.is_active_provider && m.is_enabled);
   if (otherProvModels.length > 0) {
     html += `<optgroup label="🌐 其它已配置密钥模型服务模型 (跨模型服务独立调度)">`;
-    html += otherProvModels.map(m => `<option value="${m.id}">${m.name} [${m.provider_name}]</option>`).join('');
+    html += otherProvModels.map(m => {
+      const tag = m.provider_id ? (m.provider_id + '/' + m.id) : m.id;
+      return `<option value="${tag}">${m.name} [${m.provider_name}]</option>`;
+    }).join('');
     html += `</optgroup>`;
   }
 
@@ -22641,6 +22761,7 @@ async function loadModelProvidersModal() {
     const rawProviders = res.providers || {};
     cachedProviders = Array.isArray(rawProviders) ? rawProviders : Object.values(rawProviders);
     window._cachedCrossModels = res.cross_models || [];
+    window._cachedCaps = res.resolved_capabilities || {};
     window._cachedPresets = res.all_presets || {};
     const cur = res.current || {};
     window._cachedGatewayCurrent = cur;
@@ -22690,7 +22811,13 @@ function renderProviderList() {
               <span style="font-weight:700;font-size:13px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</span>
             </div>
             <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
-              ${isAct ? '<span class="badge ok" style="font-size:10px;padding:1px 5px">🟢 主网关</span>' : '<span class="badge gray" style="font-size:10px;padding:1px 5px">⚪ 待命</span>'}
+              ${(() => {
+                const scopes = p.default_scopes || (isAct ? ['text'] : []);
+                const names = {text: '文字', image: '生图', video: '生视频'};
+                return scopes.length
+                  ? scopes.map(sc => `<span class="badge ok" style="font-size:9.5px;padding:1px 4px">${names[sc] || sc}</span>`).join('')
+                  : '<span class="badge gray" style="font-size:10px;padding:1px 5px">⚪ 待命</span>';
+              })()}
               <span class="p-tag" style="font-size:10px">${p.id}</span>
             </div>
           </div>
@@ -22710,7 +22837,16 @@ function renderProviderList() {
         <!-- 快捷操作栏 -->
         <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.06);padding-top:6px;gap:4px" onclick="event.stopPropagation()">
           <div>
-            ${!isAct ? `<button type="button" class="btn btn-xs ok" onclick="setActiveProvider('${p.id}')" title="将此模型服务设为当前全局主网关">🌟 设为主网关</button>` : '<span style="font-size:10.5px;color:#3fb950;font-weight:600">✓ 当前生效</span>'}
+            <select class="prov-default-sel" onclick="event.stopPropagation()"
+                    onchange="setProviderDefault('${p.id}', this.value, this)"
+                    title="把这家通道设为某条能力线的默认；三条线可以各用一家"
+                    style="max-width:138px;background:#0d1117;border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:10.5px;padding:3px 4px">
+              <option value="">${(p.default_scopes && p.default_scopes.length) ? '＋ 再设一条默认…' : '设为默认…'}</option>
+              <option value="text">文字默认（主网关）</option>
+              <option value="image">生图默认</option>
+              <option value="video">生视频默认</option>
+              <option value="all">全功能默认</option>
+            </select>
           </div>
           <div style="display:flex;gap:4px">
             <button type="button" class="btn btn-xs info" onclick="selectProvider('${p.id}')" title="载入并编辑此模型服务参数与模型池">✏️ 编辑</button>
@@ -22866,6 +23002,31 @@ function startAddCustomProvider() {
   renderModelSelectionGrid();
   updateGatewayModelDropdowns('deepseek-ai/DeepSeek-V3', { writer: '', analyzer: '', critic: '', drama: '' });
   toast('已开启新增自定义模型服务表单，请填写端点与密钥后保存！');
+}
+
+async function setProviderDefault(pid, scope, el) {
+  if (!scope) return;
+  const labels = {text: '文字默认', image: '生图默认', video: '生视频默认', all: '全功能默认'};
+  try {
+    const res = await api('/api/models/provider/set_default', {
+      method: 'POST',
+      body: JSON.stringify({ provider_id: pid, scope: scope })
+    });
+    // 设置了系统默认后，清掉前端「单次覆盖」，否则新默认被旧值盖住，看起来没生效
+    if (scope === 'image' || scope === 'all') {
+      try { setImageModel(''); } catch (e) {}
+    }
+    if (scope === 'video' || scope === 'all') {
+      try { localStorage.removeItem('yimu_studio_video_model'); } catch (e) {}
+    }
+    toast((res.ok ? '✅ ' : '⚠️ ') + (res.msg || (labels[scope] + '已设置')));
+    await loadModelProvidersModal();
+    if (typeof initStudioModelSelects === 'function') initStudioModelSelects();
+    if (typeof refresh === 'function') refresh();
+  } catch (e) {
+    if (el) el.value = '';
+    toast('❌ ' + e.message);
+  }
 }
 
 async function setActiveProvider(id) {
@@ -23141,26 +23302,93 @@ async function saveQuality() {
   closeModal(); toast('考核设置已更新'); refresh();
 }
 async function saveImageCfg() {
-  const selectedModel = $('im-model').value === '__custom__'
+  const sel = $('im-model');
+  const rawModel = sel && sel.value === '__custom__'
     ? ($('im-model-custom') ? $('im-model-custom').value.trim() : '')
-    : $('im-model').value.trim();
+    : (sel ? sel.value.trim() : '');
+  const rawVid = $('im-video-model') ? $('im-video-model').value.trim() : '';
+  const activePid = activeProviderId || ((S && S.gateway && S.gateway.provider_id) || '');
 
-  await api('/api/settings', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({
-      image: {
-        enabled: $('im-enabled').checked,
-        model: selectedModel,
-        count: parseInt($('im-count').value)
-      }
-    })
-  });
-  /* 双写：后端 config.image.model 决定服务端默认生图模型，localStorage 决定前端各处显示什么。
-     此前只写后端 → 前端下拉还是旧值，这正是「同一项设置两处显示不一致」的根因。 */
-  setImageModel(selectedModel);
-  closeModal(); toast('生图设置已更新（工作台、短剧、Agent 弹窗同步生效）'); refresh();
+  // 值是「通道/模型」形式；模型 ID 自己也可能带斜杠，所以只切第一个。
+  const splitTag = function (tag) {
+    const t = String(tag || '');
+    const i = t.indexOf('/');
+    if (i > 0) return { pid: t.slice(0, i), model: t.slice(i + 1) };
+    return { pid: activePid, model: t };
+  };
+
+  try {
+    // flux-schnell 是免 Key 保底引擎，不属于任何一家通道：写回旧字段 legacy 位
+    const isFreeEngine = rawModel === 'flux-schnell';
+    const legacyModel = isFreeEngine ? 'flux-schnell' : '';
+
+    await api('/api/settings', {
+      method: 'POST',
+      body: JSON.stringify({
+        image: {
+          enabled: $('im-enabled').checked,
+          model: legacyModel,
+          count: parseInt($('im-count').value)
+        }
+      })
+    });
+
+    let msg = '生图设置已更新';
+    if (isFreeEngine) {
+      await api('/api/models/provider/set_default', {
+        method: 'POST',
+        body: JSON.stringify({ provider_id: '', scope: 'image' })
+      });
+      msg += '（免 Key 保底引擎）';
+    } else if (rawModel) {
+      const p = splitTag(rawModel);
+      if (!p.pid) throw new Error('请先添加一家模型服务，再指定生图模型');
+      const r = await api('/api/models/provider/set_default', {
+        method: 'POST',
+        body: JSON.stringify({ provider_id: p.pid, scope: 'image', model: p.model })
+      });
+      msg = r.msg || msg;
+    } else {
+      await api('/api/models/provider/set_default', {
+        method: 'POST',
+        body: JSON.stringify({ provider_id: '', scope: 'image' })
+      });
+      msg += '（生图自动跨通道选择）';
+    }
+
+    if (rawVid) {
+      const pv = splitTag(rawVid);
+      if (!pv.pid) throw new Error('请先添加一家模型服务，再指定生视频模型');
+      const rv = await api('/api/models/provider/set_default', {
+        method: 'POST',
+        body: JSON.stringify({ provider_id: pv.pid, scope: 'video', model: pv.model })
+      });
+      msg += '；' + (rv.msg || '生视频默认已更新');
+    } else {
+      await api('/api/models/provider/set_default', {
+        method: 'POST',
+        body: JSON.stringify({ provider_id: '', scope: 'video' })
+      });
+      msg += '；生视频自动跨通道选择';
+    }
+
+    // 前端显示层保持同步：工作台/极简模式/Agent 弹窗都读这一份
+    setImageModel(isFreeEngine ? 'flux-schnell' : rawModel);
+    try {
+      window._cachedCaps = null;
+      const d = await api('/api/models/providers');
+      window._cachedCrossModels = d.cross_models || [];
+      window._cachedCaps = d.resolved_capabilities || {};
+      cachedProviders = Object.values(d.providers || {});
+    } catch (e) { /* 刷新失败不影响已保存的配置 */ }
+    closeModal();
+    toast('✅ ' + msg);
+    refresh();
+  } catch (e) {
+    toast('❌ 保存失败：' + e.message);
+  }
 }
+
 async function saveThemes() {
   await api('/api/settings', {
     method: 'POST',
@@ -23220,7 +23448,7 @@ modal = function(id) {
     $('im-enabled').checked = S.image.enabled;
     /* 预填用单一真源优先：此前只读后端 S.image.model，而工作台/Agent 弹窗读 localStorage，
        两边一旦不同步，用户就会看到「同一项设置在这里是 A、在那里是 B」。 */
-    populateImageModelDropdown(getImageModel() || S.image.model || '');
+    populateImageModelDropdown();
     $('im-count').value = S.image.count || 3;
   } else if (id === 'm-theme') {
     if ($('th-ui-mode')) $('th-ui-mode').value = getThemeMode();

@@ -472,16 +472,19 @@ def build_prompt(title: str, context: str, angle: str) -> str:
 def image_cfg() -> dict:
     raw_cfg = load_config()
     cfg = raw_cfg.get("image", {})
-    # 生图模型解析链：Agent 路由绑定 > 阶段绑定 > 设置页显式选择 > 系统默认(活动供应商
-    # 模型池首个图像模型) > 免 Key 保底引擎。空值一律意味着「跟随系统默认」，
-    # 绝不回退到某个写死的测试模型（v15.9.1 起出厂配置不再预置 Agnes）。
+    # 生图模型解析链：Workbench 单次指定 > Agent 路由绑定 > 阶段绑定
+    # > 能力线显式默认（设置页/通道卡片选的「生图默认」）> 旧字段 image.model
+    # > 跨通道自动（活动通道优先，其次其它已配置通道）> 免 Key 保底引擎。
+    # V15.9.6：新增「能力线默认 + 跨通道自动」——A 家只有文字模型时，
+    # 生图不再被迫回落到 flux-schnell，而是能自动选到 B 家的生图模型。
+    from core.llm import resolve_capability_default
     routing_img = raw_cfg.get("gateway", {}).get("agent_routing", {}).get("image", "").strip()
     agent_img = raw_cfg.get("agents", {}).get("image", {}).get("model", "").strip()
     explicit = str(cfg.get("model", "") or "").strip()
-    if not (routing_img or agent_img or explicit):
-        from core.llm import resolve_default_model
-        explicit = resolve_default_model("image")
-    model = routing_img or agent_img or explicit or "flux-schnell"
+    cap = resolve_capability_default("image")
+    cap_explicit = cap.get("model_tag", "") if cap.get("source") == "explicit" else ""
+    cap_auto = cap.get("model_tag", "") if cap.get("source") == "auto" else ""
+    model = routing_img or agent_img or cap_explicit or explicit or cap_auto or "flux-schnell"
     return {
         "enabled": bool(cfg.get("enabled", True)),
         "model": model,

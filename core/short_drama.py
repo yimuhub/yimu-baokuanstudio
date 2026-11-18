@@ -1171,14 +1171,9 @@ def generate_ai_video_clip(
     if not img_path.exists() or img_path.stat().st_size < 1000:
         return False
 
-    from core.llm import load_config, resolve_provider_key, resolve_default_model
+    from core.llm import load_config, resolve_llm_endpoint, resolve_default_model
     cfg = load_config()
     gw_pid = str(cfg.get("gateway", {}).get("provider_id") or "")
-    # V15.8.3：视频接口的 Key 也走统一解析器（含占位值过滤与全局键位回退），
-    # 不再直接读环境变量，避免与文本链路各认一把 Key。
-    api_key, _key_src = resolve_provider_key("", "", gw_pid)
-    gw_base = (cfg.get("gateway", {}).get("base_url") or "http://127.0.0.1:8787/v1").rstrip("/")
-    host_root = gw_base[:-3] if gw_base.endswith("/v1") else gw_base
 
     raw_bytes = img_path.read_bytes()
     b64_str = base64.b64encode(raw_bytes).decode("ascii")
@@ -1201,6 +1196,18 @@ def generate_ai_video_clip(
 
     for model_id in models_to_try:
         try:
+            # V15.9.6：视频模型也要跨通道解析。旧实现拿活动通道的 base/key
+            # 去发别家的模型 ID——B 家才有视频模型时，请求必然打到 A 家。
+            gw_base, api_key, model_id, _vid_pid = resolve_llm_endpoint(model_id)
+            gw_base = (gw_base or "").rstrip("/")
+            if not gw_base:
+                logger.warning("视频模型 %s 解析不到可用端点，跳过", model_id)
+                continue
+            from core.llm import classify_model as _classify
+            if _classify(model_id) != "video":
+                logger.warning("目标模型 %s 不是视频模型（解析到了文字通道），跳过", model_id)
+                continue
+            host_root = gw_base[:-3] if gw_base.endswith("/v1") else gw_base
             headers = {"Content-Type": "application/json"}
             if api_key:
                 headers["Authorization"] = f"Bearer {api_key}"

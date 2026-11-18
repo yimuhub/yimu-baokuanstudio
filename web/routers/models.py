@@ -23,6 +23,7 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
 
 from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
+from core import provider_registry as _reg  # noqa: E402
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
@@ -34,7 +35,16 @@ def get_model_providers(request: Request):
     all_providers = llm.get_all_configured_providers()
     cfg = llm.load_config()
     gw = cfg.get('gateway', {})
-    active_pid = gw.get('provider_id', 'deepseek')
+    active_pid = gw.get('provider_id') or ''
+    # V15.9.6：三条能力线各自的默认（文字 / 生图 / 生视频可以落在不同通道）
+    resolved_caps = {cat: llm.resolve_capability_default(cat)
+                     for cat in ('text', 'image', 'video')}
+    explicit_caps = _reg.capability_defaults(cfg)
+    for pid, p in all_providers.items():
+        p['default_scopes'] = [cat for cat, spec in resolved_caps.items()
+                               if spec.get('provider_id') == pid]
+        p['default_models'] = {cat: spec.get('model') for cat, spec in resolved_caps.items()
+                               if spec.get('provider_id') == pid}
     # V15.8.3：与真正发请求时同源（示例值不算已配置），避免界面说「已配置」而调用 401
     _diag = llm.diagnose()
     has_active_key = _diag['key_present']
@@ -46,6 +56,8 @@ def get_model_providers(request: Request):
             m_copy['provider_name'] = p['name']
             m_copy['has_key'] = bool(p.get('has_key'))
             m_copy['is_active_provider'] = pid == active_pid
+            m_copy['model_tag'] = (f'{pid}/{m.get("id")}'
+                                   if pid != active_pid else str(m.get('id') or ''))
             cross_models.append(m_copy)
     all_presets = {pid: {'id': pid, 'name': pinfo['name'], 'badge': pinfo.get('badge', ''), 'base_url': pinfo['base_url'], 'default_model': pinfo['default_model'], 'models': pinfo.get('models', []), 'icon': pinfo.get('icon', '⚡')} for pid, pinfo in llm.MODEL_PROVIDERS.items()}
     from core import video_rules
@@ -54,7 +66,7 @@ def get_model_providers(request: Request):
     _fp_status = _fp_mod.first_piece_status
     u_for_demo = _a.get_current_user(request)
     user_id_demo = str(u_for_demo.get('id') or u_for_demo.get('user_id') or '') if u_for_demo else ''
-    return {'providers': all_providers, 'all_presets': all_presets, 'current': gw, 'active_provider_id': active_pid, 'configured_models': llm.get_configured_models(), 'cross_models': cross_models, 'env_key_set': has_active_key, 'video_rules': video_rules.load_rules().get('rules', []), 'free_demo': {'daily_calls': llm_metering.pricing.FREE_DEMO_DAILY_CALLS, 'max_output_tokens': llm_metering.pricing.FREE_DEMO_MAX_OUTPUT_TOKENS, 'left_today': llm_metering.free_demo_left_today(user_id_demo), 'first_piece': _fp_status(user_id_demo)}}
+    return {'providers': all_providers, 'all_presets': all_presets, 'current': gw, 'active_provider_id': active_pid, 'configured_models': llm.get_configured_models(), 'cross_models': cross_models, 'capability_defaults': explicit_caps, 'resolved_capabilities': resolved_caps, 'env_key_set': has_active_key, 'video_rules': video_rules.load_rules().get('rules', []), 'free_demo': {'daily_calls': llm_metering.pricing.FREE_DEMO_DAILY_CALLS, 'max_output_tokens': llm_metering.pricing.FREE_DEMO_MAX_OUTPUT_TOKENS, 'left_today': llm_metering.free_demo_left_today(user_id_demo), 'first_piece': _fp_status(user_id_demo)}}
 
 @router.post('/api/models/fetch')
 async def model_fetch(request: Request):
@@ -130,6 +142,32 @@ async def model_save(request: Request):
                f'{llm.load_config().get("gateway", {}).get("provider_id") or "未设置"}）。'
                f'要启用它请点「设为主网关」；其 Agent 路由也将在该通道激活后生效。')
     return {'ok': True, 'active': active_now, 'msg': msg}
+
+@router.post('/api/models/provider/set_default')
+async def model_set_default_provider(request: Request):
+    """把一家通道设为某条能力线的默认。
+
+    ``scope``: ``text`` / ``image`` / ``video`` / ``all``。
+    为什么需要它：一家只有文字模型的中转当主通道时，生图/生视频必须能
+    单独指向另一家；旧界面只有一个「设为主网关」，于是三条线被迫共用一家。
+    """
+    _a.guard_admin(request)
+    body = await request.json()
+    provider_id = str(body.get('provider_id') or '').strip()
+    scope = str(body.get('scope') or 'text').strip().lower()
+    model = str(body.get('model') or '').strip()
+    if not provider_id:
+        # 空 = 清除该能力线的显式默认，改回「自动跨通道选择」
+        if scope not in ('text', 'image', 'video'):
+            raise HTTPException(400, 'provider_id 不能为空')
+        ok = _reg.clear_capability_default(scope)
+        return {'ok': ok, 'applied': [], 'missing': [],
+                'msg': '已改回自动选择（在全部已配置通道里挑该类别第一个可用模型）'}
+    from core import llm
+    res = llm.set_provider_default(provider_id, scope=scope, model=model)
+    if not res.get('applied'):
+        raise HTTPException(400, res.get('msg') or '未能设置默认通道')
+    return res
 
 @router.post('/api/models/provider/set_active')
 async def model_set_active_provider(request: Request):

@@ -4,6 +4,42 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🛶 Version 15.9.6 · 星槎引 (Star Raft Prelude) · Per-Capability Providers · 2026-11-18
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.6"`, `__codename__ = "星槎引"`, `__codename_en__ = "Star Raft Prelude"`)
+
+### 🎯 Milestone Summary
+
+一家通道不可能什么都有。你设了 A 家做文字（只有文本模型），又保存了 B 家（有生图/
+生视频模型），但设置页的生图下拉里**只有 A 家的文本模型**——因为「系统默认」一直
+只在**当前主通道**的模型池里找。本版把默认拆成三条独立的能力线：
+
+**文字归文字，图归图，影归影；主通道只懂文字，也能用别家出图出片。**
+
+### 🔧 What Changed
+
+| 层 | 改动 |
+|---|---|
+| 配置 | 新增 `gateway.capability_defaults.{text,image,video}`，分别记录通道与模型 |
+| 解析 | 「系统默认」先看显式绑定，再在**全部已配置通道**里按「主通道优先」自动挑选 |
+| 解析 | 跨通道命中返回 `通道/模型` 前缀，解析器切到对应地址与密钥 |
+| 路由 | 自动挑选跳过已删、无 Key 的通道；一家都没有时明确报「未配置」，不拿文本模型顶替 |
+| 视频 | 视频切片按每个候选模型各自解析端点，不再用主通道地址发别家模型 |
+| 保底 | 删除通道时同步清理指向它的生图/生视频默认，指针自动回到「自动」 |
+| 界面 | 通道卡片「设为默认…」可选文字 / 生图 / 生视频 / 全功能，并用标签显示当前承担的能力 |
+| 界面 | 生图设置升级为「生图 / 生视频设置」，两个下拉按通道分组、可跨通道任选 |
+| 界面 | 影音工坊、短剧、分镜、短视频、首次引导、Agent 路由的下拉统一带通道归属 |
+| 界面 | AI 视频配置里的默认视频模型不再只写一个生成时读不到的 JSON 字段 |
+
+### 🧪 Verification
+
+- `tests/test_v1596_capability_defaults.py`：12 项全新回归（跨通道自动/显式、全功能默认、删除清理、坏模型拒绝）
+- 真实配置实测：主通道保持 `custom_520`，另存 B 家并设为生图默认 → 状态接口返回
+  `provtestb/img-b`；改回「自动」仍自动选中 B 家；删除 B 家后指针自动清空
+- 全量 `892 passed`，`ci.sh` 四道门禁全过
+
+---
+
 ## 🗺️ Version 15.9.5 · 云程赋 (Cloud Journey Ode) · Every Channel Deletable · 2026-11-18
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.5"`, `__codename__ = "云程赋"`, `__codename_en__ = "Cloud Journey Ode"`)

@@ -2163,5 +2163,14 @@
   "与「系统设置 → AI 配图设置」是": "This is the",
   "设置：在那改一次，这里和工作台全部同步，不需要两边各填一遍。": " setting as \"System Settings → AI Image Settings\": change it there once and everything here and in the workbench stays in sync — no need to fill in both.",
   "同一项": "same",
-  "② 个人中心 · 我的 API Key": "② Personal center · my API key"
+  "② 个人中心 · 我的 API Key": "② Personal center · my API key",
+  "② 🎨 生图 / 🎬 生视频引擎": "② 🎨 Image / 🎬 Video Engines",
+  "🎨 换模型（可跨通道）": "🎨 Change model (any provider)",
+  "🎨 生图 / 🎬 生视频设置": "🎨 Image / 🎬 Video Settings",
+  "下拉里列的是": "The dropdown lists",
+  "的模型，按通道分组——文字主通道只有文本模型也没关系，\n    生图/生视频可以各选另一家的模型。留空 = 自动在全部通道里挑第一个可用的。": "models from all configured providers, grouped by provider — your text provider having only text models is fine; image and video can each use another provider's model. Leave empty to auto-pick the first available across all providers.",
+  "所有已配置通道": "all configured providers",
+  "默认生图模型（跨通道任选）": "Default image model (any provider)",
+  "默认生视频模型（跨通道任选）": "Default video model (any provider)",
+  "留空 = 自动选择；当前所有通道都没有视频模型时，会明确提示去添加，不会偷偷换成一个文本模型。": "Leave empty to auto-select; if no provider has a video model, you will be told to add one instead of silently falling back to a text model."
 }

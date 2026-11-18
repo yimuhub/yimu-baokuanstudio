@@ -342,6 +342,7 @@
 - `POST /api/models/ping` → models_ping：连通性测试【V7.0】[B→重写]
 - `POST /api/models/save` → models_save：保存模型配置【V7.0】[B→重写]
 - `POST /api/models/provider/set_active` → models_set_active：切换活动供应商【V7.0】[B→重写]
+- `POST /api/models/provider/set_default` → models_set_default：把通道设为文字/生图/生视频（或全功能）默认，三条能力线可各用一家【V15.9.6】[B→新增]
 - `POST /api/models/provider/delete` → models_delete_provider：删除供应商【V7.0】[B→重写]
 - `GET /api/models/diagnose` → models_diagnose：通道自检（当前地址/密钥来源/可执行建议，不含明文）【V15.8.3】[NEW]
 - `GET /api/llm/usage` → llm_usage：各模型服务使用量统计+官方通道消费汇总（双轨制）【V7.0】[NEW]

@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.5",
-  "current_codename_zh": "云程赋",
-  "current_codename_en": "Cloud Journey Ode",
-  "next_index": 82,
+  "current_version": "15.9.6",
+  "current_codename_zh": "星槎引",
+  "current_codename_en": "Star Raft Prelude",
+  "next_index": 83,
   "sequence": [
     {
       "zh": "曦光序",
@@ -622,6 +622,12 @@
       "version": "v15.9.5",
       "zh": "云程赋",
       "en": "Cloud Journey Ode",
+      "date": "2026-11-18"
+    },
+    {
+      "version": "v15.9.6",
+      "zh": "星槎引",
+      "en": "Star Raft Prelude",
       "date": "2026-11-18"
     }
   ]

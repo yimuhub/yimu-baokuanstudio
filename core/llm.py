@@ -563,8 +563,10 @@ def get_all_configured_providers() -> dict:
         if pid in deleted_pids:
             continue
         saved = saved_providers.get(pid, {})
-        spec_k = f"MEDIAFLOW_KEY_{pid.upper()}"
-        has_key = bool(_reg.key_for(pid, allow_global=(pid == active_pid)))
+        # 官方/计费通道可能只有平台主 Key：非活动时也要如实显示「密钥就绪」，
+        # 否则设置页会把它标成缺 Key，跨通道选择时用户不敢选。
+        has_key = bool(_reg.key_for(
+            pid, allow_global=(pid == active_pid or bool(pinfo.get("official") or pinfo.get("metered")))))
 
         saved_models = saved.get("configured_models")
         if not saved_models:
@@ -806,15 +808,18 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
     # 2. 带供应商前缀（例如 "openai/gpt-4o" 或 "qwen:qwen-max"）
     if "/" in req_model or ":" in req_model:
         p_prefix, actual_m = req_model.replace(":", "/").split("/", 1)
-        p_prefix = p_prefix.strip().lower()
+        # 通道 ID 理论上小写；但用户自建通道可能带大写（custom_ABC），
+        # 不做大小写归一会出现「下拉里能选、保存后解析不到」的死角。
+        raw_prefix = p_prefix.strip()
         actual_m = actual_m.strip()
-        if p_prefix in MODEL_PROVIDERS or p_prefix in gw.get("providers", {}):
-            saved_p = gw.get("providers", {}).get(p_prefix, {})
-            preset_p = MODEL_PROVIDERS.get(p_prefix, {})
-            target_base = (saved_p.get("base_url") or preset_p.get("base_url", "")).rstrip("/")
-            target_key = _reg.key_for(p_prefix, allow_global=(p_prefix == active_pid))
-            if target_base:
-                return target_base, target_key, actual_m, p_prefix
+        for p_prefix in (raw_prefix, raw_prefix.lower()):
+            if p_prefix in MODEL_PROVIDERS or p_prefix in gw.get("providers", {}):
+                saved_p = gw.get("providers", {}).get(p_prefix, {})
+                preset_p = MODEL_PROVIDERS.get(p_prefix, {})
+                target_base = (saved_p.get("base_url") or preset_p.get("base_url", "")).rstrip("/")
+                target_key = _reg.key_for(p_prefix, allow_global=(p_prefix == active_pid))
+                if target_base:
+                    return target_base, target_key, actual_m, p_prefix
 
     # 3. 检查当前活动供应商的模型池
     active_models_cfg = gw.get("configured_models") or []
@@ -860,38 +865,203 @@ def resolve_llm_endpoint(model: str | None = None, stage: str | None = None, use
     return active_base, active_key, active_model, active_pid
 
 
-def resolve_default_model(category: str) -> str:
-    """解析「系统默认」的指定类别（text/image/video）模型 ID。
+# ---------------------------------------------------------------------------
+# 能力默认：文字 / 生图 / 生视频 三条线各自可以落在**不同**的通道上
+# ---------------------------------------------------------------------------
 
-    语义：所有「跟随系统默认」的配置项（agents.*.model 为空、agent_routing.* 为空、
-    image.model 为空等）最终落到这里——取**当前活动供应商模型池里第一个
-    已启用**的该类别模型；池里没有该类别模型时返回空串，由调用方决定
-    降级策略（生图走免 Key 保底引擎，视频给出明确的「未配置」提示）。
+def _normalize_model_entries(models) -> list[dict]:
+    """把各种形态的模型清单统一成 ``[{id, name, category, is_enabled}]``。"""
+    out: list[dict] = []
+    for m in models or []:
+        if isinstance(m, dict):
+            mid = str(m.get("id") or m.get("name") or "").strip()
+            if not mid:
+                continue
+            cat = str(m.get("category") or "").strip() or classify_model(mid)
+            out.append({
+                "id": mid,
+                "name": str(m.get("name") or mid),
+                "category": cat,
+                "is_enabled": m.get("is_enabled", True) is not False,
+            })
+        else:
+            mid = str(m or "").strip()
+            if mid:
+                out.append({"id": mid, "name": mid,
+                            "category": classify_model(mid), "is_enabled": True})
+    return out
 
-    出厂配置自 v15.9.1 起不再预置任何具体模型（Agnes 是测试通道，
-    不得作为默认值绑进任何阶段），全链路默认统一由此解析。
+
+def provider_models(pid: str, cfg: dict | None = None) -> list[dict]:
+    """一家通道的模型清单：用户保存的优先，内置预设兜底。
+
+    跨供应商选择的前提是「能看见别家的模型」——旧实现只有活动通道的
+    ``gateway.configured_models``，所以 B 家明明有生图模型，设置页里
+    也只列出 A 家的文本模型，用户自然选不到。
     """
+    cfg = cfg if cfg is not None else load_config()
+    gw = cfg.get("gateway", {}) or {}
+    saved = (gw.get("providers") or {}).get(pid) or {}
+    models = saved.get("configured_models") if isinstance(saved, dict) else None
+    if not models and isinstance(saved, dict) and str(saved.get("model") or "").strip():
+        # 用户只填了「默认模型」还没拉模型清单：它本身就是一条可用能力，
+        # 不能因为 configured_models 为空就当作「这家什么都没有」。
+        models = [str(saved["model"]).strip()]
+    if not models:
+        preset = MODEL_PROVIDERS.get(pid) or {}
+        models = [{"id": m, "name": m, "category": classify_model(m), "is_enabled": True}
+                  for m in (preset.get("models") or [])]
+    return _normalize_model_entries(models)
+
+
+def first_model_of(pid: str, category: str, cfg: dict | None = None) -> str:
+    """某家通道里第一个**已启用**的该类别模型；没有返回空串。"""
+    for m in provider_models(pid, cfg):
+        if m["is_enabled"] and m["category"] == category:
+            return m["id"]
+    return ""
+
+
+def _provider_ready(pid: str, cfg: dict, active_pid: str) -> bool:
+    """跨通道自动挑选时，别家的模型必须有可用凭据（本机服务除外）。"""
+    if not pid or pid == active_pid:
+        return True
+    saved = ((cfg.get("gateway", {}) or {}).get("providers") or {}).get(pid) or {}
+    preset = MODEL_PROVIDERS.get(pid) or {}
+    base = str((saved.get("base_url") if isinstance(saved, dict) else "") or preset.get("base_url") or "")
+    if any(x in base for x in ("127.0.0.1", "localhost", "11434")):
+        return True
+    preset_meta = MODEL_PROVIDERS.get(pid) or {}
+    # 官方/计费通道的凭据可能放在平台主 Key 上（非活动通道也能用）
+    allow_global = bool(preset_meta.get("official") or preset_meta.get("metered"))
+    return bool(_reg.key_for(pid, allow_global=allow_global))
+
+
+def resolve_capability_default(category: str) -> dict:
+    """解析某条能力线当前的默认：``{category, provider_id, model, model_tag, source}``。
+
+    优先级：
+    1. ``gateway.capability_defaults.<cat>`` 的**显式**绑定（用户在卡片上
+       「设为生图默认 / 生视频默认」选的，或设置页里选的模型）；
+    2. **自动跨通道**：活动通道优先，其次其它已保存且带 Key 的通道，
+       取第一个该类别的已启用模型；
+    3. 都没有 → 空字典，由调用方给出「未配置」提示或走免 Key 保底。
+
+    ⭐ 这就是「A 家只有文字、B 家才有生图」的解法：解析不再只看活动通道。
+    """
+    cat = (category or "").strip().lower()
+    if cat not in ("text", "image", "video"):
+        return {}
     try:
         cfg = load_config()
     except Exception:
-        return ""
-    pool = (cfg.get("gateway", {}) or {}).get("configured_models") or []
-    for m in pool:
-        if not isinstance(m, dict) or not m.get("is_enabled", True):
+        return {}
+    gw = cfg.get("gateway", {}) or {}
+    active = str(gw.get("provider_id") or "").strip()
+    deleted = {str(x) for x in (gw.get("deleted_providers") or [])}
+    pool = gw.get("providers") or {}
+
+    spec = ((gw.get("capability_defaults") or {}).get(cat) or {})
+    if isinstance(spec, dict):
+        pid = str(spec.get("provider_id") or "").strip()
+        model = str(spec.get("model") or "").strip()
+        if pid and pid not in deleted:
+            if not model:
+                model = first_model_of(pid, cat, cfg)
+            if model:
+                tag = model if (pid == active or "/" in model or ":" in model) else f"{pid}/{model}"
+                return {"category": cat, "provider_id": pid, "model": model,
+                        "model_tag": tag, "source": "explicit"}
+
+    order: list[str] = []
+    if active and active not in deleted:
+        order.append(active)
+    for pid in pool.keys():
+        if pid not in order and pid not in deleted:
+            order.append(pid)
+    for pid in MODEL_PROVIDERS.keys():
+        if pid not in order and pid not in deleted:
+            order.append(pid)
+
+    for pid in order:
+        if not _provider_ready(pid, cfg, active):
             continue
-        mid = str(m.get("id") or "").strip()
-        if not mid:
+        model = first_model_of(pid, cat, cfg)
+        if model:
+            tag = model if pid == active else f"{pid}/{model}"
+            return {"category": cat, "provider_id": pid, "model": model,
+                    "model_tag": tag, "source": "auto"}
+    return {}
+
+
+def resolve_default_model(category: str) -> str:
+    """解析「系统默认」的指定类别模型，返回可直接交给解析器的模型标识。
+
+    与旧版的区别：不再只看**当前活动通道**的模型池。活动通道只有文字模型时，
+    生图/生视频会继续在其它已保存且带 Key 的通道里找；找到别家的模型时返回
+    ``供应商/模型`` 前缀形式，``resolve_llm_endpoint`` 会据此切到正确的地址与密钥。
+
+    没有任何该类别的模型时返回空串，由调用方决定兜底（生图走免 Key 引擎，
+    视频给出明确的「未配置」提示）。
+    """
+    spec = resolve_capability_default(category)
+    return spec.get("model_tag", "") if spec else ""
+
+
+def set_provider_default(pid: str, scope: str = "text", model: str = "") -> dict:
+    """把一家通道设为某条能力线（或全部能力线）的默认。
+
+    返回 ``{ok, applied:[{category,model}], missing:[category], msg}``，
+    让界面能如实说「已设为生图默认」或「这家没有生视频模型，已跳过」——
+    而不是笼统回一句「设置成功」再让用户去猜。
+    """
+    pid = (pid or "").strip()
+    scope = (scope or "text").strip().lower()
+    model = (model or "").strip()
+    if not pid:
+        return {"ok": False, "applied": [], "missing": [], "msg": "provider_id 不能为空"}
+    cfg = load_config()
+    gw = cfg.get("gateway", {}) or {}
+    deleted = {str(x) for x in (gw.get("deleted_providers") or [])}
+    if pid in deleted:
+        return {"ok": False, "applied": [], "missing": [], "msg": f"[{pid}] 已被删除，请先重新添加"}
+    if pid not in (gw.get("providers") or {}) and pid not in MODEL_PROVIDERS:
+        return {"ok": False, "applied": [], "missing": [], "msg": f"未找到通道 [{pid}]"}
+
+    scopes = ["text", "image", "video"] if scope == "all" else [scope]
+    if any(s not in ("text", "image", "video") for s in scopes):
+        return {"ok": False, "applied": [], "missing": [], "msg": f"不支持的能力线：{scope}"}
+
+    applied: list[dict] = []
+    missing: list[str] = []
+    for cat in scopes:
+        m = model if (scope != "all" and scope == cat) else ""
+        if not m:
+            m = first_model_of(pid, cat, cfg)
+        if cat == "text":
+            # 文字线永远可以设为主通道：即使模型池还没拉回来，用户也可能刚填了主模型
+            if not m:
+                saved = (gw.get("providers") or {}).get(pid) or {}
+                m = str(saved.get("model") or (MODEL_PROVIDERS.get(pid) or {}).get("default_model") or "")
+            ok = _reg.set_capability_default("text", pid, m)
+            if ok:
+                applied.append({"category": "text", "model": m})
             continue
-        cat = str(m.get("category") or "").strip() or classify_model(mid)
-        if cat == category:
-            return mid
-    # 池里没有标注类别的条目时，按模型名启发式兜底
-    for m in pool:
-        if isinstance(m, dict) and m.get("is_enabled", True):
-            mid = str(m.get("id") or "").strip()
-            if mid and classify_model(mid) == category:
-                return mid
-    return ""
+        if not m:
+            missing.append(cat)
+            continue
+        if _reg.set_capability_default(cat, pid, m):
+            applied.append({"category": cat, "model": m})
+        else:
+            missing.append(cat)
+
+    labels = {"text": "文字", "image": "生图", "video": "生视频"}
+    parts = [f"{labels[a['category']]}默认" + (f"（{a['model']}）" if a["model"] else "") for a in applied]
+    msg = ("已设为 " + "、".join(parts)) if parts else "没有可设置的默认项"
+    if missing:
+        msg += "；" + "、".join(labels[c] for c in missing) + "未设置：这家通道的模型池里没有该类别模型"
+    return {"ok": bool(applied), "applied": applied, "missing": missing, "msg": msg}
+
 
 
 def _get_fallback_candidates(exclude_pid: str) -> list[tuple[str, str, str, str]]:

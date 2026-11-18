@@ -88,7 +88,10 @@ def test_save_image_cfg_writes_both_sides(html: str) -> None:
     start = html.index("async function saveImageCfg()")
     end = html.index("\nasync function ", start + 10)
     body = html[start:end]
-    assert "setImageModel(selectedModel)" in body, "saveImageCfg 没有回写前端单一真源"
+    # V15.9.6：生图默认改由能力线（gateway.capability_defaults.image）承载，
+    # 保存时先写后端默认、再回写前端单一真源——两者都必须有。
+    assert "setImageModel(" in body, "saveImageCfg 没有回写前端单一真源"
+    assert "/api/models/provider/set_default" in body, "saveImageCfg 没有写入能力线默认"
 
 
 def test_save_copilot_settings_does_not_clobber_image_model(html: str) -> None:

@@ -189,13 +189,18 @@
         var vids = models.filter(function (m) {
           return (m.category === 'video') && (m.is_active_provider || m.has_key !== false);
         });
+        // 跨通道：value 用「通道/模型」，同一模型在两家都有时也不会解析错
+        var tagOf = function (m) { return m.provider_id ? (m.provider_id + '/' + m.id) : m.id; };
+        var labelOf = function (m) {
+          return (m.name || m.id) + (m.provider_name ? (' · ' + m.provider_name) : '');
+        };
         imgSel.innerHTML = '<option value="">（跟随系统默认 · 推荐）</option>'
           + imgs.map(function (m) {
-            return '<option value="' + esc(m.id) + '">🎨 ' + esc(m.name || m.id) + '</option>';
+            return '<option value="' + esc(tagOf(m)) + '">🎨 ' + esc(labelOf(m)) + '</option>';
           }).join('');
         vidSel.innerHTML = '<option value="">（跟随系统默认 · 推荐）</option>'
           + vids.map(function (m) {
-            return '<option value="' + esc(m.id) + '">🎬 ' + esc(m.name || m.id) + '</option>';
+            return '<option value="' + esc(tagOf(m)) + '">🎬 ' + esc(labelOf(m)) + '</option>';
           }).join('');
         if (!vids.length && note) {
           note.textContent = '当前主通道模型池还没有视频模型：视频生成需要先在「模型服务 → 多 Agent 路由 → 视频」绑定（出图不受影响，有免 Key 保底引擎）。';
@@ -216,17 +221,28 @@
     var imgModel = (byId('wz-image-model') || {}).value || '';
     var vidModel = (byId('wz-video-model') || {}).value || '';
     var jobs = [];
+    var splitTag = function (tag) {
+      var t = String(tag || '');
+      var i = t.indexOf('/');
+      return i > 0 ? { pid: t.slice(0, i), model: t.slice(i + 1) } : { pid: '', model: t };
+    };
     if (imgModel) {
-      jobs.push(fetch('/api/settings', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image: { model: imgModel } })
-      }));
+      var ip = splitTag(imgModel);
+      if (ip.pid) {
+        jobs.push(fetch('/api/models/provider/set_default', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider_id: ip.pid, scope: 'image', model: ip.model })
+        }));
+      }
     }
     if (vidModel) {
-      jobs.push(fetch('/api/aivideo/config', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ video_model: vidModel })
-      }));
+      var vp = splitTag(vidModel);
+      if (vp.pid) {
+        jobs.push(fetch('/api/models/provider/set_default', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider_id: vp.pid, scope: 'video', model: vp.model })
+        }));
+      }
     }
     if (!jobs.length) return Promise.resolve(true);
     return Promise.all(jobs.map(function (p) {
@@ -244,11 +260,15 @@
     var choice = ($sel('input[name="wz-choice"]:checked') || {}).value || 'official';
     var link = byId('wz-sum-link');
     if (link) link.textContent = choice === 'official' ? '官方通道（免 Key）' : '自备 API Key（' + ((byId('wz-key-provider') || {}).value || '') + '）';
+    var imgSel = byId('wz-image-model');
+    var imgModel = (imgSel && imgSel.selectedOptions && imgSel.selectedOptions[0])
+      ? imgSel.selectedOptions[0].textContent : '';
     var img = byId('wz-sum-img');
-    var imgModel = (byId('wz-image-model') || {}).value || '';
     if (img) img.textContent = imgModel || '系统默认';
+    var vidSel = byId('wz-video-model');
+    var vidModel = (vidSel && vidSel.selectedOptions && vidSel.selectedOptions[0])
+      ? vidSel.selectedOptions[0].textContent : '';
     var vid = byId('wz-sum-video');
-    var vidModel = (byId('wz-video-model') || {}).value || '';
     if (vid) vid.textContent = vidModel || '系统默认';
   }
 

@@ -47,6 +47,11 @@ PLACEHOLDER_KEYS = frozenset({
 #: 派生视图字段：旧代码直接读 gateway.xxx，这里保证它永远等于活动供应商的值。
 DERIVED_FIELDS = ("base_url", "model", "configured_models", "agent_routing")
 
+#: 三条能力线。文字、生图、生视频可以各自落在**不同**的供应商上——
+#: 一家只有文本模型的中转，不该把整站的生图/生视频也锁死在它身上。
+CAPABILITY_CATEGORIES = ("text", "image", "video")
+CAPABILITY_LABELS = {"text": "文字", "image": "生图", "video": "生视频"}
+
 
 # ---------------------------------------------------------------------------
 # 文件落点
@@ -200,6 +205,23 @@ def normalize(cfg: dict, *, presets: dict | None = None) -> tuple[dict, bool]:
     if active != want:
         gw["provider_id"] = active
     dirty = bool(stale) or active != want
+
+    # 能力默认指向已删通道时一并清理，否则「删了还在被调用」会从文字线蔓延到生图/生视频。
+    caps = gw.get("capability_defaults")
+    if isinstance(caps, dict):
+        for cat in list(caps.keys()):
+            entry = caps.get(cat)
+            pid = ""
+            if isinstance(entry, dict):
+                pid = str(entry.get("provider_id") or "").strip()
+            elif isinstance(entry, str):
+                pid = entry.strip()
+            if not pid or pid in deleted or cat not in CAPABILITY_CATEGORIES:
+                caps.pop(cat, None)
+                dirty = True
+        if not caps:
+            gw.pop("capability_defaults", None)
+            dirty = True
 
     entry = pool.get(active) if active else None
     if active and not isinstance(entry, dict):
@@ -366,6 +388,94 @@ def set_active(pid: str) -> bool:
     return write_config(cfg)
 
 
+def _capability_entry(raw: Any) -> dict:
+    """把 capability_defaults 的一项规整为 ``{"provider_id": str, "model": str}``。"""
+    if isinstance(raw, str):
+        return {"provider_id": raw.strip(), "model": ""}
+    if isinstance(raw, dict):
+        return {
+            "provider_id": str(raw.get("provider_id") or "").strip(),
+            "model": str(raw.get("model") or "").strip(),
+        }
+    return {"provider_id": "", "model": ""}
+
+
+def capability_defaults(cfg: dict | None = None) -> dict[str, dict]:
+    """读取三条能力线的显式默认（未设置的能力不出现在结果里）。
+
+    结构：``gateway.capability_defaults.{text|image|video} = {provider_id, model}``。
+    ``provider_id`` 为空表示「自动」——由解析器在全部已配置通道里挑第一个
+    该类别的可用模型，不再默认绑死文字主通道。
+    """
+    cfg = cfg if cfg is not None else raw_config()
+    raw = ((cfg.get("gateway") or {}).get("capability_defaults") or {})
+    out: dict[str, dict] = {}
+    if not isinstance(raw, dict):
+        return out
+    for cat in CAPABILITY_CATEGORIES:
+        entry = _capability_entry(raw.get(cat))
+        if entry["provider_id"]:
+            out[cat] = entry
+    return out
+
+
+def set_capability_default(category: str, provider_id: str, model: str = "") -> bool:
+    """设置某条能力线的默认通道；``provider_id`` 为空 = 改回「自动」。
+
+    文字线是例外：它同时写回 ``gateway.provider_id``，保持「主通道」这个老字段
+    与新能力线是同一个事实，而不是两份可能分叉的默认值。
+    """
+    cat = (category or "").strip().lower()
+    if cat not in CAPABILITY_CATEGORIES:
+        return False
+    pid = (provider_id or "").strip()
+    model = (model or "").strip()
+    cfg = raw_config()
+    cfg, _ = normalize(cfg)
+    gw = cfg.setdefault("gateway", {})
+    pool = _pool(gw)
+
+    if pid and pid in _deleted_set(gw):
+        logger.warning("[registry] 拒绝把已删除的通道 %s 设为能力默认", pid)
+        return False
+    if pid and pid not in pool:
+        # 允许「预设里存在但尚未落池」的通道（用户刚选官方预设还没保存）；
+        # 真要落一个不存在的 ID，解析器也只会返回空，不如在这里明确拒绝。
+        try:
+            from core.llm import MODEL_PROVIDERS as _presets
+        except Exception:  # noqa: BLE001
+            _presets = {}
+        if pid not in (_presets or {}):
+            logger.warning("[registry] 未知通道 %s，拒绝设为能力默认", pid)
+            return False
+
+    if cat == "text":
+        caps = gw.get("capability_defaults")
+        if isinstance(caps, dict):
+            caps.pop("text", None)
+            if not caps:
+                gw.pop("capability_defaults", None)
+        if pid:
+            gw["provider_id"] = pid
+            if model:
+                pool.setdefault(pid, {})["model"] = model
+        return write_config(cfg)
+
+    caps = gw.setdefault("capability_defaults", {})
+    if not pid:
+        caps.pop(cat, None)
+    else:
+        caps[cat] = {"provider_id": pid, "model": model}
+    if not caps:
+        gw.pop("capability_defaults", None)
+    return write_config(cfg)
+
+
+def clear_capability_default(category: str) -> bool:
+    """清除某条能力线的显式默认，回到「自动跨通道选择」。"""
+    return set_capability_default(category, "", "")
+
+
 def delete_provider(pid: str) -> bool:
     """删除一家供应商：池里有就清池，没有就只拉黑。
 
@@ -402,6 +512,16 @@ def delete_provider(pid: str) -> bool:
         # 活动通道被删：换一家还在的；一家都不剩就置空，
         # 让解析器明确报「尚未配置」，而不是继续打已删地址。
         gw["provider_id"] = _pick_replacement(pool, deleted)
+
+    # 生图/生视频默认若指向这家，一并清掉并回落到「自动」。
+    # 只清指针不动其它通道——用户删的是一家，不是整条能力线。
+    caps = gw.get("capability_defaults")
+    if isinstance(caps, dict):
+        for cat in list(caps.keys()):
+            if _capability_entry(caps.get(cat)).get("provider_id") == pid:
+                caps.pop(cat, None)
+        if not caps:
+            gw.pop("capability_defaults", None)
     return write_config(cfg)
 
 

@@ -4,6 +4,39 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🌲 Version 15.9.8 · 月泉吟 (Moon Spring Chant) · Deep-Review Remediation Wave · 2026-11-20
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.8"`, `__codename__ = "月泉吟"`, `__codename_en__ = "Moon Spring Chant"`)
+
+### 🎯 Milestone Summary
+
+2026-11-19 全量深度剖析（三线代码走查 + 真实浏览器端到端实测 + GitHub 竞品全景调研）确认问题的集中整改：后端 18 项 / PC 前端 15 项 / 移动端 7 项 / 静态资源 3 项 / 容器化与文档 5 项五线并行落地。P0 资损面（流式计费漏损）、可靠性面（无超时请求、静默吞确认、while(true) 假失败、僵尸子进程）与安全面（升级供应链、SSRF）全部收口；Docker 从"宣称虚假"到真实可用；i18n 内容污染与版本号漂移根除。全量 934 用例 + CI 四道门禁全绿。
+
+### ⚡ Highlights
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **流式计费封堵** | `chat_stream` 全链路透传 user_id（BYOK 生效），`/api/stream/write` 开流前验余额（不足 402），官方通道流式不再"只记统计不扣费" |
+| 2 | **全站请求超时** | `api()` 默认 60s AbortController + 28 处长接口分级配置；"按钮永久生成中只能刷新页面"根除 |
+| 3 | **确认框有反馈** | PopupGuard 拦截从静默 `return false` 改 toast 告知（防抖），同步语义零破坏 |
+| 4 | **IME 守卫** | PC 15 处 + 移动端全部裸 Enter 提交点统一 `imeSafeEnter`，拼音候选确认不再半截发送 |
+| 5 | **升级供应链** | 默认移除第三方镜像（改 `upgrade.mirrors` 显式配置）；ZIP 下载 `.sha256` 强校验，失败不落盘 |
+| 6 | **SSRF 防护** | 新增 `core/outbound_guard.py`：scheme 白名单 + 全 A/AAAA 私网/元数据拦截；多用户强制、单机放行环回 |
+| 7 | **任务管线** | `spawn_user_task` 受界池 + 每用户并发闸门 + JOBS 过期清理；取消写 `cancelled` 独立状态并联动终止 ffmpeg 子进程；任务接口按用户隔离 |
+| 8 | **轮询纪律** | PC 19 处 + 移动 6 处 `while(true)` 收拢 `pollJob/pollJobMini`：抖动容忍、时长上限、可取消、后台节流；"假失败"根除 |
+| 9 | **磁盘治理** | `draft_expire_days` 默认 90 + 启动清理 + 体量告警；进度持久化失败不再静默 |
+| 10 | **配置自愈** | 坏 YAML 存档 `.corrupt-<ts>` → 回退 `.bak` → 拒绝空配置启动；写前原子备份 |
+| 11 | **影音工坊守门** | 无生图/视频模型时流水线按钮禁用 + 「去配置模型」引导条；分镜/TTS 不受影响；i18n 英文模式零残留 |
+| 12 | **i18n 修复** | `[data-no-i18n]` 子树跳过（AI 内容 10 处标记）不再污染用户文案；title 版本号保留真源；语言同步事件化 |
+| 13 | **Docker 落地** | Dockerfile（CJK 字体防卡片方框）+ compose（命名卷/healthcheck/必填口令）+ `deploy/cloud/` 指南；镜像构建实测通过 |
+| 14 | **移动端** | 热榜菜单死链修复；等待文案诚实化（1~3 分钟 + 可离开本页）+ 防重复提交；触控目标 ≥28px |
+| 15 | **文档口径** | README/EN/说明书：845 项测试统一口径、版本段 v15.9.x、「95% 匹配度」「即时声音克隆」措辞与实现对齐 |
+| 16 | **回归锁** | `tests/test_v1598_backend_fixes.py`（32 项）+ 架构锁/紫色锁同步更新 |
+
+**Full Changelog**: v15.9.7...v15.9.8
+
+---
+
 ## 🌲 Version 15.9.7 · 松风令 (Pine Wind Edict) · Capability Defaults Unification · 2026-11-19
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.7"`, `__codename__ = "松风令"`, `__codename_en__ = "Pine Wind Edict"`)

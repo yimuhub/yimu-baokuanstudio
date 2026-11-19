@@ -1,7 +1,7 @@
 [project]
 name = "yimu-baokuanstudio"
-version = "15.9.7"
-description = "一幕·YIMU 爆款工作室 V15.9.7 (松风令 · Pine Wind Edict) — 全自主 Multi-Agent 全媒体内容与影视短剧创作系统"
+version = "15.9.8"
+description = "一幕·YIMU 爆款工作室 V15.9.8 (月泉吟 · Moon Spring Chant) — 全自主 Multi-Agent 全媒体内容与影视短剧创作系统"
 readme = "README.md"
 requires-python = ">=3.9"
 

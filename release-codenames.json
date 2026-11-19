@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.7",
-  "current_codename_zh": "松风令",
-  "current_codename_en": "Pine Wind Edict",
-  "next_index": 84,
+  "current_version": "15.9.8",
+  "current_codename_zh": "月泉吟",
+  "current_codename_en": "Moon Spring Chant",
+  "next_index": 85,
   "sequence": [
     {
       "zh": "曦光序",
@@ -635,6 +635,12 @@
       "zh": "松风令",
       "en": "Pine Wind Edict",
       "date": "2026-11-19"
+    },
+    {
+      "version": "v15.9.8",
+      "zh": "月泉吟",
+      "en": "Moon Spring Chant",
+      "date": "2026-11-20"
     }
   ]
 }

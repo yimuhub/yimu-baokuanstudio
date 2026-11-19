@@ -7,6 +7,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.9.8] - 月泉吟 (Moon Spring Chant) · 2026-11-20
+
+### Fixed 深度审查整改：资损、可靠性、安全与移动端体验同步收口
+
+本版本全部来自 2026-11-19 全量深度剖析（后端/前端/产品三线代码走查 + 真实浏览器
+端到端实测 + GitHub 竞品调研）确认的问题清单，后端 / PC 前端 / 移动端 / 静态资源 /
+容器化五线并行整改，`tests/test_v1598_backend_fixes.py`（32 项）全部落锁。
+
+**资损与安全（P0）**
+
+1. **流式计费漏损封堵**：`chat_stream` 此前不把 `user_id` 传进解析链与计费，官方通道
+   流式调用只记统计不扣费——等于免费无上限。现在 user_id 全链路透传（BYOK 随之生效），
+   `/api/stream/write` 开流前按官方通道估算法验余额（不足 402 拒绝），完成后照常记账；
+   metering 缺 user_id 的兜底分支补 warning 并落回归锁。
+2. **全站请求超时**：`api()` 默认 60s AbortController（`opts.timeoutMs` 可分级覆盖，
+   升级/上传/生图等 28 处长接口显式配置），超时抛「请求超时，请检查网络或稍后重试」，
+   按钮的 finally 解锁从此自然生效——"按钮永久生成中只能刷新页面"根除。
+3. **PopupGuard 从静默吞到有反馈**：生成期间拦截与重复确认拦截从无声 `return false`
+   改为 toast 告知（同 key 10s 防抖），同步语义不变，30 处 confirm 调用零破坏。
+4. **中文输入法回车误发送**：PC 15 处 + 移动端全部裸 `Enter` 提交点统一
+   `imeSafeEnter` 守卫（`isComposing || keyCode===229`），拼音候选确认不再半截发送。
+5. **升级供应链收口**：移除默认第三方镜像（ghfast.top / ghproxy.net），镜像改为
+   `upgrade.mirrors` 显式配置且绝不携带 token；Release ZIP 下载后优先取 `.sha256`
+   强校验（失败中止不落盘），未提供则明示「完整性未验证」。
+6. **SSRF 出站防护**：新增 `core/outbound_guard.py`——scheme 白名单 + 全 A/AAAA
+   解析逐个校验 + 私网/环回/链路本地/云元数据拦截；多用户模式强制启用，单机桌面
+   保持环回放行；接入声音克隆测试与热榜抓取等用户可控 URL 出站点。
+7. **Docker 宣称落地**：README 此前宣传 `docker compose up -d` 而全仓无任何容器文件，
+   现补齐 `Dockerfile`（内置 CJK 字体防卡片方框）+ `docker-compose.yml`（命名卷/
+   healthcheck/必填管理口令）+ `deploy/cloud/`（env 样例 + 部署指南），镜像构建与
+   compose 配置均已实测通过。
+
+**可靠性（P1）**
+
+- **任务管线收拢**：新增 `spawn_user_task`（受界 worker 池 + 每用户并发闸门 2 +
+  JOBS 一小时过期清理），drafts/media 五处 fire-and-forget 全部改走 helper；
+  此前"看起来有队列"实为默认执行器无背压，连点生成即无限制并发。
+- **取消语义修正**：用户取消写独立 `status="cancelled"`（不再污染 failed 统计）；
+  `Task.register_cancel` 联动 ffmpeg 子进程 `terminate→kill`（Popen + 0.5s 轮询 +
+  stderr 抽干防管道死锁），僵尸进程收得掉。
+- **任务归属隔离**：`/api/tasks` 与取消/详情接口按当前用户过滤，admin 全量，
+  越权 404 与草稿归属同口径。
+- **磁盘治理**：`draft_expire_days` 出厂默认 0→90，启动自动清理过期草稿并输出
+  data/drafts 体量日志（>5GB 告警）；进度持久化失败从静默改 warning。
+- **流式降级链对齐**：`chat_stream` 补齐与 `chat()` 相同的逐通道 fallback +
+  逐通道诊断；已吐 chunk 后不跨通道缝合；SSE 坏 chunk 从静默丢弃改 debug 留痕。
+- **轮询纪律**：PC 19 处 + 移动端 6 处 `while(true)` 任务轮询全部收拢为
+  `pollJob/pollJobMini`——网络抖动容忍重试、总时长上限（超限诚实提示"任务仍在
+  后台执行"）、可取消（切草稿/切页/关抽屉联动）、后台标签页节流；"一次抖动即
+  假失败"与"裸异常文案"根除。
+- **配置损坏防护**：`config.local.yaml` 解析失败先把坏文件存档 `.corrupt-<ts>`
+  → 回退 `.bak` → 无备份拒绝空配置启动；写配置前原子备份当前好配置。
+- **移动端**：加号菜单「抓取全网热榜」死链修复（复用热榜 Tab 同源实现）；
+  等待文案诚实化（5~10 秒 → 1~3 分钟 + 可离开本页）+ 发送防重复提交。
+
+**产品口径与体验（P2）**
+
+- **影音工坊无模型守门**：生图/视频模型均未接入时，8 步流水线主按钮禁用并展开
+  「去配置模型」引导条（直达 系统与 API 配置）；分镜脚本 / 口播 TTS 不受影响；
+  引导条全部文案进 i18n 词典，英文模式零残留。
+- **i18n 内容污染修复**：翻译引擎新增 `[data-no-i18n]` 子树跳过（AI 生成内容
+  标记 10 处），EN 模式不再把回复正文里的「今日头条」改写成 Toutiao；
+  `document.title` 版本号从当前页原样保留（此前写死 V10.0.1）；语言同步从
+  1 秒轮询改为事件驱动。
+- **渲染注入防护**：热榜/搜索渲染的外部标题/摘要统一 `escapeHtml`。
+- **复制兜底**：`copyText` 三级回落（Clipboard API → execCommand → 失败 toast），
+  LAN http 场景不再静默失败。
+- **触控目标**：移动端约 30 个过小按钮统一提升可点击区域 ≥28px。
+- **密码策略**：新设/修改密码最短 8 位（存量 6 位账号可继续登录）。
+- **网关可观测**：`/v1` 装配失败从控制台 print 升级为 logger.error 并随 `/health`
+  回显 `gateway_v1_ok`。
+- **性能与卫生**：配置读取摘除每次 deepcopy（38 个调用点核查均只读）；httpx
+  连接池模块级共享；任务注入的字节码探测加固（partial/可调用对象安全）；
+  生图外链下载校验（content-type/大小上限）；Pollinations 免 Key 通道加开关与
+  第三方发送披露；example.com 占位清理；print→logger 收口；删除零引用死文件
+  `infra/logging.py` 与 `web/static/css/design-tokens.css`（架构锁同步更新）；
+  幂等中间件缓存失败从静默改 debug 留痕。
+- **文档口径收口**：README/README_EN/说明书统一测试规模口径（845 项测试函数）、
+  版本段更新至 v15.9.x、「95% 图文匹配度」与「即时声音克隆」措辞与实现对齐。
+
+### Added
+
+- `core/outbound_guard.py`：SSRF 出站防护模块（多用户强制 / 单机放行环回）。
+- `web/static/js/yimu-net.js`：`api` 超时、`pollJob/pollJobAsync/cancelAllPolls`、
+  `imeSafeEnter` 前端共享工具（移动端保持自包含等价实现）。
+- `Dockerfile` / `docker-compose.yml` / `deploy/cloud/`：容器化部署三件套。
+- `tests/test_v1598_backend_fixes.py`：32 项回归锁（计费透传/闸门/取消语义/
+  SHA256/坏 YAML 回退/外链校验/SSRF/pollinations 开关等）。
+
+---
+
 ## [15.9.7] - 松风令 (Pine Wind Edict) · 2026-11-19
 
 ### Fixed 能力线默认统一收口：显式默认压得过通道内遗留路由

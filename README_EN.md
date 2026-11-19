@@ -6,7 +6,7 @@
 
 **The Full-Lifecycle Viral Content Creation Engine & LLM Commercial Gateway for Digital Creators, Short Drama Studios, and MCN Agencies**
 
-[![Version](https://img.shields.io/badge/version-15.9.7-orange.svg?style=flat-square)](version.py)
+[![Version](https://img.shields.io/badge/version-15.9.8-orange.svg?style=flat-square)](version.py)
 [![Release](https://img.shields.io/badge/release-v11.1.1%20(River%20Rhapsody)-blueviolet.svg?style=flat-square)](RELEASES.md)
 [![License: BSL 1.1](https://img.shields.io/badge/license-BUSL--1.1-blue.svg?style=flat-square)](LICENSE)
 [![Licensor](https://img.shields.io/badge/Licensor-yimu.hyipf.com-0284c7.svg?style=flat-square)](https://yimu.hyipf.com)
@@ -37,7 +37,7 @@ In the era of AI-generated content (AIGC), creators face two fatal bottlenecks:
 2. **Disconnected, Low-Quality Visuals**: Blind-box image generation where illustrations bear zero relevance to article sections, often plagued by hazy fog, blurriness, or weird AI artifacts.
 
 **YIMU Studio V10.0.0 ("澄音境" / Pristine Rhythm)** fundamentally revolutionizes AI content production:
-- **Cinematic Storyboarding & 2K Crystal-Clear Image Engine**: Before generating any image, the visual agent **reads the entire article end-to-end**, extracting narrative turning points and worldview themes. Covers are mapped to Wide Establishing Shots, while sections are paired with Medium Narrative Shots or Emotional Close-ups. Powered by a specialized 2K resolution pipeline and a **zero-haze transparency prompt engineering pipeline**, visual-to-text semantic alignment is locked at **over 95%** with vivid color saturation and laser-sharp clarity.
+- **Cinematic Storyboarding & 2K Crystal-Clear Image Engine**: Before generating any image, the visual agent **reads the entire article end-to-end**, extracting narrative turning points and worldview themes. Covers are mapped to Wide Establishing Shots, while sections are paired with Medium Narrative Shots or Emotional Close-ups. Powered by a specialized 2K resolution pipeline and a **zero-haze transparency prompt engineering pipeline**, visual-to-text semantic alignment is enforced by reading the full article before storyboarding — every image maps to its narrative section with vivid color saturation and laser-sharp clarity.
 - **Multi-Channel Native Layout Compiler**: One master draft is instantly formatted into WeChat Official Account rich-text, Toutiao information feed layout, and Xiaohongshu (RED) 5-act frosted-glass panoramic cards.
 - **Dual-Device Synchronization & Commercial Gateway**: Real-time parity between Desktop Pro Workbench and Mobile Companion, featuring a unified billing/token portal and an OpenAI-compatible routing gateway.
 - **Native Internationalization (i18n)**: Seamless instant one-click toggle between English and Chinese across all desktop and mobile interfaces.
@@ -196,8 +196,11 @@ Once started, open your browser and navigate to: **`http://127.0.0.1:8790/`** (L
 ### Docker Deployment
 
 ```bash
-docker compose up -d
+cp deploy/cloud/env.example .env   # set the required YIMU_ADMIN_PASSWORD first
+docker compose up -d --build
 ```
+
+See **[deploy/cloud/README.md](deploy/cloud/README.md)** for volumes, upgrades and reverse-proxy guidance.
 
 ---
 
@@ -209,22 +212,24 @@ YIMU Studio enforces strict software craftsmanship with a 4-tier CI defense pipe
 bash ci.sh
 ```
 
-- ✅ **Gate 1**: 429+ automated unit and canary tests (`pytest`)
+- ✅ **Gate 1**: 845 test functions across 78 test files — unit & regression suites (`pytest`)
 - ✅ **Gate 2**: Real-time TTS synthesis and live gateway probe
 - ✅ **Gate 3**: User-facing vocabulary and terminology scanner
 - ✅ **Gate 4**: Zero-credentials leak scan (strictly prevents API keys from being committed)
 
 ---
 
-## 📦 Latest Release: V10.0.0 (鸿蒙始 · Primordial Dawn: Full Text Denoising)
+## 📦 Latest Release: v15.9.7 (松风令 · Unified Capability-Default Governance)
 
 YIMU Studio strictly implements Semantic Versioning (`SemVer`). To ensure maximum clarity and a pure presentation, the project homepage focuses exclusively on the **latest active release**:
 
-### 🌟 V10.0.0 Feature Highlights
-- 🧹 **System-Wide Text Denoising Engine (`core/text_denoise.py`)**: Completely strips intrusive visual clutter from AI generations (`***`, `---`, `___` dividers), downgrades `***bold-italic***` to clean standard `**bold**`, and converts raw `###` / `##` Markdown symbols into clean Chinese bracketed sections `【小节标题】` and natural numbers.
-- 🏷️ **Strict `#` Boundary Guard**: Enforces that `#` only ever matches end-of-article tags (`#自媒体 #爆款`) and paired social media topics (`#话题名#`), completely eliminating stray `#` noise in body text.
-- 🎨 **Adaptive Cross-Platform Layout Compiler**: WeChat, Toutiao, and Zhihu preview engines automatically recognize bracketed and numbered sections as styled `<h3>` headings with seamless image binding, requiring zero raw `###` syntax in markdown.
-- ⚖️ **Single Source of Truth**: All components across the system strictly unified to **V10.0.0**.
+### 🌟 V15.9.x Feature Highlights
+- 🧭 **Settings Consolidated to One Place** (四海宁 v15.9.4): read-only factory `config.yaml` + runtime `config.local.yaml` override layer; upgrades never lose configuration; path & upload security fully hardened.
+- 🔀 **Text / Image / Video Lines Bound Independently** (v15.9.6): three capability lines each bind their own model service without cross-wiring.
+- 🔁 **Unified Capability-Default Governance** (松风令 v15.9.7): four chains (default resolution / preset visibility / mobile sync / provider management) stay consistent; deleted providers no longer resurrect.
+- 🧹 **Code Hygiene Baseline** (朝晖颂 v15.8.2): zero dead code / zero duplication.
+- 📱 **Mobile Client Sync Caught Up**: mobile reaches feature parity with the PC workbench.
+- 🐳 **Containerized Deployment Landed**: Dockerfile + docker-compose + `deploy/cloud/` guide (data volumes / healthcheck / backup & upgrade).
 
 > For historical version archives and detailed milestone changelogs, please visit the official [Releases Documentation (RELEASES.md)](RELEASES.md) and [GitHub Releases Page](https://github.com/yimuhub/yimu-baokuanstudio/releases).
 

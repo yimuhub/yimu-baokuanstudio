@@ -1,0 +1,42 @@
+# ============================================================
+#  一幕·YIMU 爆款工作室 — Docker Compose 服务器部署
+#  快速开始:
+#    1) cp deploy/cloud/env.example .env 并修改管理口令
+#    2) docker compose up -d --build
+#    3) 访问 http://<服务器IP>:8790/
+#  数据持久化在命名卷 yimu_data/yimu_logs/yimu_runs;
+#  完整说明(升级/备份/反向代理)见 deploy/cloud/README.md
+# ============================================================
+services:
+  yimu:
+    build: .
+    image: yimu-studio:latest
+    container_name: yimu-studio
+    restart: unless-stopped
+    ports:
+      - "${YIMU_PORT:-8790}:8790"
+    environment:
+      # 服务器部署默认开启多用户访问模式(访问模式开关);家庭自用可改 0
+      - YIMU_MULTIUSER=${YIMU_MULTIUSER:-1}
+      # 管理口令:必填。未设置时管理接口 fail-closed 不开放(core/auth.py)
+      - YIMU_ADMIN_PASSWORD=${YIMU_ADMIN_PASSWORD:?请先 cp deploy/cloud/env.example .env 并设置 YIMU_ADMIN_PASSWORD}
+      # 会话签名密钥:可选,建议设置为随机长字符串
+      - YIMU_ADMIN_SESSION_SECRET=${YIMU_ADMIN_SESSION_SECRET:-}
+      # 如需网关监听独立端口(默认已内嵌 /v1,无需开启)
+      # - YIMU_GATEWAY_STANDALONE=1
+    volumes:
+      - yimu_data:/app/data
+      - yimu_logs:/app/logs
+      - yimu_runs:/app/runs
+    healthcheck:
+      # 页面路由对未登录请求也返回 <500 状态码,以此判定进程存活
+      test: ["CMD", "python", "-c", "import urllib.request as u; r=u.urlopen('http://127.0.0.1:8790/', timeout=3); exit(0 if r.status < 500 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 25s
+
+volumes:
+  yimu_data:
+  yimu_logs:
+  yimu_runs:

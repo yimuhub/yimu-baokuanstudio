@@ -37,12 +37,10 @@ def test_v10_clean_architecture_layers_exist():
         "domain/pipeline/image_pipeline.py",
         "domain/prompts/registry.py",
         "domain/prompts/templates.yaml",
-        "infra/logging.py",
         "infra/crawlers/popup_guard.py",
         "web/templates/pages/pricing.html",
         "web/templates/pages/users_admin.html",
         "web/templates/pages/audit_admin.html",
-        "web/static/css/design-tokens.css",
         "web/static/locales/zh-CN.json",
         "web/static/locales/en-US.json",
     ]

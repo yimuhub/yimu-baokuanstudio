@@ -156,8 +156,8 @@ def test_no_purple_left(html: str) -> None:
     """V12 把全站主色收敛到品牌橙，紫色系不允许再出现。"""
     purple = ("#8b5cf6", "#a855f7", "#7c3aed", "#6366f1", "#a371f7", "#d946ef", "#9333ea", "#8957e5")
     css = (BASE / "web/static/css/modern_studio.css").read_text(encoding="utf-8")
-    tokens = (BASE / "web/static/css/design-tokens.css").read_text(encoding="utf-8")
-    for src, name in ((html, "index.html"), (css, "modern_studio.css"), (tokens, "design-tokens.css")):
+    # v15.9.8:design-tokens.css 为零引用死文件已删除,不再纳入扫描
+    for src, name in ((html, "index.html"), (css, "modern_studio.css")):
         low = src.lower()
         for c in purple:
             assert c in ("",) or low.count(c) == 0, f"{name} 仍残留紫色 {c}"

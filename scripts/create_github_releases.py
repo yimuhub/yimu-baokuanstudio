@@ -654,11 +654,10 @@ git checkout v9.3.1
      - `dedupe_wechat_html_images` (`domain/pipeline/image_pipeline.py`)：微信公众号插图 URL 去重与防相邻连贴守卫；
      - `PROMPT_REGISTRY` (`domain/prompts/registry.py` & `templates.yaml`)：将 Agent 核心提示词从 Python 代码中解耦至 YAML 配置中心；
    - **基础设施层 (`infra/`)**：
-     - `StructuredLogger` (`infra/logging.py`)：带 `trace_id` / `user_id` 的 JSON 结构化日志组件；
      - `BrowserPopupCircuitBreaker` (`infra/crawlers/popup_guard.py`)：进程级浏览器弹窗单次熔断状态机与无头静默启动规范；
    - **展示与静态资源层 (`web/`)**：
      - 将原本内联在 `web/admin.py` 中的 `_PRICING_PAGE_HTML`、`_USERS_PAGE_HTML`、`_AUDIT_PAGE_HTML` 抽离为标准独立模板 (`web/templates/pages/*.html`)；
-     - 抽离全局设计变量 (`web/static/css/design-tokens.css`)、中英双语独立词典 (`web/static/locales/zh-CN.json` & `en-US.json`) 与前端单次弹窗守卫 (`web/static/js/core/popup-guard.js`)。
+     - 抽离中英双语独立词典 (`web/static/locales/zh-CN.json` & `en-US.json`) 与前端单次弹窗守卫 (`web/static/js/core/popup-guard.js`)。
 2. **`/pricing` 左侧固定菜单栏深度融合与一步激活购买闭环**:
    - 主工作台左侧固定导航栏新增 **「💎 套餐与价格」** 菜单项与 `#p-pricing` 内嵌收银台面板，独立 `/pricing` 页面同步配备完整左侧固定导航栏；
    - 打通 **「选购套餐下单 → 收银台确认收款 → 卡密一键核销激活 → 算力与会员等级实时到账 → 撤单/退款」** 全链路，支持 **「🚀 确认收款并立即激活到账（一步走通）」** 零 404 直连核销。

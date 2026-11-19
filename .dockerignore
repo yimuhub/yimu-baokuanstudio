@@ -1,0 +1,19 @@
+# 构建上下文瘦身 + 防止本地数据/密钥被烘焙进镜像
+.git
+.venv
+venv
+__pycache__
+**/__pycache__
+*.pyc
+*.db
+data/
+logs/
+runs/
+.v2c/
+review_*/
+node_modules
+.DS_Store
+一键升级*.sh
+一键升级*.bat
+一键升级*.command
+服务器一键部署.sh

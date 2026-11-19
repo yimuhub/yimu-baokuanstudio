@@ -104,6 +104,84 @@ def _get_github_token() -> str:
     return token
 
 
+def _get_mirrors() -> list[str]:
+    """读取可选加速镜像列表（config 键 ``upgrade.mirrors``，默认**空**）。
+
+    ⭐ v15.9.8 供应链整改：默认不再内置 ghfast.top / ghproxy.net 第三方镜像——
+    镜像方能看到完整传输内容（代码、乃至 Token 头），把第三方加速默认硬编码
+    进升级链路等于把「服务器执行什么代码」的最终解释权交给它。现在默认仅
+    GitHub 直连；确有加速需求的用户可在 data/config.local.yaml 显式配置：
+
+        upgrade:
+          mirrors:
+            - https://ghfast.top        # 前缀拼接 https://github.com/<repo>
+
+    使用风险自担：请只配置自己信任 / 自建的镜像，并优先依赖 SHA256 校验。
+    """
+    try:
+        from core import provider_registry as _reg
+        cfg = _reg.raw_config()
+        mirrors = ((cfg.get("upgrade") or {}).get("mirrors")) or []
+        if isinstance(mirrors, str):
+            mirrors = [mirrors]
+        return [str(m).strip().rstrip("/") for m in mirrors if str(m).strip()]
+    except Exception as e:
+        log.debug("[updater] 读取 upgrade.mirrors 失败（按无镜像处理）: %s", e)
+        return []
+
+
+def _fetch_expected_sha256(repo: str, token: str, zip_url: str) -> str | None:
+    """尝试获取该升级包的官方 SHA256 校验和；拿不到返回 None。
+
+    探测顺序：``<zip_url>.sha256`` → 同 release 的 ``SHA256SUMS`` asset。
+    命中后解析出 64 位十六进制摘要（兼容「裸摘要」与「摘要  文件名」两种格式）。
+    """
+    headers = {"User-Agent": _DEFAULT_UA}
+    if token:
+        headers["Authorization"] = f"token {token}"
+
+    candidates = [
+        f"{zip_url}.sha256",
+        f"https://github.com/{repo}/releases/latest/download/SHA256SUMS",
+    ]
+    import hashlib as _hashlib
+    hex_re = re.compile(r"\b[0-9a-fA-F]{64}\b")
+    for url in candidates:
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=8) as resp:
+                if resp.status != 200:
+                    continue
+                text = resp.read().decode("utf-8", errors="replace")
+            m = hex_re.search(text)
+            if m:
+                return m.group(0).lower()
+        except Exception:
+            continue
+    return None
+
+
+def _verify_zip_bytes(zip_bytes: bytes, repo: str, token: str, zip_url: str,
+                      source_host: str) -> tuple[bool, str]:
+    """下载内容完整性校验：有校验和则强校验，没有则告警放行（保可用性）。
+
+    返回 (是否通过, 说明)。校验失败必须中止升级——静默接受被篡改的包
+    等于把 RCE 决定权交给中间人。
+    """
+    expected = _fetch_expected_sha256(repo, token, zip_url)
+    if not expected:
+        log.warning("[updater] 本次升级包未提供校验和，完整性未验证（来源：%s）", source_host)
+        return True, "本次升级包未提供校验和，完整性未验证"
+    import hashlib as _hashlib
+    actual = _hashlib.sha256(zip_bytes).hexdigest()
+    if actual != expected:
+        log.error(
+            "[updater] 升级包 SHA256 校验失败（来源：%s）：期望 %s 实际 %s，已中止，不落盘",
+            source_host, expected[:16], actual[:16])
+        return False, f"升级包 SHA256 校验失败（期望 {expected[:12]}…，实际 {actual[:12]}…），已中止升级以防篡改"
+    return True, "SHA256 校验通过"
+
+
 def check_for_updates(force: bool = False) -> dict[str, Any]:
     """检测 GitHub 仓库是否存在最新版本。"""
     global _cache_check_result, _cache_check_time
@@ -264,7 +342,13 @@ def is_git_repo() -> bool:
 
 
 def _upgrade_from_archive(repo: str, token: str) -> tuple[bool, str]:
-    """针对无 .git 的 Release ZIP 用户，通过官方/镜像源下载最新代码归档并安全覆盖。"""
+    """针对无 .git 的 Release ZIP 用户，下载最新代码归档并安全覆盖。
+
+    v15.9.8 供应链整改：
+    - 默认仅 GitHub 直连；第三方镜像改为 config 可选键 upgrade.mirrors（默认空）；
+    - 下载内容先做 SHA256 校验（探测 .sha256 / SHA256SUMS），校验失败立即
+      中止不落盘；未提供校验和则告警放行（保可用性）。
+    """
     import io
     import shutil
     import zipfile
@@ -273,10 +357,10 @@ def _upgrade_from_archive(repo: str, token: str) -> tuple[bool, str]:
     if token:
         headers["Authorization"] = f"token {token}"
 
-    download_urls = [
-        f"https://github.com/{repo}/archive/refs/heads/main.zip",
-        f"https://ghfast.top/https://github.com/{repo}/archive/refs/heads/main.zip",
-        f"https://ghproxy.net/https://github.com/{repo}/archive/refs/heads/main.zip",
+    github_url = f"https://github.com/{repo}/archive/refs/heads/main.zip"
+    download_urls = [github_url] + [
+        f"{m}/https://github.com/{repo}/archive/refs/heads/main.zip"
+        for m in _get_mirrors()
     ]
 
     last_err = ""
@@ -286,6 +370,11 @@ def _upgrade_from_archive(repo: str, token: str) -> tuple[bool, str]:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 if resp.status == 200:
                     zip_bytes = resp.read()
+                    # 完整性闸门：校验失败中止整个升级（防篡改包落盘执行）
+                    ok, verify_msg = _verify_zip_bytes(
+                        zip_bytes, repo, token, github_url, url.split("/")[2] if "/" in url else url)
+                    if not ok:
+                        return False, f"已中止升级：{verify_msg}"
                     with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zf:
                         # 查找根目录前缀（通常为 yimu-baokuanstudio-main/）
                         namelist = zf.namelist()
@@ -362,11 +451,15 @@ def perform_upgrade() -> dict[str, Any]:
         except Exception:
             pass
 
-        # 尝试使用原生 origin 或镜像拉取
-        pull_targets = [
-            f"https://github.com/{repo}.git" if not token else f"https://oauth2:{token}@github.com/{repo}.git",
-            f"https://ghfast.top/https://github.com/{repo}.git",
-            f"https://ghproxy.net/https://github.com/{repo}.git",
+        # 尝试使用原生 origin 拉取；第三方镜像仅在 config upgrade.mirrors
+        # 显式配置时启用（v15.9.8 起，不再默认内置第三方加速域名）。
+        _github_pull = (
+            f"https://oauth2:{token}@github.com/{repo}.git" if token
+            else f"https://github.com/{repo}.git")
+        # 镜像只拼不带 Token 的公开地址——绝不把 oauth 凭据发给第三方镜像
+        pull_targets = [_github_pull] + [
+            f"{m}/https://github.com/{repo}.git"
+            for m in _get_mirrors()
         ]
 
         last_git_output = ""

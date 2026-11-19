@@ -21,6 +21,7 @@ import platform
 import re
 import shutil
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -67,14 +68,104 @@ def ffmpeg_available() -> bool:
     return bool(_FFMPEG)
 
 
-def _run(cmd: list[str], timeout: int = 600) -> subprocess.CompletedProcess:
-    """跑 ffmpeg，失败抛 RuntimeError（带 stderr 尾部）。跨平台：Windows 不弹黑窗口。"""
+# ---------------------------------------------------------------------------
+# 取消联动（v15.9.8）：ffmpeg 从「subprocess.run 一跑到底」改为 Popen +
+# 0.5s 轮询 wait。为什么：一条短剧渲染可能跑十几分钟，用户在任务面板点
+# 「取消」后 ffmpeg 仍会把整条视频渲完——既浪费 CPU 也让取消按钮形同虚设。
+# Task.cancel() 在请求线程触发，ffmpeg 跑在任务工作线程，跨线程要拿到进程
+# 句柄才能 terminate，因此按 task_id 建立注册表；task_queue.Task 的
+# on_cancel 回调作为兜底（轮询间隙也能立即杀进程）。
+# ---------------------------------------------------------------------------
+_ACTIVE_FFMPEG: dict[str, subprocess.Popen] = {}
+_ACTIVE_FFMPEG_LOCK = threading.Lock()
+
+# 线程局部取消上下文：make_video_native 开头写入，_run 轮询时读取
+# （同一任务的所有 ffmpeg 调用都在同一个工作线程里串行执行）。
+_CANCEL_CTX = threading.local()
+
+
+def _hard_stop(proc: subprocess.Popen) -> None:
+    """terminate → 等待 2s → kill：给 ffmpeg 一点时间收尾，僵死则强杀。"""
+    if proc.poll() is not None:
+        return
+    try:
+        proc.terminate()
+    except Exception:
+        pass
+    try:
+        proc.wait(timeout=2)
+        return
+    except Exception:
+        pass
+    try:
+        proc.kill()
+    except Exception:
+        pass
+
+
+def _run(cmd: list[str], timeout: int = 600) -> subprocess.Popen:
+    """跑 ffmpeg（Popen + 0.5s 轮询），失败/取消抛 RuntimeError（带 stderr 尾部）。
+
+    轮询期间同时检查 task.cancel flag（经线程局部上下文注入）；取消时
+    terminate→kill 并抛「任务已由用户主动取消」。跨平台：Windows 不弹黑窗口。
+    """
     log.info("[video_native] ffmpeg: %s", " ".join(cmd[:6]) + " ...")
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
-                       **_subprocess_kwargs())
-    if r.returncode != 0:
-        raise RuntimeError("ffmpeg 失败: " + (r.stderr or "")[-500:])
-    return r
+    cancel_check = getattr(_CANCEL_CTX, "cancel_check", None)
+    task_id = getattr(_CANCEL_CTX, "task_id", None)
+
+    # why 用子线程抽干 stderr 而不是 capture_output：ffmpeg 持续往 stderr 写
+    # 进度，管道缓冲（~64KB）写满会反压卡死 ffmpeg；subprocess.run 靠
+    # communicate 并发读，Popen+轮询必须自己安排读取，否则长渲染必然死锁。
+    proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
+                            stderr=subprocess.PIPE, text=True,
+                            **_subprocess_kwargs())
+    stderr_tail: list[str] = []
+
+    def _drain_stderr():
+        try:
+            if proc.stderr:
+                stderr_tail.append(proc.stderr.read() or "")
+        except Exception:
+            pass
+
+    import threading as _th
+    _th.Thread(target=_drain_stderr, daemon=True).start()
+
+    if task_id:
+        with _ACTIVE_FFMPEG_LOCK:
+            _ACTIVE_FFMPEG[task_id] = proc
+    deadline = time.time() + max(30, int(timeout))
+    try:
+        while True:
+            try:
+                proc.wait(timeout=0.5)
+                break  # 进程已退出
+            except subprocess.TimeoutExpired:
+                pass
+            if cancel_check is not None:
+                try:
+                    if cancel_check():
+                        _hard_stop(proc)
+                        raise RuntimeError("任务已由用户主动取消，ffmpeg 渲染已中止")
+                except RuntimeError:
+                    raise
+                except Exception:
+                    pass  # 取消检查自身异常不阻断渲染
+            if time.time() > deadline:
+                _hard_stop(proc)
+                raise RuntimeError(f"ffmpeg 执行超时（>{timeout}s），已强制中止")
+        if proc.returncode != 0:
+            tail = (stderr_tail[-1] if stderr_tail else "")[-500:]
+            raise RuntimeError("ffmpeg 失败: " + tail)
+        return proc
+    finally:
+        # 无论成功/失败/取消，都要摘掉注册表条目并保证进程不残留
+        if task_id:
+            with _ACTIVE_FFMPEG_LOCK:
+                if _ACTIVE_FFMPEG.get(task_id) is proc:
+                    _ACTIVE_FFMPEG.pop(task_id, None)
+        if proc.poll() is None:
+            _hard_stop(proc)
 
 
 def _probe_duration(path: Path) -> float:
@@ -466,7 +557,8 @@ def make_video_native(script: str, terms: list[str] | None = None,
                       material_mode: str | None = None,
                       custom_audio: str | Path | None = None,
                       cover_images: list | None = None,
-                      person_ref_image: str | Path | None = None) -> dict:
+                      person_ref_image: str | Path | None = None,
+                      task=None) -> dict:
     """一幕原生视频合成主入口。
 
     Args:
@@ -484,6 +576,9 @@ def make_video_native(script: str, terms: list[str] | None = None,
         custom_audio: 用户上传的配音文件路径；传了则跳过 TTS 直接使用
         cover_images: 产品参考图路径列表；开场 + 全片 1/4、1/2、3/4 处穿插
         person_ref_image: 卖货人员参考图；放在 CTA 结尾段
+        task: task_queue.Task 实例（可选）。传入后 ffmpeg 轮询每 0.5s 检查
+            task.cancel flag，取消时 terminate→kill；并把「杀当前 ffmpeg」
+            注册进该 Task 的 on_cancel 回调列表（取消瞬间即时生效）。
 
     Returns:
         {"mp4": 路径, "duration_s": 时长, "has_audio": bool,
@@ -496,6 +591,26 @@ def make_video_native(script: str, terms: list[str] | None = None,
     if not ffmpeg_available():
         raise RuntimeError(
             f"系统未安装 ffmpeg：{ffmpeg_install_hint()}后重试")
+
+    # 取消联动注入（v15.9.8）：线程局部上下文供所有 _run 轮询读取；
+    # on_cancel 回调兜底「轮询间隙也能立即杀进程」。
+    if task is not None:
+        _CANCEL_CTX.task_id = getattr(task, "id", None)
+        _CANCEL_CTX.cancel_check = getattr(task, "is_cancelled", None)
+
+        def _on_cancel_kill_ffmpeg():
+            with _ACTIVE_FFMPEG_LOCK:
+                procs = [p for p in _ACTIVE_FFMPEG.values()]
+            for p in procs:
+                try:
+                    _hard_stop(p)
+                except Exception:
+                    pass
+
+        try:
+            task.register_cancel(_on_cancel_kill_ffmpeg)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("[video_native] 注册取消联动失败（不影响渲染）: %s", exc)
 
     # 读视频合成配置（显式传参优先）
     try:

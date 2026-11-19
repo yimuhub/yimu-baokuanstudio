@@ -64,7 +64,9 @@ content_guard:
   enabled: true
 creation:
   card_style: ai_visual_dark
-  draft_expire_days: 0
+  # 草稿过期天数：超过 N 天未更新的草稿会在服务启动时自动清理（删记录 + 产物目录移入废纸篓）。
+  # 0 = 永不过期（不扫描不删除）；运行时可在 data/config.local.yaml 用同名键覆盖。
+  draft_expire_days: 90
   styles:
     toutiao: 资讯体，信息密度高，标题带地域/数字钩子
     wechat_mp: 深度长文，讲故事+干货，结尾引导关注
@@ -138,6 +140,10 @@ image:
   resolution: 2k
   sections: true
   size: 2048x1152
+  # Pollinations 免 Key 公共保底通道开关（默认 true 保持现状）。
+  # 注意：开启时用户提示词会经免 Key 公共服务发往第三方；商业/内网部署
+  # 建议设为 false（关闭后生图失败直接落 Pillow 信息卡保底）。
+  pollinations_enabled: true
 platforms:
   toutiao:
     enabled: true
@@ -149,6 +155,14 @@ publish:
   toutiao_mode: manual
   wechat_mp_mode: api
   xhs_mode: manual
+# 在线升级供应链（可选）：默认仅 GitHub 直连，不内置任何第三方加速镜像。
+# mirrors 为空时升级只走 github.com；确需加速请自行填入**可信 / 自建**镜像前缀，
+# 形如 https://ghfast.top（升级时拼成 <镜像>/https://github.com/<repo>）。
+# ⚠️ 风险：镜像方能看到完整传输内容（代码与请求头），配置即表示信任该第三方；
+# 升级包会尽力做 SHA256 校验（有 .sha256 / SHA256SUMS 时强校验，无则告警放行）。
+# 本键可被 data/config.local.yaml 的 upgrade.mirrors 覆盖。
+upgrade:
+  mirrors: []
 quality:
   max_rounds: 3
   threshold: 80

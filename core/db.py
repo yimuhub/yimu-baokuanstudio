@@ -1079,6 +1079,54 @@ def delete_old_topics(days: int) -> int:
     return cnt
 
 
+def drafts_dir_size_bytes() -> int:
+    """统计 data/drafts 目录总字节数（磁盘治理：启动日志体量 / >5GB 告警用）。"""
+    total = 0
+    root = DATA / "drafts"
+    try:
+        if root.exists():
+            for f in root.rglob("*"):
+                try:
+                    if f.is_file():
+                        total += f.stat().st_size
+                except OSError:
+                    continue
+    except Exception as e:
+        logger.warning(f"[db] 统计 drafts 目录大小失败: {e}")
+    return total
+
+
+def cleanup_expired_drafts(days: int) -> dict:
+    """启动时过期草稿治理：先统计再删除（谨慎口径，删前必有日志）。
+
+    - days<=0 视为「永不过期」，直接跳过（config.yaml 注释同口径）；
+    - 复用 delete_old_drafts 既有链路（删 drafts/jobs 记录 + 目录移入废纸篓）；
+    - 删除数量、草稿 id 清单先写日志再动手，出问题可追溯。
+    返回 {"deleted": N, "days": days, "skipped": bool}
+    """
+    days = int(days or 0)
+    if days <= 0:
+        # 0 = 永不过期：不扫描不删除
+        return {"deleted": 0, "days": days, "skipped": True}
+    cutoff = time.time() - days * 86400
+    c = conn()
+    try:
+        rows = c.execute(
+            "SELECT id, title FROM drafts WHERE created_at < ?", (cutoff,)
+        ).fetchall()
+    finally:
+        c.close()
+    if not rows:
+        return {"deleted": 0, "days": days, "skipped": False}
+    logger.warning(
+        f"[db] 过期草稿清理：发现 {len(rows)} 个超过 {days} 天未更新的草稿，即将删除: "
+        + "、".join(f"{r['id'][:16]}({(r['title'] or '')[:12]})" for r in rows[:10])
+        + ("..." if len(rows) > 10 else ""))
+    deleted = delete_old_drafts(days)
+    logger.warning(f"[db] 过期草稿清理完成：实际删除 {len(deleted)} 个（配置 draft_expire_days={days}）")
+    return {"deleted": len(deleted), "days": days, "skipped": False}
+
+
 def delete_old_drafts(days: int) -> list[str]:
     """删除 days 天前的过期草稿，并清理其关联的任务和文件目录。返回删除的草稿ID列表。"""
     if days <= 0:
@@ -1795,9 +1843,14 @@ def list_persistent_tasks(limit: int = 50, task_type: str | None = None, status:
 
 
 def recover_interrupted_tasks() -> int:
-    """启动时检测异常终止任务并标记为 interrupted，支持断点续跑。"""
+    """启动时检测异常终止任务并标记为 interrupted。
+
+    v15.9.8 文案修正：旧文案「可点击恢复」承诺了一个并不存在的恢复按钮——
+    系统从未实现断点续跑（Task 无 checkpoint 恢复入口），用户按文案去找
+    「恢复」只会找不到。如实告知「请重新发起同类任务」。
+    """
     c = conn()
-    r = c.execute("UPDATE async_tasks SET status='interrupted', message='服务重启，任务意外中断，可点击恢复' "
+    r = c.execute("UPDATE async_tasks SET status='interrupted', message='服务重启，任务意外中断，请重新发起同类任务' "
                   "WHERE status IN ('running', 'queued')")
     count = r.rowcount
     c.commit()

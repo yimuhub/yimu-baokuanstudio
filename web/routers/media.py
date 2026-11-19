@@ -26,6 +26,7 @@ from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
 
 from core import db, judge, orchestrator  # noqa: E402,F811
+from core import task_queue as _task_queue  # noqa: E402,F811  (用户后台任务统一收口)
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
 import asyncio  # noqa: E402,F811
 
@@ -157,7 +158,7 @@ async def video_upload_material(request: Request, file: UploadFile=File(...)):
 
 @router.post('/api/video/make')
 async def video_make(request: Request):
-    _a.guard(request)
+    u = _a.guard(request)
     body = await request.json()
     did = body.get('draft_id')
     if not did:
@@ -193,7 +194,6 @@ async def video_make(request: Request):
     d_title = d.get('title', did[:8])
     import uuid
     jid = f'vid-{did[:8]}-{uuid.uuid4().hex[:4]}'
-    _a.start_async_job(jid, name=f'短视频合成: {d_title[:16]}', task_type='video_render', target_id=did, params={'draft_id': did}, initial_step='短视频渲染管线初始化…')
 
     def _run():
         try:
@@ -202,7 +202,14 @@ async def video_make(request: Request):
             _a.update_async_job(jid, status='done', step='短视频混剪合成完成！', progress=100, result=res)
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:300], step='短视频生成失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
+    # v15.9.8：fire-and-forget 收拢进统一受界任务池（带 owner / 每用户并发上限 / JOBS 清理）
+    try:
+        jid = _task_queue.spawn_user_task(
+            owner=str((u or {}).get('id') or ''), name=f'短视频合成: {d_title[:16]}',
+            fn=_run, jid=jid, task_type='video_render', target_id=did,
+            params={'draft_id': did}, initial_step='短视频渲染管线初始化…')
+    except _task_queue.UserTaskLimitError as e:
+        raise HTTPException(429, str(e))
     return {'job': jid}
 
 @router.get('/api/advideo/ref_file')
@@ -470,6 +477,13 @@ async def video_test_voice_clone(request: Request):
     final_voice = voice_id or cur_cfg.get('voice_clone_voice_id') or 'default'
     if not final_url:
         raise HTTPException(400, '请先填写声音克隆 API 地址')
+    # v15.9.8 SSRF 防护：该 URL 由用户在设置页填写、服务端代为发请求，
+    # 不校验就会被指向 127.0.0.1 / 云元数据 169.254.169.254 等内网目标。
+    from core.outbound_guard import assert_safe_url, UnsafeURLError
+    try:
+        assert_safe_url(final_url)
+    except UnsafeURLError as e:
+        raise HTTPException(400, f'声音克隆 API 地址不安全：{e}')
     import pathlib, uuid, httpx, json as _json, base64 as _b64
     out_dir = pathlib.Path('runs/advideo_audio')
     out_dir.mkdir(parents=True, exist_ok=True)

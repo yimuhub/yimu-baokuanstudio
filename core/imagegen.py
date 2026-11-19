@@ -3,14 +3,90 @@
 from __future__ import annotations
 import base64
 import json
+import logging
 import os
 import re
+import threading
 from pathlib import Path
 
 import httpx
 
 from core.agents import model_for
 from core.llm import load_config, load_env
+
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# 模块级共享 httpx 连接池（v15.9.8）：按用途分桶，线程安全复用。
+# why：此前每张图每条通道都 `with httpx.Client(...)` 新建——批量配图一篇文章
+# 5+ 张图就是 5+ 次完整 TCP+TLS 握手，纯开销。
+# 注意「外链图片下载」单独一个 client（trust_env=False）：
+# ① 免得商业通道请求的系统代理设置污染图片下载（下载地址常是 CDN 直链，
+#   走代理反而 403/超时）；② 独立实例互不拖累，坏连接重建不影响 API 调用。
+# ---------------------------------------------------------------------------
+_HTTP_CLIENTS: dict[tuple, httpx.Client] = {}
+_HTTP_CLIENTS_LOCK = threading.Lock()
+
+
+def _get_http_client(timeout: float, *, trust_env: bool = True,
+                     follow_redirects: bool = False) -> httpx.Client:
+    """取（或建）共享 httpx 客户端；调用方**不要** close 它。异常后用 _drop。"""
+    key = (round(float(timeout), 3), bool(trust_env), bool(follow_redirects))
+    cli = _HTTP_CLIENTS.get(key)
+    if cli is not None and not cli.is_closed:
+        return cli
+    with _HTTP_CLIENTS_LOCK:
+        cli = _HTTP_CLIENTS.get(key)
+        if cli is None or cli.is_closed:
+            cli = httpx.Client(timeout=timeout, trust_env=trust_env,
+                               follow_redirects=follow_redirects)
+            _HTTP_CLIENTS[key] = cli
+        return cli
+
+
+def _drop_http_client(client: httpx.Client) -> None:
+    """传输层异常后丢弃该客户端（含连接池），下次取用时重建。"""
+    try:
+        client.close()
+    except Exception:
+        pass
+    with _HTTP_CLIENTS_LOCK:
+        for k, v in list(_HTTP_CLIENTS.items()):
+            if v is client:
+                _HTTP_CLIENTS.pop(k, None)
+
+
+def _get_download_client() -> httpx.Client:
+    """外链图片下载专用 client：不走系统代理（trust_env=False）、跟随重定向。"""
+    return _get_http_client(45.0, trust_env=False, follow_redirects=True)
+
+
+#: 外链图片下载硬上限（bytes）：防恶意 URL 返回超大响应撑爆内存
+_DOWNLOAD_MAX_BYTES = 20 * 1024 * 1024
+
+
+def _external_image_ok(resp) -> tuple[bool, str]:
+    """外链二次下载安全校验（v15.9.8）。
+
+    规则：① HTTP 2xx；② content-type 以 image/ 开头（HTML 错误页/JSON 报错
+    一律不落盘——历史上坏文件一路走到 PIL 才爆，用户看到「图打不开」）；
+    ③ 体积 >1KB 且 ≤20MB（防异常响应撑爆内存）。
+    返回 (是否通过, 不通过原因)。resp 仅要求 status_code / headers / content
+    三个属性，便于用伪响应单测。
+    """
+    status = getattr(resp, "status_code", None) or 0
+    headers = getattr(resp, "headers", {}) or {}
+    content = getattr(resp, "content", b"") or b""
+    ct = str(headers.get("content-type") or "").lower()
+    if not (200 <= status < 300):
+        return False, f"非 2xx 响应（HTTP {status}）"
+    if not ct.startswith("image/"):
+        return False, f"content-type 不是图片（{ct or '未知'}）"
+    if len(content) <= 1024:
+        return False, f"响应体过小（{len(content)}B，疑似错误页）"
+    if len(content) > _DOWNLOAD_MAX_BYTES:
+        return False, f"响应体超过 20MB 上限（{len(content)}B）"
+    return True, ""
 
 # ═══════════════════════════════════════════════════════════════════════
 # v5.302 升级版：多风格视觉 Prompt 系统（借鉴 Easel card-design 理念）
@@ -684,28 +760,53 @@ def ensure_2k_resolution(out_path: Path | str, target_w: int = 2048, target_h: i
     return False
 
 
+def pollinations_enabled(cfg: dict | None = None) -> bool:
+    """Pollinations 免 Key 保底通道开关（config 键 image.pollinations_enabled，默认 true 保持现状）。
+
+    why：该通道会把用户提示词**免 Key 发送到第三方公共服务**。单机用户图省心
+    没问题，但商业/内网部署（提示词含未公开产品信息）必须能一键关掉，
+    关掉后直接落到下一保底（Pillow 信息卡）。
+    """
+    if cfg is None:
+        try:
+            cfg = (load_config() or {}).get("image", {}) or {}
+        except Exception:
+            return True
+    return bool(cfg.get("pollinations_enabled", True))
+
+
 def gen_image_pollinations(prompt: str, out_path: Path, width: int = 2048, height: int = 1152) -> bool:
-    """通道 2：调用全球开源高质量 Pollinations Flux 真实文生图引擎（100% 真实摄影画质，免 API Key，默认 2K 超清）。"""
+    """通道 2：调用全球开源高质量 Pollinations Flux 真实文生图引擎（100% 真实摄影画质，免 API Key，默认 2K 超清）。
+
+    config 开关：``image.pollinations_enabled``（默认 true 保持现状）。
+    False 时直接跳过该通道（返回 False，走下一保底），不发任何外呼。
+    """
+    if not pollinations_enabled():
+        logger.info("[ImageGen] Pollinations 免 Key 保底通道已在配置中关闭，跳过")
+        return False
     import urllib.parse
     clean_prompt = prompt.strip()
     if not clean_prompt:
         clean_prompt = "cinematic movie still, photorealistic, 2k 4k 8k ultra high resolution, masterpiece, sharp focus"
-    
+
     # 扩大有效字符长度，确保完整镜头光影与反塑料感提示词全量传输（避免截断破坏画质）
     encoded_p = urllib.parse.quote(clean_prompt[:1200])
     seed = abs(hash(clean_prompt)) % 100000
     target_url = f"https://image.pollinations.ai/prompt/{encoded_p}?width={width}&height={height}&model=flux&nologo=true&seed={seed}"
-    
+
+    # 数据出境告知：提示词经免 Key 公共通道发往第三方，命中即告知（用户可关）
+    logger.info("[ImageGen] 提示词将经免 Key 公共通道发送至第三方（Pollinations）；"
+                "如需关闭请设置 image.pollinations_enabled=false")
     try:
-        with httpx.Client(timeout=45, follow_redirects=True) as client:
-            r = client.get(target_url)
-            if r.status_code == 200 and len(r.content) > 2048:
-                out_path.parent.mkdir(parents=True, exist_ok=True)
-                out_path.write_bytes(r.content)
-                ensure_2k_resolution(out_path, target_w=width, target_h=height)
-                return True
-    except Exception:
-        pass
+        client = _get_http_client(45.0, trust_env=True, follow_redirects=True)
+        r = client.get(target_url)
+        if r.status_code == 200 and len(r.content) > 2048:
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+            out_path.write_bytes(r.content)
+            ensure_2k_resolution(out_path, target_w=width, target_h=height)
+            return True
+    except Exception as exc:
+        logger.debug("[ImageGen] Pollinations 通道失败: %s", exc)
     return False
 
 
@@ -761,71 +862,83 @@ def gen_image(prompt: str, out_path: Path, size: str = DEFAULT_IMAGE_SIZE, conte
         commercial_ok = False
         for req_url in candidate_urls:
             try:
-                with httpx.Client(timeout=65, trust_env=not is_local) as client:
-                    # 针对 Agnes 与通用商业模型的规范请求：
-                    # 1. n 严格为 1；
-                    # 2. size 严格为合法的 WIDTHxHEIGHT 或 1K/2K/3K/4K（normalize_image_size 杜绝画幅串）；
-                    # 3. 严格禁止向 Agnes 传 quality（否则直接 400）；
-                    # 4. 只有明确为 OpenAI 原生 dall-e-3 时才携带 quality="hd"。
-                    payload = {
-                        "model": resolved_model,
-                        "prompt": enhanced_prompt,
-                        "n": 1,
-                        "size": req_size,
-                    }
-                    if "dall-e-3" in resolved_model.lower():
-                        payload["quality"] = "hd"
+                client = _get_http_client(65.0, trust_env=not is_local)
+                # 针对 Agnes 与通用商业模型的规范请求：
+                # 1. n 严格为 1；
+                # 2. size 严格为合法的 WIDTHxHEIGHT 或 1K/2K/3K/4K（normalize_image_size 杜绝画幅串）；
+                # 3. 严格禁止向 Agnes 传 quality（否则直接 400）；
+                # 4. 只有明确为 OpenAI 原生 dall-e-3 时才携带 quality="hd"。
+                payload = {
+                    "model": resolved_model,
+                    "prompt": enhanced_prompt,
+                    "n": 1,
+                    "size": req_size,
+                }
+                if "dall-e-3" in resolved_model.lower():
+                    payload["quality"] = "hd"
 
-                    r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
+                r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
 
-                    # 智能容错救生机制：若遭遇 400，自适应修复并重试
+                # 智能容错救生机制：若遭遇 400，自适应修复并重试
+                if r.status_code == 400:
+                    # 救生步骤 1：若 payload 存在 quality，立即剥除 quality 重试
+                    if "quality" in payload:
+                        payload.pop("quality", None)
+                        r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
+
+                    # 救生步骤 2：若仍为 400，自适应降级 size（对于 Agnes 模型尝试 "2K" 或标准方图 "1024x1024"）
                     if r.status_code == 400:
-                        # 救生步骤 1：若 payload 存在 quality，立即剥除 quality 重试
-                        if "quality" in payload:
-                            payload.pop("quality", None)
-                            r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
+                        fallback_sizes = ["2K", "1024x1024", "1792x1024"] if is_agnes else ["1024x1024", "1792x1024"]
+                        for f_size in fallback_sizes:
+                            if payload.get("size") != f_size:
+                                payload["size"] = f_size
+                                r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
+                                if r.status_code == 200:
+                                    break
 
-                        # 救生步骤 2：若仍为 400，自适应降级 size（对于 Agnes 模型尝试 "2K" 或标准方图 "1024x1024"）
-                        if r.status_code == 400:
-                            fallback_sizes = ["2K", "1024x1024", "1792x1024"] if is_agnes else ["1024x1024", "1792x1024"]
-                            for f_size in fallback_sizes:
-                                if payload.get("size") != f_size:
-                                    payload["size"] = f_size
-                                    r = client.post(req_url, json=payload, headers={"Authorization": f"Bearer {key}"})
-                                    if r.status_code == 200:
-                                        break
+                if r.status_code == 200:
+                    res_json = r.json()
+                    data_arr = res_json.get("data", [{}])
+                    data = data_arr[0] if isinstance(data_arr, list) and data_arr else {}
+                    b64 = data.get("b64_json") or data.get("image") or res_json.get("b64_json")
+                    img_url = data.get("url") or data.get("image_url") or res_json.get("url")
 
-                    if r.status_code == 200:
-                        res_json = r.json()
-                        data_arr = res_json.get("data", [{}])
-                        data = data_arr[0] if isinstance(data_arr, list) and data_arr else {}
-                        b64 = data.get("b64_json") or data.get("image") or res_json.get("b64_json")
-                        img_url = data.get("url") or data.get("image_url") or res_json.get("url")
-                        
-                        if b64:
+                    if b64:
+                        out_path.parent.mkdir(parents=True, exist_ok=True)
+                        out_path.write_bytes(base64.b64decode(b64))
+                        commercial_ok = True
+                        break
+                    elif img_url:
+                        # v15.9.8 外链二次下载安全校验（2xx + image/* + ≤20MB）：
+                        # 校验不通过一律不落盘，继续走保底通道。
+                        dl_client = _get_download_client()
+                        dl_r = dl_client.get(img_url)
+                        dl_ok, dl_reason = _external_image_ok(dl_r)
+                        if dl_ok:
                             out_path.parent.mkdir(parents=True, exist_ok=True)
-                            out_path.write_bytes(base64.b64decode(b64))
+                            out_path.write_bytes(dl_r.content)
                             commercial_ok = True
                             break
-                        elif img_url:
-                            dl_r = None
-                            with httpx.Client(timeout=45, follow_redirects=True) as dl_client:
-                                dl_r = dl_client.get(img_url)
-                                if dl_r.status_code == 200 and len(dl_r.content) > 1024:
-                                    out_path.parent.mkdir(parents=True, exist_ok=True)
-                                    out_path.write_bytes(dl_r.content)
-                                    commercial_ok = True
-                                    break
-                            status_code_str = getattr(dl_r, 'status_code', 'error')
-                            _GEN_DIAG["commercial_error"] = f"生图端点返回的图片地址拉取失败（HTTP {status_code_str}）"
-                        else:
-                            _GEN_DIAG["commercial_error"] = f"生图端点返回 200 但无图片数据体（model={resolved_model}）"
+                        dl_ct = (dl_r.headers.get('content-type') or '')
+                        _GEN_DIAG["commercial_error"] = (
+                            f"生图端点返回的图片地址拉取校验失败"
+                            f"（HTTP {dl_r.status_code} / type={dl_ct or '未知'}：{dl_reason}）")
+                        logger.warning(
+                            "[ImageGen] 外链图片下载未通过校验，不落盘: url=%s http=%s type=%s size=%d 原因=%s",
+                            img_url[:120], dl_r.status_code, dl_ct, len(dl_r.content), dl_reason)
                     else:
-                        _GEN_DIAG["commercial_error"] = f"HTTP {r.status_code}: {r.text[:120]}"
-                        print(f"[ImageGen] 商业生图通道 [{pid}] {req_url} 返回 {r.status_code}，将转开源保底通道")
+                        _GEN_DIAG["commercial_error"] = f"生图端点返回 200 但无图片数据体（model={resolved_model}）"
+                else:
+                    _GEN_DIAG["commercial_error"] = f"HTTP {r.status_code}: {r.text[:120]}"
+                    logger.warning(f"[ImageGen] 商业生图通道 [{pid}] {req_url} 返回 {r.status_code}，将转开源保底通道")
             except Exception as e:
                 _GEN_DIAG["commercial_error"] = f"{type(e).__name__}: {str(e)[:120]}"
-                print(f"[ImageGen] 商业生图通道 [{pid}] {req_url} 调用异常: {e}，将转开源保底通道")
+                # 传输层异常后共享连接池可能残留坏连接，丢弃重建
+                try:
+                    _drop_http_client(_get_http_client(65.0, trust_env=not is_local))
+                except Exception:
+                    pass
+                logger.warning(f"[ImageGen] 商业生图通道 [{pid}] {req_url} 调用异常: {e}，将转开源保底通道")
         if commercial_ok:
             _GEN_DIAG["channel"] = "commercial"
             ensure_2k_resolution(out_path, target_w=w, target_h=h)

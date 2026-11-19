@@ -228,6 +228,9 @@ del _m, _p, _n, _register
 # ---- YIMU Gateway /v1 运行时装配（集成）：补齐 routers_openai 依赖的 app.state ----
 # 与 web/gateway_ui 共用同一 DB（YIMU_DB_URL 优先，否则主应用 DB 文件），保证
 # UI 创建的 Key 能被 /v1 鉴权识别；装配失败不阻塞主服务启动。
+# v15.9.8：装配结果落 GATEWAY_V1_OK 布尔并暴露进 /health——此前失败只 print
+# 一行就没了，用户反馈「/v1 不可用」时日志里翻不到证据。
+GATEWAY_V1_OK: bool = False
 try:
     from gateway.config import (  # noqa: E402
         GatewayError,
@@ -252,12 +255,13 @@ try:
     app.state.rate_limiter = RateLimiter()
     app.state.model_catalog = load_model_catalog()
     app.state.upstream_pool = _build_upstream_pool(app)
+    GATEWAY_V1_OK = True
 
     @app.exception_handler(GatewayError)
     async def _gateway_error_handler(request: Request, exc: GatewayError):
         return await gateway_error_handler(request, exc)
 except Exception as _gw_exc:  # pragma: no cover
-    print(f"⚠️ 网关 /v1 运行时装配失败（主服务不受影响，/v1 暂不可用）：{_gw_exc}")
+    logger.error(f"⚠️ 网关 /v1 运行时装配失败（主服务不受影响，/v1 暂不可用）：{_gw_exc}", exc_info=True)
 
 
 def _draft_table_health() -> str:
@@ -308,6 +312,33 @@ async def on_startup():
             print(f"[Startup] 已自动识别并标记 {cnt} 个中断任务为 interrupted 状态，支持断点续跑")
     except Exception as e:
         print(f"[Startup] 任务恢复检测轻微异常: {e}")
+    # ⭐ v15.9.8 磁盘治理：启动时清理 1 小时前终态 JOBS 与过期草稿（按
+    #    draft_expire_days，0=永不过期；data/config.local.yaml 可覆盖），
+    #    并报告 data/drafts 目录体量（>5GB 打 warning 提醒手动治理）。
+    try:
+        from core import task_queue as _tq_startup
+        _pruned = _tq_startup.prune_stale_jobs()
+        if _pruned:
+            logger.info(f"[Startup] 已清理 {_pruned} 个超过 1 小时的终态 JOBS 条目（内存泄漏治理）")
+    except Exception as e:
+        logger.warning(f"[Startup] JOBS 过期清理轻微异常: {e}")
+    try:
+        _expire_days = int((load_config().get('creation') or {}).get('draft_expire_days', 0) or 0)
+        _sweep = db.cleanup_expired_drafts(_expire_days)
+        if not _sweep.get('skipped') and _sweep.get('deleted'):
+            logger.info(f"[Startup] 过期草稿治理：已删除 {_sweep['deleted']} 个超过 {_expire_days} 天的草稿")
+    except Exception as e:
+        logger.warning(f"[Startup] 过期草稿治理轻微异常: {e}")
+    try:
+        _drafts_bytes = db.drafts_dir_size_bytes()
+        _drafts_gb = _drafts_bytes / (1024 ** 3)
+        logger.info(f"[Startup] data/drafts 目录体量: {_drafts_gb:.2f} GB")
+        if _drafts_bytes > 5 * 1024 ** 3:
+            logger.warning(
+                f"[Startup] data/drafts 目录已超过 5GB（当前 {_drafts_gb:.2f}GB），"
+                "建议在「设置」配置 draft_expire_days 或手动清理旧草稿产物")
+    except Exception as e:
+        logger.warning(f"[Startup] drafts 目录体量统计轻微异常: {e}")
     try:
         from core import scheduler
         scheduler.start_scheduler_daemon()
@@ -324,14 +355,23 @@ JOBS: dict = {}
 
 def start_async_job(jid: str, name: str, task_type: str, target_id: str = "",
                     total_steps: int = 1, params: dict | None = None,
-                    initial_step: str = "排队中…") -> str:
-    """统一注册并启动一个异步算力任务，同步通知 task_queue 和持久化数据库。"""
+                    initial_step: str = "排队中…", owner: str | None = None) -> str:
+    """统一注册并启动一个异步算力任务，同步通知 task_queue 和持久化数据库。
+
+    v15.9.8：JOBS 条目带 owner 与 completed_at——owner 供 /api/tasks 按用户
+    隔离（非 admin 只能看/取消自己的任务），completed_at 供 1 小时终态清理。
+    owner 缺省时按 _CURRENT_USER contextvar 惯用法自动取当前登录用户。
+    """
     from core import task_queue
+    if owner is None:
+        _u = _CURRENT_USER.get() or {}
+        owner = str((_u or {}).get("id") or "")
     JOBS[jid] = {
         "id": jid,
         "name": name,
         "task_type": task_type,
         "target_id": target_id,
+        "owner": str(owner or ""),
         "step": initial_step,
         "status": "running",
         "result": None,
@@ -340,9 +380,9 @@ def start_async_job(jid: str, name: str, task_type: str, target_id: str = "",
     }
     try:
         task_queue.register_job(jid, name=name, task_type=task_type, target_id=target_id,
-                                total_steps=total_steps, params=params)
+                                total_steps=total_steps, params=params, owner=str(owner or ""))
     except Exception as e:
-        print(f"[start_async_job] register error: {e}")
+        logger.error(f"[start_async_job] register error: {e}")
     return jid
 
 
@@ -360,11 +400,14 @@ def update_async_job(jid: str, *, status: str | None = None,
             JOBS[jid]["result"] = result
         if error is not None:
             JOBS[jid]["error"] = error
+        # 终态第一时间打时间戳：1 小时过期清理依据它
+        if status in ("done", "completed", "failed", "cancelled", "interrupted"):
+            JOBS[jid].setdefault("completed_at", time.time())
     try:
         task_queue.update_job(jid, status=status, step=step, progress=progress,
                               result=result, error=error)
     except Exception as e:
-        print(f"[update_async_job] update error: {e}")
+        logger.error(f"[update_async_job] update error: {e}")
 
 
 # 本机网络层存在 POST 重放（同一请求会到两次）：写操作按 内容哈希 幂等去重，
@@ -396,8 +439,10 @@ async def idempotent_posts(request: Request, call_next):
         try:
             if resp.status_code == 200 and getattr(resp, "body", None):
                 _SEEN[key] = (now, resp)
-        except Exception:
-            pass
+        except Exception as e:
+            # v15.9.8:StreamingResponse 无同步 body,缓存写入失败此前被静默吞掉;
+            # 单机内存态去重本就只作本机重放防护,失败即本次跳过去重,留痕便于排查。
+            logger.debug(f"[idempotent_posts] 响应缓存跳过({type(e).__name__}),该请求不做重放去重: {path}")
         return resp
     return await call_next(request)
 
@@ -754,7 +799,8 @@ def require_credits(action: str, count: int = 1, desc: str = "") -> bool:
             db.close()
     except Exception as e:  # noqa: BLE001
         # 扣费模块异常时按失败处理，宁可拦住也不放过（不抛 500 打扰用户）
-        print(f"[计费] 扣费异常，按余额不足处理: action={action} err={e}")
+        # v15.9.8：print 不进日志文件（生产路径），改 logger 才能从导出日志排障
+        logger.error(f"[计费] 扣费异常，按余额不足处理: action={action} err={e}")
         ok = False
     if ok:
         return True
@@ -870,7 +916,7 @@ def _tier_quota_check(user: dict, capability: str) -> tuple:
         # 配额是体验限制，不是资金校验：数据库抖动时不阻断主功能。
         # 但**不得升级为 pro**（那等于一抖库就把免费用户全解锁），
         # 取值退回用户档案里的档位，缺省 free。
-        print(f"[配额] 检查失败，本次不限制（按保守档位回退）: {e}")
+        logger.error(f"[配额] 检查失败，本次不限制（按保守档位回退）: {e}")
         return True, "", str((user or {}).get("plan") or "free")
 
 

@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from pathlib import Path
 from typing import Any
 
@@ -97,39 +98,93 @@ def install_env_path() -> Path:
 # 读配置
 # ---------------------------------------------------------------------------
 
+def _read_yaml_file(path: Path) -> dict:
+    """安全读取单个 YAML；解析失败抛 RuntimeError（不静默吞掉）。"""
+    with open(path, encoding="utf-8") as fh:
+        data = yaml.safe_load(fh) or {}
+    if not isinstance(data, dict):
+        raise RuntimeError(f"配置文件 {path} 内容不是有效的键值结构（解析结果为 {type(data).__name__}）")
+    return data
+
+
+def _load_yaml_with_bak(path: Path, bak: Path) -> dict:
+    """读 YAML；坏文件回退上次好配置（.bak），bak 也没有则抛异常让启动失败。
+
+    🔴 v15.9.8 整改：旧实现 YAML 解析失败时静默返回空配置——``config.local.yaml``
+    是供应商池/密钥配置的唯一真源，解析失败即「密钥全消失」，全站通道按空跑，
+    用户只会看到「所有模型服务都没了」却查不到原因。现在：
+      1. 解析失败 → 把坏文件改名 ``<原名>.corrupt-<时间戳>`` 保留现场（便于
+         人工恢复；不直接覆盖 .bak，避免把最后一次好配置也弄丢）；
+      2. 尝试读 .bak（write_config 每次写入前的自动备份）→ log.error；
+      3. .bak 也没有/也坏 → 抛显性异常让启动失败。**密钥全消失优于静默空跑**：
+         宁可启动报错让人来修，也不能带着空配置假装一切正常。
+    """
+    try:
+        return _read_yaml_file(path)
+    except Exception as primary_err:
+        corrupt = path.with_name(f"{path.name}.corrupt-{time.strftime('%Y%m%d-%H%M%S')}")
+        try:
+            path.replace(corrupt)
+            logger.error(
+                "[registry] 配置文件解析失败已改名保留现场: %s → %s（原因：%s）",
+                path, corrupt, primary_err)
+        except OSError:
+            logger.error("[registry] 配置文件解析失败且无法改名保留现场: %s（原因：%s）",
+                         path, primary_err)
+        if bak.exists():
+            try:
+                data = _read_yaml_file(bak)
+                logger.error(
+                    "[registry] 已回退到上次好配置 %s（当前配置损坏，"
+                    "找回最新内容请查看 %s）", bak, corrupt)
+                return data
+            except Exception as bak_err:
+                logger.error("[registry] 备份配置 %s 也无法解析: %s", bak, bak_err)
+        raise RuntimeError(
+            f"配置文件 {path} 损坏且无可用备份（{bak}），拒绝以空配置启动。"
+            f"坏文件已保留在 {corrupt}，请修复后重启；"
+            "密钥全消失优于静默空跑。") from primary_err
+
+
 def raw_config() -> dict:
     """读配置文件（不做任何归一化，写盘前用这个）。"""
     cfg: dict[str, Any] = {}
     f = config_path()
     if f.exists():
-        try:
-            with open(f, encoding="utf-8") as fh:
-                cfg = yaml.safe_load(fh) or {}
-        except (OSError, yaml.YAMLError) as e:
-            logger.warning("[registry] 读取 %s 失败：%s", f, e)
-            cfg = {}
+        cfg = _load_yaml_with_bak(f, BASE / "data" / "config.local.yaml.bak")
     local = BASE / "data" / "config.local.yaml"
     if local.exists():
-        try:
-            with open(local, encoding="utf-8") as fh:
-                local_cfg = yaml.safe_load(fh) or {}
-            if isinstance(local_cfg, dict):
-                for k, v in local_cfg.items():
-                    # 覆盖层是**整段快照**（write_config 每次写的是完整配置），
-                    # 所以这里整段替换而不是逐键合并：逐键合并会让主配置里
-                    # 已被清理掉的旧字段（如 gateway.base_url）在每次读取时
-                    # 又冒回来，normalize 于是永远「不干净」，回写也不再幂等。
-                    cfg[k] = v
-        except (OSError, yaml.YAMLError) as e:
-            logger.warning("[registry] 读取 %s 失败：%s", local, e)
+        local_cfg = _load_yaml_with_bak(local, BASE / "data" / "config.local.yaml.bak")
+        for k, v in local_cfg.items():
+            # 覆盖层是**整段快照**（write_config 每次写的是完整配置），
+            # 所以这里整段替换而不是逐键合并：逐键合并会让主配置里
+            # 已被清理掉的旧字段（如 gateway.base_url）在每次读取时
+            # 又冒回来，normalize 于是永远「不干净」，回写也不再幂等。
+            cfg[k] = v
     return cfg if isinstance(cfg, dict) else {}
 
 
 def write_config(cfg: dict) -> bool:
-    """把归一化后的配置落盘；失败不抛异常，返回 False。"""
+    """把归一化后的配置落盘；失败不抛异常，返回 False。
+
+    v15.9.8：写盘前先把**当前**配置原子复制一份到 ``<target>.bak``——
+    一旦新写入的内容有问题（半截盘/坏 YAML），raw_config 下次读取能回退到
+    这份上次好配置，而不是静默空配置（见 _load_yaml_with_bak）。
+    """
     target = writable_config_path()
     try:
         target.parent.mkdir(parents=True, exist_ok=True)
+        # ① 写前备份当前好配置（原子：tmp 写完再 replace）
+        if target.exists():
+            bak = target.with_suffix(target.suffix + ".bak")
+            try:
+                bak_tmp = bak.with_suffix(bak.suffix + ".tmp")
+                bak_tmp.write_bytes(target.read_bytes())
+                bak_tmp.replace(bak)
+            except OSError as e:
+                # 备份失败不阻断写入（好配置仍在 target 上），但要留痕
+                logger.error("[registry] 写前备份 %s 失败：%s", bak, e)
+        # ② 原子替换主文件
         tmp = target.with_suffix(target.suffix + ".tmp")
         with open(tmp, "w", encoding="utf-8") as fh:
             yaml.safe_dump(cfg, fh, allow_unicode=True)

@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 from adapters.base import PLATFORMS, NAMES  # noqa: E402,F811
 from core import db, judge, orchestrator  # noqa: E402,F811
+from core import task_queue as _task_queue  # noqa: E402,F811  (用户后台任务统一收口)
 from core import diagnostics as diag  # noqa: E402,F811
 from core.llm import load_config, load_env  # noqa: E402,F811
 from core.themes import WECHAT_THEMES, XHS_CARD_STYLES  # noqa: E402,F811
@@ -38,6 +39,24 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
 from pathlib import Path  # noqa: E402,F811
 import asyncio  # noqa: E402,F811
 import re  # noqa: E402,F811
+
+
+def _spawn_user_job(u: dict, name: str, fn, *, jid: str, task_type: str,
+                    target_id: str = "", params: dict | None = None,
+                    initial_step: str = "排队中…") -> dict:
+    """fire-and-forget 任务统一入口：受界池 + 每用户并发上限（超出 429 中文提示）。
+
+    why：此前 5 处直接 ``run_in_executor(None, ...)``——无界线程池 + JOBS 只进
+    不出（内存泄漏）+ 无法按用户隔离。统一走 task_queue.spawn_user_task。
+    """
+    try:
+        jid = _task_queue.spawn_user_task(
+            owner=str((u or {}).get('id') or ''), name=name, fn=fn, jid=jid,
+            task_type=task_type, target_id=target_id, params=params,
+            initial_step=initial_step)
+    except _task_queue.UserTaskLimitError as e:
+        raise HTTPException(429, str(e))
+    return {'job': jid}
 import time  # noqa: E402,F811
 import uuid  # noqa: E402,F811
 
@@ -367,7 +386,7 @@ async def draft_gh_imgs(did: str, request: Request):
 @router.post('/api/drafts/{did}/ai_layout')
 async def draft_ai_layout(did: str, request: Request):
     """AI 重排版：按最新正文与主题为选定平台重新排版与渲染。"""
-    _a.guard(request)
+    u = _a.guard(request)
     body = await request.json()
     d = db.get_draft(did)
     if not d:
@@ -377,7 +396,6 @@ async def draft_ai_layout(did: str, request: Request):
     import uuid
     jid = f'lay-{did[:8]}-{uuid.uuid4().hex[:4]}'
     d_title = d.get('title', '')
-    _a.start_async_job(jid, name=f'智能排版美化 [{platform}]: {d_title[:16]}', task_type='article_layout', target_id=did, params={'draft_id': did, 'platform': platform, 'theme': theme}, initial_step=f'【{platform}】排版初始化中…')
 
     def _run():
         try:
@@ -456,8 +474,10 @@ async def draft_ai_layout(did: str, request: Request):
                 _a.update_async_job(jid, status='done', step='微信公众号排版完成', progress=100, result={'html': html, 'text': body_text})
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:400], step='排版失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    return _spawn_user_job(u, f'智能排版美化 [{platform}]: {d_title[:16]}', _run, jid=jid,
+                           task_type='article_layout', target_id=did,
+                           params={'draft_id': did, 'platform': platform, 'theme': theme},
+                           initial_step=f'【{platform}】排版初始化中…')
 
 @router.post('/api/drafts/{did}/switch_title')
 async def draft_switch_title(did: str, request: Request):
@@ -552,13 +572,12 @@ async def draft_platform_scores(did: str, request: Request):
 
 @router.post('/api/drafts/{did}/publish_xhs')
 async def draft_publish_xhs(did: str, request: Request):
-    _a.guard(request)
+    u = _a.guard(request)
     # 这个接口不接受任何参数，此前却先 await request.json() 又丢掉结果：
     # 用 curl / SDK 调用时不带 body 会直接 json 解析失败 → 500。发布逻辑
     # 完全不依赖请求体，索性不读。
     import uuid
     jid = uuid.uuid4().hex[:12]
-    _a.JOBS[jid] = {'step': '准备发布…', 'status': 'running', 'result': None, 'error': ''}
 
     def _run():
         try:
@@ -567,8 +586,11 @@ async def draft_publish_xhs(did: str, request: Request):
             _a.JOBS[jid].update(status='done' if res['ok'] else 'failed', step='完成' if res['ok'] else '失败', result=res, error='' if res['ok'] else res['detail'][:300])
         except Exception as e:
             _a.JOBS[jid].update(status='failed', error=str(e)[:300], step='失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    # v15.9.8：走统一受界任务池（带 owner / 并发上限 / JOBS 过期清理），
+    # 手工 `_a.JOBS[jid] = {...}` 裸注册已由 spawn_user_task 内部完成。
+    return _spawn_user_job(u, f'小红书发布: {did[:16]}', _run, jid=jid,
+                           task_type='publish_xhs', target_id=did,
+                           params={'draft_id': did}, initial_step='准备发布…')
 
 @router.post('/api/drafts/{did}/storyboard')
 async def draft_storyboard(did: str, request: Request):
@@ -637,14 +659,13 @@ async def storyboard_batch_gen_images(did: str, request: Request):
 
 @router.post('/api/drafts/{did}/ai_xhs')
 async def draft_ai_xhs(did: str, request: Request):
-    _a.guard(request)
+    u = _a.guard(request)
     body = await request.json()
     style = body.get('style', 'magazine')
     d = db.get_draft(did) or {}
     d_title = d.get('title', did[:8])
     import uuid
     jid = f'xhs-{did[:8]}-{uuid.uuid4().hex[:4]}'
-    _a.start_async_job(jid, name=f'小红书排版与制卡: {d_title[:16]}', task_type='article_layout', target_id=did, params={'draft_id': did, 'style': style}, initial_step='小红书爆款图文卡片排版中…')
 
     def _run():
         try:
@@ -652,20 +673,21 @@ async def draft_ai_xhs(did: str, request: Request):
             _a.update_async_job(jid, status='done', step='小红书卡片重排完成！', progress=100, result=res)
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:400], step='小红书排版失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    return _spawn_user_job(u, f'小红书排版与制卡: {d_title[:16]}', _run, jid=jid,
+                           task_type='article_layout', target_id=did,
+                           params={'draft_id': did, 'style': style},
+                           initial_step='小红书爆款图文卡片排版中…')
 
 @router.post('/api/drafts/{did}/ai_xhs_visual')
 async def draft_ai_xhs_visual(did: str, request: Request):
     """AI 全套小红书视觉生图与卡片精修制卡任务"""
-    _a.guard(request)
+    u = _a.guard(request)
     body = await request.json()
     style = body.get('style', 'ai_visual_dark')
     d = db.get_draft(did) or {}
     d_title = d.get('title', did[:8])
     import uuid
     jid = f'xhs-vis-{did[:8]}-{uuid.uuid4().hex[:4]}'
-    _a.start_async_job(jid, name=f'小红书 AI 视觉配图制卡: {d_title[:16]}', task_type='image_gen', target_id=did, params={'draft_id': did, 'style': style}, initial_step='AI 视觉大模型通读与配图生成中…')
 
     def _run():
         try:
@@ -673,8 +695,10 @@ async def draft_ai_xhs_visual(did: str, request: Request):
             _a.update_async_job(jid, status='done', step='✨ AI 视觉图文卡片生成完成！', progress=100, result=res)
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:400], step='AI 生图制卡失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    return _spawn_user_job(u, f'小红书 AI 视觉配图制卡: {d_title[:16]}', _run, jid=jid,
+                           task_type='image_gen', target_id=did,
+                           params={'draft_id': did, 'style': style},
+                           initial_step='AI 视觉大模型通读与配图生成中…')
 
 @router.post('/api/drafts/{did}/xhs_style')
 async def draft_xhs_style(did: str, request: Request):

@@ -3,9 +3,9 @@
 支持主流全球与国产大模型供应商一键切换、毫秒级连通性测速 (Ping)、多 Agent 智能分工路由。
 """
 from __future__ import annotations
-import copy
 import logging
 import os
+import threading
 import time
 from pathlib import Path
 
@@ -18,6 +18,50 @@ logger = logging.getLogger(__name__)
 BASE = Path(__file__).resolve().parent.parent
 _CFG_CACHE: dict = {}
 _ORIG_RAW_CONFIG = _reg.raw_config
+
+# ---------------------------------------------------------------------------
+# 模块级共享 httpx 连接池（v15.9.8）
+# why：此前每次调用都 `with httpx.Client(...)` 新建——每请求都要完整 TCP+TLS
+# 握手，高并发下延迟与 fd 开销成倍增加。httpx.Client 本身线程安全，可全局
+# 共享；按 (timeout, trust_env, follow_redirects) 分桶以兼容既有各异的参数。
+# 传输层异常后连接池里可能残留坏连接，用 _drop_http_client 丢弃重建。
+# ---------------------------------------------------------------------------
+_HTTP_CLIENTS: dict[tuple, httpx.Client] = {}
+_HTTP_CLIENTS_LOCK = threading.Lock()
+
+
+def _get_http_client(timeout: float, *, trust_env: bool = True,
+                     follow_redirects: bool = False) -> httpx.Client:
+    """取（或建）共享 httpx 客户端；调用方**不要** close 它。
+
+    兼容性说明：测试会用 monkeypatch 把 ``httpx.Client`` 换成假实现。
+    缓存里若还留着「上一个工厂」创建的实例，直接返回会绕过打桩——
+    因此除 ``is_closed`` 外，还校验缓存实例的**确切类型**与当前工厂一致，
+    不一致（工厂被换）就重建。getattr 兜底兼容无 is_closed 属性的假对象。
+    """
+    key = (round(float(timeout), 3), bool(trust_env), bool(follow_redirects))
+    cli = _HTTP_CLIENTS.get(key)
+    if cli is not None and type(cli) is httpx.Client and not getattr(cli, "is_closed", False):
+        return cli
+    with _HTTP_CLIENTS_LOCK:
+        cli = _HTTP_CLIENTS.get(key)
+        if cli is None or type(cli) is not httpx.Client or getattr(cli, "is_closed", False):
+            cli = httpx.Client(timeout=timeout, trust_env=trust_env,
+                               follow_redirects=follow_redirects)
+            _HTTP_CLIENTS[key] = cli
+        return cli
+
+
+def _drop_http_client(client: httpx.Client) -> None:
+    """传输层异常后丢弃该客户端（含连接池），下次取用时重建。"""
+    try:
+        client.close()
+    except Exception:
+        pass
+    with _HTTP_CLIENTS_LOCK:
+        for k, v in list(_HTTP_CLIENTS.items()):
+            if v is client:
+                _HTTP_CLIENTS.pop(k, None)
 
 # 13 大主流模型供应商企业级预设（含国产主力：火山引擎、混元、星火、百川等）
 MODEL_PROVIDERS = {
@@ -348,34 +392,34 @@ def fetch_remote_models(base_url: str, api_key: str = "", provider_id: str = "")
 
     for url in candidates:
         try:
-            with httpx.Client(timeout=8.0, trust_env=not is_local) as client:
-                r = client.get(url, headers=headers)
-                if r.status_code == 200:
-                    data = r.json()
-                    # OpenAI 标准: {"data": [{"id": "..."}]}
-                    if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
-                        for item in data["data"]:
-                            if isinstance(item, dict) and "id" in item:
-                                remote_models.append(str(item["id"]))
-                            elif isinstance(item, str):
-                                remote_models.append(item)
-                    # Ollama: {"models": [{"name": "..."}]}
-                    elif isinstance(data, dict) and "models" in data and isinstance(data["models"], list):
-                        for item in data["models"]:
-                            if isinstance(item, dict) and "name" in item:
-                                remote_models.append(str(item["name"]))
-                            elif isinstance(item, str):
-                                remote_models.append(item)
-                    elif isinstance(data, list):
-                        for item in data:
-                            if isinstance(item, dict) and "id" in item:
-                                remote_models.append(str(item["id"]))
-                            elif isinstance(item, str):
-                                remote_models.append(item)
-                    if remote_models:
-                        break
-                else:
-                    error_msg = f"HTTP {r.status_code}"
+            client = _get_http_client(8.0, trust_env=not is_local)
+            r = client.get(url, headers=headers)
+            if r.status_code == 200:
+                data = r.json()
+                # OpenAI 标准: {"data": [{"id": "..."}]}
+                if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
+                    for item in data["data"]:
+                        if isinstance(item, dict) and "id" in item:
+                            remote_models.append(str(item["id"]))
+                        elif isinstance(item, str):
+                            remote_models.append(item)
+                # Ollama: {"models": [{"name": "..."}]}
+                elif isinstance(data, dict) and "models" in data and isinstance(data["models"], list):
+                    for item in data["models"]:
+                        if isinstance(item, dict) and "name" in item:
+                            remote_models.append(str(item["name"]))
+                        elif isinstance(item, str):
+                            remote_models.append(item)
+                elif isinstance(data, list):
+                    for item in data:
+                        if isinstance(item, dict) and "id" in item:
+                            remote_models.append(str(item["id"]))
+                        elif isinstance(item, str):
+                            remote_models.append(item)
+                if remote_models:
+                    break
+            else:
+                error_msg = f"HTTP {r.status_code}"
         except Exception as e:
             error_msg = str(e)
 
@@ -446,14 +490,21 @@ def load_config() -> dict:
             _cfg_stat_sig(_reg.BASE / "data" / "config.local.yaml"),
         )
         if _CFG_CACHE.get("sig") == sig and "view" in _CFG_CACHE:
-            return copy.deepcopy(_CFG_CACHE["view"])
+            # v15.9.8：去掉 deepcopy，直接返回缓存视图。
+            # why：经逐一核查，全仓 38 个 load_config() 调用点全部只读
+            # （.get() 链取值 / 遍历构建新 dict，无一写回）；deepcopy 整棵
+            # 配置树挂在高频请求路径上属于纯开销。
+            # ⚠️ **只读约定**：调用方不得修改返回视图的任何嵌套对象——缓存
+            # 是共享实例，改了会把脏状态带进后续所有请求。需要写配置必须走
+            # provider_registry.raw_config() + write_config()（写盘前有 .bak 保护）。
+            return _CFG_CACHE["view"]
     cfg = _reg.raw_config()
     cfg, _dirty = _reg.normalize(cfg, presets=MODEL_PROVIDERS)
     view = _reg.derive_view(cfg, presets=MODEL_PROVIDERS)
     if use_cache:
         _CFG_CACHE["sig"] = sig
         _CFG_CACHE["view"] = view
-        return copy.deepcopy(view)
+        return view
     return view
 
 
@@ -502,40 +553,40 @@ def ping_provider(base_url: str, api_key: str, model: str, provider_id: str = ""
     t0 = time.time()
     try:
         is_local = "127.0.0.1" in test_url or "localhost" in test_url
-        with httpx.Client(timeout=10.0, trust_env=not is_local) as client:
-            r = client.post(test_url, json=body, headers=headers)
-            latency = int((time.time() - t0) * 1000)
-            if r.status_code == 200:
-                res_json = r.json()
-                reply = res_json.get("choices", [{}])[0].get("message", {}).get("content", "")
-                return {
-                    "ok": True,
-                    "latency_ms": latency,
-                    "status_code": 200,
-                    "model": model,
-                    "key_source": key_source,
-                    "reply": (reply[:30] + "...") if len(reply) > 30 else reply,
-                    "msg": f"握手成功！响应延迟 {latency}ms"
-                }
-            else:
-                err_text = r.text[:200]
-                hint = ""
-                if r.status_code in (401, 403):
-                    if key_source == "none":
-                        hint = "请求没有携带 API Key：输入框为空，且该系统里没有可回退的已保存密钥"
-                    else:
-                        src = {"input": "你刚填写的 Key", "saved": "已保存的 Key",
-                               "platform": "平台主 Key"}.get(key_source, "当前 Key")
-                        hint = f"上游拒绝了{src}，请确认它属于该供应商、未过期且额度正常"
-                return {
-                    "ok": False,
-                    "latency_ms": latency,
-                    "status_code": r.status_code,
-                    "key_source": key_source,
-                    "hint": hint,
-                    "error": f"HTTP {r.status_code}: {err_text}",
-                    "msg": f"连接返回异常 ({r.status_code})"
-                }
+        client = _get_http_client(10.0, trust_env=not is_local)
+        r = client.post(test_url, json=body, headers=headers)
+        latency = int((time.time() - t0) * 1000)
+        if r.status_code == 200:
+            res_json = r.json()
+            reply = res_json.get("choices", [{}])[0].get("message", {}).get("content", "")
+            return {
+                "ok": True,
+                "latency_ms": latency,
+                "status_code": 200,
+                "model": model,
+                "key_source": key_source,
+                "reply": (reply[:30] + "...") if len(reply) > 30 else reply,
+                "msg": f"握手成功！响应延迟 {latency}ms"
+            }
+        else:
+            err_text = r.text[:200]
+            hint = ""
+            if r.status_code in (401, 403):
+                if key_source == "none":
+                    hint = "请求没有携带 API Key：输入框为空，且该系统里没有可回退的已保存密钥"
+                else:
+                    src = {"input": "你刚填写的 Key", "saved": "已保存的 Key",
+                           "platform": "平台主 Key"}.get(key_source, "当前 Key")
+                    hint = f"上游拒绝了{src}，请确认它属于该供应商、未过期且额度正常"
+            return {
+                "ok": False,
+                "latency_ms": latency,
+                "status_code": r.status_code,
+                "key_source": key_source,
+                "hint": hint,
+                "error": f"HTTP {r.status_code}: {err_text}",
+                "msg": f"连接返回异常 ({r.status_code})"
+            }
     except Exception as e:
         latency = int((time.time() - t0) * 1000)
         return {
@@ -1201,31 +1252,36 @@ def chat(messages: list[dict], *, model: str | None = None,
 
         is_local = "127.0.0.1" in req_url or "localhost" in req_url
         try:
-            with httpx.Client(timeout=timeout, trust_env=not is_local) as client:
-                r = client.post(req_url, json=body, headers=headers)
-                if r.status_code == 200:
-                    payload = r.json()
-                    content = payload["choices"][0]["message"]["content"]
-                    # 双轨制计量：提取 usage，全 provider 记统计，官方通道扣费（R12 共用 helper）
-                    _u = payload.get("usage") or {}
-                    _pt = int(_u.get("prompt_tokens") or 0)
-                    _ct = int(_u.get("completion_tokens") or 0)
-                    _tt = int(_u.get("total_tokens") or 0) or (_pt + _ct)
-                    _meter_call(
-                        curr_pid, curr_model, _pt, _ct, _tt, user_id=user_id,
-                        prompt_text="\n".join(str(m.get("content", "")) for m in messages
-                                               if isinstance(m, dict)),
-                        completion_text=content or "",
-                    )
-                    return content
-                else:
-                    last_err = RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
-                    trail.append(f"{curr_pid} {curr_base} → {_explain_status(r.status_code, r.text[:200])}")
-                    logger.warning(f"[LLM] 渠道 [{curr_pid}] 返回异常状态码: {r.status_code}，尝试备用通道...")
+            client = _get_http_client(timeout, trust_env=not is_local)
+            r = client.post(req_url, json=body, headers=headers)
+            if r.status_code == 200:
+                payload = r.json()
+                content = payload["choices"][0]["message"]["content"]
+                # 双轨制计量：提取 usage，全 provider 记统计，官方通道扣费（R12 共用 helper）
+                _u = payload.get("usage") or {}
+                _pt = int(_u.get("prompt_tokens") or 0)
+                _ct = int(_u.get("completion_tokens") or 0)
+                _tt = int(_u.get("total_tokens") or 0) or (_pt + _ct)
+                _meter_call(
+                    curr_pid, curr_model, _pt, _ct, _tt, user_id=user_id,
+                    prompt_text="\n".join(str(m.get("content", "")) for m in messages
+                                           if isinstance(m, dict)),
+                    completion_text=content or "",
+                )
+                return content
+            else:
+                last_err = RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
+                trail.append(f"{curr_pid} {curr_base} → {_explain_status(r.status_code, r.text[:200])}")
+                logger.warning(f"[LLM] 渠道 [{curr_pid}] 返回异常状态码: {r.status_code}，尝试备用通道...")
         except Exception as e:
             last_err = e
             trail.append(f"{curr_pid} {curr_base} → 连接失败：{type(e).__name__}: {str(e)[:120]}")
             logger.warning(f"[LLM] 渠道 [{curr_pid}] 发生异常: {e}，正在尝试自动降级转移...")
+            # 传输层异常后共享连接池可能残留坏连接：丢弃重建（v15.9.8）
+            try:
+                _drop_http_client(_get_http_client(timeout, trust_env=not is_local))
+            except Exception:
+                pass
 
     raise RuntimeError(_format_chain_failure(chain, trail, last_err))
 
@@ -1264,8 +1320,27 @@ def _format_chain_failure(chain: list, trail: list[str], last_err) -> str:
 def chat_stream(messages: list[dict], *, model: str | None = None,
                 temperature: float = 0.8, timeout_s: float | None = None, stage: str | None = None,
                 user_id: str | None = None):
-    """流式打字机输出生成器，实时 yield 文本 chunk (SSE)。"""
-    base, key, target_model, provider_id = resolve_llm_endpoint(model, stage=stage)
+    """流式打字机输出生成器，实时 yield 文本 chunk (SSE)。
+
+    v15.9.8 修复：
+    1. ``user_id`` 全链路透传——此前签名收了但没传给 ``resolve_llm_endpoint``，
+       BYOK 用户在流式链路上永远走不到自己的通道；且计量时 ``user_id=None``，
+       官方通道调用全部落进「仅记统计未扣费」分支（资损）。
+    2. 对齐 ``chat()`` 的逐通道降级链：主通道握手失败自动换备用通道，
+       全链失败时给出 ``_format_chain_failure`` 的逐通道诊断。
+    """
+    # 与 chat() 同款：未显式传入时从请求上下文补齐（guard() 写入的 ContextVar）。
+    # 没有 user_id，官方通道在 record_llm_call 里只会记统计不扣费——这是资损。
+    if not user_id:
+        try:
+            from web import admin as _web_admin
+            _u = _web_admin._CURRENT_USER.get()
+            if isinstance(_u, dict) and _u.get("id"):
+                user_id = str(_u["id"])
+        except Exception:
+            pass
+    base, key, target_model, provider_id = resolve_llm_endpoint(
+        model, stage=stage, user_id=user_id)
 
     if not base:
         # 一家供应商都没有（用户把它们全删了）：别拿空地址去拼 URL，
@@ -1283,67 +1358,107 @@ def chat_stream(messages: list[dict], *, model: str | None = None,
         fallbacks = _get_fallback_candidates(provider_id)
         if fallbacks:
             base, key, target_model, provider_id = fallbacks[0]
+            logger.warning(f"[LLM] 流式主通道缺少密钥，自动切换至已配置备用通道 [{provider_id}]")
         else:
             raise RuntimeError(f"供应商 [{provider_id}] 尚未配置 API Key")
 
     if classify_model(target_model) in ("image", "video"):
-        p_info = MODEL_PROVIDERS.get(provider_id) or {}
-        target_model = p_info.get("default_model") or target_model
-
-    body = {
-        "model": target_model,
-        "messages": messages,
-        "temperature": temperature,
-        "stream": True,
-        # OpenAI 兼容协议：流式需显式声明才会在最后一个 chunk 返回 usage
-        "stream_options": {"include_usage": True},
-    }
-    headers = {"Content-Type": "application/json"}
-    if key:
-        headers["Authorization"] = f"Bearer {key}"
+        # 对齐 chat()：优先用文字能力线解析结果，而不是该供应商的预设 default
+        _cap_text = resolve_capability_default("text")
+        _fallback_m = str((_cap_text or {}).get("model") or "").strip()
+        if not _fallback_m:
+            p_info = MODEL_PROVIDERS.get(provider_id) or {}
+            _fallback_m = str(p_info.get("default_model") or "").strip()
+        if _fallback_m and classify_model(_fallback_m) == "text":
+            logger.warning(
+                "[LLM] 流式请求解析到非文字模型 [%s]，回退文字默认 [%s]",
+                target_model, _fallback_m)
+            target_model = _fallback_m
 
     cfg = load_config().get("gateway", {})
     timeout = timeout_s if timeout_s is not None else cfg.get("timeout_s", 60)
-    req_url = f"{base}/chat/completions" if not base.endswith("/chat/completions") else base
-    is_local = "127.0.0.1" in req_url or "localhost" in req_url
 
-    with httpx.Client(timeout=timeout, trust_env=not is_local) as client:
-        with client.stream("POST", req_url, json=body, headers=headers) as response:
-            response.raise_for_status()
-            _s_pt, _s_ct, _s_tt = 0, 0, 0
-            _s_text_parts = []  # 累积流式输出文本，用于 usage 缺失时估算
-            for line in response.iter_lines():
-                if not line:
-                    continue
-                if line.startswith("data: "):
-                    data_str = line[6:].strip()
-                    if data_str == "[DONE]":
-                        break
-                    try:
-                        import json as _json
-                        chunk = _json.loads(data_str)
-                        # SSE usage 累加（最后一个 chunk 通常带 usage；没有则记 0）
-                        _u = chunk.get("usage") or {}
-                        if _u:
-                            _s_pt = int(_u.get("prompt_tokens") or _s_pt)
-                            _s_ct = int(_u.get("completion_tokens") or _s_ct)
-                            _s_tt = int(_u.get("total_tokens") or _s_tt)
-                        delta = chunk["choices"][0].get("delta", {})
-                        content = delta.get("content", "")
-                        if content:
-                            _s_text_parts.append(content)
-                            yield content
-                    except Exception:
-                        pass
-            # 流结束：双轨制计量（R12 共用 helper）
+    # 逐通道降级链（对齐 chat()）：主通道 + 备用通道依次尝试
+    chain = [(base, key, target_model, provider_id)]
+    chain.extend(_get_fallback_candidates(provider_id))
+
+    last_err = None
+    trail: list[str] = []
+    for curr_base, curr_key, curr_model, curr_pid in chain:
+        req_url = f"{curr_base}/chat/completions" if not curr_base.endswith("/chat/completions") else curr_base
+        body = {
+            "model": curr_model,
+            "messages": messages,
+            "temperature": temperature,
+            "stream": True,
+            # OpenAI 兼容协议：流式需显式声明才会在最后一个 chunk 返回 usage
+            "stream_options": {"include_usage": True},
+        }
+        headers = {"Content-Type": "application/json"}
+        if curr_key:
+            headers["Authorization"] = f"Bearer {curr_key}"
+
+        is_local = "127.0.0.1" in req_url or "localhost" in req_url
+        _yielded_any = False
+        _s_pt, _s_ct, _s_tt = 0, 0, 0
+        _s_text_parts = []  # 累积流式输出文本，用于 usage 缺失时估算
+        try:
+            client = _get_http_client(timeout, trust_env=not is_local)
+            with client.stream("POST", req_url, json=body, headers=headers) as response:
+                response.raise_for_status()
+                for line in response.iter_lines():
+                    if not line:
+                        continue
+                    if line.startswith("data: "):
+                        data_str = line[6:].strip()
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            import json as _json
+                            chunk = _json.loads(data_str)
+                            # SSE usage 累加（最后一个 chunk 通常带 usage；没有则记 0）
+                            _u = chunk.get("usage") or {}
+                            if _u:
+                                _s_pt = int(_u.get("prompt_tokens") or _s_pt)
+                                _s_ct = int(_u.get("completion_tokens") or _s_ct)
+                                _s_tt = int(_u.get("total_tokens") or _s_tt)
+                            delta = chunk["choices"][0].get("delta", {})
+                            content = delta.get("content", "")
+                            if content:
+                                _s_text_parts.append(content)
+                                _yielded_any = True
+                                yield content
+                        except Exception as chunk_exc:
+                            # why：单个 SSE chunk 损坏不应掐断整条流；原实现
+                            # except Exception: pass 让坏块无声蒸发，排查流式
+                            # 乱码/断流时毫无线索。debug 级别避免刷屏。
+                            logger.debug("[LLM] 流式 chunk 解析失败（通道 %s）: %s (%r)",
+                                         curr_pid, chunk_exc, data_str[:120])
+            # 流结束：双轨制计量（R12 共用 helper；user_id 缺失会导致漏扣费）
             if not _s_tt:
                 _s_tt = _s_pt + _s_ct
             _meter_call(
-                provider_id, target_model, _s_pt, _s_ct, _s_tt, user_id=user_id,
+                curr_pid, curr_model, _s_pt, _s_ct, _s_tt, user_id=user_id,
                 prompt_text="\n".join(str(m.get("content", "")) for m in messages
                                        if isinstance(m, dict)),
                 completion_text="".join(_s_text_parts),
             )
+            return  # 本通道完整走完，不再尝试后续通道
+        except Exception as e:
+            last_err = e
+            trail.append(f"{curr_pid} {curr_base} → {type(e).__name__}: {str(e)[:120]}")
+            logger.warning("[LLM] 流式渠道 [%s] 发生异常: %s，尝试自动降级转移...", curr_pid, e)
+            # 传输层异常后共享连接池可能残留坏连接：丢弃重建（v15.9.8）
+            try:
+                _drop_http_client(_get_http_client(timeout, trust_env=not is_local))
+            except Exception:
+                pass
+            if _yielded_any:
+                # why：已经向客户端吐过 chunk，再换通道会出现「前半篇 A 模型、
+                # 后半篇 B 模型」的缝合文本——此时只能终止并由前端失败气泡呈现。
+                raise RuntimeError(_format_chain_failure(chain, trail, last_err)) from e
+
+    raise RuntimeError(_format_chain_failure(chain, trail, last_err))
 
 
 def _meter_call(provider_id: str, model: str, prompt_tokens: int, completion_tokens: int,

@@ -122,7 +122,10 @@ class TestStyleLibrary:
         required = {"id", "name", "description", "use_cases", "prompt_fragment", "example_image_url"}
         for item in styles_mod.list_styles():
             assert required <= set(item), f"风格项缺字段：{item.get('id')}"
-            assert item["example_image_url"], f"风格 {item['id']} 缺示例图 URL"
+            # v15.9.8：example_image_url 改为可选占位——example.com 假链接会被
+            # 前端渲染成裂图并发无效外呼，已统一替换为空串（渲染分支跳过空值），
+            # 运营接入真实素材后可直接填本地静态路径。
+            assert isinstance(item["example_image_url"], str), f"风格 {item['id']} 示例图字段必须是字符串"
 
     def test_style_ids_unique(self):
         styles_mod = pytest.importorskip("studio.image_forge.styles", reason="骨架期：风格库未实现")

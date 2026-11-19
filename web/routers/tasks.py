@@ -32,26 +32,50 @@ import asyncio  # noqa: E402,F811
 import time  # noqa: E402,F811
 import uuid  # noqa: E402,F811
 
+def _assert_task_visible(task: dict, user: dict) -> None:
+    """任务归属校验：非 admin 只能看到 / 取消自己的任务（越权按 404 表现）。
+
+    why：/api/tasks 此前是全局列表——任何登录用户都能看到（并取消）别人的
+    渲染/生图任务。与草稿归属（_assert_draft_owner）同一口径：404 而非 403，
+    不给遍历探测的口子。owner 为空的条目视为系统/历史任务，仅 admin 可见。
+    """
+    if _a._is_admin_user(user):
+        return
+    owner = str((task or {}).get('owner') or '')
+    if owner != str((user or {}).get('id') or ''):
+        raise HTTPException(404, '任务不存在')
+
+
 @router.get('/api/tasks')
 def list_active_tasks(request: Request, active_only: bool=False):
-    _a.guard(request)
+    user = _a.guard(request)
     from core import task_queue
-    return {'tasks': task_queue.list_tasks(limit=30, active_only=active_only)}
+    tasks = task_queue.list_tasks(limit=30, active_only=active_only)
+    # 按当前用户过滤（admin 全量）：owner 为空的系统/历史任务对普通用户不可见
+    if not _a._is_admin_user(user):
+        uid = str((user or {}).get('id') or '')
+        tasks = [t for t in tasks if str(t.get('owner') or '') == uid]
+    return {'tasks': tasks}
 
 @router.get('/api/tasks/{task_id}')
 def get_task_status(task_id: str, request: Request):
-    _a.guard(request)
+    user = _a.guard(request)
     from core import task_queue
     task = task_queue.get_task(task_id)
     if not task:
         raise HTTPException(404, 'Task not found')
     tdict = task.to_dict() if hasattr(task, 'to_dict') else task
+    _assert_task_visible(tdict, user)
     return {'task': tdict}
 
 @router.post('/api/tasks/{task_id}/cancel')
 def cancel_task_endpoint(task_id: str, request: Request):
-    _a.guard(request)
+    user = _a.guard(request)
     from core import task_queue
+    task = task_queue.get_task(task_id)
+    if not task:
+        raise HTTPException(404, '任务不存在')
+    _assert_task_visible(task, user)
     ok = task_queue.cancel_task(task_id)
     return {'ok': ok, 'msg': '任务已取消' if ok else '无法取消任务（可能已结束或不存在）'}
 
@@ -202,19 +226,75 @@ async def copilot_polish_prompt_endpoint(request: Request):
     res = await asyncio.get_event_loop().run_in_executor(None, lambda: prompt_polish.polish(text, platform=platform, user_id=str(u.get('id') or '')))
     return res
 
+def _stream_credit_preflight(user_id: str, model, messages: list) -> None:
+    """官方通道流式计费预检（不扣费，仅验余额能否覆盖本次估算成本）。
+
+    why：/api/stream/write 此前只做登录 guard——官方通道真正的扣费发生在流
+    结束后的 ``_meter_call``，额度不足也要等模型跑完才知道，用户白白等待；
+    且此前 ``chat_stream`` 根本没把 user_id 传下去，官方通道整条流式链路
+    「只记统计不扣费」（资损）。这里复用 studio 现有估算法
+    （llm_metering.estimate_tokens + pricing.credits_for_call）在开流前
+    校验一次余额；不足直接抛 402，前端已有失败气泡展示。
+    """
+    from core import llm
+    from studio import llm_metering, pricing
+
+    base, key, target_model, pid = llm.resolve_llm_endpoint(model, user_id=user_id)
+    if pid != llm_metering.OFFICIAL_PROVIDER_ID:
+        # BYOK / 自备 Key 通道不消耗平台算力额度（与 require_credits 口径一致）
+        return
+    # 今日免费体验次数还有余量时放行（与 record_llm_call 的免单判定同源）
+    try:
+        if llm_metering.free_demo_left_today(user_id) > 0:
+            return
+    except Exception:
+        pass
+    prompt_text = "\n".join(str(m.get('content', '')) for m in messages if isinstance(m, dict))
+    est_in = llm_metering.estimate_tokens(prompt_text)
+    est_out = 1024  # 单次流式写作常规输出的经验估算（超长会实际计费，此处只是开流前的余额检查）
+    in_credits, out_credits = pricing.credits_for_call(target_model, est_in, est_out)
+    need = int(in_credits) + int(out_credits)
+    if need <= 0:
+        return
+    from studio import billing_adapter
+    db = billing_adapter._web_session()
+    try:
+        tenant_id = _a._web_tenant_id(db, user_id)
+        status = billing_adapter.get_billing_status(db, tenant_id, user_id)
+        balance = int((status or {}).get('balance') or 0)
+    finally:
+        db.close()
+    if balance < need:
+        raise HTTPException(
+            402,
+            f"算力额度不足：本次流式写作预计至少需要 {need:,} 点，"
+            f"你的账户还剩 {balance:,} 点。可升级套餐，或到「设置 → 模型服务」"
+            "填入自备 API Key（自备 Key 不扣会员额度）。")
+
+
 @router.post('/api/stream/write')
 async def stream_write_endpoint(request: Request):
-    _a.guard(request)
+    u = _a.guard(request)
     from core import llm
     body = await request.json()
     prompt = body.get('prompt', '')
     system_prompt = body.get('system', '你是专业资深的新媒体爆款主笔。')
     model = body.get('model')
     messages = [{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': prompt}]
+    user_id = str((u or {}).get('id') or '')
+    # v15.9.8：开流前按官方通道做额度预检（不足直接 402，不再等跑完才发现）
+    try:
+        _stream_credit_preflight(user_id, model, messages)
+    except HTTPException:
+        raise
+    except Exception as e:
+        # 预检自身异常不阻断业务：真正扣费仍由流结束的 _meter_call 兜底
+        import logging as _logging
+        _logging.getLogger(__name__).warning(f"[stream] 流式额度预检异常（放行）: {e}")
 
     def event_generator():
         try:
-            for chunk in llm.chat_stream(messages, model=model):
+            for chunk in llm.chat_stream(messages, model=model, user_id=user_id):
                 yield f"data: {json.dumps({'chunk': chunk}, ensure_ascii=False)}\n\n"
             yield 'data: [DONE]\n\n'
         except Exception as e:
@@ -240,9 +320,11 @@ async def batch_submit_endpoint(request: Request):
 @router.get('/api/jobs/{jid}')
 @router.get('/api/rewrite/job/{jid}')
 def rewrite_job_status(jid: str, request: Request):
-    _a.guard(request)
+    u = _a.guard(request)
     j = _a.JOBS.get(jid)
     if not j:
         raise HTTPException(404, '任务不存在')
+    # 归属隔离（与 /api/tasks 同口径）：非 admin 只能看自己的任务
+    _assert_task_visible(j, u)
     return j
 

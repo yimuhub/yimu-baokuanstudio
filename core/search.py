@@ -26,6 +26,11 @@ XHS_MCP = "http://localhost:18060/mcp"
 # ---------------- 小红书（xiaohongshu-mcp） ----------------
 
 def _mcp_rpc(session: list, payload: dict) -> dict | None:
+    # v15.9.8 SSRF 防护：外呼前过安全闸。XHS_MCP 是平台自用固定本地端点
+    # （vendors/xhs-mcp 监听 127.0.0.1:18060），显式 allow_private=True 放行
+    # 环回——多用户服务器上该组件本就不随服务部署，不受用户输入影响。
+    from core.outbound_guard import assert_safe_url
+    assert_safe_url(XHS_MCP, allow_private=True)
     req = urllib.request.Request(
         XHS_MCP, data=json.dumps(payload).encode(),
         headers={"Content-Type": "application/json",
@@ -428,6 +433,7 @@ def fetch_topic_multisource_references(query: str, limit: int = 5) -> list[dict]
     import urllib.parse
     import httpx
     from bs4 import BeautifulSoup
+    from core.outbound_guard import assert_safe_url
 
     kw = (query or "").strip()
     if not kw:
@@ -444,6 +450,9 @@ def fetch_topic_multisource_references(query: str, limit: int = 5) -> list[dict]
     # 1. 抓取百度全网深度研报与长文
     try:
         b_url = f"https://www.baidu.com/s?wd={urllib.parse.quote(kw)}"
+        # v15.9.8 SSRF 防护：抓取目标含用户关键词，发请求前过安全闸
+        # （scheme/解析结果含私网一律拒绝；多用户服务器连回环也拒绝）
+        assert_safe_url(b_url)
         r = httpx.get(b_url, headers=headers, timeout=5.0, follow_redirects=True)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "html.parser")
@@ -477,6 +486,8 @@ def fetch_topic_multisource_references(query: str, limit: int = 5) -> list[dict]
     # 2. 抓取搜狗微信文章库（最具新媒体文案参考价值）
     try:
         url = f"https://weixin.sogou.com/weixin?type=2&query={urllib.parse.quote(kw)}"
+        # v15.9.8 SSRF 防护：与百度抓取同口径，请求前过安全闸
+        assert_safe_url(url)
         r = httpx.get(url, headers=headers, timeout=5.0, follow_redirects=True)
         if r.status_code == 200:
             soup = BeautifulSoup(r.text, "html.parser")

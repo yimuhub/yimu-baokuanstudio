@@ -41,7 +41,10 @@ async def login(request: Request):
 
 @router.get('/health')
 def health():
-    return {'ok': True, 'ts': time.time(), 'version': _a.get_app_version()}
+    # v15.9.8：gateway_v1_ok 随健康检查回显——网关 /v1 装配失败此前只写一行
+    # 启动日志，运维侧无从得知 /v1 是否可用。getattr 兜底兼容测试对 admin 打桩。
+    return {'ok': True, 'ts': time.time(), 'version': _a.get_app_version(),
+            'gateway_v1_ok': bool(getattr(_a, 'GATEWAY_V1_OK', False))}
 
 @router.api_route('/m', methods=['GET', 'HEAD'])
 def mobile_index(request: Request):

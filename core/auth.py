@@ -30,6 +30,18 @@ DB_PATH = Path(os.environ.get("YIMU_DB_PATH") or (DATA / "mediaflow.db"))
 _PBKDF2_ITERATIONS = 210_000  # OWASP 对 HMAC-SHA-256 的建议量级（新哈希）
 _LEGACY_ITERATIONS = 100_000  # 老版本哈希轮数（仅用于验证存量口令）
 
+#: 新设 / 修改密码的最短长度（v15.9.8 由 6 提升到 8）。
+#: why：6 位口令在多用户服务器上就是弱口令（数字 6 位空间仅 100 万，离线
+#: 21 万轮 PBKDF2 反而把爆破成本降到可忽略）。只卡**新建与修改**：
+#: 存量 6 位账号不改密码仍可登录——强制改密会把老用户全部锁在门外，
+#: 弱口令治理应当渐进而不是一刀切断登录。
+MIN_PASSWORD_LENGTH = 8
+
+
+def _password_too_short(password: str) -> bool:
+    """密码是否低于新设门槛（8 位）。"""
+    return len(str(password or "")) < MIN_PASSWORD_LENGTH
+
 
 def _free_quota() -> int:
     """免费档额度（credits）：取自定价真源，禁止在业务代码里硬编码额度数字。"""
@@ -229,8 +241,9 @@ def register_user(username: str, password: str, email: str = "", invite_code: st
     username = username.strip()
     if len(username) < 2:
         raise ValueError("用户名至少2个字符")
-    if len(password) < 6:
-        raise ValueError("密码至少6个字符")
+    # v15.9.8：新注册口令最短 8 位（存量 6 位账号仍可登录，只卡新建）
+    if _password_too_short(password):
+        raise ValueError(f"密码至少{MIN_PASSWORD_LENGTH}个字符，建议混合字母、数字与符号")
 
     c = _db()
     exist = c.execute("SELECT id FROM users WHERE username=?", (username,)).fetchone()
@@ -354,8 +367,9 @@ def create_user_crud(username: str, password: str, email: str = "", role: str = 
     username = username.strip()
     if len(username) < 2:
         raise ValueError("用户名至少2个字符")
-    if len(password) < 6:
-        raise ValueError("密码至少6个字符")
+    # v15.9.8：管理员新建用户同样按新口令门槛（最短 8 位）
+    if _password_too_short(password):
+        raise ValueError(f"密码至少{MIN_PASSWORD_LENGTH}个字符，建议混合字母、数字与符号")
     if role not in ("user", "admin", "owner"):
         role = "user"
     if not quota_max or quota_max <= 0:
@@ -435,9 +449,12 @@ def update_user_crud(user_id: str, email: str | None = None, role: str | None = 
 
 
 def change_password_crud(user_id: str, new_password: str) -> bool:
-    """修改指定用户的密码"""
-    if len(new_password) < 6:
-        raise ValueError("密码至少6个字符")
+    """修改指定用户的密码
+
+    v15.9.8：新密码最短 8 位（旧 6 位账号不改密仍可登录，只卡本次修改）。
+    """
+    if _password_too_short(new_password):
+        raise ValueError(f"密码至少{MIN_PASSWORD_LENGTH}个字符，建议混合字母、数字与符号")
     c = _db()
     r = c.execute("SELECT id FROM users WHERE id=?", (user_id,)).fetchone()
     if not r:

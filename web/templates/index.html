@@ -11,6 +11,19 @@
   const _origConfirm = window.confirm ? window.confirm.bind(window) : function(){ return false; };
   const _origPrompt = window.prompt ? window.prompt.bind(window) : function(){ return null; };
   const _origOpen = window.open ? window.open.bind(window) : function(){ return null; };
+  const _lastGuardToastAt = {};
+  // ⭐ P0 拦截必须有反馈：此前 confirm/prompt 被拦截时只写 console.info，
+  //   用户点按钮毫无反应会以为「功能坏了」。改为 toast 提示，并按消息
+  //   内容做 10s 防抖——流水线每步都可能触发同一条 confirm，不防抖会轰炸。
+  function _guardToast(key, msg) {
+    const now = Date.now();
+    if (now - (_lastGuardToastAt[key] || 0) < 10000) return;
+    _lastGuardToastAt[key] = now;
+    // 主脚本的 toast() 在页面加载后才存在；本脚本在 <head> 里最先执行，
+    // 拦截只会发生在用户交互阶段，正常路径 toast 已可用，这里兜底防 undefined。
+    if (typeof window.toast === 'function') window.toast(msg, 4000);
+    else console.info('[PopupGuard]', msg);
+  }
 
   function _isGenerating() {
     return Boolean(window._copilotGenerating || window._pipelineRunning);
@@ -29,9 +42,13 @@
 
   window.confirm = function(msg) {
     const key = 'confirm:' + String(msg || '').slice(0, 80);
-    // 生成创作过程中或已弹出但未选择（取消）过的同类弹窗，直接静默拦截不再弹出
+    // 生成创作过程中或已弹出但未选择（取消）过的同类弹窗，直接拦截不再弹出，
+    // 但必须 toast 告知用户「为什么没弹窗」；保持同步返回 false 语义不变
     if (_isGenerating() || _seenPopups.has(key) || (_dismissedOnce && String(msg || '').includes('更新'))) {
       console.info('[PopupGuard] 已自动拦截重复确认框:', key);
+      _guardToast('confirm:' + (_isGenerating() ? 'generating' : 'dup'),
+        _isGenerating() ? '任务执行中，该操作已被安全拦截；如确需操作，请先停止任务'
+                        : '该确认框已处理过，已自动跳过重复弹窗');
       return false;
     }
     _seenPopups.add(key);
@@ -44,6 +61,9 @@
     const key = 'prompt:' + String(msg || '').slice(0, 80);
     if (_isGenerating() || _seenPopups.has(key)) {
       console.info('[PopupGuard] 已自动拦截重复输入框:', key);
+      _guardToast('prompt:' + (_isGenerating() ? 'generating' : 'dup'),
+        _isGenerating() ? '任务执行中，该操作已被安全拦截；如确需操作，请先停止任务'
+                        : '该输入框已处理过，已自动跳过重复弹窗');
       return defVal || null;
     }
     _seenPopups.add(key);
@@ -56,6 +76,7 @@
     const key = 'open:' + String(url || '');
     if (_isGenerating()) {
       console.info('[PopupGuard] 创作期间已拦截外部浏览器窗口弹出:', url);
+      _guardToast('open:generating', '任务执行中，外部窗口已被安全拦截；如确需操作，请先停止任务');
       return null;
     }
     if (_seenPopups.has(key) && _dismissedOnce) {
@@ -76,6 +97,8 @@
 <script src="/static/js/version-sync.js"></script>
 <script src="/static/js/pricing-sync.js"></script>
 <script src="/static/js/i18n.js"></script>
+<!-- 网络公共工具（imeSafeEnter 输入法守卫 / pollJob 任务轮询），必须在主脚本之前加载 -->
+<script src="/static/js/yimu-net.js"></script>
 <script>
 (function() {
   const mode = localStorage.getItem('yimu_ui_theme_mode') || 'system';
@@ -6325,7 +6348,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
             <div style="margin-top:14px;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border)">
               <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">⚡ 快捷操作：直接输入或粘贴任意爆款链接一键仿写</div>
               <div style="display:flex;gap:8px">
-                <input type="text" id="dash-quick-link" placeholder="粘贴任意爆款链接…" style="flex:1" onkeydown="if(event.key==='Enter')dashQuickExtract()">
+                <input type="text" id="dash-quick-link" placeholder="粘贴任意爆款链接…" style="flex:1" onkeydown="if(event.key==='Enter'&&imeSafeEnter(event))dashQuickExtract()">
                 <button class="btn ok btn-sm" onclick="dashQuickExtract()">⚡ 一键转化成稿</button>
               </div>
             </div>
@@ -6525,7 +6548,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
 
           <div style="display:flex;flex-direction:column;gap:10px">
             <div class="extract-input-group" style="align-items:stretch">
-              <textarea id="oneshot-input" rows="3" placeholder="输入您的一句话创作灵感，例如：我想写一篇关于三国的研究的文章，重点突出一下诸葛亮…" style="flex:1;background:rgba(0,0,0,0.45);border:1px solid rgba(240,136,62,0.4);border-radius:8px;color:#fff;padding:12px 14px;font-size:14px;line-height:1.6;resize:vertical" onkeydown="if(event.key==='Enter' && (event.metaKey || event.ctrlKey))runOneSentenceViral()"></textarea>
+              <textarea id="oneshot-input" rows="3" placeholder="输入您的一句话创作灵感，例如：我想写一篇关于三国的研究的文章，重点突出一下诸葛亮…" style="flex:1;background:rgba(0,0,0,0.45);border:1px solid rgba(240,136,62,0.4);border-radius:8px;color:#fff;padding:12px 14px;font-size:14px;line-height:1.6;resize:vertical" onkeydown="if(event.key==='Enter' && (event.metaKey || event.ctrlKey) && imeSafeEnter(event))runOneSentenceViral()"></textarea>
               <button class="btn ok" id="btn-run-oneshot" onclick="runOneSentenceViral()" style="padding:0 24px;font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;white-space:nowrap;background:linear-gradient(135deg,#f0883e,#c25a10)">
                 <span>⚡ 一键联网创作</span>
                 <span style="font-size:10.5px;font-weight:400;opacity:0.85">自动打分入库草稿</span>
@@ -6564,7 +6587,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
             <span style="font-size:12px;color:var(--text-muted)">支持小红书短链/文案 · 微信公众号 · 今日头条 · 抖音 · 任意新闻网页</span>
           </div>
           <div class="extract-input-group">
-            <input type="text" id="ext-url-input" placeholder="请在此粘贴任意爆款文章链接或小红书分享文本（包含 http://... 即可）…" onkeydown="if(event.key==='Enter')runExtract()">
+            <input type="text" id="ext-url-input" placeholder="请在此粘贴任意爆款文章链接或小红书分享文本（包含 http://... 即可）…" onkeydown="if(event.key==='Enter'&&imeSafeEnter(event))runExtract()">
             <button class="btn" id="btn-run-extract" onclick="runExtract()">⚡ 一键提取与拆解</button>
           </div>
         </div>
@@ -6663,7 +6686,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
       <div id="sp-search" class="sub-view" style="display:none">
         <div class="card" style="margin-bottom:16px">
           <div class="inspire-search-bar">
-            <input type="text" id="sk-kw" placeholder="搜索关键词，如：数码科技 / 职场认知 / 爆款美食 / 亲子生活 / 流行趋势" style="flex:1;min-width:240px" onkeydown="if(event.key==='Enter')doSearch()">
+            <input type="text" id="sk-kw" placeholder="搜索关键词，如：数码科技 / 职场认知 / 爆款美食 / 亲子生活 / 流行趋势" style="flex:1;min-width:240px" onkeydown="if(event.key==='Enter'&&imeSafeEnter(event))doSearch()">
             <input type="text" id="sk-theme" placeholder="创作主题（留空=跟随对标爆款领域）" style="width:240px">
             <button class="btn" id="btn-search" onclick="doSearch()">🔍 搜索爆款</button>
           </div>
@@ -7069,7 +7092,8 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                 <!-- 真实排版预览视窗 -->
                 <div class="wb-preview-viewport" id="wb-viewport">
                   <div class="wb-preview-sheet" id="wb-preview-sheet">
-                    <div id="wb-preview-canvas" style="flex:1;display:flex;flex-direction:column;min-height:800px;width:100%"></div>
+                    <!-- ⭐ i18n 免翻译标记：正文画布外层，渲染的是 AI 生成/用户创作的成稿内容，i18n 子树跳过 -->
+                    <div id="wb-preview-canvas" data-no-i18n style="flex:1;display:flex;flex-direction:column;min-height:800px;width:100%"></div>
                   </div>
                 </div>
               </div>
@@ -7106,10 +7130,16 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
               </div>
             </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <button class="btn ok btn-sm" onclick="openDramaRequirementModal(true)" title="从需求确认开始，全自动执行8步短剧流水线，每步弹窗确认">⚡ 一键流水线智能生成 (每步弹窗确认)</button>
+              <button class="btn ok btn-sm" id="btn-drama-pipeline" onclick="openDramaRequirementModal(true)" title="从需求确认开始，全自动执行8步短剧流水线，每步弹窗确认">⚡ 一键流水线智能生成 (每步弹窗确认)</button>
               <button class="btn info btn-sm" onclick="openDramaRequirementModal(false)" title="弹出需求分析与剧本改写设定对话框">📝 需求确认与AI改写</button>
               <button class="btn ghost btn-sm" onclick="saveDramaCurrentProject()" title="保存当前短剧项目的全部设定与微调">💾 保存工程</button>
               <button class="btn ghost btn-sm" onclick="loadDramaDraftScenes()" title="重新加载工程数据">🔄 刷新工程</button>
+              <!-- ⭐ P1 无模型守门引导条：生图/视频模型均未接入时由 updateStudioModelGate() 展开，
+                   分镜脚本等不依赖模型的 Tab 不受影响；按钮跳控制中心已有 switchSubTab 用法 -->
+              <div id="studio-model-guide" style="display:none;flex-basis:100%;align-items:center;gap:10px;margin-top:4px;padding:8px 12px;border:1px solid rgba(210,153,34,0.45);background:rgba(210,153,34,0.12);border-radius:8px;font-size:12px;color:#e3b341">
+                <span class="sgm-text" style="flex:1;min-width:0">尚未接入生图/视频模型——分镜脚本仍可用；出图/出视频请先到 控制中心 → 系统与 API 配置 配置模型</span>
+                <button type="button" class="btn btn-sm" style="flex-shrink:0;background:#e3b341;color:#000;border:none;font-weight:700" onclick="switchSubTab('console','sp-settings')">去配置模型 →</button>
+              </div>
             </div>
           </div>
 
@@ -8843,7 +8873,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
           </div>
 
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
-            <input id="usr-search-kw" placeholder="🔍 搜索用户名 / 邮箱…" style="width:220px;background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12.5px;color:var(--text)" onkeydown="if(event.key==='Enter')loadAdminUsers(0)">
+            <input id="usr-search-kw" placeholder="🔍 搜索用户名 / 邮箱…" style="width:220px;background:#0d1117;border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:12.5px;color:var(--text)" onkeydown="if(event.key==='Enter'&&imeSafeEnter(event))loadAdminUsers(0)">
             <button class="btn btn-sm ghost" onclick="loadAdminUsers(0)">搜索</button>
             <span style="font-size:12px;color:var(--text-muted);margin-left:auto" id="usr-total-info">加载中…</span>
           </div>
@@ -9542,7 +9572,7 @@ async function gwNTestCall(){
   if(!message){toast('请输入要发送的测试消息');return;}
   btn.disabled=true;btn.textContent='调用中…';
   try{
-    const d=await api('/api/gw/ui/test-call',{method:'POST',body:JSON.stringify({key_id:keyId,model:model,message:message})});
+    const d=await api('/api/gw/ui/test-call',{method:'POST',timeoutMs:300000,body:JSON.stringify({key_id:keyId,model:model,message:message})});
     const r=d.data;
     const echoTag=r.echo?'<span class="badge gold">回显测试，未走真实上游</span>':'<span class="badge green">真实服务调用</span>';
     box.className='gwN-result show';
@@ -9755,7 +9785,7 @@ async function uploadAdRefImages(input, kind) {
     const fd = new FormData();
     fd.append('file', f);
     try {
-      const r = await api('/api/advideo/upload_ref', { method: 'POST', body: fd });
+      const r = await api('/api/advideo/upload_ref', { method: 'POST', body: fd, timeoutMs: 300000 });
       const path = r.path || '';
       if (kind === 'person') {
         _adPersonRef = path;
@@ -9801,7 +9831,7 @@ async function uploadAdAudio(input) {
   const fd = new FormData();
   fd.append('file', f);
   try {
-    const r = await api('/api/advideo/upload_audio', { method: 'POST', body: fd });
+    const r = await api('/api/advideo/upload_audio', { method: 'POST', body: fd, timeoutMs: 300000 });
     _adCustomAudio = r.path || '';
     const audioName = $('ad-custom-audio-name');
     if (audioName) audioName.textContent = '✅ ' + (f.name || '已上传');
@@ -10085,13 +10115,13 @@ async function handleAivAvatarUpload(inputEl) {
     let data = null;
     // 优先尝试 /api/aivideo/upload_avatar
     try {
-      data = await api('/api/aivideo/upload_avatar', { method: 'POST', body: formData });
+      data = await api('/api/aivideo/upload_avatar', { method: 'POST', body: formData, timeoutMs: 300000 });
     } catch (e1) {
       console.warn('aivideo upload_avatar unavailable, falling back to advideo upload_ref:', e1);
       // 容错平滑回退兜底：若后端进程尚未重启生效，自动回退到已运行的 /api/advideo/upload_ref
       const fbForm = new FormData();
       fbForm.append('file', file);
-      const fbData = await api('/api/advideo/upload_ref', { method: 'POST', body: fbForm });
+      const fbData = await api('/api/advideo/upload_ref', { method: 'POST', body: fbForm, timeoutMs: 300000 });
       if (fbData && fbData.ok) {
         data = {
           ok: true,
@@ -10173,7 +10203,7 @@ async function handleAivVoiceRefUpload(inputEl) {
   const formData = new FormData();
   formData.append('file', file);
   try {
-    const res = await api('/api/advideo/upload_audio', { method: 'POST', body: formData });
+    const res = await api('/api/advideo/upload_audio', { method: 'POST', body: formData, timeoutMs: 300000 });
     if (res && res.path) {
       _aivVoiceRefAudio = res.path;
       const btnText = $('aiv-vc-btn-text');
@@ -10362,6 +10392,7 @@ async function pollAiVideoJob(jid) {
         else if (stepText === 'pending') stepText = '正在排队准备生成…';
         else if (stepText === 'done') stepText = '🎉 生成完成！';
         else if (stepText === 'failed') stepText = '❌ 生成未成功';
+        else if (stepText === 'cancelled') stepText = '⏹ 已取消';
         ptxt.textContent = stepText;
       }
       if (pbar) pbar.style.width = (t.progress || 0) + '%';
@@ -10396,6 +10427,13 @@ async function pollAiVideoJob(jid) {
       if (t.status === 'failed') {
         if (ptxt) ptxt.textContent = '❌ 生成未成功：' + (t.error || t.step || '未知异常');
         toast('生成未成功: ' + (t.error || ''), 4000);
+        return;
+      }
+      // ⭐ P2：后端把用户主动取消写成 status="cancelled"（不再算 failed），
+      //   这里按「已取消」灰态收尾，不弹失败提示、不计入失败
+      if (t.status === 'cancelled') {
+        if (ptxt) ptxt.textContent = '⏹ 任务已取消';
+        toast('任务已取消', 3000);
         return;
       }
       setTimeout(tick, 2000);
@@ -10441,22 +10479,31 @@ async function createAdVideo() {
     });
     if (!res.job) throw new Error('未获取到任务ID');
     const jid = res.job;
-    // 轮询任务状态（复用 /api/jobs 异步任务机制）
-    while (true) {
-      await new Promise(r => setTimeout(r, 2000));
-      const j = await api(`/api/jobs/${jid}`);
-      if (statusBox) statusBox.textContent = `⏳ ${j.step || '广告短片生成中…'}`;
-      if (j.status === 'done') {
-        if (statusBox) { statusBox.textContent = '✅ 广告短片生成完成！'; }
-        renderAdVideoResult(j.result || {});
-        toast('✅ AI 广告短片生成完成！', 4000);
-        break;
-      } else if (j.status === 'failed') {
-        if (statusBox) statusBox.textContent = `❌ 生成失败：${j.error || '未知错误'}`;
-        toast(`广告短片生成失败：${j.error || '未知错误'}`);
-        break;
+    // 轮询任务状态（复用 /api/jobs 异步任务机制），统一接入 pollJobAsync：
+    // 网络抖动自动重试、总时长有上限、切草稿/切页面时经注册表取消
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/jobs/${jid}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 2000,
+      maxMs: 1800000,
+      onStep: j => { if (statusBox) statusBox.textContent = `⏳ ${j.step || '广告短片生成中…'}`; },
+      onDone: j => {
+        if (j.status === 'done') {
+          if (statusBox) { statusBox.textContent = '✅ 广告短片生成完成！'; }
+          renderAdVideoResult(j.result || {});
+          toast('✅ AI 广告短片生成完成！', 4000);
+        } else {
+          if (statusBox) statusBox.textContent = `❌ ${jobEndErrorText(j)}`;
+          toast(`广告短片生成失败：${jobEndErrorText(j)}`);
+        }
+      },
+      onFail: e => {
+        if (statusBox) statusBox.textContent = `❌ ${e.message}`;
+        toast(e.message);
       }
-    }
+    });
   } catch (e) {
     if (statusBox) statusBox.textContent = `❌ 提交失败：${e.message}`;
     toast(`提交失败：${e.message}`);
@@ -10652,6 +10699,8 @@ async function vdCfgTestVoiceClone(){
   try {
     const res = await api('/api/video/test_voice_clone', {
       method: 'POST',
+      // 同步等待真实 TTS 合成试听音频，慢通道可能超过默认 60s
+      timeoutMs: 300000,
       body: JSON.stringify({
         provider: provider,
         model: model,
@@ -10721,10 +10770,51 @@ const STUDIO_VIDEO_SELECT_IDS = [
   'aivCfg-model',
 ];
 
+/* ⭐ P1 影音工坊无模型入口守门：
+   生图或视频「当前没有可用模型」时，8 步流水线主按钮禁用并展开引导条；
+   分镜脚本 / AI 口播配音 TTS 等不依赖生图/视频模型的 Tab 不受影响。
+   判定来源与下拉框填充同源（initStudioModelSelects 渲染出的 option 文案），
+   避免第二套数据源产生口径分叉。 */
+function studioModelSelectUnavailable(selId) {
+  const el = $(selId);
+  if (!el || !el.options) return true; // 下拉缺失按不可用处理（保守判定）
+  const opts = Array.from(el.options);
+  // 除默认空值项外还有真实可选模型 → 可用
+  if (opts.some(o => o.value && String(o.value).trim() !== '')) return false;
+  const defOpt = opts.find(o => !o.value) || opts[0];
+  return !defOpt || /当前没有可用模型/.test(defOpt.textContent || '');
+}
+
+function updateStudioModelGate() {
+  const noImg = studioModelSelectUnavailable('drama-image-model-sel');
+  const noVid = studioModelSelectUnavailable('drama-video-model-sel');
+  const blocked = noImg || noVid;
+  window._studioModelGateBlocked = blocked;
+  const missing = [noImg && '生图', noVid && '视频'].filter(Boolean).join('/');
+  const gate = $('studio-model-guide');
+  if (gate) {
+    gate.style.display = blocked ? 'flex' : 'none';
+    const txt = gate.querySelector('.sgm-text');
+    if (txt && blocked) {
+      txt.textContent = `尚未接入${missing}模型——分镜脚本仍可用；出图/出视频请先到 控制中心 → 系统与 API 配置 配置模型`;
+    }
+  }
+  const btn = $('btn-drama-pipeline');
+  if (btn) {
+    btn.disabled = blocked;
+    btn.title = blocked
+      ? `尚未接入${missing}模型，请先到 控制中心 → 系统与 API 配置 配置后再运行全流水线`
+      : '从需求确认开始，全自动执行8步短剧流水线，每步弹窗确认';
+  }
+}
+
 async function initStudioModelSelects() {
   try {
     const res = await fetchStudioProvidersData();
-    if (!res) return;
+    if (!res) {
+      updateStudioModelGate();
+      return;
+    }
     const cross = (res.cross_models || []);
     const providers = res.providers || {};
     const activePid = res.active_provider_id || '';
@@ -10851,8 +10941,11 @@ async function initStudioModelSelects() {
 
     // 刷新各面板的规则提示卡片
     updateAllStudioModelRuleTips();
+    // 下拉数据落定后再评估无模型守门门禁（按钮禁用 + 引导条显隐）
+    updateStudioModelGate();
   } catch (e) {
     console.warn('[initStudioModelSelects] 影音模型下拉初始化异常:', e.message);
+    updateStudioModelGate();
   }
 }
 
@@ -11965,7 +12058,7 @@ async function deleteUserAccount(uid, username) {
     <div id="auth-pwd-login-field">
       <label style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block">密码</label>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
-        <input type="password" id="login-pwd" placeholder="请输入登录密码" style="flex:1;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:9px 12px;border-radius:8px;color:#fff" onkeydown="if(event.key==='Enter') submitAuthForm()">
+        <input type="password" id="login-pwd" placeholder="请输入登录密码" style="flex:1;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:9px 12px;border-radius:8px;color:#fff" onkeydown="if(event.key==='Enter'&&imeSafeEnter(event)) submitAuthForm()">
         <button class="btn ghost btn-sm" type="button" onclick="togglePwdVisibility('login-pwd')" style="padding:9px 10px" title="显示/隐藏密码">👁️</button>
       </div>
     </div>
@@ -11989,7 +12082,7 @@ async function deleteUserAccount(uid, username) {
       <div style="margin-bottom:10px">
         <label style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;display:block">再次确认新密码</label>
         <div style="display:flex;gap:8px;align-items:center">
-          <input type="password" id="change-pwd-confirm" placeholder="请再次输入新密码" style="flex:1;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:9px 12px;border-radius:8px;color:#fff" onkeydown="if(event.key==='Enter') submitAuthForm()">
+          <input type="password" id="change-pwd-confirm" placeholder="请再次输入新密码" style="flex:1;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);padding:9px 12px;border-radius:8px;color:#fff" onkeydown="if(event.key==='Enter'&&imeSafeEnter(event)) submitAuthForm()">
           <button class="btn ghost btn-sm" type="button" onclick="togglePwdVisibility('change-pwd-confirm')" style="padding:9px 10px" title="显示/隐藏密码">👁️</button>
         </div>
       </div>
@@ -12364,7 +12457,7 @@ async function deleteUserAccount(uid, username) {
     <input type="hidden" id="up-user-id">
     <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 12px">为用户 <strong id="up-display-name" style="color:#fff"></strong> 设置新登录密码：</p>
     <div>
-      <input type="password" id="up-new-pwd" placeholder="请输入新密码（至少6位）" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid var(--border);padding:8px 10px;border-radius:6px;color:#fff;font-size:12.5px" onkeydown="if(event.key==='Enter')submitChangeUserPassword()">
+      <input type="password" id="up-new-pwd" placeholder="请输入新密码（至少6位）" style="width:100%;box-sizing:border-box;background:#0d1117;border:1px solid var(--border);padding:8px 10px;border-radius:6px;color:#fff;font-size:12.5px" onkeydown="if(event.key==='Enter'&&imeSafeEnter(event))submitChangeUserPassword()">
     </div>
     <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
       <button class="btn ghost btn-sm" onclick="closeModal()">取消</button>
@@ -12438,7 +12531,7 @@ async function deleteUserAccount(uid, username) {
       </div>
       <div style="display:flex;gap:10px;align-items:center">
         <div style="position:relative;width:240px">
-          <input type="text" id="asset-lib-search" placeholder="搜索文章标题或图片名…" style="width:100%;padding:6px 12px;padding-right:28px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:12px" onkeydown="if(event.key==='Enter') loadAssetLibrary(1)">
+          <input type="text" id="asset-lib-search" placeholder="搜索文章标题或图片名…" style="width:100%;padding:6px 12px;padding-right:28px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;font-size:12px" onkeydown="if(event.key==='Enter'&&imeSafeEnter(event)) loadAssetLibrary(1)">
           <span style="position:absolute;right:8px;top:7px;color:var(--text-muted);font-size:12px;cursor:pointer" onclick="loadAssetLibrary(1)">🔍</span>
         </div>
         <button class="btn btn-sm ghost" onclick="closeModal()" style="padding:4px 14px;font-size:14px">✕</button>
@@ -12459,7 +12552,7 @@ async function deleteUserAccount(uid, username) {
     <!-- ⚡ 电影级超写实文生图即刻创作条 -->
     <div style="padding:10px 24px;background:rgba(240,136,62,0.08);border-bottom:1px solid rgba(240,136,62,0.25);display:flex;align-items:center;gap:12px;flex-shrink:0">
       <span style="font-size:18px">📸</span>
-      <input type="text" id="asset-lib-gen-prompt" placeholder="直接输入任意真实场景（如：老街路边摊冒着热气的炒米粉、雨夜车窗倒影、咖啡馆靠窗看书的青年…），AI 自动注入普利策纪实镜头与自然光影" style="flex:1;background:rgba(0,0,0,0.5);border:1px solid rgba(240,136,62,0.4);padding:8px 14px;border-radius:8px;color:#fff;font-size:12.5px" onkeydown="if(event.key==='Enter')doAssetLibHyperRealGen()">
+      <input type="text" id="asset-lib-gen-prompt" placeholder="直接输入任意真实场景（如：老街路边摊冒着热气的炒米粉、雨夜车窗倒影、咖啡馆靠窗看书的青年…），AI 自动注入普利策纪实镜头与自然光影" style="flex:1;background:rgba(0,0,0,0.5);border:1px solid rgba(240,136,62,0.4);padding:8px 14px;border-radius:8px;color:#fff;font-size:12.5px" onkeydown="if(event.key==='Enter'&&imeSafeEnter(event))doAssetLibHyperRealGen()">
       <button class="btn btn-sm" id="btn-asset-gen" style="background:linear-gradient(135deg,#f7a05a,#f0883e);border:none;color:#fff;font-weight:700;white-space:nowrap;padding:8px 16px" onclick="doAssetLibHyperRealGen()">⚡ 普利策级超写实即刻生成</button>
     </div>
 
@@ -13135,6 +13228,14 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+/* ⭐ P2 任务终态文案：后端把用户主动取消写成 status="cancelled"（不再算 failed），
+   轮询终态分支里若只看 j.error 会把取消渲染成「失败: undefined」。
+   统一在这里映射：cancelled → 中文「任务已取消」，failed → 具体错误。 */
+function jobEndErrorText(j) {
+  if (j && j.status === 'cancelled') return '任务已取消';
+  return (j && j.error) || '未知错误';
+}
+
 function toast(msg, duration = 3500) {
   const t = $('toast');
   // ⭐ 安全：用 textContent 而非 innerHTML。本函数被20+ 处调用，其中大量
@@ -13174,8 +13275,9 @@ document.addEventListener('keydown', e => {
   closeModal();
 });
 // 引导内回车直达下一步（按钮聚焦时交给浏览器默认 click，避免触发两次）
+// 输入法守卫统一走 imeSafeEnter（isComposing 或 keyCode 229 = IME 组词回车）
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter' || e.isComposing) return;
+  if (e.key !== 'Enter' || !imeSafeEnter(e)) return;
   const wz = $('m-wizard');
   if (!wz || !wz.classList.contains('on')) return;
   const tag = (e.target && e.target.tagName) || '';
@@ -13485,7 +13587,8 @@ async function performSystemUpgrade() {
   const upBtn = document.getElementById('btn-do-upgrade');
   if (upBtn) { upBtn.disabled = true; upBtn.textContent = '⏳ 正在同步拉取…'; }
   try {
-    const res = await api('/api/system/upgrade', { method: 'POST' });
+    // 同步拉取 GitHub 代码 + 依赖自愈，耗时远超默认 60s，放宽到 10 分钟
+    const res = await api('/api/system/upgrade', { method: 'POST', timeoutMs: 600000 });
     if (res && res.ok) {
       toast('🎉 ' + (res.message || '升级成功！') + ' 正在为您刷新页面…', 4000);
       setTimeout(() => location.reload(), 2000);
@@ -13506,7 +13609,35 @@ async function api(path, opts = {}) {
   }
   // R4-8 CSRF：状态变更请求带上 Double Submit Cookie 的 token
   fetchOpts.headers = Object.assign({}, csrfHeaders(), fetchOpts.headers || {});
-  const r = await fetch(path, fetchOpts);
+  // ⭐ P0 请求超时兜底：全站 500+ 调用点此前没有任何超时控制，后端/代理一旦挂起，
+  //   按钮永远停在「⏳ 执行中」且 finally 解锁永不触发。默认 60s；
+  //   少数同步长接口（系统升级/媒体上传/深度蒸馏/短剧流水线等）由调用点显式传
+  //   opts.timeoutMs 放宽；传 0 表示不设超时。调用方自带 signal 的（用户主动停止）
+  //   不叠加超时，避免与外部取消语义冲突。
+  const _timeoutMs = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : 60000;
+  delete fetchOpts.timeoutMs; // timeoutMs 是本函数的约定参数，不能透传给 fetch
+  let _timeoutCtl = null;
+  let _timedOut = false;
+  if (_timeoutMs > 0 && !fetchOpts.signal) {
+    _timeoutCtl = new AbortController();
+    fetchOpts.signal = _timeoutCtl.signal;
+  }
+  const _abortTimer = _timeoutCtl
+    ? setTimeout(() => { _timedOut = true; _timeoutCtl.abort(); }, _timeoutMs)
+    : null;
+  // 用标志位区分「我们自己的超时」与「调用方 signal 主动取消」：
+  // 旧内核不透传 abort reason，不能依赖 e.reason 判断。
+  let r;
+  try {
+    r = await fetch(path, fetchOpts);
+  } catch (e) {
+    if (_abortTimer) clearTimeout(_abortTimer);
+    if (e && e.name === 'AbortError' && _timedOut) {
+      throw new Error('请求超时，请检查网络或稍后重试');
+    }
+    throw e;
+  }
+  if (_abortTimer) clearTimeout(_abortTimer);
   if (r.status === 401) {
     // ⭐ V8/P0-B：不再用硬编码弱口令 local-admin 静默自登录（该口令已被服务端
     //   视为「未配置」，自登录只会白试一次）。本机开发走 loopback 自动免密
@@ -13879,6 +14010,9 @@ async function deleteUserVaultKey(kid) {
 document.querySelectorAll('.nav-item').forEach(item => {
   item.onclick = () => {
     const pKey = item.dataset.p;
+    // ⭐ 切舞台/切页面时取消全部任务轮询：离开当前页后旧轮询的回调不应继续
+    //   改写按钮/列表，也不该在后台白白消耗请求（yimu-net.js 统一注册表）
+    if (typeof cancelAllPolls === 'function') cancelAllPolls();
     if (pKey === 'lite') {
       switchSystemMode('lite');
       return;
@@ -14280,6 +14414,8 @@ async function loadDraftCopilotHistory(did) {
         const bubble = document.createElement('div');
         const isUser = item.role === 'user';
         bubble.className = isUser ? 'copilot-msg user' : 'copilot-msg assistant';
+        // ⭐ i18n 免翻译标记：assistant 气泡是 AI 生成的创作内容，i18n 扫描不应改写
+        if (!isUser) bubble.setAttribute('data-no-i18n', '');
         const formatted = isUser ? escapeHtml(item.content || '').replace(/\n/g, '<br>') :
           (item.content || '')
             .replace(/\n/g, '<br>')
@@ -14862,6 +14998,8 @@ function setCopilotPrompt(text) {
 }
 
 function handleCopilotKeyDown(e) {
+  // 中文输入法组词回车（确认候选词）不是发送意图，必须放行给 IME
+  if (!imeSafeEnter(e)) return;
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault();
     sendCopilotMessage();
@@ -15327,6 +15465,8 @@ function stopCopilotGeneration() {
   if (chatBox) {
     const stopBubble = document.createElement('div');
     stopBubble.className = 'copilot-msg assistant';
+    // ⭐ i18n 免翻译标记：Agent 会话流内气泡统一免翻译
+    stopBubble.setAttribute('data-no-i18n', '');
     stopBubble.innerHTML = `
       <div class="copilot-avatar">⏹</div>
       <div class="copilot-bubble" style="color:var(--text-muted)">
@@ -15988,6 +16128,8 @@ async function loadWbAgentCopilotHistory(did) {
         const bubble = document.createElement('div');
         const isUser = item.role === 'user';
         bubble.className = isUser ? 'copilot-msg user' : 'copilot-msg assistant';
+        // ⭐ i18n 免翻译标记：assistant 气泡是 AI 生成的创作内容，i18n 扫描不应改写
+        if (!isUser) bubble.setAttribute('data-no-i18n', '');
         const formatted = isUser ? escapeHtml(item.content || '').replace(/\n/g, '<br>') :
           (item.content || '')
             .replace(/\n/g, '<br>')
@@ -16090,6 +16232,8 @@ async function sendWbAgentMessage() {
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
 
+    // 【豁免说明】此处 while(true) 是 SSE 流式响应的逐块读取（reader.read() 以
+    //   done 标志自然终止），不是任务状态轮询，不适用 pollJobAsync 收拢。
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -16128,6 +16272,8 @@ async function sendWbAgentMessage() {
 
     const aiBubble = document.createElement('div');
     aiBubble.className = 'copilot-msg assistant';
+    // ⭐ i18n 免翻译标记：AI 回复气泡，i18n 扫描不应改写创作内容
+    aiBubble.setAttribute('data-no-i18n', '');
     const formattedReply = (finalResult.reply || '修改完成！')
       .replace(/\n/g, '<br>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -16175,6 +16321,8 @@ async function sendWbAgentMessage() {
     closeAgentTaskModal();
     const errBubble = document.createElement('div');
     errBubble.className = 'copilot-msg assistant';
+    // ⭐ i18n 免翻译标记：AI 链路回传的错误内容不做翻译扫描
+    errBubble.setAttribute('data-no-i18n', '');
     errBubble.innerHTML = `
       <div class="copilot-avatar">⚠️</div>
       <div class="copilot-bubble" style="font-size:12px;color:var(--danger)">处理异常: ${escapeHtml(e.message)}</div>
@@ -16192,6 +16340,8 @@ function appendThinkingBubble(chatBox, text) {
   if (!chatBox) return null;
   const el = document.createElement('div');
   el.className = 'copilot-msg assistant copilot-thinking';
+  // ⭐ i18n 免翻译标记：思考过程气泡随流式内容更新，免翻译
+  el.setAttribute('data-no-i18n', '');
   el.innerHTML =
     '<div class="copilot-avatar">✨</div>' +
     '<div class="copilot-bubble">' +
@@ -16321,6 +16471,9 @@ async function sendCopilotMessage() {
     const decoder = new TextDecoder('utf-8');
     let buffer = '';
 
+    // 【豁免说明】此处 while(true) 是极简模式 SSE 流式回复的逐块读取
+    //   （reader.read() 以 done 标志自然终止，外部由 copilotAbortController 可中止），
+    //   不是任务状态轮询，不适用 pollJobAsync 收拢。
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -16360,6 +16513,8 @@ async function sendCopilotMessage() {
 
     const aiBubble = document.createElement('div');
     aiBubble.className = 'copilot-msg assistant';
+    // ⭐ i18n 免翻译标记：AI 回复气泡，i18n 扫描不应改写创作内容
+    aiBubble.setAttribute('data-no-i18n', '');
     const formattedReply = (finalResult.reply || '已处理完成！')
       .replace(/\n/g, '<br>')
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
@@ -16410,6 +16565,8 @@ async function sendCopilotMessage() {
     } else {
       const errBubble = document.createElement('div');
       errBubble.className = 'copilot-msg assistant';
+      // ⭐ i18n 免翻译标记：AI 链路回传的错误内容不做翻译扫描
+      errBubble.setAttribute('data-no-i18n', '');
       errBubble.innerHTML = `
         <div class="copilot-avatar">⚠️</div>
         <div class="copilot-bubble" style="color:var(--danger)">处理出现异常：${escapeHtml(e.message || '网络连接超时')}</div>
@@ -16612,7 +16769,7 @@ async function collectHot() {
   btn.disabled = true;
   btn.textContent = '⏳ 抓取热榜中…';
   try {
-    const r = await api('/api/topics/collect', {method: 'POST'});
+    const r = await api('/api/topics/collect', {method: 'POST', timeoutMs: 180000}); // 多平台热榜串行抓取
     toast(`✅ 抓取完成：成功入库 ${r.total} 条实时热榜！`);
     await refresh();
     if (typeof loadHotDbStats === 'function') await loadHotDbStats();
@@ -16685,7 +16842,8 @@ async function rewriteSinglePlatform(platform) {
     const r = await api(`/api/drafts/${curDraft}/rewrite_platform`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({platform})
+      body: JSON.stringify({platform}),
+      timeoutMs: 180000 // 同步等单平台整篇 LLM 重写完成
     });
     toast(`✅ ${pname} 专属重写完成！`, 3500);
     // 切换到对应平台预览
@@ -16749,7 +16907,8 @@ function topicPlatformBadge(source) {
     'custom': '<span class="badge gray">人工录入</span>',
     'manual': '<span class="badge gray">人工录入</span>'
   };
-  return map[source] || `<span class="badge gray">${source}</span>`;
+  // ⭐ XSS：source 为后端/抓取源回传字符串，未知来源走兜底分支时必须转义
+  return map[source] || `<span class="badge gray">${escapeHtml(source)}</span>`;
 }
 
 function topicRankBadge(rank) {
@@ -16817,11 +16976,12 @@ function renderHotTopics() {
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
             ${rBadge}
             ${pBadge}
-            <span style="font-size:15px;font-weight:600;color:#fff">${t.title}</span>
+            <!-- ⭐ XSS：t.title/t.reason 来自外部热榜抓取（标题/摘要原样入库），必须转义 -->
+            <span style="font-size:15px;font-weight:600;color:#fff">${escapeHtml(t.title)}</span>
             ${t.matched ? '<span class="badge gold">🎯 命中关键词</span>' : ''}
           </div>
           <div style="font-size:12px;color:var(--text-muted);display:flex;gap:8px;align-items:center">
-            <span>${t.reason || ''}</span>
+            <span>${escapeHtml(t.reason || '')}</span>
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
@@ -16855,24 +17015,29 @@ function renderHotTopics() {
             image_style: $('inspire-image-style-sel') ? $('inspire-image-style-sel').value : 'auto'
           })
         });
-        while(true) {
-          await new Promise(r => setTimeout(r, 1500));
-          const j = await api(`/api/rewrite/job/${job}`);
-          btn.textContent = '⏳ ' + j.step;
-          if (j.status === 'done') {
-            toast(`✅ 成稿完成！得分 ${j.result?.score?.total || '已生成'}，已自动跳转内容库`, 4000);
-            await refresh();
-            document.querySelector('.nav-item[data-p="drafts"]').click();
-            selectDraft(j.result.draft_id);
-            break;
-          }
-          if (j.status === 'failed') {
-            toast('生成失败: ' + j.error);
-            btn.disabled = false;
-            btn.textContent = '生成草稿';
-            break;
-          }
-        }
+        const _pollRes = await pollJobAsync({
+          fn: async () => {
+            const j = await api(`/api/rewrite/job/${job}`);
+            return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+          },
+          intervalMs: 1500,
+          onStep: j => { btn.textContent = '⏳ ' + j.step; },
+          onDone: async j => {
+            if (j.status === 'done') {
+              toast(`✅ 成稿完成！得分 ${j.result?.score?.total || '已生成'}，已自动跳转内容库`, 4000);
+              await refresh();
+              document.querySelector('.nav-item[data-p="drafts"]').click();
+              selectDraft(j.result.draft_id);
+            } else {
+              toast('生成失败: ' + jobEndErrorText(j));
+              btn.disabled = false;
+              btn.textContent = '生成草稿';
+            }
+          },
+          onFail: e => { toast(e.message); btn.disabled = false; btn.textContent = '生成草稿'; }
+        });
+        // 切草稿/切页面会统一取消轮询：取消不走 onFail，这里恢复按钮避免永久锁死
+        if (_pollRes && _pollRes.cancelled) { btn.disabled = false; btn.textContent = '生成草稿'; }
       } catch(e) { toast(e.message); btn.disabled = false; btn.textContent = '生成草稿'; }
     };
     L.appendChild(d);
@@ -16923,18 +17088,20 @@ async function doSearch() {
     let html = '<div class="res-grid">';
     items.forEach((it, idx) => {
       const platLabels = {xhs:'小红书', toutiao:'头条', douyin:'抖音'};
+      // ⭐ XSS：it.title/snippet/author 等全部来自外部搜索源（头条/小红书/抖音抓取），
+      //   恶意标题可携带 <img onerror> 等载荷，所有插值点统一过 escapeHtml
       html += `
         <div class="res-card">
           <div>
             <div class="rc-top">
-              <span class="badge ${it.platform==='xhs'?'red':it.platform==='toutiao'?'blue':'gray'}">${platLabels[it.platform]||it.platform}</span>
-              <span style="font-size:12px;color:var(--text-muted)">${it.author||''} · ${it.likes?it.likes+'赞':''}</span>
+              <span class="badge ${it.platform==='xhs'?'red':it.platform==='toutiao'?'blue':'gray'}">${escapeHtml(platLabels[it.platform]||it.platform)}</span>
+              <span style="font-size:12px;color:var(--text-muted)">${escapeHtml(it.author||'')} · ${it.likes?escapeHtml(String(it.likes))+'赞':''}</span>
             </div>
-            <div class="rc-title">${it.title}</div>
-            <div class="rc-snippet">${it.snippet||'（暂无摘要）'}</div>
+            <div class="rc-title">${escapeHtml(it.title)}</div>
+            <div class="rc-snippet">${escapeHtml(it.snippet||'（暂无摘要）')}</div>
           </div>
           <div class="rc-bottom">
-            <span style="font-size:11.5px;color:var(--text-muted)">${it.date||''}</span>
+            <span style="font-size:11.5px;color:var(--text-muted)">${escapeHtml(it.date||'')}</span>
             <button class="btn btn-sm" onclick="startRewriteFromSearch(${idx})">⚡ 拆解并仿写</button>
           </div>
         </div>
@@ -16967,22 +17134,25 @@ async function startRewriteFromSearch(idx) {
         media_name: getUserMediaName()
       })
     });
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
-      const j = await api(`/api/rewrite/job/${job}`);
-      toast('⏳ ' + j.step, 2000);
-      if(j.status === 'done') {
-        toast(`✅ 仿写完成！得分 ${j.result?.score?.total || '已入库'} · 已切换至内容库`, 4500);
-        await refresh();
-        document.querySelector('.nav-item[data-p="drafts"]').click();
-        selectDraft(j.result.draft_id);
-        break;
-      }
-      if(j.status === 'failed') {
-        toast('仿写失败: ' + j.error, 5000);
-        break;
-      }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1500,
+      onStep: j => { toast('⏳ ' + j.step, 2000); },
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast(`✅ 仿写完成！得分 ${j.result?.score?.total || '已入库'} · 已切换至内容库`, 4500);
+          await refresh();
+          document.querySelector('.nav-item[data-p="drafts"]').click();
+          selectDraft(j.result.draft_id);
+        } else {
+          toast('仿写失败: ' + jobEndErrorText(j), 5000);
+        }
+      },
+      onFail: e => { toast(e.message, 5000); }
+    });
   } catch(e) { toast('仿写异常: ' + e.message); }
   finally { rewriting = false; }
 }
@@ -17000,7 +17170,8 @@ async function runExtract() {
     const data = await api('/api/extract', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({url})
+      body: JSON.stringify({url}),
+      timeoutMs: 120000 // 抓取外部站点正文/原图，慢站 + 无头浏览器可能超过默认 60s
     });
     currentExtractedData = data;
     const card = $('ext-result-card');
@@ -17070,22 +17241,25 @@ async function rewriteExtracted() {
         extra: {stats: currentExtractedData.stats, images: currentExtractedData.images}
       })
     });
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
-      const j = await api(`/api/rewrite/job/${job}`);
-      toast('⏳ ' + j.step, 2000);
-      if(j.status === 'done') {
-        toast(`✅ 仿写完成！得分 ${j.result?.score?.total || '已入库'} · 已切换至内容库`, 4500);
-        await refresh();
-        document.querySelector('.nav-item[data-p="drafts"]').click();
-        selectDraft(j.result.draft_id);
-        break;
-      }
-      if(j.status === 'failed') {
-        toast('仿写失败: ' + j.error, 5000);
-        break;
-      }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1500,
+      onStep: j => { toast('⏳ ' + j.step, 2000); },
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast(`✅ 仿写完成！得分 ${j.result?.score?.total || '已入库'} · 已切换至内容库`, 4500);
+          await refresh();
+          document.querySelector('.nav-item[data-p="drafts"]').click();
+          selectDraft(j.result.draft_id);
+        } else {
+          toast('仿写失败: ' + jobEndErrorText(j), 5000);
+        }
+      },
+      onFail: e => { toast(e.message, 5000); }
+    });
   } catch(e) {
     toast('仿写异常: ' + e.message);
   } finally {
@@ -17196,53 +17370,61 @@ async function runOneSentenceViral() {
     const jid = res.job;
     let pollCount = 0;
     const t0 = Date.now();
-    while (true) {
-      await new Promise(r => setTimeout(r, 1600));
-      pollCount++;
-      const j = await api(`/api/jobs/${jid}`);
-      const elapsed = Math.round((Date.now() - t0) / 1000);
-      stepText.textContent = `⏳ ${j.step}（已 ${elapsed}s · 全链路含检索/仿写/评分约 3-5 分钟）`;
+    // ⭐ P2 进度条口径：后端 /api/jobs 只回 step 文本，没有结构化的
+    //   stage/progress 字段（改后端不在本次范围），所以这里用「阶段估算」：
+    //   按 step 关键词映射档位，两档之间按轮询次数线性推进。
+    //   档位不是真实百分比，仅表达相对阶段，文案已向用户明确标注。
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/jobs/${jid}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1600,
+      maxMs: 1800000,
+      onStep: j => {
+        pollCount++;
+        const elapsed = Math.round((Date.now() - t0) / 1000);
+        stepText.textContent = `⏳ ${j.step}（已 ${elapsed}s · 全链路含检索/仿写/评分约 3-5 分钟 · 进度为阶段估算）`;
 
-      let pct = 20 + Math.min(pollCount * 8, 70);
-      if (j.step.includes('检索')) pct = 40;
-      else if (j.step.includes('消化') || j.step.includes('创作')) pct = 70;
-      else if (j.step.includes('排版') || j.step.includes('评审')) pct = 90;
-      pBar.style.width = `${pct}%`;
+        let pct = 20 + Math.min(pollCount * 8, 70);
+        if (j.step.includes('检索')) pct = 40;
+        else if (j.step.includes('消化') || j.step.includes('创作')) pct = 70;
+        else if (j.step.includes('排版') || j.step.includes('评审')) pct = 90;
+        pBar.style.width = `${pct}%`;
+      },
+      onDone: async j => {
+        if (j.status === 'done') {
+          pBar.style.width = '100%';
+          stepText.textContent = '✅ 爆款成稿已生成并入库草稿箱！';
+          subStatus.textContent = '已完成 7 维智能评审';
 
-      if (j.status === 'done') {
-        pBar.style.width = '100%';
-        stepText.textContent = '✅ 爆款成稿已生成并入库草稿箱！';
-        subStatus.textContent = '已完成 7 维智能评审';
-
-        if (j.result) {
-          let pills = '';
-          (j.result.queries || []).forEach(q => {
-            pills += `<span class="badge info" style="font-size:11px;background:rgba(240,136,62,0.25);color:#ffd0a6">🔍 ${escapeHtml(q)}</span>`;
-          });
-          (j.result.references || []).forEach(r => {
-            pills += `<span class="badge gray" style="font-size:11px" title="${escapeHtml(r.snippet||'')}">📰 ${escapeHtml(r.title||'')}</span>`;
-          });
-          pillsBox.innerHTML = pills;
-        }
-
-        toast('🎉 一句话爆款成稿创作完成！已自动打开草稿', 3500);
-        await refresh();
-        setTimeout(() => {
-          document.querySelector('.nav-item[data-p="drafts"]').click();
-          if (j.result && j.result.draft_id) {
-            selectDraft(j.result.draft_id);
+          if (j.result) {
+            let pills = '';
+            (j.result.queries || []).forEach(q => {
+              pills += `<span class="badge info" style="font-size:11px;background:rgba(240,136,62,0.25);color:#ffd0a6">🔍 ${escapeHtml(q)}</span>`;
+            });
+            (j.result.references || []).forEach(r => {
+              pills += `<span class="badge gray" style="font-size:11px" title="${escapeHtml(r.snippet||'')}">📰 ${escapeHtml(r.title||'')}</span>`;
+            });
+            pillsBox.innerHTML = pills;
           }
-        }, 1200);
-        break;
-      }
 
-      if (j.status === 'failed') {
-        stepText.textContent = '❌ 创作失败: ' + (j.error || '未知错误');
-        pBar.style.background = 'var(--accent-red)';
-        toast('生成失败: ' + j.error);
-        break;
-      }
-    }
+          toast('🎉 一句话爆款成稿创作完成！已自动打开草稿', 3500);
+          await refresh();
+          setTimeout(() => {
+            document.querySelector('.nav-item[data-p="drafts"]').click();
+            if (j.result && j.result.draft_id) {
+              selectDraft(j.result.draft_id);
+            }
+          }, 1200);
+        } else {
+          stepText.textContent = '❌ ' + jobEndErrorText(j);
+          pBar.style.background = 'var(--accent-red)';
+          toast('生成失败: ' + jobEndErrorText(j));
+        }
+      },
+      onFail: e => { toast(e.message); }
+    });
   } catch (e) {
     toast('网络请求失败: ' + e.message);
   } finally {
@@ -17271,22 +17453,25 @@ async function pasteRewrite() {
         media_name: getUserMediaName()
       })
     });
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
-      const j = await api(`/api/rewrite/job/${job}`);
-      btn.textContent = '⏳ ' + j.step;
-      if (j.status === 'done') {
-        toast('✅ 文案同架构改编完成！已转存内容工作台', 4000);
-        await refresh();
-        document.querySelector('.nav-item[data-p="drafts"]').click();
-        selectDraft(j.result.draft_id);
-        break;
-      }
-      if (j.status === 'failed') {
-        toast('改编失败: ' + j.error);
-        break;
-      }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1500,
+      onStep: j => { btn.textContent = '⏳ ' + j.step; },
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast('✅ 文案同架构改编完成！已转存内容工作台', 4000);
+          await refresh();
+          document.querySelector('.nav-item[data-p="drafts"]').click();
+          selectDraft(j.result.draft_id);
+        } else {
+          toast('改编失败: ' + jobEndErrorText(j));
+        }
+      },
+      onFail: e => { toast(e.message); }
+    });
   } catch(e) { toast(e.message); }
   finally { btn.disabled = false; btn.textContent = '⚡ 锁定架构并改编三平台'; }
 }
@@ -17347,6 +17532,9 @@ function filterDrafts() {
 
 function selectDraft(id) {
   curDraft = id;
+  // ⭐ 切草稿必须取消旧任务轮询：旧任务 pollJob 的 onDone 会调用 selectDraft/
+  //   刷新按钮文案，与新草稿的选择互相串台（yimu-net.js 提供的注册表统一取消）
+  if (typeof cancelAllPolls === 'function') cancelAllPolls();
   document.querySelectorAll('.draft-card').forEach(c => c.classList.remove('on'));
   renderDraftList();
   updateWbAgentConnectedDraft();
@@ -17934,31 +18122,38 @@ async function runFurnaceEvolution() {
       body: JSON.stringify({ target_score: currentFurnaceTarget, max_rounds: currentFurnaceRounds })
     });
     const job = res.job;
-    while (true) {
-      await new Promise(r => setTimeout(r, 1200));
-      const j = await api(`/api/rewrite/job/${job}`);
-      if (trackText) {
-        trackText.innerHTML = `<span>⚙️ 熔炉状态: <strong>${escapeHtml(j.step || '打磨中…')}</strong></span><span>目标分: ${currentFurnaceTarget > 0 ? currentFurnaceTarget + '分' : '单发'}</span>`;
-      }
-      if (j.status === 'done') {
-        const result = j.result || {};
-        const logs = result.evolution_logs || [];
-        if (trackRounds) {
-          trackRounds.innerHTML = logs.map(l => `
-            <div style="font-size:12px;padding:4px 8px;border-radius:4px;background:${l.score >= currentFurnaceTarget ? 'rgba(63,185,80,0.15);border:1px solid #3fb950;color:#3fb950' : 'rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text)'}">
-              第${l.round}轮: <strong>${l.score}分</strong>
-            </div>
-          `).join('');
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1200,
+      maxMs: 1800000, // 多轮自进化熔炼耗时随轮数放大，放宽到 30 分钟
+      onStep: j => {
+        if (trackText) {
+          trackText.innerHTML = `<span>⚙️ 熔炉状态: <strong>${escapeHtml(j.step || '打磨中…')}</strong></span><span>目标分: ${currentFurnaceTarget > 0 ? currentFurnaceTarget + '分' : '单发'}</span>`;
         }
-        toast(`🔥 熔炼完成！最终得分：${result.final_score || 0}分 ${result.target_reached ? '🎉 已达标！' : ''}`, 4000);
-        await refresh();
-        selectDraft(curDraft);
-        break;
-      } else if (j.status === 'failed') {
-        toast('❌ 熔炉炼制失败: ' + (j.error || '未知异常'), 5000);
-        break;
-      }
-    }
+      },
+      onDone: async j => {
+        if (j.status === 'done') {
+          const result = j.result || {};
+          const logs = result.evolution_logs || [];
+          if (trackRounds) {
+            trackRounds.innerHTML = logs.map(l => `
+              <div style="font-size:12px;padding:4px 8px;border-radius:4px;background:${l.score >= currentFurnaceTarget ? 'rgba(63,185,80,0.15);border:1px solid #3fb950;color:#3fb950' : 'rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text)'}">
+                第${l.round}轮: <strong>${l.score}分</strong>
+              </div>
+            `).join('');
+          }
+          toast(`🔥 熔炼完成！最终得分：${result.final_score || 0}分 ${result.target_reached ? '🎉 已达标！' : ''}`, 4000);
+          await refresh();
+          selectDraft(curDraft);
+        } else {
+          toast('❌ 熔炉炼制失败: ' + jobEndErrorText(j), 5000);
+        }
+      },
+      onFail: e => { toast('❌ 熔炉轮询中断: ' + e.message, 5000); }
+    });
   } catch (e) {
     toast('熔炉请求出错: ' + e.message);
   } finally {
@@ -18215,20 +18410,25 @@ async function triggerOmniFission() {
   try {
     const res = await api(`/api/drafts/${curDraft}/fission`, { method: 'POST' });
     if (res.job) {
-      while (true) {
-        await new Promise(r => setTimeout(r, 1200));
-        const j = await api(`/api/jobs/${res.job}`);
-        if (j.step) toast(`⚡ ${j.step}`, 2000);
-        if (j.status === 'done') {
-          toast(`✅ 全域五端矩阵裂变完成！已生成全部 5 平台专属版本与成套高清卡片！`, 5000);
-          await refresh();
-          selectDraft(curDraft);
-          break;
-        } else if (j.status === 'failed') {
-          toast(`裂变失败: ${j.error || '未知错误'}`);
-          break;
-        }
-      }
+      await pollJobAsync({
+        fn: async () => {
+          const j = await api(`/api/jobs/${res.job}`);
+          return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        },
+        intervalMs: 1200,
+        maxMs: 1800000,
+        onStep: j => { if (j.step) toast(`⚡ ${j.step}`, 2000); },
+        onDone: async j => {
+          if (j.status === 'done') {
+            toast(`✅ 全域五端矩阵裂变完成！已生成全部 5 平台专属版本与成套高清卡片！`, 5000);
+            await refresh();
+            selectDraft(curDraft);
+          } else {
+            toast(`裂变失败: ${jobEndErrorText(j)}`);
+          }
+        },
+        onFail: e => { toast(e.message); }
+      });
     } else {
       toast(`裂变响应异常: 未获取到任务ID`);
     }
@@ -18429,23 +18629,30 @@ async function deriveAllPlatformsFromCurrent() {
     });
     if (res.job) {
       let lastStep = '';
-      while (true) {
-        await new Promise(r => setTimeout(r, 900));
-        const j = await api(`/api/jobs/${res.job}`);
-        if (j.step && j.step !== lastStep) {
-          lastStep = j.step;
-          toast(`⚡ ${j.step}`, 2000);
-        }
-        if (j.status === 'done') {
-          toast(`✅ 矩阵多端按需派生完成！共更新 ${selectedPlatforms.length} 个平台专属版本！`, 5000);
-          await refresh();
-          selectDraft(curDraft);
-          break;
-        } else if (j.status === 'failed') {
-          toast(`派生失败: ${j.error || '未知错误'}`);
-          break;
-        }
-      }
+      await pollJobAsync({
+        fn: async () => {
+          const j = await api(`/api/jobs/${res.job}`);
+          return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        },
+        intervalMs: 900,
+        maxMs: 1800000,
+        onStep: j => {
+          if (j.step && j.step !== lastStep) {
+            lastStep = j.step;
+            toast(`⚡ ${j.step}`, 2000);
+          }
+        },
+        onDone: async j => {
+          if (j.status === 'done') {
+            toast(`✅ 矩阵多端按需派生完成！共更新 ${selectedPlatforms.length} 个平台专属版本！`, 5000);
+            await refresh();
+            selectDraft(curDraft);
+          } else {
+            toast(`派生失败: ${jobEndErrorText(j)}`);
+          }
+        },
+        onFail: e => { toast(e.message); }
+      });
     } else {
       toast('派生响应异常: 未获取到任务ID');
     }
@@ -18684,22 +18891,31 @@ async function runLiteAIVisualCards() {
       body: JSON.stringify({style: 'ai_visual_dark'})
     });
     if (res && res.job) {
-      while(true) {
-        await new Promise(r => setTimeout(r, 1400));
-        const j = await api(`/api/rewrite/job/${res.job}`);
-        if (j.step) showLiteGeneratingStep(j.step);
-        if (j.status === 'done') {
+      const _pollRes = await pollJobAsync({
+        fn: async () => {
+          const j = await api(`/api/rewrite/job/${res.job}`);
+          return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        },
+        intervalMs: 1400,
+        maxMs: 1800000, // 全套 AI 生图与制卡，慢通道可能超过 10 分钟
+        onStep: j => { if (j.step) showLiteGeneratingStep(j.step); },
+        onDone: async j => {
+          if (j.status === 'done') {
+            stopLiteGeneratingTicker();
+            toast('🎉 小红书全景 AI 磨砂卡片重新绘制完成！');
+            await renderLitePlatformPreview('xhs');
+          } else {
+            stopLiteGeneratingTicker();
+            toast('生成失败: ' + jobEndErrorText(j));
+          }
+        },
+        onFail: e => {
           stopLiteGeneratingTicker();
-          toast('🎉 小红书全景 AI 磨砂卡片重新绘制完成！');
-          await renderLitePlatformPreview('xhs');
-          break;
+          toast(e.message);
         }
-        if (j.status === 'failed') {
-          stopLiteGeneratingTicker();
-          toast('生成失败: ' + (j.error || ''));
-          break;
-        }
-      }
+      });
+      // 切草稿/切页面统一取消轮询时不走回调，这里兜底停掉生成中动画
+      if (_pollRes && _pollRes.cancelled) stopLiteGeneratingTicker();
     } else {
       stopLiteGeneratingTicker();
       await renderLitePlatformPreview('xhs');
@@ -18983,7 +19199,8 @@ async function triggerChangeImageStyle() {
     const res = await api(`/api/drafts/${curDraft}/generate_images`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ style: style, count: 4, force_regen: true })
+      body: JSON.stringify({ style: style, count: 4, force_regen: true }),
+      timeoutMs: 300000 // 同步等 4 张全文配图生成完毕
     });
 
     if(res.ok) {
@@ -19021,12 +19238,16 @@ async function wbInsertImagePlaceholder() {
     const res = await api(`/api/drafts/${curDraft}/generate_single_image`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({title: title.trim() || '核心看点'})
+      body: JSON.stringify({title: title.trim() || '核心看点'}),
+      timeoutMs: 120000 // 同步等单张配图生成，慢生图通道超过默认 60s 很常见
     });
     if(res && res.url) {
       wbInsertLine(`\n![${res.title || '配图'}](${res.url})\n`);
       toast('✅ 配图已生成并插入正文！');
-      saveCurrentText();
+      // ⭐ P1 修复：saveCurrentText 此前未定义（调用即抛 ReferenceError，配图插入后
+      //   从未真正落盘）。文件内真实的「立即保存并重渲染」函数是 saveCurrentPlatformContent，
+      //   silent 模式避免与上一条成功 toast 叠加轰炸。
+      saveCurrentPlatformContent(true);
     } else {
       toast('配图生成失败');
     }
@@ -19106,17 +19327,23 @@ async function triggerAILayout() {
         media_name: getUserMediaName()
       })
     });
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
-      const j = await api(`/api/rewrite/job/${job}`);
-      if(j.status === 'done') {
-        toast('✅ AI 排版美化完成！');
-        await refresh();
-        selectDraft(curDraft);
-        break;
-      }
-      if(j.status === 'failed') { toast('排版失败: ' + j.error); break; }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1500,
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast('✅ AI 排版美化完成！');
+          await refresh();
+          selectDraft(curDraft);
+        } else {
+          toast('排版失败: ' + jobEndErrorText(j));
+        }
+      },
+      onFail: e => { toast(e.message); }
+    });
   } catch(e) { toast(e.message); }
 }
 async function triggerXhsAILayout() {
@@ -19128,17 +19355,24 @@ async function triggerXhsAILayout() {
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({style: S.themes?.current?.card_style || 'magazine'})
     });
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
-      const j = await api(`/api/rewrite/job/${job}`);
-      if(j.status === 'done') {
-        toast(`✅ 小红书重排完成：${j.result.cards.length} 张卡片已重渲！`);
-        await refresh();
-        selectDraft(curDraft);
-        break;
-      }
-      if(j.status === 'failed') { toast('重排失败: ' + j.error); break; }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1500,
+      maxMs: 1800000, // 重排 + 整套卡片重渲涉及批量生图，放宽到 30 分钟
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast(`✅ 小红书重排完成：${j.result.cards.length} 张卡片已重渲！`);
+          await refresh();
+          selectDraft(curDraft);
+        } else {
+          toast('重排失败: ' + jobEndErrorText(j));
+        }
+      },
+      onFail: e => { toast(e.message); }
+    });
   } catch(e) { toast(e.message); }
 }
 
@@ -19849,6 +20083,12 @@ function updateCharTurnaroundPrompt(charId, text) {
 
 /* ================= 交互式弹窗 (Pavo AI 风格) ================= */
 function openDramaRequirementModal(isOneClick) {
+  // ⭐ P1 无模型守门：全流水线入口（一键模式）会被后续出图/出视频步骤硬依赖，
+  //   门禁生效时兜底拦截（主按钮已 disabled，这里防其它程序化触发路径）
+  if (isOneClick && window._studioModelGateBlocked) {
+    toast('尚未接入生图/视频模型——请先到 控制中心 → 系统与 API 配置 配置模型', 5000);
+    return;
+  }
   window._dramaIsOneClick = !!isOneClick;
   const d = (S.drafts || []).find(x => x.id === $('drama-draft-sel').value);
   const p = currentDramaPipelineProject || {};
@@ -19964,7 +20204,8 @@ async function runDramaStep1Analyze(customOverrides, isContinuous) {
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step1_analyze`, {
       method: 'POST',
-      body: JSON.stringify({ text: scriptText, overrides })
+      body: JSON.stringify({ text: scriptText, overrides }),
+      timeoutMs: 300000 // 同步等 LLM 完成需求分析
     });
     if (res.ok && res.project) {
       currentDramaPipelineProject = res.project;
@@ -20005,7 +20246,8 @@ async function submitDramaStep2Outline(isContinuous) {
     const updates = currentDramaPipelineProject && currentDramaPipelineProject.step2 ? currentDramaPipelineProject.step2 : {};
     const res = await api(`/api/video/drama/${did}/pipeline/step2_outline`, {
       method: 'POST',
-      body: JSON.stringify({ updates })
+      body: JSON.stringify({ updates }),
+      timeoutMs: 300000 // 同步等 LLM 完成剧本大纲改写
     });
     if (res.ok && res.project) {
       currentDramaPipelineProject = res.project;
@@ -20026,7 +20268,7 @@ async function submitDramaStep3Assets(isContinuous) {
   if (!did) return toast('请选择草稿');
   toast('🎨 正在为角色配置 StoryDiffusion 四视图一致性 Prompt…', 3000);
   try {
-    const res = await api(`/api/video/drama/${did}/pipeline/step3_assets`, { method: 'POST' });
+    const res = await api(`/api/video/drama/${did}/pipeline/step3_assets`, { method: 'POST', timeoutMs: 300000 });
     if (res.ok && res.project) {
       currentDramaPipelineProject = res.project;
       renderDramaAllPanels();
@@ -20053,7 +20295,8 @@ async function runDramaGenAsset(assetType, assetId, isTurnaround) {
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step4_gen_asset`, {
       method: 'POST',
-      body: JSON.stringify({ asset_type: assetType, asset_id: assetId, is_turnaround: isTurnaround, aspect: currentDramaAspect })
+      body: JSON.stringify({ asset_type: assetType, asset_id: assetId, is_turnaround: isTurnaround, aspect: currentDramaAspect }),
+      timeoutMs: 180000 // 同步等单张四视图/资产图生成
     });
     if (res.ok) {
       await loadDramaDraftScenes();
@@ -20073,7 +20316,8 @@ async function runDramaBatchAssets(isContinuous) {
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step4_batch_assets`, {
       method: 'POST',
-      body: JSON.stringify({ image_model: curImgModel })
+      body: JSON.stringify({ image_model: curImgModel }),
+      timeoutMs: 600000 // 并发批量生图 + 四视图蓝图，放宽到 10 分钟
     });
     if (res.ok) {
       await loadDramaDraftScenes();
@@ -20099,7 +20343,7 @@ async function submitDramaStep5Storyboard(isContinuous) {
   if (!did) return toast('请选择草稿');
   toast('🎬 正在解构好莱坞逐镜头分镜（对齐已生成的角色四视图与场景）…', 4000);
   try {
-    const res = await api(`/api/video/drama/${did}/pipeline/step5_storyboard`, { method: 'POST' });
+    const res = await api(`/api/video/drama/${did}/pipeline/step5_storyboard`, { method: 'POST', timeoutMs: 300000 });
     if (res.ok && res.shots) {
       currentDramaScenes = res.shots;
       if (res.project) currentDramaPipelineProject = res.project;
@@ -20131,7 +20375,8 @@ async function runDramaGenShot(shotId) {
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step6_gen_shot`, {
       method: 'POST',
-      body: JSON.stringify({ shot_id: shotId, prompt_en: promptEn, aspect: currentDramaAspect, image_model: curImgModel })
+      body: JSON.stringify({ shot_id: shotId, prompt_en: promptEn, aspect: currentDramaAspect, image_model: curImgModel }),
+      timeoutMs: 180000 // 同步等单张分镜关键帧生成
     });
     if (res.ok) {
       await loadDramaDraftScenes();
@@ -20156,7 +20401,8 @@ async function runDramaBatchShots(isContinuous) {
   try {
     const res = await api(`/api/video/drama/${did}/pipeline/step6_batch_shots`, {
       method: 'POST',
-      body: JSON.stringify({ aspect: currentDramaAspect, image_model: curImgModel })
+      body: JSON.stringify({ aspect: currentDramaAspect, image_model: curImgModel }),
+      timeoutMs: 600000 // 批量绘制全部分镜关键帧，放宽到 10 分钟
     });
     if (res.ok) {
       await loadDramaDraftScenes();
@@ -20209,7 +20455,8 @@ async function runDramaGenVideo(shotId) {
         subtitle_enabled: subEnabled,
         video_mode: vMode,
         video_model: curVidModel
-      })
+      }),
+      timeoutMs: 600000 // 同步等单个镜头视频切片生成（AI 视频大模型单次约 1-5 分钟）
     });
     if (res.ok) {
       await loadDramaDraftScenes();
@@ -20239,7 +20486,8 @@ async function runDramaBatchVideos(isContinuous) {
         subtitle_enabled: subEnabled,
         video_mode: vMode,
         video_model: curVidModel
-      })
+      }),
+      timeoutMs: 600000 // 批量镜头视频切片是全流水线最重的一步，放宽到 10 分钟
     });
     if (res.ok) {
       await loadDramaDraftScenes();
@@ -20286,23 +20534,27 @@ async function runDramaFinalRender() {
       })
     });
     const job = res.job;
-    while(true) {
-      await new Promise(r => setTimeout(r, 2000));
-      const j = await api(`/api/rewrite/job/${job}`);
-      if (btn) btn.innerHTML = `<span class="live-pulse"></span> ⏳ ${escapeHtml(j.step || '封装中…')}`;
-      if (j.status === 'done') {
-        toast('🎉 全 AI 短剧成片出炉并已归档资料库！', 5000);
-        await loadDramaDraftScenes();
-        await loadVideoTasks();
-        const d = (S.drafts||[]).find(x => x.id === did);
-        openTheaterModal(j.result.video_url, d ? d.title : 'AI短剧成片', currentDramaAspect, 2048, j.result.task_id);
-        break;
-      }
-      if (j.status === 'failed') {
-        toast('渲染中断: ' + (j.error || '未知错误'), 5000);
-        break;
-      }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 2000,
+      maxMs: 1800000, // 全剧切片拼接 + 混音封装是重 FFmpeg 活，放宽到 30 分钟
+      onStep: j => { if (btn) btn.innerHTML = `<span class="live-pulse"></span> ⏳ ${escapeHtml(j.step || '封装中…')}`; },
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast('🎉 全 AI 短剧成片出炉并已归档资料库！', 5000);
+          await loadDramaDraftScenes();
+          await loadVideoTasks();
+          const d = (S.drafts||[]).find(x => x.id === did);
+          openTheaterModal(j.result.video_url, d ? d.title : 'AI短剧成片', currentDramaAspect, 2048, j.result.task_id);
+        } else {
+          toast('渲染中断: ' + jobEndErrorText(j), 5000);
+        }
+      },
+      onFail: e => { toast('渲染轮询中断: ' + e.message, 5000); }
+    });
   } catch(e) { toast(e.message); }
   finally {
     if (btn) { btn.disabled = false; btn.textContent = '🔥 立即合成全 AI 短剧成片母带'; }
@@ -20434,22 +20686,26 @@ async function runXhsAIVisual() {
       method: 'POST',
       body: JSON.stringify({ style })
     });
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
-      const j = await api(`/api/rewrite/job/${job}`);
-      if(btn) btn.textContent = '⏳ ' + (j.step || 'AI 生图中…');
-      if(j.status === 'done') {
-        toast(`🎉 小红书 AI 视觉图文卡片生成完成！共压制 5 张高清卡片`, 4500);
-        await refresh();
-        const d = (S.drafts||[]).find(x => x.id === curDraft);
-        if(d) await loadAndRenderPlatformData(d, 'xhs');
-        break;
-      }
-      if(j.status === 'failed') {
-        toast('生图制卡失败: ' + (j.error || '未知错误'), 4500);
-        break;
-      }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1500,
+      maxMs: 1800000,
+      onStep: j => { if(btn) btn.textContent = '⏳ ' + (j.step || 'AI 生图中…'); },
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast(`🎉 小红书 AI 视觉图文卡片生成完成！共压制 5 张高清卡片`, 4500);
+          await refresh();
+          const d = (S.drafts||[]).find(x => x.id === curDraft);
+          if(d) await loadAndRenderPlatformData(d, 'xhs');
+        } else {
+          toast('生图制卡失败: ' + jobEndErrorText(j), 4500);
+        }
+      },
+      onFail: e => { toast(e.message, 4500); }
+    });
   } catch(e) { toast(`生图异常: ${e.message}`); }
   finally {
     if(btn) { btn.disabled = false; btn.textContent = '✨ AI 生成小红书图文卡片'; }
@@ -20466,22 +20722,26 @@ async function runXhsAIRewrite() {
       method: 'POST',
       body: JSON.stringify({ style })
     });
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
-      const j = await api(`/api/rewrite/job/${job}`);
-      if(btn) btn.textContent = '⏳ ' + j.step;
-      if(j.status === 'done') {
-        toast(`✅ 小红书文案重排完成！生成 ${j.result.pages} 页轮播文案，已重绘整套卡片`, 4500);
-        await refresh();
-        const d = (S.drafts||[]).find(x => x.id === curDraft);
-        if(d) await loadAndRenderPlatformData(d, 'xhs');
-        break;
-      }
-      if(j.status === 'failed') {
-        toast('改写失败: ' + j.error, 4500);
-        break;
-      }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1500,
+      maxMs: 1800000,
+      onStep: j => { if(btn) btn.textContent = '⏳ ' + j.step; },
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast(`✅ 小红书文案重排完成！生成 ${j.result.pages} 页轮播文案，已重绘整套卡片`, 4500);
+          await refresh();
+          const d = (S.drafts||[]).find(x => x.id === curDraft);
+          if(d) await loadAndRenderPlatformData(d, 'xhs');
+        } else {
+          toast('改写失败: ' + jobEndErrorText(j), 4500);
+        }
+      },
+      onFail: e => { toast(e.message, 4500); }
+    });
   } catch(e) { toast(e.message); }
   finally {
     if(btn) { btn.disabled = false; btn.textContent = '⚡ AI 文案重排制卡'; }
@@ -20963,20 +21223,24 @@ async function runXhsDirectPublish() {
   btn.textContent = '⏳ 小红书无头直发中…';
   try {
     const {job} = await api(`/api/drafts/${curDraft}/publish_xhs`, {method: 'POST', body: '{}'});
-    while(true) {
-      await new Promise(r => setTimeout(r, 2000));
-      const j = await api(`/api/rewrite/job/${job}`);
-      btn.textContent = '⏳ ' + j.step;
-      if(j.status === 'done') {
-        toast('🎉 小红书笔记已全自动成功发布！');
-        await refresh();
-        break;
-      }
-      if(j.status === 'failed') {
-        toast('发布遇到拦截或未登录: ' + j.error);
-        break;
-      }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 2000,
+      maxMs: 1800000, // 无头浏览器登录态发布耗时不稳定，放宽到 30 分钟
+      onStep: j => { btn.textContent = '⏳ ' + j.step; },
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast('🎉 小红书笔记已全自动成功发布！');
+          await refresh();
+        } else {
+          toast('发布遇到拦截或未登录: ' + jobEndErrorText(j));
+        }
+      },
+      onFail: e => { toast(e.message); }
+    });
   } catch(e) { toast(e.message); }
   finally { btn.disabled = false; btn.textContent = '🚀 一键直发小红书'; }
 }
@@ -21390,34 +21654,41 @@ async function runVideoMake() {
         image_model: ($('vd-image-model-sel')?.value || getImageModel() || '').trim()
       })
     });
-    while(true) {
-      await new Promise(r => setTimeout(r, 2000));
-      const j = await api(`/api/rewrite/job/${job}`);
-      btn.textContent = '⏳ ' + j.step;
-      if(j.status === 'done') {
-        toast(`✅ 短视频出片合成完成（${currentVideoAspect}）！`);
-        const resBox = $('vd-result-box');
-        resBox.style.display = 'block';
-        const isHor = (j.result.aspect === '16:9');
-        $('vd-title-box').innerHTML = `
-          <span class="badge ${isHor ? 'blue' : 'green'}">${isHor ? '🖥️ 16:9 横版宽屏' : '📱 9:16 竖版全屏'}</span>
-          <span>${j.result.title || j.result.tid}</span>
-          <span style="font-size:12px;color:var(--text-muted)">(${j.result.size_kb} KB)</span>
-        `;
-        const player = $('vd-player');
-        player.src = j.result.url;
-        player.style.width = isHor ? '640px' : 'auto';
-        player.style.maxWidth = isHor ? '100%' : '300px';
-        $('vd-script-box').innerHTML = `
-          <div style="margin-bottom:4px"><strong>【视频口播词】</strong>: ${j.result.script}</div>
-          <div><strong>【画面检索词】</strong>: <span style="color:#7ee787">${(j.result.terms||[]).join(', ')}</span></div>
-        `;
-        $('vd-dl-link').href = j.result.url;
-        loadVideoTasks();
-        break;
-      }
-      if(j.status === 'failed') { toast('视频合成失败: ' + j.error, 6000); break; }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 2000,
+      maxMs: 1800000, // 检索素材 + 生图 + 切片合成全链路，放宽到 30 分钟
+      onStep: j => { btn.textContent = '⏳ ' + j.step; },
+      onDone: j => {
+        if (j.status === 'done') {
+          toast(`✅ 短视频出片合成完成（${currentVideoAspect}）！`);
+          const resBox = $('vd-result-box');
+          resBox.style.display = 'block';
+          const isHor = (j.result.aspect === '16:9');
+          $('vd-title-box').innerHTML = `
+            <span class="badge ${isHor ? 'blue' : 'green'}">${isHor ? '🖥️ 16:9 横版宽屏' : '📱 9:16 竖版全屏'}</span>
+            <span>${escapeHtml(j.result.title || j.result.tid)}</span>
+            <span style="font-size:12px;color:var(--text-muted)">(${j.result.size_kb} KB)</span>
+          `;
+          const player = $('vd-player');
+          player.src = j.result.url;
+          player.style.width = isHor ? '640px' : 'auto';
+          player.style.maxWidth = isHor ? '100%' : '300px';
+          $('vd-script-box').innerHTML = `
+            <div style="margin-bottom:4px"><strong>【视频口播词】</strong>: ${escapeHtml(j.result.script)}</div>
+            <div><strong>【画面检索词】</strong>: <span style="color:#7ee787">${escapeHtml((j.result.terms||[]).join(', '))}</span></div>
+          `;
+          $('vd-dl-link').href = j.result.url;
+          loadVideoTasks();
+        } else {
+          toast('视频合成失败: ' + jobEndErrorText(j), 6000);
+        }
+      },
+      onFail: e => { toast(e.message, 6000); }
+    });
   } catch(e) { toast(e.message); }
   finally { btn.disabled = false; btn.textContent = '🚀 一键合成短视频'; }
 }
@@ -21565,7 +21836,41 @@ function copyAllStoryboardPrompts() {
 }
 
 function copyText(str) {
-  navigator.clipboard.writeText(str).then(() => toast('✅ 已复制到剪贴板')).catch(() => toast('复制失败'));
+  // ⭐ P1 复制兜底：navigator.clipboard 仅在 HTTPS/localhost 安全上下文可用，
+  //   桌面端经 IP/局域网访问时为 undefined，直接读属性会抛 TypeError；
+  //   writeText 也可能因权限策略被拒。三级回落：Clipboard API → 隐藏 textarea
+  //   + execCommand（同步旧 API，非安全上下文下唯一可用）→ 明确报错引导手动复制。
+  const s = String(str === null || str === undefined ? '' : str);
+  const _copyViaExecCommand = function() {
+    const ta = document.createElement('textarea');
+    ta.value = s;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    ta.style.top = '0';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    try {
+      ta.select();
+      ta.setSelectionRange(0, s.length); // 兼容 iOS Safari
+      const ok = document.execCommand && document.execCommand('copy');
+      return !!ok;
+    } catch (_e) {
+      return false;
+    } finally {
+      document.body.removeChild(ta);
+    }
+  };
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    navigator.clipboard.writeText(s).then(() => toast('✅ 已复制到剪贴板')).catch(() => {
+      if (_copyViaExecCommand()) toast('✅ 已复制到剪贴板');
+      else toast('复制失败，请手动复制', 4000);
+    });
+  } else if (_copyViaExecCommand()) {
+    toast('✅ 已复制到剪贴板');
+  } else {
+    toast('复制失败，请手动复制', 4000);
+  }
 }
 
 function exportJianying() {
@@ -21670,19 +21975,26 @@ async function runAudioMake() {
         script: customScript
       })
     });
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
-      const j = await api(`/api/rewrite/job/${job}`);
-      btn.textContent = '⏳ ' + j.step;
-      if(j.status === 'done') {
-        toast('✅ 口播音频合成完成！');
-        $('au-result-box').style.display = 'block';
-        $('au-player').src = j.result.url;
-        $('au-script-box').textContent = `【口播文本】：${j.result.script}`;
-        break;
-      }
-      if(j.status === 'failed') { toast('音频合成失败: ' + j.error); break; }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 1500,
+      maxMs: 1800000, // 长文压缩 + TTS 合成长音频，放宽到 30 分钟
+      onStep: j => { btn.textContent = '⏳ ' + j.step; },
+      onDone: j => {
+        if (j.status === 'done') {
+          toast('✅ 口播音频合成完成！');
+          $('au-result-box').style.display = 'block';
+          $('au-player').src = j.result.url;
+          $('au-script-box').textContent = `【口播文本】：${j.result.script}`;
+        } else {
+          toast('音频合成失败: ' + jobEndErrorText(j));
+        }
+      },
+      onFail: e => { toast(e.message); }
+    });
   } catch(e) { toast(e.message); }
   finally { btn.disabled = false; btn.textContent = '🎧 生成口播音频'; }
 }
@@ -21705,17 +22017,24 @@ async function ticketRun() {
   btn.textContent = '⏳ 工单生产中…';
   try {
     const {job} = await api('/api/ticket/run', {method:'POST'});
-    while(true) {
-      await new Promise(r => setTimeout(r, 2000));
-      const j = await api(`/api/rewrite/job/${job}`);
-      btn.textContent = '⏳ ' + j.step;
-      if(j.status === 'done') {
-        toast('✅ 每日工单全部执行完成并已推送！', 5000);
-        await refresh();
-        break;
-      }
-      if(j.status === 'failed') { toast('工单运行失败: ' + j.error); break; }
-    }
+    await pollJobAsync({
+      fn: async () => {
+        const j = await api(`/api/rewrite/job/${job}`);
+        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+      },
+      intervalMs: 2000,
+      maxMs: 1800000, // 每日工单串行跑多个站点任务，放宽到 30 分钟
+      onStep: j => { btn.textContent = '⏳ ' + j.step; },
+      onDone: async j => {
+        if (j.status === 'done') {
+          toast('✅ 每日工单全部执行完成并已推送！', 5000);
+          await refresh();
+        } else {
+          toast('工单运行失败: ' + jobEndErrorText(j));
+        }
+      },
+      onFail: e => { toast(e.message); }
+    });
   } catch(e) { toast(e.message); }
   finally { btn.disabled = false; btn.textContent = '▶ 立即触发一次'; }
 }
@@ -22313,7 +22632,8 @@ async function saveDistill() {
         content,
         author_name,
         distill_type: $('dis-stage') ? $('dis-stage').value : 'all'
-      })
+      }),
+      timeoutMs: 300000 // 深度文风蒸馏是多轮 LLM 长调用
     });
     if (res.ok) {
       closeModal();
@@ -23265,7 +23585,7 @@ async function refreshDashboardRadar() {
   }
 
   try {
-    const collectRes = await api('/api/topics/collect', {method: 'POST'});
+    const collectRes = await api('/api/topics/collect', {method: 'POST', timeoutMs: 180000}); // 多平台热榜串行抓取
     const res = await api('/api/topics');
     const topics = res.topics || [];
     if (S) S.topics = topics;
@@ -23960,7 +24280,8 @@ async function doAssetLibHyperRealGen() {
     const res = await api('/api/assets/generate_hyper_real', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, draft_id: did })
+      body: JSON.stringify({ prompt, draft_id: did }),
+      timeoutMs: 120000 // 同步等单张超写实出图，慢通道放宽到 2 分钟
     });
     if (res && res.ok) {
       toast(res.msg || '🎉 电影级真实摄影大片已生成完毕！');
@@ -24617,14 +24938,22 @@ async function clearTasks(status, days) {
 function toggleTaskDrawer() {
   modal('m-task-monitor');
   loadTasksList();
-  if (!taskMonitorTimer) {
-    taskMonitorTimer = setInterval(() => {
-      const modalEl = $('m-task-monitor');
-      if (modalEl && modalEl.classList.contains('on')) {
-        loadTasksList();
-      }
-    }, 2000);
-  }
+  // ⭐ P2 定时器治理：打开前先清掉旧 interval 再起新的。此前只在判空后创建，
+  //    modal() 是 classList 开关，连点两次按钮或重复打开不会叠加泄漏；
+  //    但旧实现里一旦创建就永不回收——抽屉关闭后仍每 2s 全量拉任务列表。
+  if (taskMonitorTimer) { clearInterval(taskMonitorTimer); taskMonitorTimer = null; }
+  taskMonitorTimer = setInterval(() => {
+    const modalEl = $('m-task-monitor');
+    if (modalEl && modalEl.classList.contains('on')) {
+      // 仅在抽屉可见时执行重绘；页面不可见时也跳过本轮请求
+      if (document.hidden) return;
+      loadTasksList();
+    } else {
+      // 抽屉已关闭：回收定时器，避免后台空转
+      clearInterval(taskMonitorTimer);
+      taskMonitorTimer = null;
+    }
+  }, 2000);
 }
 
 function setTaskDrawerFilter(filter) {
@@ -24864,6 +25193,9 @@ async function cancelTask(taskId) {
 }
 
 setInterval(async () => {
+  // ⭐ P2 定时器治理：页面不可见（后台页签/最小化）时跳过本轮请求，
+  //    角标只在前台有意义，后台页签每 3.5s 打一次接口纯属浪费。
+  if (document.hidden) return;
   try {
     const res = await api('/api/tasks?active_only=true');
     const countBadge = $('nav-task-count');
@@ -25490,7 +25822,8 @@ async function runDramaRestitch() {
   try {
     const res = await api('/api/short_drama/reorder_and_restitch', {
       method: 'POST',
-      body: JSON.stringify({ draft_id: did })
+      body: JSON.stringify({ draft_id: did }),
+      timeoutMs: 600000 // 全剧母带重混是重 FFmpeg 拼接，放宽到 10 分钟
     });
     if (res && res.ok) {
       toast('🎉 母带秒级快速重混完成！');
@@ -26590,7 +26923,8 @@ async function analyzeTargetPlatformLayout() {
     const res = await api('/api/platforms/analyze_style', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url, name })
+      body: JSON.stringify({ url, name }),
+      timeoutMs: 300000 // Agent 读网页 + 多轮 LLM 提取排版指纹
     });
     if (res && res.skill) {
       window.currentAnalyzedSkill = res.skill;
@@ -27017,7 +27351,8 @@ document.addEventListener('DOMContentLoaded', () => {
     <strong id="wb-agent-connected-title" style="color:var(--text);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">暂未选择草稿</strong>
   </div>
 
-  <div class="copilot-chat-box" id="wb-agent-chat-messages" style="flex:1;padding:12px;gap:10px">
+  <!-- ⭐ i18n 免翻译标记：贴身 Agent 输出容器，气泡内容为 AI 生成创作内容，i18n 子树跳过 -->
+  <div class="copilot-chat-box" id="wb-agent-chat-messages" data-no-i18n style="flex:1;padding:12px;gap:10px">
     <div class="copilot-msg assistant">
       <div class="copilot-avatar">✨</div>
       <div class="copilot-bubble" style="font-size:12.5px">
@@ -27038,7 +27373,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div style="padding:8px 10px;border-top:1px solid var(--border);display:flex;gap:6px">
     <input type="text" id="wb-agent-input" placeholder="输入要求（或点击上方快捷指令）…" 
            style="flex:1;font-size:12px;padding:6px 10px;border-radius:6px;background:rgba(0,0,0,0.25);border:1px solid var(--border);color:var(--text)"
-           onkeydown="if(event.key==='Enter')sendWbAgentMessage()">
+           onkeydown="if(event.key==='Enter'&&imeSafeEnter(event))sendWbAgentMessage()">
     <button type="button" class="btn btn-sm" onclick="sendWbAgentMessage()" style="background:#f0883e;color:#fff;border:none;font-weight:700;padding:4px 12px;font-size:12px">发送</button>
 </div>
 

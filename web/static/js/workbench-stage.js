@@ -336,7 +336,13 @@
     bindKeys();
     patchSwitchPage();
     syncLang();
-    setInterval(syncLang, 1000);
+    /* v15.9.8 修复:语言同步由 1 秒轮询改为事件驱动——i18n.js 在 applyLanguage
+       末尾广播 yimu_lang_changed,切换语言时同步一次即可;跨标签页切换由
+       storage 事件兜底。原 setInterval 每秒空转是后台标签页的无谓开销。 */
+    WIN.addEventListener('yimu_lang_changed', syncLang);
+    WIN.addEventListener('storage', function (e) {
+      if (e.key === 'yimu_lang') syncLang();
+    });
 
     /* 对外：允许其他模块主动打开某个页面（例如右栏资产台的「去工作台」） */
     WIN.YIMU_STAGE = {

@@ -188,6 +188,11 @@ body {
   align-items: center;
   gap: 4px;
   cursor: pointer;
+  /* 触控目标达标：内联把 padding 压到 2px 的功能小按钮遍地都是，
+     这里统一兜底 ≥28px 高/宽的可点区域（flex 居中，不破坏紧凑头部布局），
+     字号仍由各处内联样式控制，视觉不变小。 */
+  min-height: 28px;
+  min-width: 28px;
 }
 .header-btn:active {
   transform: scale(0.96);
@@ -438,6 +443,11 @@ body {
   font-size: 13px;
   cursor: pointer;
   flex-shrink: 0;
+}
+/* 发送期间置灰：给「防重复提交」一个可见的按钮态，而不只是 toast */
+.m-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* 移动端原生 5 Tab 底部导航 */
@@ -748,8 +758,8 @@ body {
       </div>
       <!-- 输入条 -->
       <div class="m-chat-bar">
-        <input type="text" id="lite-input" class="m-input" placeholder="输入灵感或创作需求…" onkeydown="if(event.key==='Enter')sendLitePrompt()">
-        <button class="m-send-btn" onclick="sendLitePrompt()">生成 ➔</button>
+        <input type="text" id="lite-input" class="m-input" placeholder="输入灵感或创作需求…" onkeydown="if(imeSafeEnter(event))sendLitePrompt()">
+        <button class="m-send-btn" id="btn-lite-send" onclick="sendLitePrompt()">生成 ➔</button>
       </div>
     </div>
   </section>
@@ -821,9 +831,9 @@ body {
     <!-- 顶部工作流切换 (三模驱动) -->
     <div class="m-card" style="padding:6px;margin-bottom:12px">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
-        <button id="m-studio-tab-audio" class="btn-block btn-primary" style="padding:7px 4px;font-size:11px" onclick="switchMobileStudioTab('audio')">🎧 口播配音</button>
-        <button id="m-studio-tab-video" class="btn-block btn-secondary" style="padding:7px 4px;font-size:11px" onclick="switchMobileStudioTab('video')">⚡ 快速短视频</button>
-        <button id="m-studio-tab-drama" class="btn-block btn-secondary" style="padding:7px 4px;font-size:11px" onclick="switchMobileStudioTab('drama')">🎬 全自动AI 短视频</button>
+        <button id="m-studio-tab-audio" class="btn-block btn-primary" style="padding:7px 4px;font-size:11px;min-height:28px" onclick="switchMobileStudioTab('audio')">🎧 口播配音</button>
+        <button id="m-studio-tab-video" class="btn-block btn-secondary" style="padding:7px 4px;font-size:11px;min-height:28px" onclick="switchMobileStudioTab('video')">⚡ 快速短视频</button>
+        <button id="m-studio-tab-drama" class="btn-block btn-secondary" style="padding:7px 4px;font-size:11px;min-height:28px" onclick="switchMobileStudioTab('drama')">🎬 全自动AI 短视频</button>
       </div>
     </div>
 
@@ -866,7 +876,7 @@ body {
         <div id="m-tts-player-box" style="display:none;margin-top:14px;background:var(--card-subtle);border-radius:10px;padding:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
             <span style="font-size:12px;font-weight:700;color:var(--success)">✅ 音频合成就绪：</span>
-            <button id="btn-m-tts-theater-play" class="header-btn" style="padding:2px 8px;font-size:11px;color:var(--info);border-color:rgba(59,130,246,0.4)">▶ 弹窗剧场播放</button>
+            <button id="btn-m-tts-theater-play" class="header-btn" style="padding:4px 10px;font-size:11px;color:var(--info);border-color:rgba(59,130,246,0.4)">▶ 弹窗剧场播放</button>
           </div>
           <audio id="m-tts-audio" controls style="width:100%;margin-bottom:8px"></audio>
           <div id="m-tts-script-preview" style="font-size:11.5px;color:var(--text-muted);line-height:1.5"></div>
@@ -929,7 +939,7 @@ body {
         <div id="m-video-result-box" style="display:none;margin-top:14px;background:var(--card-subtle);border-radius:10px;padding:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
             <span style="font-size:12px;font-weight:700;color:var(--success)">🎉 视频渲染成片就绪：</span>
-            <button id="btn-m-video-theater-play" class="header-btn" style="padding:2px 8px;font-size:11px;color:var(--info);border-color:rgba(59,130,246,0.4)">▶ 弹窗剧场放映</button>
+            <button id="btn-m-video-theater-play" class="header-btn" style="padding:4px 10px;font-size:11px;color:var(--info);border-color:rgba(59,130,246,0.4)">▶ 弹窗剧场放映</button>
           </div>
           <video id="m-video-player" controls playsinline style="width:100%;max-height:280px;border-radius:8px;background:#000;margin-bottom:8px"></video>
           <a id="m-video-download" href="#" target="_blank" class="btn-block btn-secondary" style="text-align:center;text-decoration:none;display:block">💾 下载高清成片 MP4</a>
@@ -942,7 +952,7 @@ body {
       <div class="m-card">
         <div class="m-card-title">
           <span>🎬 全自动AI 短视频 (工业级)</span>
-          <button class="header-btn" onclick="initMobileDramaPipeline()" style="font-size:11px;padding:2px 8px">↻ 刷新</button>
+          <button class="header-btn" onclick="initMobileDramaPipeline()" style="font-size:11px;padding:4px 10px">↻ 刷新</button>
         </div>
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;line-height:1.5">
           一步一步工业级流水线：剧本解构 ➔ 分镜规划 ➔ 关键帧批量出图 ➔ 镜头动效合成 ➔ 全剧母带封包。
@@ -955,13 +965,13 @@ body {
               <span>🎙️</span> 剧本与小说文案来源
             </span>
             <div style="display:flex;gap:4px">
-              <button type="button" class="header-btn" style="font-size:11px;padding:2px 8px;color:#e3b341;border-color:rgba(227,179,65,0.4)" onclick="document.getElementById('m-drama-doc-upload').click()" title="支持上传 .txt, .md, .docx, .doc 文本文档或小说">
+              <button type="button" class="header-btn" style="font-size:11px;padding:4px 10px;color:#e3b341;border-color:rgba(227,179,65,0.4)" onclick="document.getElementById('m-drama-doc-upload').click()" title="支持上传 .txt, .md, .docx, .doc 文本文档或小说">
                 📤 上传文档
               </button>
-              <button type="button" class="header-btn" style="font-size:11px;padding:2px 8px" onclick="copyMobileDramaScript()" title="复制剧本文案">
+              <button type="button" class="header-btn" style="font-size:11px;padding:4px 10px" onclick="copyMobileDramaScript()" title="复制剧本文案">
                 📋 复制
               </button>
-              <button type="button" class="header-btn" style="font-size:11px;padding:2px 8px" onclick="clearMobileDramaScript()" title="清空文本框">
+              <button type="button" class="header-btn" style="font-size:11px;padding:4px 10px" onclick="clearMobileDramaScript()" title="清空文本框">
                 🧹 清空
               </button>
               <input type="file" id="m-drama-doc-upload" accept=".txt,.md,.docx,.doc" style="display:none" onchange="handleMobileDramaDocUpload(this)">
@@ -975,7 +985,7 @@ body {
               <select id="m-drama-draft-sel" class="m-input" style="flex:1;border-radius:8px;font-size:12px" onchange="onMobileDramaDraftChange(this.value)">
                 <option value="">-- 请选择剧本草稿 --</option>
               </select>
-              <button type="button" class="header-btn" style="font-size:11px;padding:2px 8px;white-space:nowrap" onclick="reloadMobileDramaScript()" title="从当前选择的草稿中重新提取纯文口播稿">
+              <button type="button" class="header-btn" style="font-size:11px;padding:4px 10px;white-space:nowrap" onclick="reloadMobileDramaScript()" title="从当前选择的草稿中重新提取纯文口播稿">
                 🔄 提取
               </button>
             </div>
@@ -993,10 +1003,10 @@ body {
 
         <!-- 4 步进度步骤指示器 (Stepper) -->
         <div style="display:grid;grid-template-columns:repeat(4, 1fr);gap:4px;margin-bottom:14px;background:rgba(0,0,0,0.35);padding:4px;border-radius:10px">
-          <button id="m-drama-step-nav-1" class="btn-block btn-primary" style="padding:6px 2px;font-size:11px;margin:0" onclick="switchMobileDramaStep(1)">1. 剧本分镜</button>
-          <button id="m-drama-step-nav-2" class="btn-block btn-secondary" style="padding:6px 2px;font-size:11px;margin:0" onclick="switchMobileDramaStep(2)">2. 关键生图</button>
-          <button id="m-drama-step-nav-3" class="btn-block btn-secondary" style="padding:6px 2px;font-size:11px;margin:0" onclick="switchMobileDramaStep(3)">3. 镜头动效</button>
-          <button id="m-drama-step-nav-4" class="btn-block btn-secondary" style="padding:6px 2px;font-size:11px;margin:0" onclick="switchMobileDramaStep(4)">4. 母带成片</button>
+          <button id="m-drama-step-nav-1" class="btn-block btn-primary" style="padding:6px 2px;font-size:11px;margin:0;min-height:28px" onclick="switchMobileDramaStep(1)">1. 剧本分镜</button>
+          <button id="m-drama-step-nav-2" class="btn-block btn-secondary" style="padding:6px 2px;font-size:11px;margin:0;min-height:28px" onclick="switchMobileDramaStep(2)">2. 关键生图</button>
+          <button id="m-drama-step-nav-3" class="btn-block btn-secondary" style="padding:6px 2px;font-size:11px;margin:0;min-height:28px" onclick="switchMobileDramaStep(3)">3. 镜头动效</button>
+          <button id="m-drama-step-nav-4" class="btn-block btn-secondary" style="padding:6px 2px;font-size:11px;margin:0;min-height:28px" onclick="switchMobileDramaStep(4)">4. 母带成片</button>
         </div>
 
         <!-- 步骤 1 容器: 剧本分析与影视分镜拆解 (默认只显示第一步) -->
@@ -1255,8 +1265,8 @@ body {
             <span>📕</span> 小红书中枢
           </span>
           <div style="display:flex;align-items:center;gap:6px">
-            <span id="m-xhs-login-indicator" class="badge gray" style="cursor:pointer;font-size:10px;padding:2px 6px" onclick="checkMobileXhsLogin(true)">○ 检测中</span>
-            <button class="header-btn" id="btn-m-xhs-pub" style="background:#ff2442;color:#fff;border-color:#ff2442;font-size:11px;padding:2px 8px;font-weight:700" onclick="runMobileXhsDirectPublish()">
+            <span id="m-xhs-login-indicator" class="badge gray" style="cursor:pointer;display:inline-flex;align-items:center;min-height:28px;font-size:10px;padding:2px 8px" onclick="checkMobileXhsLogin(true)">○ 检测中</span>
+            <button class="header-btn" id="btn-m-xhs-pub" style="background:#ff2442;color:#fff;border-color:#ff2442;font-size:11px;padding:4px 10px;font-weight:700" onclick="runMobileXhsDirectPublish()">
               🚀 直发
             </button>
           </div>
@@ -2007,6 +2017,113 @@ let activeDraftId = null;
 let currentPlatform = 'wechat_mp';
 let authMode = 'login';
 
+/* ============================================================
+ * 移动端自包含网络/输入小工具（PC 端 yimu-net.js 的移动精简版，就地内联）
+ * 为什么不直接引入 /static/js/yimu-net.js：移动端模板刻意保持自包含
+ * （不新增外部 JS 依赖），故只内联轮询与输入法守卫所需的最小能力。
+ * ============================================================ */
+
+/* 中文输入法守卫：Enter 提交前必须过这道闸（与 PC 端 imeSafeEnter 语义一致）。
+   why: 拼音/五笔组词过程中按 Enter 是「确认候选词」，keydown 里
+   e.isComposing === true（旧内核用 keyCode 229），不拦会把半截拼音当指令发出去。 */
+function imeSafeEnter(e) {
+  if (!e) return false;
+  return !(e.isComposing || e.keyCode === 229);
+}
+
+/* 存活轮询注册表：切 Tab / 打开别的草稿 / 关草稿详情时统一取消旧轮询。
+   why: 旧任务的完成回调会改写按钮文案与列表，跨页面串台（对齐 PC 端 selectDraft 的处理）。 */
+const _liveJobPolls = new Set();
+
+function cancelAllMobileJobPolls() {
+  const n = _liveJobPolls.size;
+  Array.from(_liveJobPolls).forEach(p => p.cancel());
+  _liveJobPolls.clear();
+  return n;
+}
+
+/* 统一任务轮询器 pollJobMini：收拢全站手写的裸轮询死循环（原 6 处）。
+   约定（与 PC 端 pollJob/pollJobAsync 同源）：
+   - fn 为调用方提供的单次探测，返回 { done: boolean, data: any }；
+     done 表示到达终态（完成/失败都算终态），data 原样透传。
+   - 网络抖动连续 tolerate 次以内自动重试不判失败；超过才 reject。
+   - 总时长超过 maxMs：reject「任务仍在后台执行，稍后可在稿件列表查看」，
+     绝不裸抛「失败」——轮询断了不代表后台任务死了。
+   - document.hidden 时拉长轮询间隔（省请求省电）。
+   - 返回 { promise, cancel() }：cancel() 是用户切页等主动行为，不算失败，
+     以 resolve({ cancelled: true }) 收尾，由调用方静默处理、不弹错误。 */
+function pollJobMini(fn, opts = {}) {
+  const intervalMs = typeof opts.intervalMs === 'number' && opts.intervalMs > 0 ? opts.intervalMs : 1500;
+  const maxMs = typeof opts.maxMs === 'number' && opts.maxMs > 0 ? opts.maxMs : 600000;
+  const tolerate = typeof opts.tolerate === 'number' && opts.tolerate >= 0 ? opts.tolerate : 3;
+
+  const startedAt = Date.now();
+  let cancelled = false;
+  let settled = false;
+  let failStreak = 0;
+  let timer = null;
+  let resolveFn = null;
+  let rejectFn = null;
+
+  const promise = new Promise((resolve, reject) => { resolveFn = resolve; rejectFn = reject; });
+
+  function unregister() { _liveJobPolls.delete(handle); }
+  function clearTimer() { if (timer !== null) { clearTimeout(timer); timer = null; } }
+  function settle(resolveVal, rejectErr) {
+    if (settled || cancelled) return;
+    settled = true;
+    clearTimer();
+    unregister();
+    if (rejectErr) rejectFn(rejectErr); else resolveFn(resolveVal);
+  }
+  function scheduleNext() {
+    if (cancelled || settled) return;
+    // 页面不可见时降频：后台任务不必频繁刷，间隔放大 3 倍且至少 4.5s
+    const iv = (typeof document !== 'undefined' && document.hidden) ? Math.max(intervalMs * 3, 4500) : intervalMs;
+    timer = setTimeout(tick, iv);
+  }
+
+  async function tick() {
+    if (cancelled || settled) return;
+    if (Date.now() - startedAt >= maxMs) {
+      // 超时不判「失败」：后台任务可能仍在跑，引导用户去稿件列表查看
+      const e = new Error('任务仍在后台执行，稍后可在稿件列表查看');
+      e.backgroundTimeout = true;
+      settle(null, e);
+      return;
+    }
+    let r;
+    try {
+      r = await fn();
+      failStreak = 0; // 本次探测成功，重置连续网络错误计数
+    } catch (err) {
+      failStreak += 1;
+      if (failStreak <= tolerate) { scheduleNext(); return; }
+      settle(null, err);
+      return;
+    }
+    if (cancelled || settled) return;
+    const data = (r && r.data !== undefined) ? r.data : r;
+    if (r && r.done) { settle(data); return; }
+    scheduleNext();
+  }
+
+  const handle = {
+    promise,
+    cancel() {
+      if (settled) return;
+      cancelled = true;
+      clearTimer();
+      unregister();
+      resolveFn({ cancelled: true });
+    }
+  };
+  _liveJobPolls.add(handle);
+  // 首轮立即探测：调用方刚提交任务，等满一个间隔反而拖慢首反馈
+  timer = setTimeout(tick, 0);
+  return handle;
+}
+
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -2025,9 +2142,17 @@ function toast(msg, time=3000) {
 }
 
 function openSheet(id) { document.getElementById(id).classList.add('active'); }
-function closeSheet(id) { document.getElementById(id).classList.remove('active'); }
+function closeSheet(id) {
+  document.getElementById(id).classList.remove('active');
+  // 关闭草稿详情（返回稿件列表）即取消旧任务轮询：
+  // why: 旧任务的完成回调会改写已关闭抽屉里的按钮与卡片，下次打开看到的是串台状态。
+  if (id === 'sheet-draft-detail') cancelAllMobileJobPolls();
+}
 
 function switchMTab(tab) {
+  // 切 Tab 先取消旧轮询，避免旧任务回调改写已离开页面的按钮/列表（状态串台）。
+  // 仅 Tab 真正变化时取消：同 Tab 内的子视图切换（如影音工坊三模）不误伤进行中的任务。
+  if (currentMTab !== tab) cancelAllMobileJobPolls();
   currentMTab = tab;
   document.querySelectorAll('.m-tab').forEach((el, i) => {
     el.classList.toggle('active', ['lite', 'drafts', 'inspire', 'studio', 'profile'][i] === tab);
@@ -2176,10 +2301,18 @@ function setCopilotPrompt(text) {
   setMobileLitePrompt(text);
 }
 
+/* 防重复提交闸：上一条创作仍在联网成稿时，再次点「生成/回车」只提示不排队 */
+let litePromptInFlight = false;
+
 async function sendLitePrompt() {
   const inp = document.getElementById('lite-input');
   const txt = inp.value.trim();
   if (!txt) return;
+  const sendBtn = document.getElementById('btn-lite-send');
+  // 防重复提交：进行中再点发送给明确 toast 反馈，而非静默忽略或排双队列
+  if (litePromptInFlight) return toast('⏳ 上一条创作仍在进行中，等它完成后再发下一条');
+  litePromptInFlight = true;
+  if (sendBtn) sendBtn.disabled = true;
   inp.value = '';
 
   const box = document.getElementById('lite-chat-box');
@@ -2190,7 +2323,7 @@ async function sendLitePrompt() {
     </div>
     <div class="chat-msg assistant" id="msg-loading">
       <div class="chat-avatar">✨</div>
-      <div class="chat-bubble">正在构思深度爆款长文并为您排版，约需 5~10 秒…</div>
+      <div class="chat-bubble">正在联网检索、成稿并三端排版，通常 1~3 分钟；可以离开本页，完成后在稿件列表查看</div>
     </div>
   `;
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
@@ -2215,7 +2348,10 @@ async function sendLitePrompt() {
     `;
     window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     if (res.draft_id) {
-      activeDraftId = res.draft_id;
+      // 移动端语义：生成成功后仅把新稿绑定为当前上下文（后续配图/改写/直发都指向它），
+      // 不打断式弹出详情抽屉——与 PC 端 selectDraft(切稿并打开工作台) 刻意不同，
+      // 此处「赋值」就是正确行为；统一转 string 防御后端返回数值型 id 拼进 URL 失真。
+      activeDraftId = String(res.draft_id);
     }
     const toastNotice = res.action === 'image_style' ? '🎬 影视短剧级分镜头配图已重构！' :
                         res.action === 'title' ? '🎯 最佳赛马标题已更新！' :
@@ -2228,6 +2364,10 @@ async function sendLitePrompt() {
     const loading = document.getElementById('msg-loading');
     if (loading) loading.remove();
     toast('生成失败: ' + e.message);
+  } finally {
+    // 无论成败都解锁发送：按钮态与防重闸一起恢复
+    litePromptInFlight = false;
+    if (sendBtn) sendBtn.disabled = false;
   }
 }
 
@@ -2405,6 +2545,9 @@ let curDraftDetailData = null;
 
 async function openDraftDetail(did) {
   activeDraftId = did;
+  // 切草稿必须取消旧任务轮询：旧任务 pollJobMini 的回调会调用刷新/改按钮文案，
+  // 与新打开的草稿详情互相串台（对齐 PC 端 selectDraft 的取消语义）。
+  cancelAllMobileJobPolls();
   openSheet('sheet-draft-detail');
   applyMobilePlatformsVisibility();
   const preview = document.getElementById('m-draft-preview-content');
@@ -2689,21 +2832,21 @@ async function runMobileXhsAIVisual() {
       body: JSON.stringify({ style: style })
     });
     const job = res.job;
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
+    // 轮询收拢到 pollJobMini：网络抖动自动重试、超时不误判失败、切页可取消
+    const poll = pollJobMini(async () => {
       const j = await api(`/api/rewrite/job/${job}`);
       if (btn) btn.textContent = '⏳ ' + (j.step || 'AI 生图中…');
-      if (j.status === 'done') {
-        toast('🎉 小红书 AI 视觉图文卡片生成完成！共 5 张高清卡片', 4000);
-        await loadMobileXhsCards(activeDraftId);
-        break;
-      }
-      if (j.status === 'failed') {
-        throw new Error(j.error || '生图制卡失败');
-      }
-    }
+      // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
+      return { done: j.status === 'done' || j.status === 'failed', data: j };
+    }, { intervalMs: 1500 });
+    const j = await poll.promise;
+    if (j && j.cancelled) return toast('⏳ 任务仍在后台执行，稍后可在稿件列表查看');
+    if (j.status === 'failed') throw new Error(j.error || '生图制卡失败');
+    toast('🎉 小红书 AI 视觉图文卡片生成完成！共 5 张高清卡片', 4000);
+    await loadMobileXhsCards(activeDraftId);
   } catch(e) {
-    toast('生图制卡失败: ' + e.message);
+    // 轮询超时不是业务失败：文案本身已引导去稿件列表，别再叠加「失败」前缀吓用户
+    toast(e && e.backgroundTimeout ? e.message : ('生图制卡失败: ' + e.message));
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '✨ AI 生图制卡'; }
   }
@@ -2723,21 +2866,21 @@ async function runMobileXhsAIRewrite() {
       body: JSON.stringify({ style: style })
     });
     const job = res.job;
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
+    // 轮询收拢到 pollJobMini：网络抖动自动重试、超时不误判失败、切页可取消
+    const poll = pollJobMini(async () => {
       const j = await api(`/api/rewrite/job/${job}`);
       if (btn) btn.textContent = '⏳ ' + (j.step || '重排中…');
-      if (j.status === 'done') {
-        toast(`✅ 小红书文案重排完成！生成 ${j.result?.pages || 5} 页卡片`, 4000);
-        await loadMobileXhsCards(activeDraftId);
-        break;
-      }
-      if (j.status === 'failed') {
-        throw new Error(j.error || '文案重排失败');
-      }
-    }
+      // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
+      return { done: j.status === 'done' || j.status === 'failed', data: j };
+    }, { intervalMs: 1500 });
+    const j = await poll.promise;
+    if (j && j.cancelled) return toast('⏳ 任务仍在后台执行，稍后可在稿件列表查看');
+    if (j.status === 'failed') throw new Error(j.error || '文案重排失败');
+    toast(`✅ 小红书文案重排完成！生成 ${j.result?.pages || 5} 页卡片`, 4000);
+    await loadMobileXhsCards(activeDraftId);
   } catch(e) {
-    toast('重排失败: ' + e.message);
+    // 轮询超时不是业务失败：文案本身已引导去稿件列表，别再叠加「失败」前缀吓用户
+    toast(e && e.backgroundTimeout ? e.message : ('重排失败: ' + e.message));
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '⚡ 文案重排制卡'; }
   }
@@ -2905,20 +3048,20 @@ async function runMobileXhsDirectPublish() {
   try {
     const res = await api(`/api/drafts/${activeDraftId}/publish_xhs`, { method: 'POST', body: '{}' });
     const job = res.job;
-    while(true) {
-      await new Promise(r => setTimeout(r, 2000));
+    // 轮询收拢到 pollJobMini：网络抖动自动重试、超时不误判失败、切页可取消
+    const poll = pollJobMini(async () => {
       const j = await api(`/api/rewrite/job/${job}`);
       if (btn) btn.textContent = '⏳ ' + (j.step || '发布中…');
-      if (j.status === 'done') {
-        toast('🎉 小红书笔记已全自动成功直发发布！', 5000);
-        break;
-      }
-      if (j.status === 'failed') {
-        throw new Error(j.error || '发布遇到拦截');
-      }
-    }
+      // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
+      return { done: j.status === 'done' || j.status === 'failed', data: j };
+    }, { intervalMs: 2000 });
+    const j = await poll.promise;
+    if (j && j.cancelled) return toast('⏳ 直发任务仍在后台执行，请稍后回到本页查看发布结果');
+    if (j.status === 'failed') throw new Error(j.error || '发布遇到拦截');
+    toast('🎉 小红书笔记已全自动成功直发发布！', 5000);
   } catch(e) {
-    toast('直发失败: ' + e.message);
+    // 轮询超时不是业务失败：文案本身已引导去稿件列表，别再叠加「失败」前缀吓用户
+    toast(e && e.backgroundTimeout ? e.message : ('直发失败: ' + e.message));
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '🚀 直发'; }
   }
@@ -3831,6 +3974,16 @@ async function triggerCollectTopics() {
   }
 }
 
+/* 加号菜单「抓取全网热榜」的落地实现。
+   why: 菜单 action 只写了函数名，此前全仓无定义，点击即 ReferenceError 死链；
+   其语义与热榜 Tab 的「⚡ 抓全网」完全同源（并发抓取 + 刷新列表），
+   统一编排到 triggerCollectTopics（自带抓取中/成功/失败 toast 进度），
+   若当前不在热榜 Tab 先引导过去，保证点击必有真实反馈。 */
+async function runMobileCrawlHot() {
+  if (currentMTab !== 'inspire') switchMTab('inspire');
+  await triggerCollectTopics();
+}
+
 function useTopic(encTitle) {
   const t = decodeURIComponent(encTitle);
   switchMTab('lite');
@@ -3898,28 +4051,28 @@ async function runMobileTtsMake() {
     });
 
     const job = res.job;
-    while(true) {
-      await new Promise(r => setTimeout(r, 1500));
+    // 轮询收拢到 pollJobMini：网络抖动自动重试、超时不误判失败、切页可取消
+    const poll = pollJobMini(async () => {
       const j = await api(`/api/rewrite/job/${job}`);
       btn.textContent = '⏳ ' + (j.step || '音频渲染中…');
-      if (j.status === 'done') {
-        toast('🎉 口播配音合成完成！');
-        document.getElementById('m-tts-player-box').style.display = 'block';
-        document.getElementById('m-tts-audio').src = j.result.url;
-        document.getElementById('m-tts-script-preview').textContent = `【配音台词】：${j.result.script || script}`;
-        const tPlayBtn = document.getElementById('btn-m-tts-theater-play');
-        if (tPlayBtn) {
-          tPlayBtn.onclick = () => openMobileTheaterModal(j.result.url, (firstDraft || '口播音频') + ' 纯净配音', 'audio');
-        }
-        loadMobileVideoAssets();
-        break;
-      }
-      if (j.status === 'failed') {
-        throw new Error(j.error || '配音合成失败');
-      }
+      // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
+      return { done: j.status === 'done' || j.status === 'failed', data: j };
+    }, { intervalMs: 1500 });
+    const j = await poll.promise;
+    if (j && j.cancelled) return toast('⏳ 配音任务仍在后台执行，完成后可在影音资产库查看');
+    if (j.status === 'failed') throw new Error(j.error || '配音合成失败');
+    toast('🎉 口播配音合成完成！');
+    document.getElementById('m-tts-player-box').style.display = 'block';
+    document.getElementById('m-tts-audio').src = j.result.url;
+    document.getElementById('m-tts-script-preview').textContent = `【配音台词】：${j.result.script || script}`;
+    const tPlayBtn = document.getElementById('btn-m-tts-theater-play');
+    if (tPlayBtn) {
+      tPlayBtn.onclick = () => openMobileTheaterModal(j.result.url, (firstDraft || '口播音频') + ' 纯净配音', 'audio');
     }
+    loadMobileVideoAssets();
   } catch(e) {
-    toast('合成失败: ' + e.message);
+    // 轮询超时不是业务失败：文案本身已引导去稿件列表，别再叠加「失败」前缀吓用户
+    toast(e && e.backgroundTimeout ? e.message : ('合成失败: ' + e.message));
   } finally {
     btn.disabled = false;
     btn.textContent = '🎙️ 一键合成口播音频';
@@ -3971,28 +4124,28 @@ async function runMobileVideoMake() {
 
     const job = res.job;
     toast('🚀 视频渲染流水线已提交后台执行…');
-    while(true) {
-      await new Promise(r => setTimeout(r, 2000));
+    // 轮询收拢到 pollJobMini：网络抖动自动重试、超时不误判失败、切页可取消
+    const poll = pollJobMini(async () => {
       const j = await api(`/api/rewrite/job/${job}`);
       btn.textContent = '⏳ ' + (j.step || '渲染中…');
-      if (j.status === 'done') {
-        toast('🎉 视频渲染完成！');
-        document.getElementById('m-video-result-box').style.display = 'block';
-        document.getElementById('m-video-player').src = j.result.video_url;
-        document.getElementById('m-video-download').href = j.result.video_url;
-        const vPlayBtn = document.getElementById('btn-m-video-theater-play');
-        if (vPlayBtn) {
-          vPlayBtn.onclick = () => openMobileTheaterModal(j.result.video_url, (targetDid || '短视频成片') + ' 高清母带', 'video');
-        }
-        loadMobileVideoAssets();
-        break;
-      }
-      if (j.status === 'failed') {
-        throw new Error(j.error || '视频合成失败');
-      }
+      // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
+      return { done: j.status === 'done' || j.status === 'failed', data: j };
+    }, { intervalMs: 2000 });
+    const j = await poll.promise;
+    if (j && j.cancelled) return toast('⏳ 视频渲染仍在后台执行，完成后可在影音资产库查看');
+    if (j.status === 'failed') throw new Error(j.error || '视频合成失败');
+    toast('🎉 视频渲染完成！');
+    document.getElementById('m-video-result-box').style.display = 'block';
+    document.getElementById('m-video-player').src = j.result.video_url;
+    document.getElementById('m-video-download').href = j.result.video_url;
+    const vPlayBtn = document.getElementById('btn-m-video-theater-play');
+    if (vPlayBtn) {
+      vPlayBtn.onclick = () => openMobileTheaterModal(j.result.video_url, (targetDid || '短视频成片') + ' 高清母带', 'video');
     }
+    loadMobileVideoAssets();
   } catch(e) {
-    toast('视频合成失败: ' + e.message);
+    // 轮询超时不是业务失败：文案本身已引导去稿件列表，别再叠加「失败」前缀吓用户
+    toast(e && e.backgroundTimeout ? e.message : ('视频合成失败: ' + e.message));
   } finally {
     btn.disabled = false;
     btn.textContent = '⚡ 启动 AI 渲染合成视频';
@@ -4816,25 +4969,32 @@ async function runMobileTicketPipeline() {
 
   try {
     const { job } = await api('/api/ticket/run', { method: 'POST' });
-    while (true) {
-      await new Promise(r => setTimeout(r, 2000));
+    // 轮询收拢到 pollJobMini：网络抖动自动重试、超时不误判失败、切页可取消
+    const poll = pollJobMini(async () => {
       const j = await api(`/api/rewrite/job/${job}`);
       if (btn) btn.textContent = '⏳ ' + j.step;
       if (stText) stText.textContent = '⏳ ' + j.step;
-      if (j.status === 'done') {
-        toast('✅ 每日工单全部执行完成并已推送！', 5000);
-        if (stText) stText.textContent = '✅ 今日工单已生产并推送完成';
-        loadDraftsList();
-        break;
-      }
-      if (j.status === 'failed') {
-        toast('工单运行失败: ' + j.error);
-        if (stText) stText.textContent = '❌ 生产失败: ' + j.error;
-        break;
-      }
+      // done/failed 都是终态；failed 的业务处理留在轮询外，保留原文案
+      return { done: j.status === 'done' || j.status === 'failed', data: j };
+    }, { intervalMs: 2000 });
+    const j = await poll.promise;
+    if (j && j.cancelled) {
+      toast('⏳ 工单流水线仍在后台执行，完成后可在稿件列表查看');
+      if (stText) stText.textContent = '⏳ 任务仍在后台执行，可稍后在稿件列表查看';
+      return;
     }
+    if (j.status === 'failed') {
+      toast('工单运行失败: ' + j.error);
+      if (stText) stText.textContent = '❌ 生产失败: ' + j.error;
+      return;
+    }
+    toast('✅ 每日工单全部执行完成并已推送！', 5000);
+    if (stText) stText.textContent = '✅ 今日工单已生产并推送完成';
+    loadDraftsList();
   } catch(e) {
-    toast('工单异常: ' + e.message);
+    // 轮询超时不是业务失败：文案本身已引导去稿件列表，别再叠加「异常」前缀吓用户
+    if (stText && e && e.backgroundTimeout) stText.textContent = '⏳ ' + e.message;
+    toast(e && e.backgroundTimeout ? e.message : ('工单异常: ' + e.message));
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '▶ 立即触发一次'; }
   }

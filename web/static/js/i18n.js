@@ -140,6 +140,14 @@
   };
 
   const EXACT_MAP = {
+  /* v15.9.8: 影音工坊无模型守门引导条(静态+动态模板变体全覆盖,保证 EN 模式零残留) */
+  "尚未接入生图/视频模型——分镜脚本仍可用；出图/出视频请先到 控制中心 → 系统与 API 配置 配置模型": "No image/video model connected — storyboard scripts still work; set up models under Control Center → System & API Config to enable images & videos",
+  "尚未接入生图模型——分镜脚本仍可用；出图/出视频请先到 控制中心 → 系统与 API 配置 配置模型": "No image model connected — storyboard scripts still work; set up models under Control Center → System & API Config to enable images & videos",
+  "尚未接入视频模型——分镜脚本仍可用；出图/出视频请先到 控制中心 → 系统与 API 配置 配置模型": "No video model connected — storyboard scripts still work; set up models under Control Center → System & API Config to enable images & videos",
+  "去配置模型 →": "Set Up Models →",
+  "尚未接入生图/视频模型，请先到 控制中心 → 系统与 API 配置 配置后再运行全流水线": "No image/video model connected. Set up models under Control Center → System & API Config before running the full pipeline",
+  "尚未接入生图模型，请先到 控制中心 → 系统与 API 配置 配置后再运行全流水线": "No image model connected. Set up models under Control Center → System & API Config before running the full pipeline",
+  "尚未接入视频模型，请先到 控制中心 → 系统与 API 配置 配置后再运行全流水线": "No video model connected. Set up models under Control Center → System & API Config before running the full pipeline",
   "套餐与价格 · 商业化订阅与算力充值中枢": "Plans & Pricing · Commercial Subscription & Credits Hub",
   "会员订阅 · 算力充值": "Subscriptions · Credits",
   "套餐与价格": "Plans & Pricing",
@@ -2004,6 +2012,13 @@
     const tagName = node.tagName ? node.tagName.toUpperCase() : '';
     if (['SCRIPT', 'STYLE', 'CODE', 'PRE'].includes(tagName)) return;
 
+    // v15.9.8 修复:[data-no-i18n] 子树整体跳过。AI 生成内容(消息气泡、正文画布等)
+    // 是用户产物而非界面文案,此前 EN 模式的短语替换会把回复正文里的
+    // 「今日头条」改写成 Toutiao 等,污染用户内容。入口处用 closest 判定,
+    // 递归进入带标记的子节点时同样会被拦截。
+    const rootEl = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    if (rootEl && rootEl.closest && rootEl.closest('[data-no-i18n]')) return;
+
     if (node.nodeType === Node.TEXT_NODE) {
       const val = node.nodeValue;
       if (!val || !val.trim()) return;
@@ -2131,8 +2146,14 @@
       translateDOMNode(document.body, currentLang);
 
       // 中文环境下兜底全局纠错：将页面上所有误生成的「一幕·一幕」绝对纠正为「一幕·YIMU」
+      // (FILTER_REJECT 跳过 [data-no-i18n] 子树:AI 生成内容不做干预)
       if (currentLang === 'zh') {
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+          acceptNode: function (n) {
+            const p = n.parentElement;
+            return (p && p.closest && p.closest('[data-no-i18n]')) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+          }
+        }, false);
         let textNode;
         while ((textNode = walker.nextNode())) {
           if (textNode.nodeValue && (textNode.nodeValue.includes('一幕·一幕') || textNode.nodeValue.includes('一幕.一幕'))) {
@@ -2142,10 +2163,13 @@
       }
 
       // 3. 更新页面标题 <title>
+      // v15.9.8 修复:此前把版本号写死为 V10.0.1,与版本真源(version.py/release.py)漂移,
+      // 英文界面版本号永远显示错误。现在只翻译文案部分,版本号从当前 title 原样保留。
+      const verToken = (document.title.match(/V\d+(?:\.\d+)*/) || [])[0] || '';
       if (currentLang === 'en') {
-        document.title = "YIMU Studio V10.0.1 · Omni-Media Super Creation Engine";
+        document.title = "YIMU Studio" + (verToken ? " " + verToken : "") + " · Omni-Media Super Creation Engine";
       } else {
-        document.title = "一幕·YIMU 爆款工作室 V10.0.1 · 全媒体超级创作引擎";
+        document.title = "一幕·YIMU 爆款工作室" + (verToken ? " " + verToken : "") + " · 全媒体超级创作引擎";
       }
 
       // 4. 更新顶栏与移动端语言切换指示器

@@ -25,6 +25,39 @@
   global.imeSafeEnter = imeSafeEnter;
 
   /**
+   * 任务终态判定：唯一真源，轮询的 `done` 标志一律由它算出。
+   *
+   * 为什么需要它（v15.9.9 实测事故）：后端任务状态的「成功」有 done 与
+   * completed 两代写法——core.task_queue 落库并对外一律用 completed，
+   * 而 web.admin.JOBS 历史条目与大量业务路由写的是 done。全站 40+ 处轮询
+   * 各自写 `j.status === 'done'` 判断，只要一侧改了词，另一侧就永远等不到
+   * 终态，一路轮询到 maxMs 超时才报「任务仍在后台执行」，用户看到的是
+   * 「合成完成但界面不动」。这里把两代词汇收成一个集合，调用方不再关心
+   * 具体拼写。
+   *
+   * @param {string} status 任务状态原值
+   * @returns {boolean} true = 终态（完成/失败/取消/中断），轮询可以停
+   */
+  var TERMINAL_STATUSES = { completed: 1, done: 1, failed: 1, cancelled: 1, interrupted: 1 };
+
+  function isTerminalStatus(status) {
+    return !!TERMINAL_STATUSES[String(status == null ? '' : status).trim().toLowerCase()];
+  }
+
+  /**
+   * 任务是否「成功完成」——终态里排除失败/取消/中断。
+   * @param {string} status
+   * @returns {boolean}
+   */
+  function isSuccessStatus(status) {
+    var s = String(status == null ? '' : status).trim().toLowerCase();
+    return s === 'completed' || s === 'done';
+  }
+
+  global.isTerminalStatus = isTerminalStatus;
+  global.isSuccessStatus = isSuccessStatus;
+
+  /**
    * 统一任务轮询器：收拢全站手写 while(true) 轮询。
    *
    * 约定：

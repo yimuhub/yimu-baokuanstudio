@@ -260,15 +260,13 @@ class TestTopicFiltering:
 class TestDraftNeedsReview:
     """R4-4：草稿加 needs_review 字段 + 标记不删除。"""
 
-    def test_draft_model_has_needs_review_field(self):
-        """studio/db_models.py 的 Draft 模型有 needs_review 字段。"""
-        from studio.db_models import Draft
-
-        assert "needs_review" in Draft.__table__.columns
-        assert "guard_reason" in Draft.__table__.columns
+    # v15.9.9：原 test_draft_model_has_needs_review_field 断言
+    # studio.db_models.Draft ORM 模型的字段——该死 ORM 类（运行时走 core/db.py
+    # 裸 SQL）已随死代码清理删除，本测试合并进下方真源断言（core.db 初始化后
+    # drafts 表实际列集），字段契约不变。
 
     def test_schema_migration_adds_columns(self, isolated_core_db):
-        """core.db.conn() 的迁移逻辑会给旧库补列。"""
+        """core.db.conn() 的初始化/迁移逻辑保证 drafts 有 needs_review / guard_reason 列。"""
         conn = isolated_core_db.conn()
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(drafts)")}
         assert "needs_review" in cols and "guard_reason" in cols

@@ -5,7 +5,7 @@
  * MIT License (c) 2026
  * 特性：图文混排 / 图片视频上传 / 表格 / 源码模式 / 草稿 / 明暗主题 / 全屏
  * 引入即用：<script src="yimu-editor.js"></script>
- * 初始化：new YimuEditor('#editor', { uploadUrl: '/api/upload' })
+ * 初始化：new YimuEditor('#editor', { uploadUrl: '/api/editor/upload' })
  */
 (function (global) {
   "use strict";
@@ -485,7 +485,7 @@
           '</div>' +
           '<h4>常用方法</h4>' +
           '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--font-mono);font-size:12px;line-height:1.8;overflow-x:auto;color:var(--text)">' +
-          'RTE.getHTML() / setHTML(html)<br>RTE.getText() / clear()<br>RTE.insertHTML(html)<br>RTE.config({ uploadUrl: "/api/upload" })' +
+          'RTE.getHTML() / setHTML(html)<br>RTE.getText() / clear()<br>RTE.insertHTML(html)<br>RTE.config({ uploadUrl: "/api/editor/upload" })' +
           '</div>' +
           '<div class="rte-form-actions" style="margin-top:14px"><button type="button" class="btn primary" data-rte="help-gotit">知道了</button></div>' +
         '</div>' +

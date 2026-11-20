@@ -107,6 +107,11 @@ async def do_extract(request: Request):
 
 @router.post('/api/rewrite/job')
 async def rewrite_job(request: Request):
+    """爆款文章仿写（fire-and-forget 后台任务）。
+
+    ⭐ v15.9.9：LLM 仿写是分钟级重活，原实现默认线程池 fire-and-forget（无界、
+    无 owner）改走统一受界任务池；JOBS/持久队列注册由 spawn_user_job 完成。
+    """
     _a.guard(request)
     body = await request.json()
     user = _a.get_current_user(request) or {}
@@ -114,7 +119,8 @@ async def rewrite_job(request: Request):
     import uuid
     title = (body.get('title') or (body.get('extra') or {}).get('title') or '爆款仿写')[:16]
     jid = f'rw-{uuid.uuid4().hex[:8]}'
-    _a.start_async_job(jid, name=f'爆款文章仿写: {title}', task_type='article_gen', params=body, initial_step='排队分析中…')
-    asyncio.get_event_loop().run_in_executor(None, _a._run_rewrite_job, jid, body)
-    return {'job': jid}
+    return _a.spawn_user_job(user, f'爆款文章仿写: {title}',
+                             lambda: _a._run_rewrite_job(jid, body),
+                             jid=jid, task_type='article_gen', params=body,
+                             initial_step='排队分析中…')
 

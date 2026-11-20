@@ -466,9 +466,14 @@ _global_task_manager = TaskManager(max_workers=4)
 
 
 def register_job(jid: str, name: str, task_type: str, target_id: str = "",
-                 total_steps: int = 1, params: Optional[dict] = None) -> Task:
+                 total_steps: int = 1, params: Optional[dict] = None,
+                 owner: str = "") -> Task:
+    # v15.9.9 修复:包装函数此前不收/不转发 owner,而 TaskManager.register_job 支持
+    # owner 形参——start_async_job 带 owner=... 调用时抛 TypeError 且被调用方吞掉,
+    # 导致任务实际未进 TaskManager、未持久化、owner 丢失(v15.9.8 的"双写"是坏的)。
     return _global_task_manager.register_job(jid, name, task_type, target_id=target_id,
-                                            total_steps=total_steps, params=params)
+                                            total_steps=total_steps, params=params,
+                                            owner=owner)
 
 
 def update_job(jid: str, *, status: Optional[str] = None,

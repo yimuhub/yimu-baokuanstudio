@@ -2042,6 +2042,20 @@ function cancelAllMobileJobPolls() {
   return n;
 }
 
+/* 任务终态判定：与 PC 端 yimu-net.js 的 isTerminalStatus/isSuccessStatus 同源。
+   移动端模板刻意自包含、不引入 yimu-net.js，故在此内联同一套词汇表。
+   why 必须按集合判：后端「成功」有 done 与 completed 两代写法（core.task_queue
+   一律 completed，web.admin.JOBS 与多数业务路由写 done），任何单点改动都会让
+   另一侧永远等不到终态，轮询一路跑到 maxMs 超时。 */
+const TERMINAL_STATUSES = { completed: 1, done: 1, failed: 1, cancelled: 1, interrupted: 1 };
+function isTerminalStatus(status) {
+  return !!TERMINAL_STATUSES[String(status == null ? '' : status).trim().toLowerCase()];
+}
+function isSuccessStatus(status) {
+  const s = String(status == null ? '' : status).trim().toLowerCase();
+  return s === 'completed' || s === 'done';
+}
+
 /* 统一任务轮询器 pollJobMini：收拢全站手写的裸轮询死循环（原 6 处）。
    约定（与 PC 端 pollJob/pollJobAsync 同源）：
    - fn 为调用方提供的单次探测，返回 { done: boolean, data: any }；
@@ -2837,7 +2851,7 @@ async function runMobileXhsAIVisual() {
       const j = await api(`/api/rewrite/job/${job}`);
       if (btn) btn.textContent = '⏳ ' + (j.step || 'AI 生图中…');
       // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
-      return { done: j.status === 'done' || j.status === 'failed', data: j };
+      return { done: isTerminalStatus(j.status), data: j };
     }, { intervalMs: 1500 });
     const j = await poll.promise;
     if (j && j.cancelled) return toast('⏳ 任务仍在后台执行，稍后可在稿件列表查看');
@@ -2871,7 +2885,7 @@ async function runMobileXhsAIRewrite() {
       const j = await api(`/api/rewrite/job/${job}`);
       if (btn) btn.textContent = '⏳ ' + (j.step || '重排中…');
       // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
-      return { done: j.status === 'done' || j.status === 'failed', data: j };
+      return { done: isTerminalStatus(j.status), data: j };
     }, { intervalMs: 1500 });
     const j = await poll.promise;
     if (j && j.cancelled) return toast('⏳ 任务仍在后台执行，稍后可在稿件列表查看');
@@ -3053,7 +3067,7 @@ async function runMobileXhsDirectPublish() {
       const j = await api(`/api/rewrite/job/${job}`);
       if (btn) btn.textContent = '⏳ ' + (j.step || '发布中…');
       // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
-      return { done: j.status === 'done' || j.status === 'failed', data: j };
+      return { done: isTerminalStatus(j.status), data: j };
     }, { intervalMs: 2000 });
     const j = await poll.promise;
     if (j && j.cancelled) return toast('⏳ 直发任务仍在后台执行，请稍后回到本页查看发布结果');
@@ -4056,7 +4070,7 @@ async function runMobileTtsMake() {
       const j = await api(`/api/rewrite/job/${job}`);
       btn.textContent = '⏳ ' + (j.step || '音频渲染中…');
       // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
-      return { done: j.status === 'done' || j.status === 'failed', data: j };
+      return { done: isTerminalStatus(j.status), data: j };
     }, { intervalMs: 1500 });
     const j = await poll.promise;
     if (j && j.cancelled) return toast('⏳ 配音任务仍在后台执行，完成后可在影音资产库查看');
@@ -4129,7 +4143,7 @@ async function runMobileVideoMake() {
       const j = await api(`/api/rewrite/job/${job}`);
       btn.textContent = '⏳ ' + (j.step || '渲染中…');
       // done/failed 都是终态；failed 的业务报错留在轮询外抛出，保留原失败文案
-      return { done: j.status === 'done' || j.status === 'failed', data: j };
+      return { done: isTerminalStatus(j.status), data: j };
     }, { intervalMs: 2000 });
     const j = await poll.promise;
     if (j && j.cancelled) return toast('⏳ 视频渲染仍在后台执行，完成后可在影音资产库查看');
@@ -4975,7 +4989,7 @@ async function runMobileTicketPipeline() {
       if (btn) btn.textContent = '⏳ ' + j.step;
       if (stText) stText.textContent = '⏳ ' + j.step;
       // done/failed 都是终态；failed 的业务处理留在轮询外，保留原文案
-      return { done: j.status === 'done' || j.status === 'failed', data: j };
+      return { done: isTerminalStatus(j.status), data: j };
     }, { intervalMs: 2000 });
     const j = await poll.promise;
     if (j && j.cancelled) {
@@ -5275,7 +5289,7 @@ async function loadMobileTasks() {
 
     container.innerHTML = tasks.map(t => {
       const isRunning = t.status === 'running';
-      const isDone = t.status === 'completed' || t.status === 'done';
+      const isDone = isSuccessStatus(t.status);
       const stColor = isRunning ? 'var(--info)' : (isDone ? 'var(--success)' : (t.status === 'failed' ? 'var(--danger)' : 'var(--text-muted)'));
       const stBg = isRunning ? 'rgba(59,130,246,0.15)' : (isDone ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.08)');
       const stText = isRunning ? '⚡ 执行中' : (isDone ? '✓ 已完成' : (t.status === 'failed' ? '✕ 失败' : '排队中'));

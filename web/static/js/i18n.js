@@ -2000,6 +2000,37 @@
   let currentLang = localStorage.getItem('yimu_lang') || 'zh';
   let isTranslating = false;
 
+  /* v15.9.9 效率:把上千条短语的逐条 includes 循环(每次 DOM 变更 O(短语数×文本量))
+     编译为单条交替正则,替换为一次 O(文本长) 扫描。按原文长度降序排列保证最长匹配优先。
+     正则构建失败时回退旧循环(兜底不破坏功能)。 */
+  const _phraseCache = {};
+  function compiledPhraseReplacer(list, cacheKey) {
+    if (_phraseCache[cacheKey] !== undefined) return _phraseCache[cacheKey];
+    let compiled = null;
+    try {
+      const sorted = [...list].sort((a, b) => b[0].length - a[0].length);
+      if (sorted.length) {
+        const re = new RegExp(sorted.map(p => p[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
+        const map = Object.create(null);
+        for (const pair of sorted) map[pair[0]] = pair[1];
+        compiled = { re, map };
+      }
+    } catch (e) { compiled = null; }
+    _phraseCache[cacheKey] = compiled;
+    return compiled;
+  }
+  function applyPhraseRegex(txt, list, cacheKey) {
+    const c = compiledPhraseReplacer(list, cacheKey);
+    if (!c) {
+      /* 兜底:旧的逐条循环 */
+      for (let i = 0; i < list.length; i++) {
+        if (txt.includes(list[i][0])) txt = txt.split(list[i][0]).join(list[i][1]);
+      }
+      return txt;
+    }
+    return txt.replace(c.re, s => c.map[s]);
+  }
+
   function t(key, fallback = '') {
     const dict = I18N_DICT[currentLang] || I18N_DICT.zh;
     return dict[key] || fallback || key;
@@ -2034,15 +2065,8 @@
           node.nodeValue = val.replace(trimmed, EXACT_MAP[trimmed]);
           return;
         }
-        // 2. 长短语子串匹配替换
-        let txt = val;
-        for (let i = 0; i < PHRASE_LIST.length; i++) {
-          const zh = PHRASE_LIST[i][0];
-          const en = PHRASE_LIST[i][1];
-          if (txt.includes(zh)) {
-            txt = txt.split(zh).join(en);
-          }
-        }
+        // 2. 长短语子串匹配替换(v15.9.9:编译单正则一次扫描)
+        const txt = applyPhraseRegex(val, PHRASE_LIST, 'fwd');
         if (txt !== val) {
           node.nodeValue = txt;
         }
@@ -2052,16 +2076,10 @@
           node.nodeValue = node._orig_zh;
         } else if (REVERSE_MAP[trimmed]) {
           node.nodeValue = val.replace(trimmed, REVERSE_MAP[trimmed]);
-        } else {
-          // 反向长短语替换
-          let txt = val;
-          for (let i = 0; i < REVERSE_PHRASE_LIST.length; i++) {
-            const en = REVERSE_PHRASE_LIST[i][0];
-            const zh = REVERSE_PHRASE_LIST[i][1];
-            if (txt.includes(en)) {
-              txt = txt.split(en).join(zh);
-            }
-          }
+        } else if (/[A-Za-z]/.test(val)) {
+          // 反向长短语替换(v15.9.9:①只可能命中含英文字母的文本,纯中文直接跳过——
+          // zh 模式全 body 遍历的绝大多数节点在此零成本返回;②编译单正则一次扫描)
+          const txt = applyPhraseRegex(val, REVERSE_PHRASE_LIST, 'rev');
           if (txt !== val) {
             node.nodeValue = txt;
           }

@@ -54,8 +54,14 @@ def test_v1002_all_pages_render_dynamic_version():
     html_index = resp_index.text
     assert f'<meta name="app-version" content="{cur}">' in html_index
     assert f'一幕·YIMU 爆款工作室 {full}' in html_index
-    assert 'src="/static/js/version-sync.js"' in html_index
+    # v15.9.9：静态资源统一带 ?v=<版本>，引用不再是裸路径（7 天强缓存的破缓存位）
+    assert 'src="/static/js/version-sync.js' in html_index
     assert full in html_index
+
+    # 静态资源引用必须带版本串，否则发版后 JS/CSS 仍吃 7 天旧缓存
+    assert f'/static/js/version-sync.js?v={cur}"' in html_index
+    assert re.search(r'src="/static/js/[^"]+\.js\?v=' + re.escape(cur) + r'"', html_index), \
+        "所有 /static/js 引用必须带 ?v=<当前版本>"
 
     # 2. 移动端
     resp_mobile = client.get("/m")
@@ -63,7 +69,7 @@ def test_v1002_all_pages_render_dynamic_version():
     html_mobile = resp_mobile.text
     assert f'<meta name="app-version" content="{cur}">' in html_mobile
     assert f'<title>一幕·YIMU 移动工作室 {full}</title>' in html_mobile
-    assert 'src="/static/js/version-sync.js"' in html_mobile
+    assert 'src="/static/js/version-sync.js' in html_mobile
     assert full in html_mobile
 
     # 3. 定价页
@@ -72,7 +78,7 @@ def test_v1002_all_pages_render_dynamic_version():
     html_pricing = resp_pricing.text
     assert f'<meta name="app-version" content="{cur}">' in html_pricing
     assert f'<title>套餐与价格 · 一幕·YIMU 爆款工作室 {full}</title>' in html_pricing
-    assert 'src="/static/js/version-sync.js"' in html_pricing
+    assert 'src="/static/js/version-sync.js' in html_pricing
     assert full in html_pricing
 
     # 4. 发布历史展示页

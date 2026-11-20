@@ -4,6 +4,41 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🕊️ Version 15.9.9 · 鹤鸣篇 (Crane Call Chapter) · Runtime-Only Defect Remediation · 2026-11-20
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.9"`, `__codename__ = "鹤鸣篇"`, `__codename_en__ = "Crane Call Chapter"`)
+
+### 🎯 Milestone Summary
+
+一轮「机械门禁全绿、真实操作才断」的收口。pytest 954 项、CI 四道门禁全部通过的前提下，
+靠真实浏览器走查与真实任务提交抓出两类运行时缺陷：一个是本轮自己引入的 P0 回归
+（所有后台任务轮询等不到终态），一个是 Python 升级带来的安全 fail-open（路径包含判定）。
+两者都补了回归锁，防止再犯。
+
+### ⚡ Highlights
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **任务终态断裂（P0）** | `done`/`completed` 两代词汇归一后前端 45 处仍写死 `=== 'done'`，配音/改写/生图/视频/发布/工单全部轮询到 30 分钟超时；收敛为后端 `TASK_TERMINAL_STATUSES` + 前端 `isTerminalStatus()` 唯一真源 |
+| 2 | **路径判定 fail-open（P1·安全）** | Python 3.13+ `Path.resolve(strict=False)` 遇符号链接环不再抛错，坏链接被判为合法；补 `_resolves_cleanly()` 存在性走查，判据改为「存在但不可达」 |
+| 3 | **静态资源破缓存** | `/static/*` 7 天强缓存 + 裸路径引用 = 发版后「新壳配旧 JS」；`render_dynamic_html()` 统一注入 `?v=<版本>`（幂等） |
+| 4 | **免 Key 引擎口径统一** | `flux-schnell` 设置可选、后端恒用，工坊下拉却不列、闸门还判「无可用生图模型」；收敛单常量 + 下拉 + 闸门豁免 + 如实文案 |
+
+### 🔍 为什么这类缺陷逃过了门禁
+
+- **任务终态**：后端测试断言的是归一后的 `completed`，前端测试根本不跑轮询闭环。
+  只有真实提交一个任务、看着界面是否动起来才暴露。
+- **路径判定**：`test_broken_symlink_fails_closed` 一直存在且在 Python 3.12 下长期是绿的，
+  换 3.13+ 立刻红——缺陷不是代码改出来的，是标准库行为变了。
+
+### ✅ Verified
+
+全量 **954** 用例通过；`ci.sh` 4/4 全绿（探针 2 PASS / 4 SKIP / 0 FAIL）；
+真实浏览器：全站 7 页 JS 错误 0，真实配音任务端到端第 2 次探测收敛并产出 447KB 音频，
+done/completed/failed/cancelled 四种词汇全部命中终态。
+
+---
+
 ## 🌲 Version 15.9.8 · 月泉吟 (Moon Spring Chant) · Deep-Review Remediation Wave · 2026-11-20
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.8"`, `__codename__ = "月泉吟"`, `__codename_en__ = "Moon Spring Chant"`)

@@ -46,6 +46,24 @@ def _assert_task_visible(task: dict, user: dict) -> None:
         raise HTTPException(404, '任务不存在')
 
 
+#: /api/tasks 列表保留的字段：只留展示/轮询需要的列（v15.9.9 效率整改）。
+# why：list_tasks 底层 SELECT * 携带 params_json / result_json / params /
+# result 大内容，30 条列表动辄数百 KB，而列表页只显示状态、进度与错误行。
+_TASK_LIST_KEEP_FIELDS = (
+    'id', 'name', 'task_type', 'target_id', 'owner', 'status', 'progress',
+    'message', 'step', 'error', 'created_at', 'created_at_fmt',
+    'started_at', 'completed_at', 'duration_s', 'current_step', 'total_steps',
+)
+
+
+def _trim_task_row(t: dict) -> dict:
+    """列表行裁剪：剥掉 params/result 大列，error 截断到 200 字（详情端点保留全量）。"""
+    view = {k: t[k] for k in _TASK_LIST_KEEP_FIELDS if k in t}
+    if view.get('error'):
+        view['error'] = str(view['error'])[:200]
+    return view
+
+
 @router.get('/api/tasks')
 def list_active_tasks(request: Request, active_only: bool=False):
     user = _a.guard(request)
@@ -55,24 +73,27 @@ def list_active_tasks(request: Request, active_only: bool=False):
     if not _a._is_admin_user(user):
         uid = str((user or {}).get('id') or '')
         tasks = [t for t in tasks if str(t.get('owner') or '') == uid]
-    return {'tasks': tasks}
+    # 归属过滤后再裁剪，避免把别人的大字段读进内存又丢掉
+    return {'tasks': [_trim_task_row(t) for t in tasks]}
 
 @router.get('/api/tasks/{task_id}')
 def get_task_status(task_id: str, request: Request):
     user = _a.guard(request)
-    from core import task_queue
-    task = task_queue.get_task(task_id)
+    # v15.9.9（重复 R6）：与 /api/jobs、/api/rewrite/job 统一走 _get_task_view
+    # （持久化 task_queue 优先、JOBS 兜底），三条读路径返回同一形状
+    task = _a._get_task_view(task_id)
     if not task:
         raise HTTPException(404, 'Task not found')
-    tdict = task.to_dict() if hasattr(task, 'to_dict') else task
-    _assert_task_visible(tdict, user)
-    return {'task': tdict}
+    _assert_task_visible(task, user)
+    return {'task': task}
 
 @router.post('/api/tasks/{task_id}/cancel')
 def cancel_task_endpoint(task_id: str, request: Request):
     user = _a.guard(request)
     from core import task_queue
-    task = task_queue.get_task(task_id)
+    # 存在性与归属判定走统一视图：JOBS 型旁路任务同样可见可取消
+    # （task_queue.cancel 会联动把 JOBS 条目写为 cancelled）
+    task = _a._get_task_view(task_id)
     if not task:
         raise HTTPException(404, '任务不存在')
     _assert_task_visible(task, user)
@@ -320,8 +341,15 @@ async def batch_submit_endpoint(request: Request):
 @router.get('/api/jobs/{jid}')
 @router.get('/api/rewrite/job/{jid}')
 def rewrite_job_status(jid: str, request: Request):
+    """任务详情（三条读路径统一实现，v15.9.9 重复 R6 整改）。
+
+    过去只查 JOBS 内存字典：任务一旦只登记在持久化队列（或 JOBS 被过期清理）
+    就 404，前端轮询「任务消失」。现在统一走 _get_task_view——
+    先查持久化 task_queue 再回退 JOBS，返回形状与 /api/tasks/{id} 一致
+    （同时保留 status/step/result/error 等 JOBS 旧消费方依赖的键）。
+    """
     u = _a.guard(request)
-    j = _a.JOBS.get(jid)
+    j = _a._get_task_view(jid)
     if not j:
         raise HTTPException(404, '任务不存在')
     # 归属隔离（与 /api/tasks 同口径）：非 admin 只能看自己的任务

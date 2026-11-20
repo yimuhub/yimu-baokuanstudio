@@ -96,7 +96,14 @@
 <link rel="apple-touch-icon" href="/static/img/logo-icon.png">
 <script src="/static/js/version-sync.js"></script>
 <script src="/static/js/pricing-sync.js"></script>
-<script src="/static/js/i18n.js"></script>
+<!-- 效率#10：i18n.js 加 defer——它只在 DOMContentLoaded 里做 DOM 翻译与挂
+     MutationObserver（见 i18n.js 底部 init），没有任何解析期 DOM/符号依赖；
+     defer 让它不再阻塞首屏解析。已 grep 核对：index.html 内联脚本对
+     YIMU_I18N/window.t 的 9 处引用全部位于事件回调/函数体内（且带 typeof 守卫），
+     defer 脚本在 DOMContentLoaded 前执行完毕，回调期调用必然可见，安全。 -->
+<script src="/static/js/i18n.js" defer></script>
+<!-- R5 模型默认单一真源模块：refresh/get/apply/bind/bindAll，详见模块头注释 -->
+<script src="/static/js/yimu-model-defaults.js"></script>
 <!-- 网络公共工具（imeSafeEnter 输入法守卫 / pollJob 任务轮询），必须在主脚本之前加载 -->
 <script src="/static/js/yimu-net.js"></script>
 <script>
@@ -7244,11 +7251,11 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                 </div>
                 <div>
                   <label style="font-size:11.5px;color:var(--text-muted);display:block;margin-bottom:4px">🎨 AI 生图模型 (四视图与关键帧)</label>
-                  <select id="drama-image-model-sel" class="studio-model-select" style="width:100%" onchange="onStudioModelChange('drama-image', this.value)"></select>
+                  <select id="drama-image-model-sel" class="studio-model-select" style="width:100%" data-model-scope="image" onchange="onStudioModelChange('drama-image', this.value)"></select>
                 </div>
                 <div>
                   <label style="font-size:11.5px;color:var(--text-muted);display:block;margin-bottom:4px">🎬 AI 视频模型 (镜头切片与母带)</label>
-                  <select id="drama-video-model-sel" class="studio-model-select" style="width:100%" onchange="onStudioModelChange('drama-video', this.value)"></select>
+                  <select id="drama-video-model-sel" class="studio-model-select" style="width:100%" data-model-scope="video" onchange="onStudioModelChange('drama-video', this.value)"></select>
                 </div>
                 <div id="drama-model-rule-tip" style="grid-column:1/-1;display:none;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
                 <div style="grid-column:1/-1">
@@ -7357,7 +7364,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                   <div style="display:flex;align-items:center;gap:6px">
                     <span style="font-size:12px;color:var(--text-muted)">生图模型:</span>
-                    <select id="drama-step4-image-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('drama-image', this.value)"></select>
+                    <select id="drama-step4-image-model-sel" class="studio-model-select" style="min-width:180px" data-model-scope="image" onchange="onStudioModelChange('drama-image', this.value)"></select>
                   </div>
                   <button class="btn ghost btn-sm" onclick="switchDramaStep(3)">⬅️ 上一步</button>
                   <button class="btn info btn-sm" id="btn-drama-step4-batch" onclick="runDramaBatchAssets()">⚡ 一键批量生成全部资产 (含四视图)</button>
@@ -7408,7 +7415,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                 <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                   <div style="display:flex;align-items:center;gap:6px">
                     <span style="font-size:12px;color:var(--text-muted)">生图模型:</span>
-                    <select id="drama-step6-image-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('drama-image', this.value)"></select>
+                    <select id="drama-step6-image-model-sel" class="studio-model-select" style="min-width:180px" data-model-scope="image" onchange="onStudioModelChange('drama-image', this.value)"></select>
                   </div>
                   <button class="btn ghost btn-sm" onclick="switchDramaStep(5)">⬅️ 上一步</button>
                   <button class="btn info btn-sm" id="btn-drama-step6-batch" onclick="runDramaBatchShots()">🚀 一键批量生成全部分镜关键帧</button>
@@ -7449,7 +7456,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                   </div>
                   <div style="display:flex;align-items:center;gap:6px">
                     <span style="font-size:12px;color:var(--text-muted)">视频模型:</span>
-                    <select id="drama-step7-video-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('drama-video', this.value)"></select>
+                    <select id="drama-step7-video-model-sel" class="studio-model-select" style="min-width:180px" data-model-scope="video" onchange="onStudioModelChange('drama-video', this.value)"></select>
                   </div>
                   <div style="display:flex;align-items:center;gap:10px">
                     <span style="font-size:12px;color:var(--text-muted)">字幕显示控制:</span>
@@ -7774,7 +7781,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
 
                 <div style="display:flex;align-items:center;gap:6px">
                   <label style="font-size:12px;color:var(--text-muted)">生图模型</label>
-                  <select id="vd-image-model-sel" class="studio-model-select" style="min-width:170px" onchange="onStudioModelChange('vd-image', this.value)"></select>
+                  <select id="vd-image-model-sel" class="studio-model-select" style="min-width:170px" data-model-scope="image" onchange="onStudioModelChange('vd-image', this.value)"></select>
                 </div>
                 <div id="vd-model-rule-tip" style="width:100%;display:none;font-size:11.5px;color:#cbd5e1;background:rgba(0,0,0,0.3);border-left:3px solid #58a6ff;padding:6px 10px;border-radius:4px;line-height:1.6"></div>
               </div>
@@ -7822,7 +7829,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
               <select id="sb-draft-sel" style="min-width:240px" onchange="loadStoryboard()"></select>
               <div style="display:flex;align-items:center;gap:6px">
                 <span style="font-size:12px;color:var(--text-muted)">生图模型:</span>
-                <select id="sb-image-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('sb-image', this.value)"></select>
+                <select id="sb-image-model-sel" class="studio-model-select" style="min-width:180px" data-model-scope="image" onchange="onStudioModelChange('sb-image', this.value)"></select>
               </div>
               <button class="btn ghost btn-sm" onclick="regenerateStoryboard()">✨ 重新生成分镜</button>
               <button class="btn info btn-sm" id="btn-sb-batch-gen" onclick="runStoryboardBatchGenImages()">🚀 一键生成全部分镜图</button>
@@ -8005,7 +8012,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
               </div>
               <div style="display:flex;align-items:center;gap:8px">
                 <label style="font-size:13px;color:var(--text-muted)">🎬 视频模型</label>
-                <select id="ad-video-model-sel" class="studio-model-select" style="min-width:180px" onchange="onStudioModelChange('ad-video', this.value)"></select>
+                <select id="ad-video-model-sel" class="studio-model-select" style="min-width:180px" data-model-scope="video" onchange="onStudioModelChange('ad-video', this.value)"></select>
               </div>
             </div>
 
@@ -8158,7 +8165,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
                 </label>
               </div>
               <label style="font-size:12px;color:var(--text-muted)">🎬 视频模型</label>
-              <select id="aiv-model-sel" class="studio-model-select" style="min-width:170px" onchange="onStudioModelChange('aiv-video', this.value)"></select>
+              <select id="aiv-model-sel" class="studio-model-select" style="min-width:170px" data-model-scope="video" onchange="onStudioModelChange('aiv-video', this.value)"></select>
               <button class="btn ghost btn-sm" onclick="toggleAivConfig()" title="分段时长/间隔/并行数">⚙️ 生成配置</button>
               <div id="aiv-model-tip2" style="font-size:11.5px;line-height:1.6;color:var(--text-muted);max-width:420px;margin-top:4px"></div>
             </div>
@@ -8846,7 +8853,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
           <div class="vdCfg-row">
             <div><div class="vdCfg-label">默认视频模型</div><div class="vdCfg-desc">留空则用「🎬 广告视频生成 Agent」配置的模型；下拉列出「模型服务」已接入的全部大模型，按模型服务分组，可直接切换</div></div>
             <div style="position:relative;max-width:300px">
-              <select class="vdCfg-input" id="aivCfg-model" style="max-width:300px;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#e3b341 50%),linear-gradient(135deg,#e3b341 50%,transparent 50%);background-position:calc(100% - 16px) 55%,calc(100% - 12px) 55%;background-size:6px 6px,6px 6px;background-repeat:no-repeat;padding-right:30px;cursor:pointer" onchange="updateAivModelTip()">
+              <select class="vdCfg-input" id="aivCfg-model" data-model-scope="video" data-model-mode="save" style="max-width:300px;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#e3b341 50%),linear-gradient(135deg,#e3b341 50%,transparent 50%);background-position:calc(100% - 16px) 55%,calc(100% - 12px) 55%;background-size:6px 6px,6px 6px;background-repeat:no-repeat;padding-right:30px;cursor:pointer" onchange="updateAivModelTip()">
                 <option value="">▼ 留空 · 跟随「广告视频生成 Agent」默认模型</option>
               </select>
             </div>
@@ -10396,7 +10403,7 @@ async function pollAiVideoJob(jid) {
         ptxt.textContent = stepText;
       }
       if (pbar) pbar.style.width = (t.progress || 0) + '%';
-      if (t.status === 'done') {
+      if (isSuccessStatus(t.status)) {
         const res = t.result || {};
         if (rbox) {
           rbox.style.display = 'block';
@@ -10484,13 +10491,13 @@ async function createAdVideo() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/jobs/${jid}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 2000,
       maxMs: 1800000,
       onStep: j => { if (statusBox) statusBox.textContent = `⏳ ${j.step || '广告短片生成中…'}`; },
       onDone: j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           if (statusBox) { statusBox.textContent = '✅ 广告短片生成完成！'; }
           renderAdVideoResult(j.result || {});
           toast('✅ AI 广告短片生成完成！', 4000);
@@ -10775,18 +10782,27 @@ const STUDIO_VIDEO_SELECT_IDS = [
    分镜脚本 / AI 口播配音 TTS 等不依赖生图/视频模型的 Tab 不受影响。
    判定来源与下拉框填充同源（initStudioModelSelects 渲染出的 option 文案），
    避免第二套数据源产生口径分叉。 */
-function studioModelSelectUnavailable(selId) {
+/* 免 Key 生图保底引擎：不挂在任何通道下，服务端能力线里查不到它，
+   但 core/imagegen 的兜底链 ⑦ 恒用它出图（Pollinations Flux，全网免 Key）。
+   why 常量而非散落字符串：下拉选项、守门判定、默认项文案三处必须同源，
+   否则又会出现「设置里选了、工坊里看不到、按钮还锁着」的三方打架。 */
+const FREE_IMAGE_ENGINE = 'flux-schnell';
+
+function studioModelSelectUnavailable(selId, opts) {
   const el = $(selId);
   if (!el || !el.options) return true; // 下拉缺失按不可用处理（保守判定）
-  const opts = Array.from(el.options);
+  const optList = Array.from(el.options);
+  // 免 Key 保底引擎恒可用：生图线永远有出图路径，不该被「没有通道模型」锁死
+  if (opts && opts.freeEngine &&
+      optList.some(o => o.value === opts.freeEngine)) return false;
   // 除默认空值项外还有真实可选模型 → 可用
-  if (opts.some(o => o.value && String(o.value).trim() !== '')) return false;
-  const defOpt = opts.find(o => !o.value) || opts[0];
+  if (optList.some(o => o.value && String(o.value).trim() !== '')) return false;
+  const defOpt = optList.find(o => !o.value) || optList[0];
   return !defOpt || /当前没有可用模型/.test(defOpt.textContent || '');
 }
 
 function updateStudioModelGate() {
-  const noImg = studioModelSelectUnavailable('drama-image-model-sel');
+  const noImg = studioModelSelectUnavailable('drama-image-model-sel', { freeEngine: FREE_IMAGE_ENGINE });
   const noVid = studioModelSelectUnavailable('drama-video-model-sel');
   const blocked = noImg || noVid;
   window._studioModelGateBlocked = blocked;
@@ -10796,7 +10812,11 @@ function updateStudioModelGate() {
     gate.style.display = blocked ? 'flex' : 'none';
     const txt = gate.querySelector('.sgm-text');
     if (txt && blocked) {
-      txt.textContent = `尚未接入${missing}模型——分镜脚本仍可用；出图/出视频请先到 控制中心 → 系统与 API 配置 配置模型`;
+      // 生图线恒有免 Key 保底引擎，缺的只可能是视频——文案不得再笼统说「生图/视频」
+      const adv = noImg
+        ? `尚未接入${missing}模型——分镜脚本仍可用；出图/出视频请先到 控制中心 → 系统与 API 配置 配置模型`
+        : `尚未接入视频模型——分镜脚本与出图仍可用；出视频请先到 控制中心 → 系统与 API 配置 配置模型`;
+      txt.textContent = adv;
     }
   }
   const btn = $('btn-drama-pipeline');
@@ -10866,9 +10886,12 @@ async function initStudioModelSelects() {
       defOpt.value = '';
       const imgCap = caps.image || {};
       // V15.9.7：预设目录模型参与自动挑选时明示来源（私钥计费可见性）
+      /* 「没有可用模型」是错话：没有通道模型时后端兜底链仍会用免 Key 引擎出图，
+         真实生成不会失败。文案改成如实说明「自动 = 免 Key 保底引擎」，
+         否则用户以为出不了图，被守门条挡在门外。 */
       defOpt.textContent = imgCap.model_tag
         ? ('▼ 系统默认 · ' + imgCap.model_tag + '（可跨通道任选）' + (imgCap.preset_only ? '［预设目录模型］' : ''))
-        : '▼ 系统默认生图模型（当前没有可用模型）';
+        : ('▼ 系统默认生图模型（自动 = ' + FREE_IMAGE_ENGINE + ' 免 Key 保底引擎）');
       el.appendChild(defOpt);
 
       sortedImagePids.forEach(pid => {
@@ -10884,6 +10907,14 @@ async function initStudioModelSelects() {
         });
         el.appendChild(og);
       });
+
+      /* 免 Key 保底引擎必须出现在下拉里：设置页可以选它、后端兜底链也恒用它，
+         唯独这里此前不列，用户选完回到工坊看不到自己选的项，流水线还被判
+         「没有可用生图模型」锁死——设置与实际能力对不上。 */
+      const freeOpt = document.createElement('option');
+      freeOpt.value = FREE_IMAGE_ENGINE;
+      freeOpt.textContent = FREE_IMAGE_ENGINE + '（免 Key 保底引擎）';
+      el.appendChild(freeOpt);
 
       if (cur) {
         el.value = cur;
@@ -10943,6 +10974,17 @@ async function initStudioModelSelects() {
     updateAllStudioModelRuleTips();
     // 下拉数据落定后再评估无模型守门门禁（按钮禁用 + 引导条显隐）
     updateStudioModelGate();
+    /* ⭐ R5 单一真源（v15.9.9 接线）：下拉 option 刚填好，把服务端能力线默认
+       回画上去（此前只画 localStorage 缓存位，服务端已设的默认要等用户手动
+       点一次才看得见）。同时给带 data-model-scope 的下拉挂 change → apply。 */
+    if (window.YIMU_MODEL_DEFAULTS) {
+      try {
+        window.YIMU_MODEL_DEFAULTS.bindAll(document);
+        window.YIMU_MODEL_DEFAULTS.refresh().then(function () {
+          window.YIMU_MODEL_DEFAULTS.paintAll();
+        });
+      } catch (e) { console.warn('[model-defaults] 回显服务端默认失败:', e); }
+    }
   } catch (e) {
     console.warn('[initStudioModelSelects] 影音模型下拉初始化异常:', e.message);
     updateStudioModelGate();
@@ -11161,6 +11203,22 @@ function onStudioModelChange(slot, value) {
     if (el && el.value !== value) el.value = value;
   });
 
+  /* ⭐ R5 单一真源（v15.9.9 接线）：localStorage 只是「缓存位」，真正生效的
+     默认在服务端能力线（gateway.capability_defaults.<scope>）。此前这里只写
+     localStorage、从不写服务端——用户在工作台选了模型，真正生成时后端仍按
+     控制中心的旧默认跑，正是审查确认的「在 A 处改、B 处不生效」历史事故。
+     交给 yimu-model-defaults 模块统一：写缓存位 → 同 scope 联动 → POST
+     set_default → 成功后 refresh 并广播 'yimu-model-defaults-changed'。
+     普通用户无写默认权限时该模块会如实提示「本次生成生效、全局默认未变」，
+     不假成功。 */
+  if (window.YIMU_MODEL_DEFAULTS && typeof window.YIMU_MODEL_DEFAULTS.apply === 'function') {
+    try {
+      window.YIMU_MODEL_DEFAULTS.apply(isVideo ? 'video' : 'image', value);
+    } catch (e) {
+      console.warn('[model-defaults] 写服务端默认失败:', e);
+    }
+  }
+
   // 如果选择的视频模型有明确的时长档位，自动联动调节相关参数
   if (isVideo && value) {
     const rule = studioGetModelRule('video', value);
@@ -11219,6 +11277,15 @@ async function aivCfgSave(){
       });
       window._cachedCaps = null;
     } catch (e) {}
+    /* 与 saveImageCfg 同理：服务端默认已写，让单一真源模块刷新+广播，
+       其它入口（工作室/短剧/分镜下拉）同步到新值。 */
+    if (window.YIMU_MODEL_DEFAULTS) {
+      try {
+        window.YIMU_MODEL_DEFAULTS.refresh().then(function () {
+          window.YIMU_MODEL_DEFAULTS.paintAll();
+        });
+      } catch (e) { /* 忽略回显失败 */ }
+    }
     toast('✅ AI 视频生成配置已保存（系统默认生视频模型已同步）');
   }catch(e){toast('保存失败：'+e.message);}
 }
@@ -11820,7 +11887,7 @@ async function deleteUserAccount(uid, username) {
   <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="im-enabled"> 启用 AI 智能生图</label>
   <label>默认生图模型（跨通道任选）</label>
   <div style="display:flex;gap:8px;margin-bottom:8px">
-    <select id="im-model" style="flex:1" onchange="handleImModelSelectChange(this)"></select>
+    <select id="im-model" style="flex:1" data-model-scope="image" data-model-mode="save" onchange="handleImModelSelectChange(this)"></select>
   </div>
   <div id="im-model-custom-box" style="display:none;margin-bottom:8px">
     <label style="font-size:11px;color:var(--text-muted)">自定义生图模型名称：</label>
@@ -14206,8 +14273,13 @@ function switchSubTab(parentPanel, subId) {
   if (subId === 'sp-skills' && typeof renderSkillsList === 'function') {
     try { renderSkillsList(); } catch(e) { console.warn('[skills] 渲染失败:', e); }
   }
-  /* ⭐ 网关/账本/视频配置原生视图懒加载 */
-  if (typeof gwNEnsureLoaded === 'function' && (subId === 'sp-gateway' || subId === 'sp-billing')) {
+  /* ⭐ 子页懒加载统一入口：直接交给 gwNEnsureLoaded(subId) 分发。
+     why(P1 卡死修复)：旧条件白名单 (sp-gateway || sp-billing) 漏了 sp-user-admin，
+     「用户与会员管理」首次进入永远停在「正在加载用户数据…」；而且每加一个
+     懒加载子页都要记得回来改这个白名单，漏一次就多一个卡死页。
+     gwNEnsureLoaded 内部本来就按 sp 分发且用 _gwNLoaded 幂等去重，
+     未知 sp 传入是空操作——这里不再重复判断，彻底收敛到一处。 */
+  if (typeof gwNEnsureLoaded === 'function') {
     try { gwNEnsureLoaded(subId); } catch(e) { console.warn('[gwN] 懒加载失败:', e); }
   }
   if (subId === 'sp-video-config' && typeof vdCfgLoad === 'function') {
@@ -17018,12 +17090,12 @@ function renderHotTopics() {
         const _pollRes = await pollJobAsync({
           fn: async () => {
             const j = await api(`/api/rewrite/job/${job}`);
-            return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+            return { done: isTerminalStatus(j.status), data: j };
           },
           intervalMs: 1500,
           onStep: j => { btn.textContent = '⏳ ' + j.step; },
           onDone: async j => {
-            if (j.status === 'done') {
+            if (isSuccessStatus(j.status)) {
               toast(`✅ 成稿完成！得分 ${j.result?.score?.total || '已生成'}，已自动跳转内容库`, 4000);
               await refresh();
               document.querySelector('.nav-item[data-p="drafts"]').click();
@@ -17137,12 +17209,12 @@ async function startRewriteFromSearch(idx) {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1500,
       onStep: j => { toast('⏳ ' + j.step, 2000); },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast(`✅ 仿写完成！得分 ${j.result?.score?.total || '已入库'} · 已切换至内容库`, 4500);
           await refresh();
           document.querySelector('.nav-item[data-p="drafts"]').click();
@@ -17244,12 +17316,12 @@ async function rewriteExtracted() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1500,
       onStep: j => { toast('⏳ ' + j.step, 2000); },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast(`✅ 仿写完成！得分 ${j.result?.score?.total || '已入库'} · 已切换至内容库`, 4500);
           await refresh();
           document.querySelector('.nav-item[data-p="drafts"]').click();
@@ -17377,7 +17449,7 @@ async function runOneSentenceViral() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/jobs/${jid}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1600,
       maxMs: 1800000,
@@ -17393,7 +17465,7 @@ async function runOneSentenceViral() {
         pBar.style.width = `${pct}%`;
       },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           pBar.style.width = '100%';
           stepText.textContent = '✅ 爆款成稿已生成并入库草稿箱！';
           subStatus.textContent = '已完成 7 维智能评审';
@@ -17456,12 +17528,12 @@ async function pasteRewrite() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1500,
       onStep: j => { btn.textContent = '⏳ ' + j.step; },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast('✅ 文案同架构改编完成！已转存内容工作台', 4000);
           await refresh();
           document.querySelector('.nav-item[data-p="drafts"]').click();
@@ -18125,7 +18197,7 @@ async function runFurnaceEvolution() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1200,
       maxMs: 1800000, // 多轮自进化熔炼耗时随轮数放大，放宽到 30 分钟
@@ -18135,7 +18207,7 @@ async function runFurnaceEvolution() {
         }
       },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           const result = j.result || {};
           const logs = result.evolution_logs || [];
           if (trackRounds) {
@@ -18413,13 +18485,13 @@ async function triggerOmniFission() {
       await pollJobAsync({
         fn: async () => {
           const j = await api(`/api/jobs/${res.job}`);
-          return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+          return { done: isTerminalStatus(j.status), data: j };
         },
         intervalMs: 1200,
         maxMs: 1800000,
         onStep: j => { if (j.step) toast(`⚡ ${j.step}`, 2000); },
         onDone: async j => {
-          if (j.status === 'done') {
+          if (isSuccessStatus(j.status)) {
             toast(`✅ 全域五端矩阵裂变完成！已生成全部 5 平台专属版本与成套高清卡片！`, 5000);
             await refresh();
             selectDraft(curDraft);
@@ -18632,7 +18704,7 @@ async function deriveAllPlatformsFromCurrent() {
       await pollJobAsync({
         fn: async () => {
           const j = await api(`/api/jobs/${res.job}`);
-          return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+          return { done: isTerminalStatus(j.status), data: j };
         },
         intervalMs: 900,
         maxMs: 1800000,
@@ -18643,7 +18715,7 @@ async function deriveAllPlatformsFromCurrent() {
           }
         },
         onDone: async j => {
-          if (j.status === 'done') {
+          if (isSuccessStatus(j.status)) {
             toast(`✅ 矩阵多端按需派生完成！共更新 ${selectedPlatforms.length} 个平台专属版本！`, 5000);
             await refresh();
             selectDraft(curDraft);
@@ -18894,13 +18966,13 @@ async function runLiteAIVisualCards() {
       const _pollRes = await pollJobAsync({
         fn: async () => {
           const j = await api(`/api/rewrite/job/${res.job}`);
-          return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+          return { done: isTerminalStatus(j.status), data: j };
         },
         intervalMs: 1400,
         maxMs: 1800000, // 全套 AI 生图与制卡，慢通道可能超过 10 分钟
         onStep: j => { if (j.step) showLiteGeneratingStep(j.step); },
         onDone: async j => {
-          if (j.status === 'done') {
+          if (isSuccessStatus(j.status)) {
             stopLiteGeneratingTicker();
             toast('🎉 小红书全景 AI 磨砂卡片重新绘制完成！');
             await renderLitePlatformPreview('xhs');
@@ -19330,11 +19402,11 @@ async function triggerAILayout() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1500,
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast('✅ AI 排版美化完成！');
           await refresh();
           selectDraft(curDraft);
@@ -19358,12 +19430,12 @@ async function triggerXhsAILayout() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1500,
       maxMs: 1800000, // 重排 + 整套卡片重渲涉及批量生图，放宽到 30 分钟
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast(`✅ 小红书重排完成：${j.result.cards.length} 张卡片已重渲！`);
           await refresh();
           selectDraft(curDraft);
@@ -20537,13 +20609,13 @@ async function runDramaFinalRender() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 2000,
       maxMs: 1800000, // 全剧切片拼接 + 混音封装是重 FFmpeg 活，放宽到 30 分钟
       onStep: j => { if (btn) btn.innerHTML = `<span class="live-pulse"></span> ⏳ ${escapeHtml(j.step || '封装中…')}`; },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast('🎉 全 AI 短剧成片出炉并已归档资料库！', 5000);
           await loadDramaDraftScenes();
           await loadVideoTasks();
@@ -20689,13 +20761,13 @@ async function runXhsAIVisual() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1500,
       maxMs: 1800000,
       onStep: j => { if(btn) btn.textContent = '⏳ ' + (j.step || 'AI 生图中…'); },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast(`🎉 小红书 AI 视觉图文卡片生成完成！共压制 5 张高清卡片`, 4500);
           await refresh();
           const d = (S.drafts||[]).find(x => x.id === curDraft);
@@ -20725,13 +20797,13 @@ async function runXhsAIRewrite() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1500,
       maxMs: 1800000,
       onStep: j => { if(btn) btn.textContent = '⏳ ' + j.step; },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast(`✅ 小红书文案重排完成！生成 ${j.result.pages} 页轮播文案，已重绘整套卡片`, 4500);
           await refresh();
           const d = (S.drafts||[]).find(x => x.id === curDraft);
@@ -21226,13 +21298,13 @@ async function runXhsDirectPublish() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 2000,
       maxMs: 1800000, // 无头浏览器登录态发布耗时不稳定，放宽到 30 分钟
       onStep: j => { btn.textContent = '⏳ ' + j.step; },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast('🎉 小红书笔记已全自动成功发布！');
           await refresh();
         } else {
@@ -21657,13 +21729,13 @@ async function runVideoMake() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 2000,
       maxMs: 1800000, // 检索素材 + 生图 + 切片合成全链路，放宽到 30 分钟
       onStep: j => { btn.textContent = '⏳ ' + j.step; },
       onDone: j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast(`✅ 短视频出片合成完成（${currentVideoAspect}）！`);
           const resBox = $('vd-result-box');
           resBox.style.display = 'block';
@@ -21978,13 +22050,13 @@ async function runAudioMake() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 1500,
       maxMs: 1800000, // 长文压缩 + TTS 合成长音频，放宽到 30 分钟
       onStep: j => { btn.textContent = '⏳ ' + j.step; },
       onDone: j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast('✅ 口播音频合成完成！');
           $('au-result-box').style.display = 'block';
           $('au-player').src = j.result.url;
@@ -22020,13 +22092,13 @@ async function ticketRun() {
     await pollJobAsync({
       fn: async () => {
         const j = await api(`/api/rewrite/job/${job}`);
-        return { done: j.status === 'done' || j.status === 'failed' || j.status === 'cancelled', data: j };
+        return { done: isTerminalStatus(j.status), data: j };
       },
       intervalMs: 2000,
       maxMs: 1800000, // 每日工单串行跑多个站点任务，放宽到 30 分钟
       onStep: j => { btn.textContent = '⏳ ' + j.step; },
       onDone: async j => {
-        if (j.status === 'done') {
+        if (isSuccessStatus(j.status)) {
           toast('✅ 每日工单全部执行完成并已推送！', 5000);
           await refresh();
         } else {
@@ -22980,9 +23052,17 @@ async function populateImageModelDropdown(curVal) {
     el.value = hit ? hit.value : '';
   }
 
+  /* 预填值必须与后端解析链同序（core/imagegen.image_cfg）：
+     ③ 能力线显式默认 > ⑤ 旧字段 image.model（免 Key 保底槽位）> ⑥ 自动。
+     此前只看 ③ 的 explicit，于是用户在设置里选了「flux-schnell 免 Key 保底
+     引擎」并保存后，重开弹窗又显示「自动（当前没有可用模型）」——而真正
+     生成走的还是 flux-schnell（settings.image.model），界面与事实背离。 */
+  const legacySlot = (S && S.image && S.image.model) ? String(S.image.model).trim() : '';
   const cur = curVal !== undefined
     ? curVal
-    : ((caps.image && caps.image.source === 'explicit') ? caps.image.model_tag : '');
+    : ((caps.image && caps.image.source === 'explicit')
+        ? caps.image.model_tag
+        : legacySlot);
   pick(sel, cur);
   if (sel && !sel.value && cur === '') sel.value = '';
   if ($('im-model-custom-box')) {
@@ -23354,6 +23434,11 @@ async function setProviderDefault(pid, scope, el) {
     invalidateStudioProvidersCache();
     await loadModelProvidersModal();
     if (typeof initStudioModelSelects === 'function') initStudioModelSelects();
+    /* 单一真源模块同步：服务端默认刚被这里改写，重新拉取并广播，避免其它
+       入口（工作室下拉 / Agent 只读回显）仍显示旧默认。 */
+    if (window.YIMU_MODEL_DEFAULTS) {
+      try { window.YIMU_MODEL_DEFAULTS.refresh(); } catch (e) { /* 忽略 */ }
+    }
     if (typeof refresh === 'function') refresh();
   } catch (e) {
     if (el) el.value = '';
@@ -23709,6 +23794,15 @@ async function saveImageCfg() {
 
     // 前端显示层保持同步：工作台/极简模式/Agent 弹窗都读这一份
     setImageModel(isFreeEngine ? 'flux-schnell' : rawModel);
+    /* 服务端默认已由上面的 set_default 写入，这里让单一真源模块重新拉一次并
+       广播，保证其它入口（影音工坊下拉 / Agent 只读回显 / 规则提示）同步刷新。 */
+    if (window.YIMU_MODEL_DEFAULTS) {
+      try {
+        window.YIMU_MODEL_DEFAULTS.refresh().then(function () {
+          window.YIMU_MODEL_DEFAULTS.paintAll();
+        });
+      } catch (e) { /* 回显失败不影响已保存配置 */ }
+    }
     try {
       window._cachedCaps = null;
       const d = await api('/api/models/providers');
@@ -25067,7 +25161,7 @@ async function loadTasksList() {
       const st = statusMap[t.status] || { label: t.status, color: '#8b98a8', bg: 'rgba(255,255,255,0.08)', border: 'rgba(255,255,255,0.15)' };
       const meta = TASK_META_MAP[t.task_type] || { label: '⚡ 异步任务', color: '#58a6ff', bg: 'rgba(88,166,255,0.14)', border: 'rgba(88,166,255,0.3)' };
       const canCancel = t.status === 'running' || t.status === 'queued';
-      const pct = Math.min(100, Math.max(0, Math.round(t.progress !== undefined ? t.progress : (t.status === 'completed' || t.status === 'done' ? 100 : 40))));
+      const pct = Math.min(100, Math.max(0, Math.round(t.progress !== undefined ? t.progress : (isSuccessStatus(t.status) ? 100 : 40))));
       const isRunning = t.status === 'running';
 
       // 提取目标草稿 ID
@@ -25100,7 +25194,7 @@ async function loadTasksList() {
             <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
               <span style="font-size:11.5px;padding:3px 10px;border-radius:12px;background:${st.bg};color:${st.color};border:1px solid ${st.border};font-weight:600">${st.label}</span>
               ${canCancel ? `<button class="btn btn-sm ghost" style="padding:2px 10px;font-size:11px;color:var(--danger);border-color:rgba(248,81,73,0.35)" onclick="cancelTask('${t.id}')">取消</button>` : ''}
-              ${targetDraftId && (t.status === 'completed' || t.status === 'done') ? `<button class="btn btn-sm ok" style="padding:2px 10px;font-size:11px;font-weight:600" onclick="openTaskDraft('${targetDraftId}')" title="前往工作台查看草稿产物">🚀 查看草稿</button>` : ''}
+              ${targetDraftId && (isSuccessStatus(t.status)) ? `<button class="btn btn-sm ok" style="padding:2px 10px;font-size:11px;font-weight:600" onclick="openTaskDraft('${targetDraftId}')" title="前往工作台查看草稿产物">🚀 查看草稿</button>` : ''}
             </div>
           </div>
 
@@ -25660,7 +25754,7 @@ async function runBatchCreation() {
         progressPercent.textContent = pct + '%';
         progressLabel.textContent = t.message || '正在批量生产中…';
 
-        if (t.status === 'completed') {
+        if (isSuccessStatus(t.status)) {
           clearInterval(pollInterval);
           btn.disabled = false;
           btn.textContent = '⚡ 启动批量矩阵生产流水线';
@@ -27104,6 +27198,17 @@ document.addEventListener('DOMContentLoaded', () => {
   restoreSelectedDerivePlatforms();
   refreshTierBadge();
   loadCustomPlatformsList();
+  /* ⭐ R5 单一真源（v15.9.9 接线）：订阅模型默认变更广播，统一重画
+     「下拉值 / Agent 弹窗只读回显 / 规则提示」。此前模块已 dispatch 该事件
+     但全仓无人监听，等于广播空转——改默认后除发起处外，其它入口的显示
+     不会跟着变（又是「改了这处、那处还是旧值」）。 */
+  window.addEventListener('yimu-model-defaults-changed', () => {
+    try {
+      if (typeof renderImageModelReadouts === 'function') renderImageModelReadouts();
+      if (typeof updateAllStudioModelRuleTips === 'function') updateAllStudioModelRuleTips();
+      if (typeof updateStudioModelGate === 'function') updateStudioModelGate();
+    } catch (e) { console.warn('[model-defaults] 变更后重画失败:', e); }
+  });
 });
 </script>
 

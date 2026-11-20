@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.8",
-  "current_codename_zh": "月泉吟",
-  "current_codename_en": "Moon Spring Chant",
-  "next_index": 85,
+  "current_version": "15.9.9",
+  "current_codename_zh": "鹤鸣篇",
+  "current_codename_en": "Crane Call Chapter",
+  "next_index": 86,
   "sequence": [
     {
       "zh": "曦光序",
@@ -640,6 +640,12 @@
       "version": "v15.9.8",
       "zh": "月泉吟",
       "en": "Moon Spring Chant",
+      "date": "2026-11-20"
+    },
+    {
+      "version": "v15.9.9",
+      "zh": "鹤鸣篇",
+      "en": "Crane Call Chapter",
       "date": "2026-11-20"
     }
   ]

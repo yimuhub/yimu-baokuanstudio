@@ -1314,6 +1314,8 @@ def _align_ai_video_with_audio_and_subtitle(
             "-c:v", "libx264", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "128k",
             "-t", str(target_dur),
+            # faststart：moov 前置，成片支持边下边播（v15.9.9 统一补齐）
+            "-movflags", "+faststart",
             "-shortest", str(out_mp4)
         ]
     else:
@@ -1326,6 +1328,7 @@ def _align_ai_video_with_audio_and_subtitle(
             "-c:v", "libx264", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "128k",
             "-t", str(target_dur),
+            "-movflags", "+faststart",
             "-shortest", str(out_mp4)
         ]
 
@@ -1361,23 +1364,13 @@ def step7_generate_shot_video(
         step6_generate_shot_image(draft_id, shot_id, target_shot.get("image_prompt_en", ""), aspect=aspect)
 
     # 2. 确保有配音音频
-    style_key = step1.get("style", "hollywood_cinematic")
-    style_info = DRAMA_STYLES.get(style_key, DRAMA_STYLES["hollywood_cinematic"])
-    mounted_persona = step1.get("mounted_persona", "")
-    voice = style_info.get("recommended_voice", "zh-CN-YunxiNeural")
-    if mounted_persona:
-        try:
-            from core import orchestrator as O
-            for v in O.list_famous_voices():
-                if v.get("id") == mounted_persona and v.get("tts_voice"):
-                    voice = v["tts_voice"]
-                    break
-        except Exception:
-            pass
-
+    voice = _resolve_drama_voice(proj)
     script_text = target_shot.get("dialogue") or target_shot.get("script") or "精彩马上开始"
     audio_file = d_dir / "audio" / f"shot_{shot_id}.mp3"
-    synthesize_scene_tts(draft_id, shot_id, script_text, voice=voice)
+    # v15.9.9：批量链路已并发预合成的镜头直接复用（台词未变不重合成）；
+    # 单镜直调时音频缺失/台词已改 → 走统一入口重合成（失败显式抛错）。
+    if not _scene_audio_fresh(draft_id, shot_id, script_text):
+        synthesize_scene_tts(draft_id, shot_id, script_text, voice=voice)
 
     # 计算音频时长
     ffprobe_bin = _find_bin("ffprobe")
@@ -1442,6 +1435,7 @@ def step7_generate_shot_video(
             ffmpeg_bin, "-y", "-loop", "1", "-i", str(comp_img), "-i", str(audio_file),
             "-vf", vf, "-t", str(dur),
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+            "-movflags", "+faststart",
             "-shortest", str(clip_out)
         ]
         subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
@@ -1474,6 +1468,11 @@ def step7_batch_generate_videos(
     proj = get_pipeline_project(draft_id)
     if subtitle_enabled is None:
         subtitle_enabled = bool(proj.get("step1", {}).get("subtitle_enabled", False))
+
+    # v15.9.9 效率整改：先并发预合成全部镜头配音（gather + 信号量限 3），
+    # 替代旧「step7 循环里串行逐镜 TTS」；台词未变的镜头直接复用现有音频，
+    # 合成失败的镜头在此带镜头号显式失败，不再静音充数。
+    synthesize_all_scene_tts(draft_id)
 
     shots = proj.get("step5", {}).get("shots", [])
     results = []
@@ -1551,6 +1550,7 @@ def step8_render_final_drama(
 
     concat_cmd = [
         ffmpeg_bin, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_list),
+        "-movflags", "+faststart",
         "-c", "copy", str(final_mp4)
     ]
     try:
@@ -1560,6 +1560,7 @@ def step8_render_final_drama(
         reencode_cmd = [
             ffmpeg_bin, "-y", "-f", "concat", "-safe", "0", "-i", str(concat_list),
             "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
+            "-movflags", "+faststart",
             str(final_mp4)
         ]
         subprocess.run(reencode_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
@@ -1644,46 +1645,173 @@ def render_short_drama_video(draft_id: str, aspect: str = "9:16", emit=None) -> 
     return step8_render_final_drama(draft_id, aspect=aspect, emit=emit)
 
 
-def synthesize_scene_tts(draft_id: str, shot_id: int, script_text: str, voice: str = "zh-CN-YunxiNeural") -> str:
-    """单镜头配音合成。"""
-    d_dir = _get_drama_dir(draft_id)
-    audio_dir = d_dir / "audio"
-    out_file = audio_dir / f"shot_{shot_id}.mp3"
-
-    edge_bin = _find_bin("edge-tts")
-    tts_success = False
-    if edge_bin:
+def _resolve_drama_voice(proj: dict) -> str:
+    """按项目风格与挂载名家音色解析全剧统一音色（短剧所有镜头共用）。"""
+    step1 = proj.get("step1", {}) or {}
+    style_key = step1.get("style", "hollywood_cinematic")
+    style_info = DRAMA_STYLES.get(style_key, DRAMA_STYLES["hollywood_cinematic"])
+    voice = style_info.get("recommended_voice", "zh-CN-YunxiNeural")
+    mounted_persona = step1.get("mounted_persona", "")
+    if mounted_persona:
         try:
-            cmd = [
-                edge_bin,
-                "--voice", voice,
-                "--text", script_text,
-                "--write-media", str(out_file)
-            ]
-            res = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
-            if res.returncode == 0 and out_file.exists() and out_file.stat().st_size > 500:
-                tts_success = True
-        except Exception as e:
-            logger.warning(f"Edge-TTS 调用异常: {e}")
+            from core import orchestrator as O
+            for v in O.list_famous_voices():
+                if v.get("id") == mounted_persona and v.get("tts_voice"):
+                    return v["tts_voice"]
+        except Exception:
+            pass
+    return voice
 
-    if not tts_success:
-        ffmpeg_bin = _find_bin("ffmpeg")
-        cmd_fallback = [
-            ffmpeg_bin, "-y", "-f", "lavfi",
-            "-i", "anullsrc=r=24000:cl=mono",
-            "-t", "3.5", "-acodec", "libmp3lame", str(out_file)
-        ]
-        subprocess.run(cmd_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    rel_path = f"/audio/drama/{draft_id}/shot_{shot_id}.mp3"
+def _run_async(coro):
+    """在「无事件循环的工作线程」与「已有事件循环」两种上下文下都安全执行协程。
+
+    why 不能无脑 asyncio.run：web 侧批量函数经 run_in_executor 跑在无循环的
+    工作线程（asyncio.run 可用），但若被 async 端点直接调用，asyncio.run 会抛
+    「cannot be called from a running event loop」；此处探测到运行中的循环就
+    挪到独立线程执行，两种上下文行为一致。
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    import concurrent.futures
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
+
+
+async def _scene_tts_with_retry(text: str, voice: str, out_file: Path,
+                                shot_id: int, limiter: "asyncio.Semaphore | None" = None) -> None:
+    """单镜头 TTS：统一引擎封装 + 失败重试 2 次（重试同样受信号量约束）。
+
+    统一走 studio.audio.engines.synthesize_async：进程内 await（edge_tts 是
+    异步库，不再 spawn edge-tts CLI 子进程），失败带镜头号显式抛错。
+    """
+    from studio.audio.engines import synthesize_async
+
+    # 音频目录可能尚未创建（新项目首个镜头直出批量链路时）：写前确保存在，
+    # 否则 6 次尝试全部死于同一个 FileNotFoundError，错误信息完全误导排障方向。
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+
+    last_err: Exception | None = None
+    for attempt in range(3):  # 首次 + 重试 2 次
+        try:
+            if limiter is not None:
+                async with limiter:
+                    await synthesize_async(text, voice, str(out_file))
+            else:
+                await synthesize_async(text, voice, str(out_file))
+            return
+        except Exception as exc:  # noqa: BLE001 — 记因重试；全部失败在循环外显式抛出
+            last_err = exc
+            logger.warning("镜头 #%d TTS 第 %d 次合成失败: %s", shot_id, attempt + 1, exc)
+    raise RuntimeError(f"镜头 #{shot_id} 配音合成失败（已重试 2 次）: {last_err}")
+
+
+def _record_scene_audio_meta(draft_id: str, proj: dict, shot_id: int,
+                             script_text: str) -> None:
+    """合成成功后把音频元数据回写进项目 JSON（只改内存 dict，落盘由调用方统一 save）。
+
+    why 记台词哈希：批量链路靠 tts_text_hash 判断「音频新鲜」——改了台词
+    才重合成，避免把旧台词的音频配进新剧本。
+    """
+    import hashlib
+    out_file = _get_drama_dir(draft_id) / "audio" / f"shot_{shot_id}.mp3"
+    for sc in proj.get("step5", {}).get("shots", []):
+        if sc.get("shot_id") == shot_id:
+            sc["audio_url"] = f"/audio/drama/{draft_id}/shot_{shot_id}.mp3"
+            sc["local_audio"] = str(out_file)
+            sc["tts_text_hash"] = hashlib.sha1((script_text or "").encode("utf-8")).hexdigest()
+            break
+
+
+def _scene_audio_fresh(draft_id: str, shot_id: int, script_text: str) -> bool:
+    """镜头配音已存在且台词未变 → 视为新鲜可复用（批量链路免重合成）。"""
+    import hashlib
+    out_file = _get_drama_dir(draft_id) / "audio" / f"shot_{shot_id}.mp3"
+    if not (out_file.exists() and out_file.stat().st_size > 500):
+        return False
     proj = get_pipeline_project(draft_id)
     for sc in proj.get("step5", {}).get("shots", []):
         if sc.get("shot_id") == shot_id:
-            sc["audio_url"] = rel_path
-            sc["local_audio"] = str(out_file)
-            break
+            return sc.get("tts_text_hash") == hashlib.sha1((script_text or "").encode("utf-8")).hexdigest()
+    return False
+
+
+def synthesize_all_scene_tts(draft_id: str, *, emit=None) -> dict:
+    """批量并发预合成全部镜头配音（asyncio.gather + 信号量限 3 并发）。
+
+    why 并发：多镜头配音是纯网络 IO（每镜 2~6s），旧批量链路在 step7 循环里
+    串行逐镜合成，8 镜要 30s+；并发 3 路后整体耗时约等于最慢一路。
+    任何镜头重试后仍失败 → 带镜头号显式失败（绝不静音兜底）。
+    """
+    emit = emit or (lambda *_: None)
+    proj = get_pipeline_project(draft_id)
+    shots = proj.get("step5", {}).get("shots", [])
+    if not shots:
+        return {"ok": True, "count": 0, "synthesized": 0}
+
+    voice = _resolve_drama_voice(proj)
+    d_dir = _get_drama_dir(draft_id)
+    limiter = asyncio.Semaphore(3)  # 并发上限 3：太高会触发上游限流，反而更慢
+
+    async def _gather_all() -> tuple[list[int], list[int]]:
+        failures: list[int] = []
+        done: list[int] = []
+
+        async def _one(shot: dict) -> None:
+            sid = int(shot.get("shot_id", 1))
+            text = shot.get("dialogue") or shot.get("script") or "精彩马上开始"
+            if _scene_audio_fresh(draft_id, sid, text):
+                return  # 台词未变且音频在：复用，不重合成
+            out_file = d_dir / "audio" / f"shot_{sid}.mp3"
+            try:
+                await _scene_tts_with_retry(text, voice, out_file, sid, limiter=limiter)
+                done.append(sid)
+            except Exception as exc:  # noqa: BLE001 — 单镜失败不拖垮其它镜头
+                failures.append(sid)
+                logger.error("镜头 #%d 配音最终失败: %s", sid, exc)
+
+        await asyncio.gather(*[_one(s) for s in shots])
+        return done, failures
+
+    emit(f"并发预合成配音（共 {len(shots)} 镜，音色 {voice}，并发 3）…")
+    done, failures = _run_async(_gather_all())
+    # 串行回写元数据：项目 JSON 是整文件读改写，并发回写会互相覆盖丢字段
+    shot_by_id = {int(s.get("shot_id", 1)): s for s in shots}
+    for sid in done:
+        text = (shot_by_id.get(sid) or {}).get("dialogue") \
+            or (shot_by_id.get(sid) or {}).get("script") or "精彩马上开始"
+        _record_scene_audio_meta(draft_id, proj, sid, text)
+    if done:
+        save_pipeline_project(draft_id, proj)
+    if failures:
+        raise RuntimeError(
+            f"镜头配音合成失败（每镜已重试 2 次）：镜头 {sorted(set(failures))}"
+            "——请检查网络或 edge-tts 可用性后重试")
+    emit(f"配音就绪：本次新合成 {len(done)} 镜，复用 {len(shots) - len(done)} 镜")
+    return {"ok": True, "count": len(shots), "synthesized": len(done)}
+
+
+def synthesize_scene_tts(draft_id: str, shot_id: int, script_text: str,
+                         voice: str = "zh-CN-YunxiNeural") -> str:
+    """单镜头配音合成（v15.9.9 归一：统一引擎封装，失败重试 2 次后显式抛错）。
+
+    why 删除 CLI 子进程与 3.5s 静音兜底：子进程版慢且错误被吞；静音兜底让
+    「配音失败」伪装成成功，用户拿到哑剧才会发现。现在重试 2 次仍失败就带
+    镜头号显式抛错，任务面板直接可见哪一镜出问题。
+    """
+    d_dir = _get_drama_dir(draft_id)
+    audio_dir = d_dir / "audio"
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    out_file = audio_dir / f"shot_{shot_id}.mp3"
+
+    _run_async(_scene_tts_with_retry(script_text, voice, out_file, shot_id))
+
+    proj = get_pipeline_project(draft_id)
+    _record_scene_audio_meta(draft_id, proj, shot_id, script_text)
     save_pipeline_project(draft_id, proj)
-    return rel_path
+    return f"/audio/drama/{draft_id}/shot_{shot_id}.mp3"
 
 
 def _generate_stylized_placeholder_image(out_file: Path, shot_id: int, prompt_en: str, aspect: str = "9:16"):

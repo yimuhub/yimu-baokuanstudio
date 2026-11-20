@@ -29,6 +29,19 @@ from core import db, judge, orchestrator  # noqa: E402,F811
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
 import asyncio  # noqa: E402,F811
 
+
+def _spawn_user_job(u: dict, name: str, fn, *, jid: str, task_type: str,
+                    target_id: str = "", params: dict | None = None,
+                    initial_step: str = "排队中…") -> dict:
+    """fire-and-forget 任务统一入口（web.admin.spawn_user_job 的模块内别名）。
+
+    why：热榜文章生成 / 一句话创作属分钟级 LLM 重活，过去直接丢进 asyncio
+    默认线程池（无界、无 owner、不可取消）。实现收敛到 admin.spawn_user_job。
+    """
+    return _a.spawn_user_job(u, name, fn, jid=jid, task_type=task_type,
+                             target_id=target_id, params=params,
+                             initial_step=initial_step)
+
 @router.get('/api/topics')
 def get_topics(request: Request):
     """获取热榜/热搜选题列表（按当前工作空间隔离）"""
@@ -42,6 +55,10 @@ async def topics_collect(request: Request):
     _allowed, _reason, _tier = _a._tier_quota_check(u, 'hot_daily')
     if not _allowed:
         raise HTTPException(402, _reason)
+    # 豁免说明（v15.9.9 run_in_executor 分类收敛）：热榜抓取虽是重活，但前端
+    # 在同一请求内直接消费抓取结果（index.html「采集热榜」按钮 await 返回值），
+    # 改后台化会破坏响应契约且前端不在本次整改范围；保留 run_in_executor 让
+    # 抓取不阻塞事件循环即可。
     try:
         res = await asyncio.get_event_loop().run_in_executor(None, orchestrator.run_once)
         return res
@@ -93,6 +110,8 @@ async def topic_action(tid: str, action: str, request: Request):
         db.set_topic_status(tid, 'rejected')
         return {'ok': True}
     if action == 'generate':
+        # 豁免说明：与 generate_job 同源的生成逻辑，但此入口是「请求内等待」契约
+        # （返回成稿结果本身）；保留 run_in_executor 只为不阻塞事件循环。
         try:
             return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.generate_draft(tid, user_id=_a._current_user_id(user)))
         except Exception as e:
@@ -109,7 +128,6 @@ async def topic_action(tid: str, action: str, request: Request):
         platforms = body.get('platforms')
         image_style = (body.get('image_style') or '').strip()
         plat_desc = f'({len(platforms)}端)' if platforms else ''
-        _a.start_async_job(jid, name=f'爆款文章智能生成{plat_desc} #{tid[:8]}', task_type='article_gen', target_id=tid, params={'topic_id': tid, 'media_name': media_name, 'platforms': platforms, 'image_style': image_style}, initial_step='AI 选题解析与框架构思中…')
 
         def _run():
             try:
@@ -120,8 +138,13 @@ async def topic_action(tid: str, action: str, request: Request):
                 _a.update_async_job(jid, status='done', step='文章生成完成', progress=100, result={'draft_id': draft_info.get('id'), 'score': res.get('score'), 'title': d_title})
             except Exception as e:
                 _a.update_async_job(jid, status='failed', error=str(e)[:400], step='文章生成失败')
-        asyncio.get_event_loop().run_in_executor(None, _run)
-        return {'job': jid}
+        # v15.9.9：分钟级 LLM 重活的 fire-and-forget 改走统一受界任务池
+        # （原 run_in_executor(None, ...) 无界、无 owner、不可取消）
+        return _spawn_user_job(user, f'爆款文章智能生成{plat_desc} #{tid[:8]}', _run, jid=jid,
+                               task_type='article_gen', target_id=tid,
+                               params={'topic_id': tid, 'media_name': media_name,
+                                       'platforms': platforms, 'image_style': image_style},
+                               initial_step='AI 选题解析与框架构思中…')
     raise HTTPException(404, action)
 
 @router.post('/api/topics/evaluate')
@@ -135,7 +158,10 @@ async def topic_evaluate(request: Request):
     from core import agents
     prompt = f'你是顶级新媒体爆款主编。请对以下选题的爆款潜力进行五维量化评估，并输出纯 JSON。\n\n【待评估选题】：{topic}\n\n打分维度（各项满分20分，总分100）：\n1. viral_potential: 流量广谱度（是否能击中广泛大众的好奇心/共鸣）\n2. pain_point: 痛点穿透力（是否直击现实刚需痛点）\n3. novelty: 认知反差/新颖度（是否颠覆常识）\n4. feasibility: 交付实操性（是否容易落地）\n5. monetization: 商业/变现空间（是否有种草或转化潜力）\n\n严格输出 JSON：\n{{\n  "total_score": 88,\n  "grade": "S级爆款",\n  "scores": {{"viral_potential": 18, "pain_point": 19, "novelty": 17, "feasibility": 18, "monetization": 16}},\n  "verdict": "立刻执行",\n  "advice": "建议重点从反常识误区切入，增加具体对比案例"\n}}'
     try:
-        raw = agents.chat_for('review', [{'role': 'system', 'content': '只输出纯 JSON'}, {'role': 'user', 'content': prompt}], temperature=0.3)
+        # v15.9.9：chat_for 是同步 LLM 调用，原实现直接跑在 async 路由里会阻塞
+        # 整个事件循环（期间全站无响应）；挪进线程池、保持请求内等待契约不变。
+        raw = await asyncio.get_event_loop().run_in_executor(
+            None, lambda: agents.chat_for('review', [{'role': 'system', 'content': '只输出纯 JSON'}, {'role': 'user', 'content': prompt}], temperature=0.3))
         import re, json
         cleaned = raw.strip()
         if cleaned.startswith('```'):
@@ -150,7 +176,7 @@ async def topic_evaluate(request: Request):
 
 @router.post('/api/topics/one_sentence_viral')
 async def api_one_sentence_viral(request: Request):
-    _a.guard(request)
+    u = _a.guard(request)
     body = await request.json()
     body['_owner_user_id'] = str((_a.get_current_user(request) or {}).get('id') or '')
     sentence = (body.get('sentence') or '').strip()
@@ -158,7 +184,11 @@ async def api_one_sentence_viral(request: Request):
         raise HTTPException(400, '请输入创作灵感或一句话需求')
     import uuid
     jid = f'vir-{uuid.uuid4().hex[:8]}'
-    _a.start_async_job(jid, name=f'一句话爆款创作: {sentence[:14]}', task_type='article_gen', params={'sentence': sentence}, initial_step='正在理解创作意图…')
-    asyncio.get_event_loop().run_in_executor(None, _a._run_one_sentence_viral_job, jid, body)
-    return {'job': jid}
+    # v15.9.9：一句话爆款创作是分钟级 LLM 重活，fire-and-forget 改走统一受界
+    # 任务池（原默认线程池无界、无 owner、JOBS 缺 owner 归属）
+    return _spawn_user_job(u, f'一句话爆款创作: {sentence[:14]}',
+                           lambda: _a._run_one_sentence_viral_job(jid, body),
+                           jid=jid, task_type='article_gen',
+                           params={'sentence': sentence},
+                           initial_step='正在理解创作意图…')
 

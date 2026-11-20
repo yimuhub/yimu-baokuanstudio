@@ -45,7 +45,27 @@
     { id: 'xhs_pub', icon: '📕', title: '一键直发小红书', desc: '自动带图文、标签发布到小号', shortcut: 'X', action: () => { runXhsDirectPublish(); } },
     { id: 'jianying', icon: '🎬', title: '导出剪映短剧工程 (Draft)', desc: '含分镜、旁白音频、母带工程文件', shortcut: 'J', action: () => { callGlobal(ACTIONS.exportJianyingDraft, '导出剪映工程'); } },
     { id: 'watermark', icon: '🏷️', title: '输出水印与品牌印记设置', desc: '自由选择开启/关闭磨砂印记', shortcut: 'W', action: () => { openWatermarkModal(); } },
-    { id: 'settings', icon: '⚙️', title: '系统与企业级 AI 模型配置', desc: '多网关、多模态模型无缝切换', shortcut: ',', action: () => { modal('m-cfg'); } },
+    { id: 'settings', icon: '⚙️', title: '系统与企业级 AI 模型配置', desc: '多网关、多模态模型无缝切换', shortcut: ',', action: () => {
+        /* v15.9.9 修复：原 modal('m-cfg') 指向全仓不存在的元素，点击静默无反应。
+           why 必须走 switchToPage 而非 nav.click()：v2 舞台外壳下舞台会接管面板
+           切换，手动点导航只改了面板类名但舞台不开（见 goToModelSettings 的
+           v15.9.1 注释——同一坑第二次踩）。目标与「去填 Key」横幅一致：
+           系统配置 → sp-settings 子页。 */
+        /* 面板收起交给通用执行器（execute 已统一调 hideCmdK）——
+           why 不在这里手写关闭：命令面板的真身是 #cmd-k-palette 的 active
+           类，此前误写成 modal('m-cfg') / modern-studio-modal 都是不存在的
+           目标，属同一类「猜 id」缺陷。 */
+        try {
+          if (typeof switchToPage === 'function') switchToPage('console');
+          else {
+            const nav = document.querySelector('.nav-item[data-p="console"]');
+            if (nav) nav.click();
+          }
+        } catch (e) { /* 导航失败不阻断后续子页切换尝试 */ }
+        try {
+          if (typeof switchSubTab === 'function') switchSubTab('console', 'sp-settings');
+        } catch (e) {}
+      } },
   ];
 
   let selectedIdx = 0;

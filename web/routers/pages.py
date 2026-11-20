@@ -46,23 +46,40 @@ def health():
     return {'ok': True, 'ts': time.time(), 'version': _a.get_app_version(),
             'gateway_v1_ok': bool(getattr(_a, 'GATEWAY_V1_OK', False))}
 
-@router.api_route('/m', methods=['GET', 'HEAD'])
-def mobile_index(request: Request):
-    """V6 专属全新设计的原生手机端页面"""
-    resp = HTMLResponse(_a.get_mobile_html_page(), headers={'Cache-Control': 'no-store, must-revalidate'})
+def _home_html_response(request: Request, html: str) -> Response:
+    """首页 / 移动页统一响应构造：no-cache + sha1 ETag 协商缓存。
+
+    ⭐ 效率整改（v15.9.9）：原实现 `no-store, must-revalidate` 让浏览器每次
+    访问都全量重拉大页面（首页模板约 800KB）。改为 no-cache + ETag：
+    - 浏览器每次仍会复验（不牺牲「内容变了立刻可见」）；
+    - 内容未变时服务端按 If-None-Match 回 304，不传正文，重复访问的传输量
+      从整页降到一次头部往返；
+    - 回环免密 cookie 的下发逻辑原样保留（304 响应同样携带 Set-Cookie），
+      只动缓存头，不碰任何页面内容与登录逻辑。
+    """
+    etag = '"' + hashlib.sha1(html.encode('utf-8')).hexdigest() + '"'
+    headers = {'Cache-Control': 'no-cache', 'ETag': etag}
+    inm = request.headers.get('if-none-match') or ''
+    hit = False
+    if inm:
+        candidates = {t.strip() for t in inm.split(',')}
+        hit = ('*' in candidates) or (etag in candidates)
+    resp = Response(status_code=304, headers=headers) if hit else HTMLResponse(html, headers=headers)
     if _a._is_loopback(request) and _a._loopback_admin_allowed():
         resp.set_cookie('mf_token', _a._token(), httponly=True, samesite='lax', max_age=30 * 86400, path='/')
     return resp
+
+@router.api_route('/m', methods=['GET', 'HEAD'])
+def mobile_index(request: Request):
+    """V6 专属全新设计的原生手机端页面"""
+    return _home_html_response(request, _a.get_mobile_html_page())
 
 @router.api_route('/', methods=['GET', 'HEAD'])
 def index(request: Request):
     ua = (request.headers.get('user-agent') or '').lower()
     is_mobile = any((m in ua for m in ('iphone', 'android', 'mobile', 'ipod', 'harmonyos', 'micromessenger')))
     html = _a.get_mobile_html_page() if is_mobile else _a.get_html_page()
-    resp = HTMLResponse(html, headers={'Cache-Control': 'no-store, must-revalidate'})
-    if _a._is_loopback(request) and _a._loopback_admin_allowed():
-        resp.set_cookie('mf_token', _a._token(), httponly=True, samesite='lax', max_age=30 * 86400, path='/')
-    return resp
+    return _home_html_response(request, html)
 
 @router.get('/admin/metrics')
 def admin_metrics_page(request: Request):

@@ -6,9 +6,9 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.9.8"
-__codename__ = "月泉吟"
-__codename_en__ = "Moon Spring Chant"
+__version__ = "15.9.9"
+__codename__ = "鹤鸣篇"
+__codename_en__ = "Crane Call Chapter"
 __slogan__ = "一念起 一幕开 万象生 · 文字生图生视频各用一家：主通道只懂文字，也能用别家出图出片"
 __slogan_cn__ = "一念起 一幕开 万象生 · 文字生图生视频各用一家：主通道只懂文字，也能用别家出图出片"
 __slogan_en__ = "One Thought. One Scene. Infinite Worlds · Text, image and video each pick their own provider: a text-only gateway no longer blocks your visuals"

@@ -43,10 +43,19 @@ def _tts_engine_via_a(script: str, out_path: str, voice_cfg: dict) -> dict | Non
     return {"out_path": produced, "engine": "studio.tts"}
 
 
-async def _tts(text: str, voice: str, rate: str, out_mp3: Path):
-    import edge_tts
-    communicate = edge_tts.Communicate(text, voice, rate=f"+{int(float(rate)*100)}%" if rate else "")
-    await communicate.save(str(out_mp3))
+def _tts(text: str, voice: str, rate: str, out_mp3: Path) -> None:
+    """B 内置兜底 TTS（v15.9.9 归一）：改调 studio.audio.engines.synthesize。
+
+    why：原实现是本仓第四份重复 TTS（edge-tts 直连），音色映射与倍率换算
+    各写各的；归一后统一走唯一引擎封装（音色短键/全名都接受，失败显式
+    抛错），本函数只保留倍率换算这一调用点差异。
+    """
+    from studio.audio.engines import synthesize as _unified_synthesize
+    try:
+        mult = float(rate) if rate else 1.0
+    except (TypeError, ValueError):
+        mult = 1.0
+    _unified_synthesize(text, voice, str(out_mp3), rate=mult)
 
 
 def make_audio(draft_id: str, seconds: int = 30, platform: str = "xhs",
@@ -86,17 +95,20 @@ def make_audio(draft_id: str, seconds: int = 30, platform: str = "xhs",
     if a_hit is not None:
         produced = Path(a_hit["out_path"])
         emit(f"A 语音链合成成功（{produced.name}）…")
-        return {"file": produced.name, "url": f"/audio/{draft_id}/{produced.name}",
+        # URL 契约修复（v15.9.9）：必须走 /api/audio/file/{did}/{name}——该路由带
+        # 归属校验且实测可达；旧 /audio/{did}/{name} 是 V7 遗留路径，后端早已
+        # 无此路由，前端拿到即 404（P1 走不通缺陷）。
+        return {"file": produced.name, "url": f"/api/audio/file/{draft_id}/{produced.name}",
                 "script": script, "platform": platform, "voice": voice_cfg["voice"],
                 "tts_engine": a_hit["engine"], "degraded": False}
     # ⭐ 降级：A 链不可用/失败 → 回 B 原有 _tts；原因已在 _tts_engine_via_a 打日志，此处再记一次
-    degrade_reason = "A TTS 三引擎链不可用或合成失败（详见服务端日志），已降级为 B 内置 edge-tts 直连"
+    degrade_reason = "A TTS 三引擎链不可用或合成失败（详见服务端日志），已降级为 B 内置统一 TTS 入口"
     log.warning("[TTS] %s", degrade_reason)
     emit("语音链降级：使用内置 TTS（原因已记录日志）…")
-    import asyncio
-    asyncio.run(_tts(script, voice_cfg["voice"], voice_cfg["rate"], out))
+    _tts(script, voice_cfg["voice"], voice_cfg["rate"], out)
     if not out.exists() or out.stat().st_size < 1000:
         raise RuntimeError("TTS 合成失败")
-    return {"file": out.name, "url": f"/audio/{draft_id}/{out.name}",
+    # 同上：URL 走带归属校验的 /api/audio/file 路由
+    return {"file": out.name, "url": f"/api/audio/file/{draft_id}/{out.name}",
             "script": script, "platform": platform, "voice": voice_cfg["voice"],
             "tts_engine": "builtin", "degraded": True, "degrade_reason": degrade_reason}

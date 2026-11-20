@@ -674,7 +674,10 @@ def test_r1_4_every_billing_call_site_charges_before_side_effect():
                     assert name not in side_effects, (
                         f"{fn.name}:扣费前发生副作用 {name}"
                     )
-    assert checked >= 15, f"应至少 15 个扣费点，实际 {checked}"
+    # v15.9.9：fission 与 derive_omni 的扣费点收敛为同一实现
+    # （web/routers/drafts.py:_start_omni_derive），重复扣费入口少一个，
+    # 护栏阈值 15 → 14；每个扣费点仍必须先扣费后副作用。
+    assert checked >= 14, f"应至少 14 个扣费点，实际 {checked}"
 
 
 # ---------------------------------------------------------------------------

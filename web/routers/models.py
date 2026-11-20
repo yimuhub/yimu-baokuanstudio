@@ -169,6 +169,29 @@ async def model_set_default_provider(request: Request):
         raise HTTPException(400, res.get('msg') or '未能设置默认通道')
     return res
 
+@router.get('/api/models/provider/defaults')
+def model_provider_defaults(request: Request):
+    """读三条能力线（text/image/video）当前生效的默认——**只读**。
+
+    why(R5 前端单一真源): 前端把 yimu_image_model / yimu_studio_video_model
+    等 localStorage 键收为「缓存位」后，需要一个轻量读点在首屏画完缓存值、
+    异步以服务端值为准覆盖。旧的唯一读点 GET /api/models/providers 是给控制
+    中心全量渲染用的（通道清单 + cross_models 全模型池 + 诊断 + 免费额度），
+    影音工坊 8 个下拉只为拿三个默认就整包拉一次太重。字段结构与
+    POST /api/models/provider/set_default 的写入端完全对称，
+    数据同源 core.llm.resolve_capability_default（与真正发请求时同一解析逻辑）。
+    鉴权用 guard（登录即可读）而非 guard_admin：普通用户的影音工坊下拉
+    首屏也要读默认；写默认才需要管理员。
+    """
+    _a.guard(request)
+    from core import llm
+    return {
+        'ok': True,
+        'text': llm.resolve_capability_default('text'),
+        'image': llm.resolve_capability_default('image'),
+        'video': llm.resolve_capability_default('video'),
+    }
+
 @router.post('/api/models/provider/set_active')
 async def model_set_active_provider(request: Request):
     _a.guard_admin(request)

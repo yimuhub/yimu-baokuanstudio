@@ -8,13 +8,28 @@ V7.0 先留接口与骨架。
 """
 
 from .chain import ChainReport, build_chain, synthesize_with_chain
-from .engines import BaseEngine, CloudTTSEngine, EdgeTTSEngine, LocalToneEngine, VOICES
+from .engines import (
+    BaseEngine,
+    CloudTTSEngine,
+    EdgeTTSEngine,
+    EngineResult,
+    LocalToneEngine,
+    VOICES,
+    resolve_voice,
+    synthesize,
+    synthesize_async,
+)
 from .subtitle import split_sentences, write_srt
 
 __all__ = [
     "ChainReport",
     "build_chain",
     "synthesize_with_chain",
+    # v15.9.9 归一后的全仓唯一 TTS 业务入口（探针契约入口仍是 studio.tts.synthesize）
+    "synthesize",
+    "synthesize_async",
+    "resolve_voice",
+    "EngineResult",
     "BaseEngine",
     "EdgeTTSEngine",
     "CloudTTSEngine",

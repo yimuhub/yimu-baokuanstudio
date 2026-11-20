@@ -153,7 +153,7 @@
 - `GET /api/user/media_name` → user_media_name_get：读取创作者媒体名称（个人中心回显）【V15.9.1】
 - `POST /api/user/media_name` → user_media_name_set：持久化创作者媒体名称（users.media_name）【V15.9.1】
 
-### 5.3 热榜选题 /api/topics【V7.0 保留 B；V7.1 由 studio/hot/ 增强】
+### 5.3 热榜选题 /api/topics【V7.0 保留 B；采集实现为 core/topics.py】
 - `GET /api/topics` → topics_list：热榜选题列表（前端下拉/选题池，按状态+来源筛选）【V7.0】[NEW]
 - `POST /api/topics/collect` → topics_collect：触发全网热榜采集【V7.0】[B]
 - `POST /api/topics/manual` → topics_manual：手动添加选题【V7.0】[B]
@@ -210,7 +210,7 @@
 - `POST /api/drafts/{did}/voiceover_script` → voiceover_script：生成口播稿【V7.0】[B]
 - `GET /api/drafts/image_styles` → get_image_styles：获取配图视觉风格清单【V8.3】[B]
 
-### 5.6 配图 / 素材【V7.0；生图实现切 image_forge】
+### 5.6 配图 / 素材【V7.0；生图实现为 core/imagegen 主链】
 - `GET /api/drafts/{did}/images` → draft_images：草稿配图列表【V7.0】[B]
 - `GET /api/drafts/{did}/images_detail` → draft_images_detail：配图明细【V7.0】[B]
 - `POST /api/drafts/{did}/images/regenerate_one` → images_regenerate_one：单张重绘【V7.0】[B→重写]
@@ -227,11 +227,7 @@
 - `POST /api/assets/batch_delete` → asset_batch_delete：批量删除素材【V7.0】[B]
 - `POST /api/assets/generate_hyper_real` → asset_hyper_real：电影级超写实文生图（走 §6）【V7.0】[B→重写]
 - `POST /api/assets/use_in_draft` → asset_use_in_draft：素材用于草稿插槽【V7.0】[B]
-- `POST /api/image/forge` → image_forge_forge：PromptForge 提示词工程（贫瘠输入→结构化提示词）【V7.0】[NEW]
-- `GET /api/image/styles` → image_forge_styles：12 风格库列表【V7.0】[NEW]
-- `POST /api/image/generate` → image_forge_generate：赛马生图（会员分级：free 单张直出/pro 赛马）【V7.0】[NEW]
-- `POST /api/image/judge` → image_forge_judge：Aesthetic Judge 图片评分【V7.0】[NEW]
-- `GET /api/image/benchmark` → image_forge_benchmark：审美基准集回归结果【V7.0】[NEW]
+- ~~`/api/image/*`（forge/styles/generate/judge/benchmark）~~ → 已随 studio/image_forge 整目录下线（前端零调用的孤儿链，R1 整改删除；真实生图走 /api/drafts/{did}/generate_images）【V15.9.9】[REMOVED]
 
 ### 5.7 小红书【V7.0】
 - `POST /api/drafts/{did}/ai_xhs` → ai_xhs：AI 生成小红书图文【V7.0】[B]
@@ -343,6 +339,7 @@
 - `POST /api/models/save` → models_save：保存模型配置【V7.0】[B→重写]
 - `POST /api/models/provider/set_active` → models_set_active：切换活动供应商【V7.0】[B→重写]
 - `POST /api/models/provider/set_default` → models_set_default：把通道设为文字/生图/生视频（或全功能）默认，三条能力线可各用一家【V15.9.6】[B→新增]
+- `GET /api/models/provider/defaults` → models_provider_defaults：只读三条能力线（文字/生图/生视频）当前生效默认，字段与 set_default 对称、同源 core.llm.resolve_capability_default；登录即可读（影音工坊下拉首屏用）【V15.9.9】[NEW]
 - `POST /api/models/provider/delete` → models_delete_provider：删除供应商【V7.0】[B→重写]
 - `GET /api/models/diagnose` → models_diagnose：通道自检（当前地址/密钥来源/可执行建议，不含明文）【V15.8.3】[NEW]
 - `GET /api/llm/usage` → llm_usage：各模型服务使用量统计+官方通道消费汇总（双轨制）【V7.0】[NEW]
@@ -429,7 +426,7 @@
 - `POST /api/settings` → settings_save：全局配置保存【V7.0】[B]
 
 ### 5.14 V7.1 新增（A 移植，骨架期预留，不阻塞 V7.0）
-> 2026-10-08 精简：独立热榜采集页与 `/api/hot/*` 接口已移除（与「灵感与选题」内置热榜功能重复），底层采集能力保留在 `studio/hot/` 供灵感模块调用。
+> 2026-10-08 精简：独立热榜采集页与 `/api/hot/*` 接口已移除（与「灵感与选题」内置热榜功能重复）。真实采集实现为 `core/topics.py`（`collect_topics`），由 `core/orchestrator.run_once` 调用；`studio/hot/` 25 个 collector 为孤儿副本，已于 V15.9.9 整目录删除。
 
 ### 5.14b R4 内容合规与信任（内容安全闸 / CSRF）【R4 合规批次新增】
 > 内容安全前置闸（`core/content_guard.py`）：成稿与发布前独立于 7 维质量评分拦截违规内容。
@@ -497,13 +494,10 @@
 
 ## 6. 图片质量专项契约（WS-C）
 
-| 方法 | 路径 | 说明 | 范围 |
-|------|------|------|------|
-| POST | `/api/image/forge` | PromptForge：贫瘠输入 → 结构化提示词（主体/风格/光影/构图四维）+ 否定词 | V7.0 |
-| GET | `/api/image/styles` | 12 风格库列表（含示例图 URL、适用场景） | V7.0 |
-| POST | `/api/image/generate` | 生成（走网关 `/v1/images/generations`，`n`=3 赛马）→ 返回优选图 + 候选列表 | V7.0 |
-| POST | `/api/image/judge` | Aesthetic Judge：对已有图打分（质量分+保真分 0–10）+ 缺陷描述 | V7.0 |
-| GET | `/api/image/benchmark` | 审美基准集回归结果（CI 门禁读取） | V7.0 |
+> ⭐ V15.9.9：本节全部路由（/api/image/forge、/styles、/generate、/judge、/benchmark）
+> 已随 studio/image_forge 整目录下线——前端零调用的孤儿链（R1 整改结论）。
+> PromptForge 能力保留在 studio/promptforge.py，真实生图链路为
+> `POST /api/drafts/{did}/generate_images`（走 §6 之外的 imagegen 赛马）。
 
 ## 7. 会员与首发模式契约（WS-B）
 

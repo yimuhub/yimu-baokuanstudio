@@ -11,6 +11,11 @@ import os
 import struct
 import wave
 from dataclasses import dataclass
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # 仅供注解解析（asyncio 在函数体内按需 import，避免模块级无用依赖）
+    import asyncio
 
 
 # 中文常用音色（edge-tts 声音名）
@@ -20,6 +25,30 @@ VOICES: dict[str, str] = {
     "yunjian": "zh-CN-YunjianNeural",  # 男声，偏播报
     "xiaoyi": "zh-CN-XiaoyiNeural",  # 女声，偏活泼
 }
+
+# 全名反向索引（小写 → 真名）：core 侧历史传全名、A 链传短键，
+# 归一后 resolve_voice 两种格式都接受（why：四份旧 TTS 实现各自猜格式，
+# 音色错乱只有用户能发现；统一映射后修一处即全局生效）。
+_VOICE_FULL_ALIASES: dict[str, str] = {name.lower(): name for name in VOICES.values()}
+
+
+def resolve_voice(voice: str) -> str:
+    """音色名统一映射：短键（xiaoxiao）与全名（zh-CN-XiaoxiaoNeural）都接受。
+
+    未知短键回落 xiaoxiao（与旧 VOICES.get 行为一致）；其它语种的
+    ``*Neural`` 全名（如 en-US-GuyNeural）原样透传给 edge-tts。
+    """
+    v = (voice or "").strip()
+    if not v:
+        return VOICES["xiaoxiao"]
+    low = v.lower()
+    if low in VOICES:
+        return VOICES[low]
+    if low in _VOICE_FULL_ALIASES:
+        return _VOICE_FULL_ALIASES[low]
+    if low.endswith("neural"):
+        return v
+    return VOICES["xiaoxiao"]
 
 
 @dataclass
@@ -75,7 +104,8 @@ class EdgeTTSEngine(BaseEngine):
     def synthesize(self, text: str, out_path: str, *, voice: str = "xiaoxiao", rate: int = 0) -> EngineResult:
         import asyncio
 
-        voice_name = VOICES.get(voice, VOICES["xiaoxiao"])
+        # 归一后接受短键与全名两种音色格式（resolve_voice 统一映射）
+        voice_name = resolve_voice(voice)
         # rate: -50 ~ +50 百分比，edge-tts 格式如 "+10%"
         rate_str = f"{rate:+d}%" if rate else "+0%"
 
@@ -181,3 +211,112 @@ def _write_tone_wav(text: str, out_path: str, *, sample_rate: int = 22050) -> No
         w.setsampwidth(2)
         w.setframerate(sample_rate)
         w.writeframes(bytes(frames))
+
+
+# ---------------------------------------------------------------------------
+# ⭐ 全仓唯一 TTS 引擎封装（v15.9.9 归一）
+#
+# why：此前 core/audio.py、core/video_native.py、core/short_drama.py 各自维护
+# 一份 TTS 实现（直连 / 直连 / CLI 子进程），加上本模块的 A 链共四份，行为
+# 不一致——音色映射、倍率换算、失败处置各写各的；短剧那份失败还会用 ffmpeg
+# 生成 3.5s 静音音频冒充成功，用户拿到无声剧集却无任何报错。
+# 归一后所有调用点走 synthesize / synthesize_async：短键与全名音色统一映射、
+# 失败显式抛错、并发场景进程内 await（edge_tts.Communicate 本身是异步库，
+# 不再 spawn 子进程）。本地提示音引擎不进本入口——需要「一定能出声」的
+# 探针/切换链场景继续走 studio.audio.chain（含提示音兜底），业务链路要的
+# 是「明确知道失败」，静音兜底只会把失败藏进成片。
+# ---------------------------------------------------------------------------
+
+
+def _validate_output(out_path: str) -> None:
+    """产物校验：缺失或小于 1KB 视为失败。
+
+    why：TTS 上游偶发返回空流/截断流，不校验会把空文件当成功写进成片，
+    用户听到的是无声视频而日志显示「成功」，排障成本极高。
+    """
+    p = Path(out_path)
+    if not p.exists() or p.stat().st_size < 1000:
+        raise RuntimeError(f"TTS 产物异常（缺失或小于 1KB）: {out_path}")
+
+
+def _rate_pct_from_multiplier(rate: float) -> int:
+    """语速倍率（1.0=常速）→ edge-tts 整数百分比（-50~50）。"""
+    try:
+        mult = float(rate)
+    except (TypeError, ValueError):
+        mult = 1.0
+    if mult <= 0:
+        mult = 1.0  # 非正倍率非法（0 倍速等于无声），按常速处理
+    return max(-50, min(50, int(round((mult - 1.0) * 100))))
+
+
+def synthesize(text: str, voice: str, out_path: str, *,
+               rate: float = 1.0, enable_cloud: bool = False) -> EngineResult:
+    """统一 TTS 入口（同步版）：真实人声合成，任何失败抛 RuntimeError。
+
+    引擎次序：Edge-TTS（免费首选）→ 云端 TTS（仅 enable_cloud=True 才加入，
+    ⭐ 防静默扣费红线）。与 studio.tts.synthesize 的分工：后者是探针契约
+    入口（全链失败落到本地提示音，保证探针产物存在）；本入口给业务链路用，
+    失败必须向上抛。
+
+    Args:
+        text: 待合成文本（纯口播文本）
+        voice: 音色短键（xiaoxiao/yunxi/…）或 edge-tts 全名（zh-CN-XiaoxiaoNeural）
+        out_path: 产物路径（mp3/wav 均可，edge-tts 按扩展名写流）
+        rate: 语速倍率（1.0=常速，0.5~1.5）
+        enable_cloud: 是否允许云端 TTS 引擎参与
+    """
+    if not (text or "").strip():
+        raise ValueError("合成文本为空")
+    rate_pct = _rate_pct_from_multiplier(rate)
+    errors: list[str] = []
+    engines: list[BaseEngine] = [EdgeTTSEngine()]
+    if enable_cloud:
+        engines.append(CloudTTSEngine())
+    for eng in engines:
+        if not eng.available:
+            errors.append(f"{eng.name}: {eng.unavailable_reason}")
+            continue
+        try:
+            result = eng.synthesize(text, out_path, voice=resolve_voice(voice), rate=rate_pct)
+        except Exception as exc:  # noqa: BLE001 — 失败隔离：单引擎失败记因后试下一个
+            errors.append(f"{eng.name}: {type(exc).__name__}: {exc}")
+            continue
+        try:
+            _validate_output(result.out_path)
+        except RuntimeError as exc:
+            errors.append(f"{eng.name}: {exc}")
+            continue
+        return result
+    raise RuntimeError("TTS 合成失败（全部引擎均不可用或产物无效）：" + "; ".join(errors))
+
+
+async def synthesize_async(text: str, voice: str, out_path: str, *,
+                           rate: float = 1.0,
+                           limiter: "asyncio.Semaphore | None" = None) -> EngineResult:
+    """统一 TTS 入口（异步版）：供多镜头并发场景 asyncio.gather 使用。
+
+    why 进程内 await：edge_tts.Communicate 本身是异步库，旧短剧实现却每镜
+    spawn 一个 edge-tts CLI 子进程（慢、难控并发、失败还要静音充数）；本函数
+    直接 await 上游保存，并发由调用方传入的 limiter（如 Semaphore(3)）限流。
+    失败显式抛错，不做任何静音/提示音兜底。
+    """
+    import asyncio
+
+    if not (text or "").strip():
+        raise ValueError("合成文本为空")
+    voice_name = resolve_voice(voice)
+    rate_str = f"{_rate_pct_from_multiplier(rate):+d}%"
+
+    async def _save() -> None:
+        import edge_tts
+        communicate = edge_tts.Communicate(text, voice=voice_name, rate=rate_str)
+        await communicate.save(str(out_path))
+
+    if limiter is not None:
+        async with limiter:
+            await _save()
+    else:
+        await _save()
+    _validate_output(out_path)
+    return EngineResult(out_path=str(out_path))

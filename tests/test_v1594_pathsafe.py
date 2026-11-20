@@ -76,6 +76,36 @@ class TestIsWithin:
         # 解析失败必须返回 False（失败即拒绝），不能抛异常也不能放行
         assert is_within(link, base) is False
 
+    def test_symlink_loop_fails_closed_on_py313(self, tmp_path):
+        """Python 3.13+ 的 resolve(strict=False) 不再对链接环抛错，必须另行兜住。
+
+        why：3.13 起 ``Path.resolve()`` 遇到 ELOOP 改为原样返回未展开路径，
+        自指链接会解析成它自己从而通过 relative_to 判定——安全判定变成
+        fail-open。本用例直接锁住这条回归，不依赖 Python 版本差异。
+        """
+        import os
+        import sys
+
+        base, _ = _tree(tmp_path)
+        link = base / "selfloop"
+        try:
+            link.symlink_to(link)
+        except (OSError, NotImplementedError):
+            pytest.skip("当前文件系统不支持符号链接")
+        # 前提确认：该链接确实不可达（lexists 真、exists 假）
+        assert os.path.lexists(link) and not os.path.exists(link)
+        assert is_within(link, base) is False,             f"Python {sys.version_info.major}.{sys.version_info.minor} 下坏链接被判为合法（fail-open）"
+
+    def test_nested_broken_parent_fails_closed(self, tmp_path):
+        """父目录是坏链接时，叶子即使不存在也不得放行。"""
+        base, _ = _tree(tmp_path)
+        bad = base / "badparent"
+        try:
+            bad.symlink_to(bad)
+        except (OSError, NotImplementedError):
+            pytest.skip("当前文件系统不支持符号链接")
+        assert is_within(bad / "child.mp4", base) is False
+
 
 class TestSafeJoin:
     def test_normal_join(self, tmp_path):

@@ -90,7 +90,7 @@ async def skills_delete(request: Request):
 @router.post('/api/skills/distill')
 async def skills_distill(request: Request):
     """蒸馏：贴入爆款文章/名人文风 → AI 提炼成结构化技能文件。"""
-    _a.guard(request)
+    u = _a.guard(request)
     body = await request.json()
     name_raw = (body.get('name') or '').strip()
     text = (body.get('text') or '').strip()
@@ -99,7 +99,6 @@ async def skills_distill(request: Request):
     import re as _re
     import uuid
     jid = f'dist-{uuid.uuid4().hex[:8]}'
-    _a.start_async_job(jid, name=f'名家文风语料蒸馏: {name_raw[:14]}', task_type='voice_distill', params={'name': name_raw}, initial_step='AI 蒸馏风格规则与写作指纹中…')
 
     def _run():
         try:
@@ -119,8 +118,11 @@ async def skills_distill(request: Request):
             _a.update_async_job(jid, status='done', step='文风蒸馏完成并已入库！', progress=100, result={'slug': slug, 'desc': desc})
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:300], step='蒸馏失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    # v15.9.9：LLM 蒸馏是分钟级重活，fire-and-forget 改走统一受界任务池
+    # （原默认线程池无界；任务注册双写由 spawn_user_job 完成）
+    return _a.spawn_user_job(u, f'名家文风语料蒸馏: {name_raw[:14]}', _run, jid=jid,
+                             task_type='voice_distill', params={'name': name_raw},
+                             initial_step='AI 蒸馏风格规则与写作指纹中…')
 
 @router.get('/api/skills/ref')
 def skills_ref(request: Request, path: str=''):

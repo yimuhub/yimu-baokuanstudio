@@ -76,7 +76,11 @@ app = FastAPI(title="一幕·YIMU 爆款工作室", lifespan=_lifespan)
 # ⭐ 性能：GZip 压缩（index.html 约 835KB → ~140KB，首屏加载显著加快）
 from starlette.middleware.gzip import GZipMiddleware  # noqa: E402
 
-app.add_middleware(GZipMiddleware, minimum_size=1000)
+# ⭐ 效率整改（v15.9.9）：压缩级别 9 → 6。
+# why：level 9 压首页实测 33.1ms CPU 且同步执行会阻塞事件循环；
+# level 6 仅 18.3ms，压缩后体积只差约 2%（gzip 对 deflate 级别在 6 以上
+# 收益递减）。中间件在事件循环里同步跑，级别越高卡住所有并发请求越久。
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
 # R4-8：CSRF 防护 + 安全响应头（CSP / X-Frame-Options / Referrer-Policy 等）。
 # 注意中间件顺序：Starlette 按注册**逆序**执行，靠后注册的先跑（ outermost）。
 # 这里把 CSRF 注册在后 → CSRF 在最外层；SecurityHeaders 在内层包住业务路由。
@@ -173,56 +177,10 @@ app.include_router(membership_router)
 from app.routers import architecture_router  # noqa: E402
 app.include_router(architecture_router)
 
-# ---- 图片专项 API（studio/image_forge）：/api/image/* ----
-# 审计发现：router.py 的 build_router() 从未被挂载，前端/后端均无 /api/image/*。
-# 此处挂载并接入鉴权 + 会员分级（free 档 race_allowed=False → 单张直出）。
-from studio.image_forge import router as _image_forge_mod  # noqa: E402
-from studio.image_forge.router import handle_request as _image_handle_request  # noqa: E402
-
-
-def _image_forge_endpoint(_handler_name: str, _method: str, _path: str):
-    async def _endpoint(request: Request):
-        user = guard(request)
-        try:
-            body = await request.json()
-            if not isinstance(body, dict):
-                body = {}
-        except Exception:
-            body = {}
-        # ⭐ 会员分级：赛马权限按档位
-        #   free：每周 3 次赛马体验（image_race_weekly），用完转单张直出
-        #   pro/studio：image_race=True，赛马不限
-        _race_allowed = False
-        if _handler_name == "generate":
-            _tier = _tier_capability_limit(user, "image_race")
-            if _tier:
-                _race_allowed = True  # pro/studio 全开
-            else:
-                _ok, _, _ = _tier_quota_check(user, "image_race_weekly")
-                _race_allowed = bool(_ok)  # free：配额内体验赛马，用完单张直出
-        ctx = {
-            "tenant_id": "default",
-            # ⭐ R2-5：生图要真扣 memberships 额度，必须带上调用者身份
-            "user_id": str((user or {}).get("id") or ""),
-            "request_id": request.headers.get("x-request-id"),
-            "db_url": _os.environ.get("YIMU_DB_URL"),
-            "image_client": None,  # 上游未配置时抛 UpstreamNotReady（诚实报错）
-            "race_allowed": _race_allowed,
-        }
-        result = _image_handle_request(_method, _path, body, ctx)
-        status = 200 if result.get("ok") else {
-            "NOT_FOUND": 404, "BAD_REQUEST": 400,
-            "UPSTREAM_NOT_READY": 503, "FORBIDDEN": 403,
-        }.get(result.get("code"), 500)
-        return JSONResponse(result, status_code=status)
-    _endpoint.__name__ = f"image_forge_{_handler_name}"
-    return _endpoint
-
-
-for _m, _p, _n in _image_forge_mod.ROUTES:
-    (_register := app.get if _m == "GET" else app.post)(
-        _p, name=f"image_forge_{_n}")(_image_forge_endpoint(_n, _m, _p))
-del _m, _p, _n, _register
+# ---- 图片专项 API（/api/image/*）已随 studio/image_forge 目录一起下线 ----
+# why：该链路是孤儿接口（前端零调用），studio/image_forge 整目录在 R1 整改中
+# 删除；此处的挂载代码若继续 import 会直接让 web.admin 无法加载，故同步移除。
+# 真实生图链路走 /api/drafts/{did}/generate_images（imagegen）。
 
 
 # ---- YIMU Gateway /v1 运行时装配（集成）：补齐 routers_openai 依赖的 app.state ----
@@ -381,6 +339,11 @@ def start_async_job(jid: str, name: str, task_type: str, target_id: str = "",
     try:
         task_queue.register_job(jid, name=name, task_type=task_type, target_id=target_id,
                                 total_steps=total_steps, params=params, owner=str(owner or ""))
+        # v15.9.9:register 成功后把 initial_step 同步进 task_queue——否则持久层
+        # 停在通用文案「任务初始化排队中…」,而 JOBS 是业务化的 initial_step,
+        # 三条读路径(task_queue/JOBS/详情)在 t0 时刻 message 不一致。
+        if initial_step:
+            task_queue.update_job(jid, step=initial_step)
     except Exception as e:
         logger.error(f"[start_async_job] register error: {e}")
     return jid
@@ -408,6 +371,129 @@ def update_async_job(jid: str, *, status: str | None = None,
                               result=result, error=error)
     except Exception as e:
         logger.error(f"[update_async_job] update error: {e}")
+
+
+# ---------------- 任务读取视图统一（重复 R6 整改 v15.9.9） ----------------
+#
+# why 收敛：/api/jobs/{jid}、/api/rewrite/job/{jid}、/api/tasks/{task_id}
+# 三条读路径过去各查各的（JOBS / task_queue），同一任务从不同入口看
+# 状态字段名与取值都可能不同（step vs message、done vs completed），
+# 前端轮询口径被迫写两套。统一走 _get_task_view：先查持久化任务队列
+#（task_queue：内存任务快照 + SQLite 回捞），查不到再回退 JOBS 兜底，
+# 并输出同一形状（兼容 JOBS 消费方的 step 键与 task_queue 的 message 键）。
+
+#: JOBS 里 «done» 是历史写法，统一视图归一到 completed
+_TASK_DONE_ALIASES = ("done", "completed")
+
+#: 任务终态全集。前端一律按这个集合判「轮询可以停了」，不写死某一个词——
+#: 后端词汇历史上有 done / completed 两代，任何一侧单点改动都会让另一侧
+#: 永远等不到终态，直到轮询 maxMs 超时才报「仍在后台执行」（v15.9.9 实测事故）。
+TASK_TERMINAL_STATUSES = ("completed", "failed", "cancelled", "interrupted")
+
+
+def _normalize_task_status(raw: str | None) -> str:
+    st = str(raw or "").strip().lower()
+    return "completed" if st in _TASK_DONE_ALIASES else st
+
+
+def _job_entry_to_task_view(jid: str, j: dict) -> dict:
+    """把 JOBS 条目（start_async_job 写入的形状）归一到 task_queue 视图形状。
+
+    只做形状映射不改语义：step→message 别名、done→completed、
+    created_at_fmt/duration_s 按 task_queue.get 的派生口径补齐。
+    """
+    status = _normalize_task_status(j.get("status") or "running")
+    step = str(j.get("step") or "")
+    created_at = float(j.get("created_at") or 0.0)
+    completed_at = j.get("completed_at")
+    if status in ("completed", "failed", "cancelled", "interrupted") and not completed_at:
+        completed_at = time.time()
+    progress = int(j.get("progress") or 0)
+    if progress <= 0:
+        progress = 100 if status == "completed" else (0 if status == "queued" else 50)
+    return {
+        "id": jid,
+        "name": str(j.get("name") or ""),
+        "task_type": str(j.get("task_type") or "general_task"),
+        "target_id": str(j.get("target_id") or ""),
+        "owner": str(j.get("owner") or ""),
+        "status": status,
+        "progress": progress,
+        "message": step,
+        "step": step,
+        "params": j.get("params") if isinstance(j.get("params"), dict) else {},
+        "result": j.get("result"),
+        "error": str(j.get("error") or ""),
+        "current_step": 0,
+        "total_steps": 1,
+        "created_at": created_at or time.time(),
+        "started_at": j.get("started_at"),
+        "completed_at": completed_at,
+        "created_at_fmt": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(created_at or time.time())),
+        "duration_s": round((completed_at or time.time()) - (created_at or time.time()), 1),
+    }
+
+
+_CANONICAL_TASK_VIEW_KEYS = (
+    "id", "name", "task_type", "target_id", "owner", "status", "progress",
+    "message", "step", "params", "result", "error",
+    "current_step", "total_steps", "created_at", "started_at", "updated_at",
+    "completed_at", "created_at_fmt", "duration_s",
+)
+
+
+def _get_task_view(jid: str) -> dict | None:
+    """任务详情唯一读取入口：持久化 task_queue 优先，JOBS 兜底，同一形状。
+
+    三条读路径（/api/jobs/{jid}、/api/rewrite/job/{jid}、/api/tasks/{task_id}）
+    全部走本函数；查不到返回 None（路由层 404）。
+    """
+    view: dict | None = None
+    try:
+        from core import task_queue as _tq
+        view = _tq.get_task(jid)
+    except Exception as e:
+        logger.warning(f"[_get_task_view] task_queue 读取异常，回退 JOBS: {e}")
+    if view:
+        view = dict(view)
+    else:
+        j = JOBS.get(jid)
+        if not isinstance(j, dict):
+            return None
+        view = _job_entry_to_task_view(jid, j)
+    # v15.9.9:两条来源(task_queue Task.to_dict / JOBS 归一)键集不同——Task.asdict
+    # 会带内部字段 _cancel_callbacks,JOBS 分支没有 started_at 等。投影到统一键集,
+    # 保证三条读路径对外形状严格一致(内部字段不外泄)。
+    view = {k: view.get(k) for k in _CANONICAL_TASK_VIEW_KEYS}
+    # 兼容两代消费方：JOBS 旧消费方读 step，task_queue 消费方读 message
+    if not view.get("step"):
+        view["step"] = view.get("message") or ""
+    elif not view.get("message"):
+        view["message"] = view.get("step") or ""
+    view["status"] = _normalize_task_status(view.get("status"))
+    return view
+
+
+def spawn_user_job(u: dict, name: str, fn, *, jid: str, task_type: str,
+                   target_id: str = "", params: dict | None = None,
+                   initial_step: str = "排队中…") -> dict:
+    """fire-and-forget 用户后台任务的全路由统一入口（v15.9.9 分类收敛）。
+
+    why：LLM / 生图 / 视频渲染 / TTS / 发布这类分钟级重活过去散落着
+    ``run_in_executor(None, ...)`` fire-and-forget——asyncio 默认线程池无界、
+    JOBS 裸注册不进持久队列、无 owner 归属不可取消。统一走
+    task_queue.spawn_user_task（受界池 + 每用户并发上限 + 双写注册）。
+    轻量本地 IO 与「请求内等待」契约的调用保留 run_in_executor（见各路由注释）。
+    """
+    from core import task_queue as _task_queue
+    try:
+        jid = _task_queue.spawn_user_task(
+            owner=str((u or {}).get('id') or ''), name=name, fn=fn, jid=jid,
+            task_type=task_type, target_id=target_id, params=params,
+            initial_step=initial_step)
+    except _task_queue.UserTaskLimitError as e:
+        raise HTTPException(429, str(e))
+    return {'job': jid}
 
 
 # 本机网络层存在 POST 重放（同一请求会到两次）：写操作按 内容哈希 幂等去重，
@@ -476,6 +562,12 @@ async def diagnostics_middleware(request: Request, call_next):
                 _DIAG_THROTTLE.pop(k, None)
             diag.http_event(method, path, resp.status_code, dt,
                             detail="慢请求（超过 8 秒）" if resp.status_code < 400 else "")
+    # ⭐ 效率整改（v15.9.9）：静态资源允许浏览器复用 7 天。
+    # why：/static 下的 js/css/图片是带版本管理的构建产物，改版即换路径；
+    # StaticFiles 自带 ETag，有效期内浏览器免请求，过期后仍可 304 协商，
+    # 显式下发 max-age 让首屏静态资源不再每次都打一次往返。
+    if path.startswith("/static/") and resp.status_code == 200:
+        resp.headers.setdefault("Cache-Control", "public, max-age=604800")
     return resp
 
 
@@ -1030,15 +1122,40 @@ except Exception:
     APP_VERSION = "10.1"
 
 
-def get_app_version() -> str:
-    """动态提取版本单一真源（version.py），热重载避免旧缓存。"""
+# ⭐ 效率整改（v15.9.9）：version.py 的 importlib.reload 按 mtime 节流。
+# why：get_app_version 位于渲染注入器与 /health 等高频路径上，原实现每次调用
+# 都 reload——模块重载会重新执行 version.py 顶层代码，是解释器级开销。
+# 文件 mtime 未变化时内容必然未变（任何写盘都会刷新 mtime），因此 mtime
+# 不变即直接复用上次读取结果；「改 version.py 即热更新」的语义由 mtime
+# 判定完整保留。
+_VERSION_PY_PATH = BASE / "version.py"
+_version_mtime_cache: dict = {"mtime": None, "version": None}
+
+
+def _reload_version_if_changed() -> str:
+    """按 mtime 节流地重载 version 模块并返回当前版本号（失败回退既有值）。"""
     global APP_VERSION
+    import importlib
+    import version
     try:
-        import importlib
-        import version
+        mtime = _VERSION_PY_PATH.stat().st_mtime_ns
+    except OSError:
+        mtime = None
+    if _version_mtime_cache["version"] is None or mtime != _version_mtime_cache["mtime"]:
         importlib.reload(version)
         APP_VERSION = version.__version__
-        return APP_VERSION
+        _version_mtime_cache["mtime"] = mtime
+        _version_mtime_cache["version"] = APP_VERSION
+    else:
+        APP_VERSION = _version_mtime_cache["version"]
+    return APP_VERSION
+
+
+def get_app_version() -> str:
+    """动态提取版本单一真源（version.py），热重载避免旧缓存（mtime 节流）。"""
+    global APP_VERSION
+    try:
+        return _reload_version_if_changed()
     except Exception:
         try:
             from version import __version__
@@ -1053,7 +1170,7 @@ def get_app_version_info() -> dict:
     try:
         import importlib
         import version
-        importlib.reload(version)
+        _reload_version_if_changed()
         if hasattr(version, "get_version_info"):
             return version.get_version_info()
         return {
@@ -1103,7 +1220,36 @@ def render_dynamic_html(raw_html: str) -> str:
         elif "</body>" in rendered:
             rendered = rendered.replace("</body>", f"  {script_tag}\n</body>", 1)
 
+    # 4. 给所有 /static/ 资源引用加版本串 ?v=<cur_ver>
+    # why（v15.9.9）：/static/* 下发 Cache-Control: public, max-age=604800（7 天），
+    # 而页面引用原先不带任何版本串。发版后 HTML（no-cache）已经是新版、JS/CSS
+    # 却仍吃 7 天旧缓存，最多可以连着跑一周「新壳 + 旧逻辑」——前端改了没生效、
+    # 修好的缺陷在用户机器上依旧复现，排查时又因服务端已是新代码而看不出问题。
+    # 版本串让每次发版都换 URL，缓存自然失效；开发期改 JS 未发版时可手动
+    # 强制刷新，行为与「改模板即热更新」一致。
+    rendered = _version_static_assets(rendered, cur_ver)
+
     return rendered
+
+
+def _version_static_assets(html: str, cur_ver: str) -> str:
+    """给 /static/ 的 src/href 引用统一追加版本串（幂等）。
+
+    why 只改静态资源 URL 而不动其他内容：模板里还有大量业务链接（/api/…、
+    /p/…），只有 /static/ 下的构建产物享受 7 天强缓存，也只有它们需要版本串。
+    已带 ?v= 的引用直接跳过，避免多次渲染叠加成 ?v=1?v=2。
+    """
+    if not html or not cur_ver:
+        return html
+
+    def _repl(m: "re.Match[str]") -> str:
+        attr, quote, path = m.group(1), m.group(2), m.group(3)
+        if "?" in path:
+            return m.group(0)
+        return f'{attr}={quote}{path}?v={cur_ver}{quote}'
+
+    # 同时覆盖 src="/static/…" 与 href="/static/…"，单引号与双引号
+    return re.sub(r'(src|href)=(["\'])(/static/[^"\']*)\2', _repl, html)
 
 
 
@@ -2027,15 +2173,44 @@ def _run_one_sentence_viral_job(jid: str, payload: dict):
 TEMPLATE_INDEX_PATH = BASE / "web" / "templates" / "index.html"
 TEMPLATE_MOBILE_PATH = BASE / "web" / "templates" / "mobile.html"
 
+# ⭐ 效率整改（v15.9.9）：首页 / 移动页渲染结果进程内缓存。
+# why：get_html_page 原实现每个请求都 read_text（首页模板约 800KB）+
+# render_dynamic_html（6 次字符串替换 + re.sub，实测约 7ms），而模板内容只
+# 随磁盘文件与版本号两个因素变化。以 (mtime_ns, version) 为指纹缓存渲染
+# 产物：两把钥匙都没变就直接复用，省掉整段重复 CPU；模板被编辑（mtime 变）
+# 或版本号变化时缓存自动失效——「改模板即热更新」语义不变。
+_rendered_page_cache: dict[str, tuple[int, str, str]] = {}
+
+
+def _cached_rendered_page(path: Path, fallback_html: str) -> str:
+    """读模板 → 注入版本 → 按 (mtime, version) 指纹缓存渲染结果。"""
+    key = str(path)
+    try:
+        mtime = path.stat().st_mtime_ns
+    except OSError:
+        # 文件不存在/不可读：丢弃旧缓存并按缺模板处理（与原实现一致）
+        _rendered_page_cache.pop(key, None)
+        return fallback_html
+    ver = get_app_version()
+    hit = _rendered_page_cache.get(key)
+    if hit is not None and hit[0] == mtime and hit[1] == ver:
+        return hit[2]
+    rendered = render_dynamic_html(path.read_text(encoding="utf-8"))
+    _rendered_page_cache[key] = (mtime, ver, rendered)
+    return rendered
+
+
 def get_html_page() -> str:
-    if TEMPLATE_INDEX_PATH.exists():
-        return render_dynamic_html(TEMPLATE_INDEX_PATH.read_text(encoding="utf-8"))
-    return "<h1>一幕·YIMU 页面模板文件缺失，请检查 web/templates/index.html</h1>"
+    # 模板缺失时由 _cached_rendered_page 的 stat 失败分支直接给出缺模板提示页
+    return _cached_rendered_page(
+        TEMPLATE_INDEX_PATH,
+        "<h1>一幕·YIMU 页面模板文件缺失，请检查 web/templates/index.html</h1>")
 
 
 def get_mobile_html_page() -> str:
     if TEMPLATE_MOBILE_PATH.exists():
-        return render_dynamic_html(TEMPLATE_MOBILE_PATH.read_text(encoding="utf-8"))
+        return _cached_rendered_page(TEMPLATE_MOBILE_PATH, "")
+    # 保留原语义：移动模板缺失时回退桌面首页
     return get_html_page()
 
 

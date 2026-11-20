@@ -755,9 +755,43 @@ def _migrate_columns(c: sqlite3.Connection) -> None:
         c.execute("UPDATE drafts SET platform='wechat_mp' WHERE platform IS NULL OR TRIM(platform)=''")
         c.execute("UPDATE drafts SET tenant_id='default' WHERE tenant_id IS NULL OR TRIM(tenant_id)=''")
         c.execute("UPDATE drafts SET user_id='u-admin' WHERE user_id IS NULL OR TRIM(user_id)=''")
+
+        # ---- v15.9.9 热查询索引（幂等，老库补建）----
+        _ensure_performance_indexes(c)
+
         c.commit()
     except Exception as e:  # pragma: no cover - 迁移失败不应阻断业务
         logger.warning("补列迁移失败（忽略，继续运行）: %s", e)
+
+
+def _ensure_performance_indexes(c: sqlite3.Connection) -> None:
+    """v15.9.9 热查询索引（幂等 CREATE INDEX IF NOT EXISTS，新库老库都安全）。
+
+    - ix_async_tasks_created：任务面板 /api/tasks 按 created_at DESC LIMIT 取
+      最新任务，async_tasks 只增不删（每次配音/生图/短剧渲染都写一行），
+      无索引时每次刷面板都全表排序；
+    - ix_async_tasks_status：面板「进行中/失败」过滤列与启动期中断恢复扫描；
+    - ix_topics_ws_created：选题库按工作区过滤 + 时间倒序的热查询。
+
+    why 先 PRAGMA 探列再建：workspace_id 是后加列（老库靠 ALTER 补），若在
+    补列之前建索引会抛 no such column 且被 except 吞掉，索引从此永远缺位。
+    """
+    stmts = [
+        "CREATE INDEX IF NOT EXISTS ix_async_tasks_created ON async_tasks(created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS ix_async_tasks_status ON async_tasks(status)",
+    ]
+    try:
+        tcols = {r["name"] for r in c.execute("PRAGMA table_info(topics)")}
+        if "workspace_id" in tcols and "created_at" in tcols:
+            stmts.append(
+                "CREATE INDEX IF NOT EXISTS ix_topics_ws_created ON topics(workspace_id, created_at)")
+    except sqlite3.OperationalError:
+        pass  # topics 表尚未创建时跳过，本轮 SCHEMA 建表后下次迁移补齐
+    for sql in stmts:
+        try:
+            c.execute(sql)
+        except sqlite3.OperationalError:
+            pass  # 极旧库缺列时静默跳过，补列完成后的下轮迁移再建
 
 
 _TENANT_TABLES = ("topics", "drafts", "draft_history", "jobs", "async_tasks",
@@ -882,6 +916,9 @@ def conn() -> sqlite3.Connection:
         c.execute("ALTER TABLE topics ADD COLUMN blocked_reason TEXT DEFAULT ''")
     if "workspace_id" not in tcols:
         c.execute("ALTER TABLE topics ADD COLUMN workspace_id TEXT DEFAULT ''")
+
+    # v15.9.9：首次建库路径同样补齐热查询索引（补列完成后执行，防 no such column）
+    _ensure_performance_indexes(c)
 
     # R4 合规：草稿待人工复核标记（不删草稿，只标记）
     _dcols = {r["name"] for r in c.execute("PRAGMA table_info(drafts)")}
@@ -1812,7 +1849,13 @@ def get_persistent_task(task_id: str) -> dict | None:
 
 def list_persistent_tasks(limit: int = 50, task_type: str | None = None, status: str | None = None) -> list[dict]:
     c = conn()
-    query = "SELECT * FROM async_tasks"
+    # v15.9.9 效率:列表不再取 result_json 大列(批量任务会塞整批产物,实测 52 行合计
+    # 213KB,每 2-3.5s 轮询一次全部解析+序列化+压缩)。owner 还原依赖 params_json
+    # (_owner 由 register 注入),故 params_json 保留。排序走 ix_async_tasks_created 索引。
+    _LIST_COLS = ("id, task_type, target_id, name, status, progress, message, "
+                  "current_step, total_steps, params_json, error, "
+                  "created_at, started_at, updated_at, completed_at")
+    query = f"SELECT {_LIST_COLS} FROM async_tasks"
     conds = []
     vals = []
     if task_type:

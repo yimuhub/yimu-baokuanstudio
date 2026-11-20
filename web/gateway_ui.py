@@ -1110,10 +1110,15 @@ def _membership_summary(m) -> dict:
     }
 
 
-@router.get("/api/billing/ui/me")
-@_api
-async def ui_me(request: Request):
-    """我的会员：档位 / 剩余额度 / 累计使用。未初始化时自动初始化（幂等）。"""
+def membership_payload_for_request(request: Request) -> dict:
+    """「我的会员」payload 构造（档位 / 额度的唯一取数口径）。
+
+    ⭐ v15.9.9（重复 R7 收敛）：/api/billing/status 与 /api/billing/ui/me
+    语义重叠，过去两处各自向 studio 取数（DEFAULT_TIERS vs membership
+    service），同一用户两边可能报出不同的档位名/余额。抽出本函数作为
+    ui/me 的 payload 构造唯一实现，billing/status 委托它再做旧字段映射，
+    杜绝第二套口径。未初始化时自动建 studio 用户与会员行（幂等）。
+    """
     user = _require_login(request)
     db = _db()
     try:
@@ -1145,9 +1150,16 @@ async def ui_me(request: Request):
             if int(m.credits_used or 0) > int(m.credits_total or 0):
                 m.credits_used = 0
         db.commit()
-        return JSONResponse(ok_body(_membership_summary(m)))
+        return _membership_summary(m)
     finally:
         db.close()
+
+
+@router.get("/api/billing/ui/me")
+@_api
+async def ui_me(request: Request):
+    """我的会员：档位 / 剩余额度 / 累计使用。未初始化时自动初始化（幂等）。"""
+    return JSONResponse(ok_body(membership_payload_for_request(request)))
 
 
 @router.post("/api/billing/ui/init")
@@ -1258,7 +1270,15 @@ def _invite_item(it: Invite) -> dict:
 @router.post("/api/billing/ui/invites")
 @_api
 async def ui_create_invite(request: Request):
-    """管理员创建邀请码：可用次数 / 赠送额度 / 有效天数（0=永不过期）。"""
+    """管理员创建邀请码：可用次数 / 赠送额度 / 有效天数（0=永不过期）。
+
+    ⭐ v15.9.9（重复 R7 收敛）：不再复制生成与校验逻辑。参数合法性
+    （次数≥1、赠送额度≥0、过期时间晚于当前）唯一由
+    ``studio.membership.service.create_invite`` 校验（违规抛统一错误体
+    HTTPException，由 @_api 原样转 JSON）——过去在这里复制一份同样的判断，
+    两处文案/口径必然漂移。本函数只负责 UI 层「有效天数 → 绝对过期时间」
+    换算后整体委托同一核心实现。
+    """
     admin = _require_admin(request)
     try:
         body = await request.json()
@@ -1272,12 +1292,6 @@ async def ui_create_invite(request: Request):
         days = int(body.get("expires_in_days", 0))
     except (TypeError, ValueError):
         raise GatewayError("BAD_REQUEST", "参数必须为整数", "请检查 max_uses / credits_grant / expires_in_days")
-    if max_uses < 1:
-        raise GatewayError("BAD_REQUEST", "可用次数至少为 1", "请传入正整数")
-    if credits_grant < 0:
-        raise GatewayError("BAD_REQUEST", "赠送额度不能为负数", "请传入非负整数")
-    if days < 0:
-        raise GatewayError("BAD_REQUEST", "有效天数不能为负数", "0 表示永不过期")
     expires_at = utcnow() + timedelta(days=days) if days > 0 else None
     db = _db()
     try:

@@ -69,8 +69,10 @@ def test_stage_script_exists(js: str) -> None:
 
 
 def test_stage_script_mounted_after_rail(html: str) -> None:
-    rail = html.find('<script src="/static/js/workbench-rail.js"></script>')
-    stage = html.find('<script src="/static/js/workbench-stage.js"></script>')
+    # v15.9.9：静态资源引用统一带 ?v=<版本>（7 天强缓存的破缓存位），
+    # 因此这里按「路径 + 可能存在的版本串」匹配，而不是裸路径。
+    rail = html.find('src="/static/js/workbench-rail.js')
+    stage = html.find('src="/static/js/workbench-stage.js')
     assert rail > 0, "缺少左栏脚本"
     assert stage > 0, "缺少舞台脚本"
     assert stage > rail, "舞台脚本必须在左栏脚本之后加载"

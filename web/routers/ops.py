@@ -42,10 +42,10 @@ def ticket_last(request: Request):
 
 @router.post('/api/ticket/run')
 async def ticket_run(request: Request):
-    _a.guard(request)
+    """手动触发每日巡航工单（抓取/产出属重活，fire-and-forget 后台执行）。"""
+    u = _a.guard(request)
     import uuid
     jid = f'tkt-{uuid.uuid4().hex[:8]}'
-    _a.start_async_job(jid, name='自动化每日巡航与热点产出工单', task_type='ticket_exec', initial_step='工单流水线启动中…')
 
     def _run():
         try:
@@ -54,8 +54,11 @@ async def ticket_run(request: Request):
             _a.update_async_job(jid, status='done', step='每日巡航工单执行完成！', progress=100, result=res)
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:300], step='工单执行失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    # v15.9.9：工单流水线（抓取+产出）是重活，改走统一受界任务池（带 owner，
+    # JOBS/持久队列注册由 spawn_user_job 完成）
+    return _a.spawn_user_job(u, '自动化每日巡航与热点产出工单', _run, jid=jid,
+                             task_type='ticket_exec',
+                             initial_step='工单流水线启动中…')
 
 @router.post('/api/ticket/schedule')
 async def ticket_schedule(request: Request):

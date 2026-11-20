@@ -7,6 +7,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.9.9] - 鹤鸣篇 (Crane Call Chapter) · 2026-11-20
+
+### Fixed 任务终态断裂、Python 3.13+ 路径判定 fail-open 与静态资源缓存
+
+本轮为 v15.9.8 之后的操作审查收口：机械门禁全绿的前提下，靠真实浏览器走查与
+真实任务提交抓出两类「跑起来才断」的缺陷，并补齐对应的回归锁。
+`tests/test_v1599_web_fixes.py` 扩至 32 项、`tests/test_v1594_pathsafe.py` 扩至 16 项。
+
+**P0 · 所有后台任务轮询等不到终态**
+
+1. **任务状态词汇断裂**：v15.9.9 做「三条任务读路径统一 `_get_task_view`」时，把
+   JOBS 的 `done` 归一成 `completed`，而前端 45 处轮询各自写死 `j.status === 'done'`。
+   结果是配音 / 改写 / 生图 / 视频 / 发布 / 工单**全部**等不到终态，一路轮询到
+   `maxMs`（最长 30 分钟）才报「任务仍在后台执行」，用户看到的是「合成完成但界面不动」。
+   同批代码还暴露一个早已存在的同类断裂：`/api/tasks/{id}` 一直只返回 `completed`，
+   AI 短视频轮询从来没走通过。
+   修复不是把后端改回去（`task_queue` 落库一直是 `completed`，改回去只会掩盖旧 bug），
+   而是建立唯一真源：后端 `TASK_TERMINAL_STATUSES` 集合 + 前端 `isTerminalStatus()` /
+   `isSuccessStatus()`，移动端模板自包含就地内联同一套词汇表，全站字面量判定全部替换。
+
+**P1 · 路径包含判定在 Python 3.13+ 静默 fail-open（安全）**
+
+2. **符号链接环不再抛错**：Python 3.13 起 `Path.resolve(strict=False)` 遇到 ELOOP
+   **不再抛 OSError**，改为原样返回未展开路径。`core/pathsafe.is_within()` 原本靠
+   `except OSError: return False` 实现 fail-closed，于是自指链接被解析成自己、
+   `relative_to(base)` 顺利通过——坏链接被判为合法。代码一行没改，升级 Python 就中招。
+   修复补一道 `_resolves_cleanly()` 存在性走查，判据写成「存在但不可达」
+   （`lexists` 真 / `exists` 假）；路径尚未生成时仍按词法放行，保持原有语义。
+
+**其它**
+
+3. **静态资源破缓存**：`/static/*` 下发 7 天强缓存而模板引用为裸路径，发版后最多可连续
+   一周「新壳 + 旧 JS」。`render_dynamic_html()` 末尾统一注入 `?v=<版本>`（幂等）。
+4. **免 Key 生图引擎三处口径不一**：`flux-schnell` 设置页可选可存、后端兜底链恒用它，
+   但工坊下拉不列、流水线闸门还判「没有可用生图模型」。收敛为单常量 `FREE_IMAGE_ENGINE`
+   + 下拉选项 + 闸门豁免，并在只缺视频模型时给出如实文案。
+
+### Verified
+
+全量 **954** 用例通过；`ci.sh` 四步门禁全绿（探针 2 PASS / 4 SKIP / 0 FAIL）；
+真实浏览器走查：全站 7 页运行时 JS 错误 0，真实配音任务端到端第 2 次探测收敛到
+`completed` 并产出 447KB 音频，四种终态词汇（done/completed/failed/cancelled）全部命中。
+
+---
+
 ## [15.9.8] - 月泉吟 (Moon Spring Chant) · 2026-11-20
 
 ### Fixed 深度审查整改：资损、可靠性、安全与移动端体验同步收口

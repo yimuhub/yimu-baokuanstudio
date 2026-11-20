@@ -201,13 +201,113 @@ def _probe_duration(path: Path) -> float:
 
 # ------------------------------------------------------------------ TTS ---
 
+def voice_clone_request(provider: str, text: str, ref_audio: str | None = None, *,
+                        api_url: str = "", api_key: str = "",
+                        model: str = "", voice_id: str = "default") -> tuple[str, dict, dict]:
+    """声音克隆请求体公共构造（v15.9.9 重复代码收敛 R2 的唯一真源）。
+
+    why：core/video_native._make_voice_clone_audio 与
+    web/routers/media.video_test_voice_clone 历史上各维护一份逐行对应的
+    payload 组装，改一家漏一家。收敛后双方都调本函数拿 (url, headers, payload)。
+
+    Args:
+        provider: minimax / elevenlabs / cosyvoice / custom（其它值按 custom 兼容端点处理）
+        text: 待合成文本
+        ref_audio: 参考音频路径/URL；None 时 payload 不带参考音频字段
+            （web 测试端点即传 None，与历史行为逐字节一致）
+        api_url / api_key / model / voice_id: 连接与模型配置
+
+    Returns:
+        (url, headers, payload) — 调用方自行发 HTTP 请求（超时/SSRF 防护
+        策略两侧不同，刻意留在调用方）。
+    """
+    provider = (provider or "custom").strip().lower()
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    chosen_voice = voice_id or "default"
+
+    if provider == "minimax":
+        payload = {
+            "model": model or "speech-01-turbo",
+            "text": text,
+            "voice_setting": {"voice_id": chosen_voice},
+            "audio_setting": {"sample_rate": 24000, "format": "mp3"},
+        }
+    elif provider == "elevenlabs":
+        payload = {
+            "text": text,
+            "model_id": model or "eleven_multilingual_v2",
+        }
+    elif provider == "cosyvoice":
+        payload = {
+            "model": model or "cosyvoice-v1",
+            "input": text,
+            "voice": chosen_voice,
+        }
+        if ref_audio:
+            payload["prompt_audio"] = ref_audio
+    else:  # custom / 通用兼容端点：字段冗余携带，兼容最多变体
+        payload = {
+            "text": text,
+            "input": text,
+            "model": model,
+            "voice": chosen_voice,
+        }
+        if ref_audio:
+            payload["prompt_audio"] = ref_audio
+            payload["ref_audio"] = ref_audio
+    return api_url, headers, payload
+
+
+def parse_voice_clone_response(provider: str, data: bytes, *,
+                               fetch_url: bool = True) -> bytes:
+    """声音克隆响应公共解析：兼容 JSON（b64 变体 / audio url）与裸音频两种返回。
+
+    why provider 形参保留：签名按审查报告定死（provider, data），当前四家
+    上游响应结构一致；将来某家结构分叉时在此按 provider 分支，调用方无感。
+
+    Args:
+        data: 原始响应字节
+        fetch_url: 响应只给音频 URL 时是否代下载（web 测试端点可传 False
+            保持「只回显」的历史行为）
+
+    Raises:
+        ValueError: 提取不到有效音频或音频 <1KB（调用方转译为各自的错误响应）。
+    """
+    audio = bytes(data or b"")
+    audio_url = ""
+    if audio[:1] == b"{":
+        import base64 as _b64
+        import json as _json
+        try:
+            jd = _json.loads(audio.decode("utf-8", errors="ignore"))
+            b64_str = (jd.get("audio") or jd.get("audio_content")
+                       or (jd.get("data") or {}).get("audio")
+                       or ((jd.get("data") or [{}])[0] if isinstance(jd.get("data"), list) else {}).get("b64_json"))
+            audio_url = jd.get("url") or (jd.get("data") or {}).get("url") or ""
+            if b64_str:
+                audio = _b64.b64decode(b64_str)
+        except Exception:
+            audio = bytes(data or b"")  # JSON 剥壳失败按裸音频处理
+    if len(audio) < 1000 and audio_url and fetch_url:
+        import httpx
+        dl = httpx.get(audio_url, timeout=60, follow_redirects=True)
+        if dl.status_code == 200:
+            audio = dl.content
+    if len(audio) < 1000:
+        raise ValueError(f"声音克隆返回音频无效或过小（{len(audio)} 字节）")
+    return audio
+
+
 def _make_voice_clone_audio(script: str, out_mp3: Path,
                             prompt_audio: str | None = None,
                             voice_id: str | None = None) -> Path | None:
     """声音克隆 API 配音（支持 CosyVoice / MiniMax / ElevenLabs / 通用兼容端点）。
 
     从视频合成配置读 voice_clone_api_url / voice_clone_api_key / voice_clone_provider / voice_clone_model，
-    组装对应供应商请求格式。成功写回 out_mp3，失败返回 None（上层优雅降级 TTS）。
+    请求体与响应解析走公共函数 voice_clone_request / parse_voice_clone_response
+    （与 web 侧测试端点同源）。成功写回 out_mp3，失败返回 None（上层回退 TTS）。
     """
     try:
         from studio import video_config as _vc
@@ -223,84 +323,31 @@ def _make_voice_clone_audio(script: str, out_mp3: Path,
         return None
 
     if not api_url:
-        log.warning("[video_native] 未配置 voice_clone_api_url，降级 TTS")
+        log.warning("[video_native] 未配置 voice_clone_api_url，回退 TTS")
         return None
 
-    import json as _json
-    import base64 as _b64
     import httpx
 
-    headers = {"Content-Type": "application/json"}
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
-
-    chosen_voice = voice_id or default_voice or "default"
-    if provider == "minimax":
-        body = {
-            "model": model or "speech-01-turbo",
-            "text": script,
-            "voice_setting": {"voice_id": chosen_voice},
-            "audio_setting": {"sample_rate": 24000, "format": "mp3"}
-        }
-    elif provider == "elevenlabs":
-        body = {
-            "text": script,
-            "model_id": model or "eleven_multilingual_v2",
-        }
-    elif provider == "cosyvoice":
-        body = {
-            "model": model or "cosyvoice-v1",
-            "input": script,
-            "voice": chosen_voice,
-        }
-        if ref_audio:
-            body["prompt_audio"] = ref_audio
-    else:
-        body = {
-            "text": script,
-            "input": script,
-            "model": model,
-            "voice": chosen_voice,
-        }
-        if ref_audio:
-            body["prompt_audio"] = ref_audio
-            body["ref_audio"] = ref_audio
+    url, headers, body = voice_clone_request(
+        provider, script, ref_audio,
+        api_url=api_url, api_key=api_key, model=model,
+        voice_id=voice_id or default_voice or "default")
 
     try:
         with httpx.Client(timeout=180, follow_redirects=True) as client:
-            resp = client.post(api_url, json=body, headers=headers)
+            resp = client.post(url, json=body, headers=headers)
             if resp.status_code != 200:
                 log.warning("[video_native] 声音克隆 API 返回 HTTP %s: %s", resp.status_code, resp.text[:200])
                 return None
+            # 解析与有效性校验收敛进公共函数（<1KB 视为无效，抛 ValueError）
+            audio = parse_voice_clone_response(provider, resp.content)
 
-            content_type = resp.headers.get("content-type", "").lower()
-            data = resp.content
-            if "application/json" in content_type or data.startswith(b"{"):
-                try:
-                    jd = resp.json()
-                    b64_str = (jd.get("audio") or jd.get("audio_content")
-                               or (jd.get("data") or {}).get("audio")
-                               or ((jd.get("data") or [{}])[0] if isinstance(jd.get("data"), list) else {}).get("b64_json"))
-                    audio_url = jd.get("url") or (jd.get("data") or {}).get("url")
-                    if b64_str:
-                        data = _b64.b64decode(b64_str)
-                    elif audio_url:
-                        dl = client.get(audio_url, timeout=60)
-                        if dl.status_code == 200:
-                            data = dl.content
-                except Exception as parse_e:
-                    log.warning("[video_native] 声音克隆响应解析失败: %s", parse_e)
-
-            if len(data) < 1000:
-                log.warning("[video_native] 声音克隆返回音频过小（%d 字节），降级 TTS", len(data))
-                return None
-
-            out_mp3.parent.mkdir(parents=True, exist_ok=True)
-            out_mp3.write_bytes(data)
-            log.info("[video_native] 声音克隆配音成功: %s (%d KB)", out_mp3.name, len(data) // 1024)
-            return out_mp3
+        out_mp3.parent.mkdir(parents=True, exist_ok=True)
+        out_mp3.write_bytes(audio)
+        log.info("[video_native] 声音克隆配音成功: %s (%d KB)", out_mp3.name, len(audio) // 1024)
+        return out_mp3
     except Exception as exc:  # noqa: BLE001
-        log.warning("[video_native] 声音克隆 API 调用失败（%s），降级 TTS", exc)
+        log.warning("[video_native] 声音克隆 API 调用失败（%s），回退 TTS", exc)
         return None
 
 
@@ -308,8 +355,10 @@ def _make_tts_audio(script: str, out_mp3: Path, voice: str = "zh-CN-XiaoxiaoNeur
                     voice_engine: str | None = None) -> Path | None:
     """配音。voice_engine: tts（默认，A 三引擎链）/ voice_clone / local_model。
 
-    - voice_clone：调配置的声音克隆 API，失败降级 tts
-    - local_model：暂未实现，直接降级 tts（打日志明示）
+    - voice_clone：调配置的声音克隆 API，失败回退 tts
+    - local_model：暂未实现，直接回退 tts（打日志明示）
+    v15.9.9 归一：②段原是又一份 edge-tts 直连实现，现改调统一引擎封装
+    （studio.audio.engines.synthesize），音色短键/全名映射与失败处置全仓一致。
     """
     # ① 声音克隆
     if voice_engine == "voice_clone":
@@ -330,24 +379,17 @@ def _make_tts_audio(script: str, out_mp3: Path, voice: str = "zh-CN-XiaoxiaoNeur
             log.info("[video_native] TTS 成功（A 链）: %s", p)
             return p
     except Exception as exc:  # noqa: BLE001
-        log.warning("[video_native] A 链 TTS 失败（%s），降级 edge-tts 直连", exc)
+        log.warning("[video_native] A 链 TTS 失败（%s），回退统一引擎封装", exc)
 
-    # ② edge-tts 直连
+    # ② 统一引擎封装（原 edge-tts 直连实现已归一；失败显式抛错 → 上层输出无声视频）
     try:
-        import asyncio
-        import edge_tts
-        asyncio.run(_edge_tts_save(script, voice, out_mp3))
-        if out_mp3.exists() and out_mp3.stat().st_size > 1000:
-            log.info("[video_native] TTS 成功（edge-tts 直连）: %s", out_mp3)
-            return out_mp3
+        from studio.audio.engines import synthesize as _unified_synthesize
+        result = _unified_synthesize(script, voice, str(out_mp3), rate=1.0)
+        log.info("[video_native] TTS 成功（统一引擎封装）: %s", result.out_path)
+        return Path(result.out_path)
     except Exception as exc:  # noqa: BLE001
-        log.warning("[video_native] edge-tts 直连失败（%s），输出无声视频", exc)
+        log.warning("[video_native] 统一引擎封装 TTS 失败（%s），输出无声视频", exc)
     return None
-
-
-async def _edge_tts_save(text: str, voice: str, out: Path):
-    import edge_tts
-    await edge_tts.Communicate(text, voice).save(str(out))
 
 
 # ------------------------------------------------------------------ 素材 ---
@@ -461,11 +503,13 @@ def _concat_videos(videos: list[Path], out: Path, w: int, h: int) -> Path:
               "-vf", f"scale={w}:{h}:force_original_aspect_ratio=increase,"
                      f"crop={w}:{h},setsar=1,fps=30",
               "-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+              # faststart：moov 前置，边下边播秒开（所有 mp4 产出统一加）
+              "-movflags", "+faststart",
               "-an", str(seg)])
         segs.append(seg)
     lst.write_text("\n".join(f"file '{s}'" for s in segs), encoding="utf-8")
     _run([_FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
-          "-c", "copy", str(out)])
+          "-movflags", "+faststart", "-c", "copy", str(out)])
     return out
 
 
@@ -507,12 +551,12 @@ def _images_to_video(images: list[Path], out: Path, w: int, h: int,
                      f"d={frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
                      f"s={w}x{h},fps=30",
               "-t", f"{per:.2f}", "-c:v", "libx264", "-preset", "veryfast",
-              "-crf", "23", str(seg)])
+              "-crf", "23", "-movflags", "+faststart", str(seg)])
         segs.append(seg)
     lst = out.parent / "imgconcat.txt"
     lst.write_text("\n".join(f"file '{s}'" for s in segs), encoding="utf-8")
     _run([_FFMPEG, "-y", "-f", "concat", "-safe", "0", "-i", str(lst),
-          "-c", "copy", str(out)])
+          "-movflags", "+faststart", "-c", "copy", str(out)])
     return out
 
 
@@ -533,12 +577,14 @@ def _mux_audio_subtitle(video: Path, audio: Path | None, srt: Path | None,
     if vf:
         cmd += ["-vf", vf]
     if audio and audio.exists():
-        # 音频长度决定总时长；-shortest 以最短流为准
+        # 音频长度决定总时长；-shortest 以最短流为准；faststart 便于在线播放秒开
         cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
                 "-c:a", "aac", "-b:a", "128k",
+                "-movflags", "+faststart",
                 "-shortest", str(out)]
     else:
         cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
+                "-movflags", "+faststart",
                 "-t", f"{total_s:.1f}", str(out)]
     _run(cmd, timeout=900)
     return out
@@ -794,7 +840,8 @@ def make_video_native(script: str, terms: list[str] | None = None,
             lst.write_text(
                 f"file '{intro_clip}'\nfile '{video_base}'", encoding="utf-8")
             _run([_FFMPEG, "-y", "-f", "concat", "-safe", "0",
-                  "-i", str(lst), "-c", "copy", str(merged)])
+                  "-i", str(lst), "-movflags", "+faststart",
+                  "-c", "copy", str(merged)])
             video_base = merged
             material = "ref_image"
             log.info("[video_native] 已拼接参考图开场（3秒）")

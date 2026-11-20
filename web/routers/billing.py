@@ -30,19 +30,29 @@ import time  # noqa: E402,F811
 
 @router.get('/api/billing/status')
 def billing_status(request: Request):
-    u = _a.guard(request)
-    from studio import billing_adapter
-    db = billing_adapter._web_session()
-    try:
-        user_id = str((u or {}).get('id') or '')
-        tenant_id = _a._web_tenant_id(db, user_id)
-        if not user_id:
-            tenant, u_row = billing_adapter.get_default_billing_user(db)
-            tenant_id = tenant.id if tenant is not None else tenant_id
-            user_id = u_row.id if u_row is not None else 'u-admin'
-        return billing_adapter.get_billing_status(db, tenant_id, user_id)
-    finally:
-        db.close()
+    """账户状态（价格页顶栏数据源）。
+
+    ⭐ v15.9.9（重复 R7 收敛）：与 /api/billing/ui/me 语义重叠——过去各自向
+    studio 取档位与余额（billing_adapter.DEFAULT_TIERS vs membership service），
+    同一用户两边可能报出不同档位名。现统一委托 gateway_ui 的
+    ``membership_payload_for_request``（ui/me 的 payload 构造唯一实现），
+    本函数只把结果映射成旧外层字段名（balance / total_consumed / tier_name /
+    tier——pricing.html 的既有消费字段），不再维护第二套取数口径。
+    """
+    _a.guard(request)
+    from web import gateway_ui as _gw
+    summary = _gw.membership_payload_for_request(request)
+    return {
+        'tier': summary.get('tier'),
+        'tier_name': summary.get('tier_name'),
+        'tier_display': summary.get('tier_display'),
+        'balance': int(summary.get('credits_left') or 0),
+        'total_consumed': int(summary.get('credits_used') or 0),
+        'credits_total': int(summary.get('credits_total') or 0),
+        'credits_used': int(summary.get('credits_used') or 0),
+        'status': summary.get('status'),
+        'initialized': bool(summary.get('initialized', True)),
+    }
 
 @router.get('/api/llm/usage')
 def llm_usage(request: Request):

@@ -30,6 +30,19 @@ from core import task_queue as _task_queue  # noqa: E402,F811  (用户后台任�
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Form  # noqa: E402,F811
 import asyncio  # noqa: E402,F811
 
+
+def _spawn_user_job(u: dict, name: str, fn, *, jid: str, task_type: str,
+                    target_id: str = "", params: dict | None = None,
+                    initial_step: str = "排队中…") -> dict:
+    """fire-and-forget 任务统一入口（web.admin.spawn_user_job 的模块内别名）。
+
+    why：配音/广告片/短剧渲染属分钟级重活，过去直接丢 asyncio 默认线程池
+    （无界 + JOBS 裸注册不进持久队列）。实现收敛到 admin.spawn_user_job。
+    """
+    return _a.spawn_user_job(u, name, fn, jid=jid, task_type=task_type,
+                             target_id=target_id, params=params,
+                             initial_step=initial_step)
+
 @router.get('/api/xhspub/status')
 def xhspub_status(request: Request):
     _a.guard(request)
@@ -40,24 +53,29 @@ def xhspub_status(request: Request):
 async def xhspub_qrcode(request: Request):
     _a.guard(request)
     from core import xhspub
+    # 豁免说明：请求内等待契约（前端直接展示二维码），保留线程池只为不阻塞事件循环
     return await asyncio.get_event_loop().run_in_executor(None, xhspub.get_qrcode)
 
 @router.post('/api/xhspub/login')
 async def xhspub_login(request: Request):
-    _a.guard(request)
+    """小红书账号登录（弹出浏览器扫码，fire-and-forget 后台任务）。
+
+    ⭐ v15.9.9（漂移 6 整改）：原实现裸写 ``_a.JOBS[jid] = {...}`` + 默认线程池
+    ——不进持久化任务队列、无 owner、无法按用户取消。改走统一受界任务池。
+    """
+    u = _a.guard(request)
     from core import xhspub
     import uuid
     jid = uuid.uuid4().hex[:12]
-    _a.JOBS[jid] = {'step': '弹出浏览器中…', 'status': 'running', 'result': None, 'error': ''}
 
     def _run():
         try:
-            res = xhspub.login(emit=lambda m: _a.JOBS[jid].update(step=m))
-            _a.JOBS[jid].update(status='done', step='完成', result=res)
+            res = xhspub.login(emit=lambda m: _a.update_async_job(jid, step=m))
+            _a.update_async_job(jid, status='done', step='完成', result=res)
         except Exception as e:
-            _a.JOBS[jid].update(status='failed', error=str(e)[:300], step='失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+            _a.update_async_job(jid, status='failed', error=str(e)[:300], step='失败')
+    return _spawn_user_job(u, '小红书账号登录', _run, jid=jid,
+                           task_type='xhspub_login', initial_step='弹出浏览器中…')
 
 @router.get('/api/video/tasks')
 def video_tasks(request: Request):
@@ -101,7 +119,6 @@ async def audio_make(request: Request):
     d_title = d.get('title', did[:8])
     import uuid
     jid = f'aud-{did[:8]}-{uuid.uuid4().hex[:4]}'
-    _a.start_async_job(jid, name=f'AI 配音TTS合成: {d_title[:16]}', task_type='audio_tts', target_id=did, params={'draft_id': did}, initial_step='AI 配音合成初始化中…')
 
     def _run():
         try:
@@ -110,8 +127,11 @@ async def audio_make(request: Request):
             _a.update_async_job(jid, status='done', step='AI 配音TTS合成完成', progress=100, result=res)
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:300], step='配音合成失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    # v15.9.9：TTS 合成是分钟级重活，fire-and-forget 改走统一受界任务池
+    # （原默认线程池无界；注册双写由 spawn_user_task 完成）
+    return _spawn_user_job(u, f'AI 配音TTS合成: {d_title[:16]}', _run, jid=jid,
+                           task_type='audio_tts', target_id=did,
+                           params={'draft_id': did}, initial_step='AI 配音合成初始化中…')
 
 @router.get('/api/audio/file/{did}/{name}')
 def audio_file(did: str, name: str, request: Request):
@@ -246,7 +266,10 @@ async def advideo_selling_points(request: Request):
     if not product_name or not product_desc:
         raise HTTPException(400, '请填写产品名称和产品描述')
     from core import ad_video
-    sp = ad_video.extract_selling_points(product_name, product_desc, audience)
+    # v15.9.9：同步 LLM 调用挪进线程池——原实现直接跑在 async 路由里，
+    # 调用期间整个事件循环被卡住（全站无响应）。保持请求内等待契约不变。
+    sp = await asyncio.get_event_loop().run_in_executor(
+        None, lambda: ad_video.extract_selling_points(product_name, product_desc, audience))
     return {'points': sp['points'], 'pain': sp.get('pain', '')}
 
 @router.post('/api/advideo/upload_ref')
@@ -306,7 +329,10 @@ async def advideo_script_rewrite(request: Request):
     seconds = int(body.get('seconds') or 15)
     from core import ad_video
     try:
-        res = ad_video.rewrite_ad_script(product_name=product_name, product_desc=product_desc, selling_points=selling_points, audience=audience, ad_mode=ad_mode, seconds=seconds)
+        # v15.9.9：同步 LLM 调用挪进线程池，避免阻塞事件循环（契约不变）
+        res = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: ad_video.rewrite_ad_script(product_name=product_name, product_desc=product_desc, selling_points=selling_points, audience=audience, ad_mode=ad_mode, seconds=seconds))
         return res
     except Exception as e:
         _a.logger.exception('[admin] advideo script_rewrite 异常: %s', e)
@@ -315,7 +341,7 @@ async def advideo_script_rewrite(request: Request):
 @router.post('/api/advideo/create')
 async def advideo_create(request: Request):
     """AI 产品广告短片：一键生成（卖点提炼→广告脚本/数字人口播→分镜→合成）。"""
-    _a.guard(request)
+    u = _a.guard(request)
     body = await request.json()
     product_name = (body.get('product_name') or '').strip()
     if not product_name:
@@ -337,7 +363,6 @@ async def advideo_create(request: Request):
     video_model = (body.get('video_model') or '').strip()
     import uuid
     jid = f'ad-{uuid.uuid4().hex[:8]}'
-    _a.start_async_job(jid, name=f'AI 广告短片: {product_name[:16]}', task_type='ad_video_render', target_id=product_name, params={'product_name': product_name, 'ad_mode': ad_mode, 'video_model': video_model}, initial_step='广告创意生成中…')
 
     def _run():
         try:
@@ -347,8 +372,12 @@ async def advideo_create(request: Request):
         except Exception as e:
             log_exc = str(e)[:300]
             _a.update_async_job(jid, status='failed', error=log_exc, step='广告短片生成失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    # v15.9.9：广告片渲染是分钟级重活，fire-and-forget 改走统一受界任务池
+    return _spawn_user_job(u, f'AI 广告短片: {product_name[:16]}', _run, jid=jid,
+                           task_type='ad_video_render', target_id=product_name,
+                           params={'product_name': product_name, 'ad_mode': ad_mode,
+                                   'video_model': video_model},
+                           initial_step='广告创意生成中…')
 
 @router.get('/api/aivideo/rewrite/modes')
 def aivideo_rewrite_modes(request: Request):
@@ -372,7 +401,10 @@ async def aivideo_rewrite(request: Request):
     user_id = str((u or {}).get('id') or '')
     from core import video_script_rewriter
     try:
-        res = video_script_rewriter.rewrite_video_script(content=content, mode=mode, target_seconds=target_seconds, custom_instruction=custom_instruction, model=model if model else None, user_id=user_id if user_id else None)
+        # v15.9.9：同步 LLM 调用挪进线程池，避免阻塞事件循环（契约不变）
+        res = await asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: video_script_rewriter.rewrite_video_script(content=content, mode=mode, target_seconds=target_seconds, custom_instruction=custom_instruction, model=model if model else None, user_id=user_id if user_id else None))
         return res
     except ValueError as ve:
         raise HTTPException(400, str(ve))
@@ -484,37 +516,29 @@ async def video_test_voice_clone(request: Request):
         assert_safe_url(final_url)
     except UnsafeURLError as e:
         raise HTTPException(400, f'声音克隆 API 地址不安全：{e}')
-    import pathlib, uuid, httpx, json as _json, base64 as _b64
+    import pathlib, uuid, httpx
     out_dir = pathlib.Path('runs/advideo_audio')
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / f'test_vc_{uuid.uuid4().hex[:8]}.mp3'
-    headers = {'Content-Type': 'application/json'}
-    if final_key:
-        headers['Authorization'] = f'Bearer {final_key}'
-    if final_prov == 'minimax':
-        payload = {'model': final_model or 'speech-01-turbo', 'text': text, 'voice_setting': {'voice_id': final_voice}, 'audio_setting': {'sample_rate': 24000, 'format': 'mp3'}}
-    elif final_prov == 'elevenlabs':
-        payload = {'text': text, 'model_id': final_model or 'eleven_multilingual_v2'}
-    elif final_prov == 'cosyvoice':
-        payload = {'model': final_model or 'cosyvoice-v1', 'input': text, 'voice': final_voice}
-    else:
-        payload = {'text': text, 'input': text, 'model': final_model, 'voice': final_voice}
+    # v15.9.9 R2 收敛：请求体不再本地复制四分支（与 core/video_native 逐行重复，
+    # 改一家漏一家）——统一走 core.video_native.voice_clone_request 唯一真源。
+    from core.video_native import voice_clone_request
+    _url, headers, payload = voice_clone_request(
+        final_prov, text, None,
+        api_url=final_url, api_key=final_key, model=final_model,
+        voice_id=final_voice)
     try:
         with httpx.Client(timeout=45, follow_redirects=True) as client:
             resp = client.post(final_url, json=payload, headers=headers)
             if resp.status_code != 200:
                 raise HTTPException(resp.status_code, f'声音克隆服务返回 HTTP {resp.status_code}: {resp.text[:200]}')
-            data = resp.content
-            if resp.headers.get('content-type', '').startswith('application/json') or data.startswith(b'{'):
-                try:
-                    jd = resp.json()
-                    b64_str = jd.get('audio') or jd.get('audio_content') or (jd.get('data') or {}).get('audio') or ((jd.get('data') or [{}])[0] if isinstance(jd.get('data'), list) else {}).get('b64_json')
-                    if b64_str:
-                        data = _b64.b64decode(b64_str)
-                except Exception:
-                    pass
-            if len(data) < 200:
-                raise HTTPException(502, '克隆服务返回音频无效或数据过小')
+            # 响应解析同样收敛（JSON b64 / audio url / 裸音频三种返回）
+            # fetch_url=False：测试端点保持「只回显不代下载」的历史行为。
+            from core.video_native import parse_voice_clone_response
+            try:
+                data = parse_voice_clone_response(final_prov, resp.content, fetch_url=False)
+            except ValueError as ve:
+                raise HTTPException(502, f'克隆服务返回音频无效：{ve}')
             out_file.write_bytes(data)
             return {'ok': True, 'audio_url': f'/api/advideo/ref_file?path={out_file.resolve()}', 'size_kb': len(data) // 1024, 'msg': f'声音克隆测试成功！已生成试听音频（{len(data) // 1024} KB）'}
     except HTTPException:
@@ -747,7 +771,6 @@ async def drama_render(did: str, request: Request):
         pass
     import uuid
     jid = f'drm-{did[:8]}-{uuid.uuid4().hex[:4]}'
-    _a.start_async_job(jid, name=f'全AI短剧渲染: {d_title[:16]}', task_type='drama_pipeline', target_id=did, params={'draft_id': did, 'aspect': aspect}, initial_step='短剧视频渲染队列中…')
     _cap = _a._tier_capability_limit(u, 'drama_max_seconds')
     _max_s = _cap if isinstance(_cap, int) and _cap > 0 else None
 
@@ -757,8 +780,11 @@ async def drama_render(did: str, request: Request):
             _a.update_async_job(jid, status='done', step='短剧成片渲染完成！', progress=100, result=res)
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:400], step='短剧渲染失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    # v15.9.9：短剧成片渲染是分钟级重活，fire-and-forget 改走统一受界任务池
+    return _spawn_user_job(u, f'全AI短剧渲染: {d_title[:16]}', _run, jid=jid,
+                           task_type='drama_pipeline', target_id=did,
+                           params={'draft_id': did, 'aspect': aspect},
+                           initial_step='短剧视频渲染队列中…')
 
 @router.get('/api/video/drama/{did}/pipeline/project')
 def drama_pipeline_get_project(did: str, request: Request):
@@ -960,7 +986,7 @@ async def drama_pipeline_step7_batch(did: str, request: Request):
 
 @router.post('/api/video/drama/{did}/pipeline/step8_render')
 async def drama_pipeline_step8(did: str, request: Request):
-    _a.guard(request)
+    u = _a.guard(request)
     body = await request.json()
     aspect = body.get('aspect', '9:16')
     subtitle_enabled = body.get('subtitle_enabled', None)
@@ -972,7 +998,6 @@ async def drama_pipeline_step8(did: str, request: Request):
     _a.require_credits('drama_render', 1, f'8步短剧最终成片合成 [{did}]')
     import uuid
     jid = f'drm-p8-{did[:8]}-{uuid.uuid4().hex[:4]}'
-    _a.start_async_job(jid, name=f'8步短剧最终成片合成: {d_title[:16]}', task_type='drama_pipeline', target_id=did, params={'draft_id': did, 'aspect': aspect, 'video_model': video_model}, initial_step='8步短剧流水线成片合成中…')
 
     def _run():
         try:
@@ -980,8 +1005,11 @@ async def drama_pipeline_step8(did: str, request: Request):
             _a.update_async_job(jid, status='done', step='短剧全流程流水线成片合成完成！', progress=100, result=res)
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:400], step='短剧合成失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    # v15.9.9：成片合成是分钟级重活，fire-and-forget 改走统一受界任务池
+    return _spawn_user_job(u, f'8步短剧最终成片合成: {d_title[:16]}', _run, jid=jid,
+                           task_type='drama_pipeline', target_id=did,
+                           params={'draft_id': did, 'aspect': aspect, 'video_model': video_model},
+                           initial_step='8步短剧流水线成片合成中…')
 
 @router.get('/api/video/status')
 def video_status(request: Request):

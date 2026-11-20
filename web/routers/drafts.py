@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
 
 from adapters.base import PLATFORMS, NAMES  # noqa: E402,F811
 from core import db, judge, orchestrator  # noqa: E402,F811
-from core import task_queue as _task_queue  # noqa: E402,F811  (用户后台任务统一收口)
 from core import diagnostics as diag  # noqa: E402,F811
 from core.llm import load_config, load_env  # noqa: E402,F811
 from core.themes import WECHAT_THEMES, XHS_CARD_STYLES  # noqa: E402,F811
@@ -44,29 +43,33 @@ import re  # noqa: E402,F811
 def _spawn_user_job(u: dict, name: str, fn, *, jid: str, task_type: str,
                     target_id: str = "", params: dict | None = None,
                     initial_step: str = "排队中…") -> dict:
-    """fire-and-forget 任务统一入口：受界池 + 每用户并发上限（超出 429 中文提示）。
+    """fire-and-forget 任务统一入口（v15.9.9 起为 web.admin.spawn_user_job 的别名）。
 
     why：此前 5 处直接 ``run_in_executor(None, ...)``——无界线程池 + JOBS 只进
-    不出（内存泄漏）+ 无法按用户隔离。统一走 task_queue.spawn_user_task。
+    不出（内存泄漏）+ 无法按用户隔离。统一入口收敛到 admin.spawn_user_job
+    （task_queue.spawn_user_task：受界池 + 每用户并发上限 + 双写注册），
+    本模块保留同名薄封装是为了不动既有 6 个调用点。
     """
-    try:
-        jid = _task_queue.spawn_user_task(
-            owner=str((u or {}).get('id') or ''), name=name, fn=fn, jid=jid,
-            task_type=task_type, target_id=target_id, params=params,
-            initial_step=initial_step)
-    except _task_queue.UserTaskLimitError as e:
-        raise HTTPException(429, str(e))
-    return {'job': jid}
+    return _a.spawn_user_job(u, name, fn, jid=jid, task_type=task_type,
+                             target_id=target_id, params=params,
+                             initial_step=initial_step)
 import time  # noqa: E402,F811
 import uuid  # noqa: E402,F811
 
 @router.get('/api/drafts')
-def drafts_list(request: Request, limit: int = 50, offset: int = 0):
+def drafts_list(request: Request, limit: int = 50, offset: int = 0, full: int = 0):
     """R10 / F6：统一的草稿列表接口。
 
     历史上 ``GET /api/drafts`` 直接 404，前端只能从 ``/api/status`` 取精简摘要，
     列表与详情取数口径不一致、拿不到缩略图。这里补齐统一摘要（含缩略图地址、
     已生成的预览地址、卡片与配图计数），并保持与 ``/api/status`` 同样的归属过滤。
+
+    ⭐ 效率整改（v15.9.9）：列表默认剥离 body_md / analysis 两个大字段
+    （实测 50 篇全量列表 233KB，其中正文占绝大部分，而列表页只需要标题、
+    评分、计数与缩略图）。``?full=1`` 保留旧的全量行为；正文请走详情接口
+    ``GET /api/drafts/{did}``（保持全量）。前端 renderDraftList 消费的字段
+    （id/title/status/source_platform/score/grade/cards/imgs/round/thumbnail）
+    均在保留集合内，不需要正文。
     """
     user = _a.guard(request)
     try:
@@ -74,6 +77,7 @@ def drafts_list(request: Request, limit: int = 50, offset: int = 0):
         offset = max(0, int(offset or 0))
     except (TypeError, ValueError):
         limit, offset = 50, 0
+    want_full = bool(int(full or 0))
     cur_ws_id = db.get_active_workspace().get('id', 'ws-default')
     rows = db.list_drafts(_a._current_user_id(user), is_admin=_a._is_admin_user(user),
                           workspace_id=cur_ws_id)
@@ -83,8 +87,13 @@ def drafts_list(request: Request, limit: int = 50, offset: int = 0):
             view = _a._draft_view(d)
         except Exception:
             view = {**d, 'thumbnail': '', 'preview_urls': {}}
+        if not want_full:
+            # 列表摘要化：只剥大字段，标题/评分/计数/预览地址等展示列全部保留
+            view.pop('body_md', None)
+            view.pop('analysis', None)
         items.append(view)
-    return {'ok': True, 'total': len(rows), 'limit': limit, 'offset': offset, 'drafts': items}
+    return {'ok': True, 'total': len(rows), 'limit': limit, 'offset': offset,
+            'full': want_full, 'drafts': items}
 
 
 @router.get('/api/drafts/{did}/images')
@@ -582,12 +591,14 @@ async def draft_publish_xhs(did: str, request: Request):
     def _run():
         try:
             from core import xhspub
-            res = xhspub.publish(did, emit=lambda m: _a.JOBS[jid].update(step=m))
-            _a.JOBS[jid].update(status='done' if res['ok'] else 'failed', step='完成' if res['ok'] else '失败', result=res, error='' if res['ok'] else res['detail'][:300])
+            res = xhspub.publish(did, emit=lambda m: _a.update_async_job(jid, step=m))
+            _a.update_async_job(jid, status='done' if res['ok'] else 'failed', step='完成' if res['ok'] else '失败', result=res, error='' if res['ok'] else res['detail'][:300])
         except Exception as e:
-            _a.JOBS[jid].update(status='failed', error=str(e)[:300], step='失败')
+            _a.update_async_job(jid, status='failed', error=str(e)[:300], step='失败')
     # v15.9.8：走统一受界任务池（带 owner / 并发上限 / JOBS 过期清理），
     # 手工 `_a.JOBS[jid] = {...}` 裸注册已由 spawn_user_task 内部完成。
+    # v15.9.9：进度/终态更新也收口到 update_async_job（同步写 task_queue 持久层），
+    # 不再直捅 _a.JOBS[...].update——否则持久队列里 step 永远停在初始值。
     return _spawn_user_job(u, f'小红书发布: {did[:16]}', _run, jid=jid,
                            task_type='publish_xhs', target_id=did,
                            params={'draft_id': did}, initial_step='准备发布…')
@@ -947,22 +958,30 @@ async def draft_refine(did: str, request: Request):
 
 @router.post('/api/drafts/{did}/evolve')
 async def draft_evolve(did: str, request: Request):
-    _a.guard(request)
+    """自进化多轮打磨（fire-and-forget 后台任务）。
+
+    ⭐ v15.9.9（漂移 6 整改）：原实现裸写 ``_a.JOBS[jid] = {...}`` + 默认线程池
+    fire-and-forget——不进持久化任务队列、无 owner 归属（别人看不见也取消不了）、
+    无每用户并发上限。改走 _spawn_user_job（spawn_user_task）正道，由它统一
+    完成 JOBS + task_queue 双写。
+    """
+    u = _a.guard(request)
     body = await request.json()
     target_score = int(body.get('target_score', 80))
     max_rounds = int(body.get('max_rounds', 3))
     import uuid
     jid = uuid.uuid4().hex[:12]
-    _a.JOBS[jid] = {'step': '自进化熔炉初始化…', 'status': 'running', 'result': None, 'error': ''}
 
     def _run():
         try:
-            res = orchestrator.evolve_draft_to_target(did, target_score=target_score, max_rounds=max_rounds, emit=lambda m: _a.JOBS[jid].update(step=m))
-            _a.JOBS[jid].update(status='done', step='炼制完成', result=res)
+            res = orchestrator.evolve_draft_to_target(did, target_score=target_score, max_rounds=max_rounds, emit=lambda m: _a.update_async_job(jid, step=m))
+            _a.update_async_job(jid, status='done', step='炼制完成', result=res)
         except Exception as e:
-            _a.JOBS[jid].update(status='failed', error=str(e)[:300], step='炼制中断')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+            _a.update_async_job(jid, status='failed', error=str(e)[:300], step='炼制中断')
+    return _spawn_user_job(u, f'自进化熔炉: {did[:16]}', _run, jid=jid,
+                           task_type='draft_evolve', target_id=did,
+                           params={'draft_id': did, 'target_score': target_score, 'max_rounds': max_rounds},
+                           initial_step='自进化熔炉初始化…')
 
 @router.get('/api/drafts/{did}/raw/{platform}')
 def draft_raw(did: str, platform: str):
@@ -1189,35 +1208,16 @@ async def draft_save_platform(did: str, request: Request):
         return {'ok': True, 'text': text, 'html': html}
     raise HTTPException(400, f'不支持的平台类型: {platform}')
 
-@router.post('/api/drafts/{did}/fission')
-async def draft_fission(did: str, request: Request):
-    _a.guard(request)
+async def _start_omni_derive(u: dict, did: str, body: dict) -> dict:
+    """derive_omni / fission 的唯一实现（重复 R6 收敛，v15.9.9）。
+
+    why 抽出：fission 与 derive_omni 过去各自维护一份「扣额度 + 起任务 +
+    跑派生」实现，任务名/进度文案/参数口径随时间漂移。收敛后本函数是唯一
+    实现；fire-and-forget 亦统一走 _spawn_user_job（受界池 + owner + 持久化）。
+    """
     d = db.get_draft(did)
     if not d:
         raise HTTPException(404, '草稿不存在')
-    from core import fission
-    _a.require_credits('rewrite', 1, f'全域五端矩阵裂变 [{did}]')
-    jid = f'fiss-{did[:8]}-{uuid.uuid4().hex[:4]}'
-    d_title = d.get('title', '')
-    _a.start_async_job(jid, name=f'全域矩阵裂变: {d_title[:16]}', task_type='omni_fission', target_id=did, params={'draft_id': did}, initial_step='启动全域矩阵裂变引擎…')
-
-    def _run():
-        try:
-            res = fission.generate_omnichannel_matrix(did, emit=lambda m: _a.update_async_job(jid, step=m))
-            _a.update_async_job(jid, status='done', step='全域五端矩阵裂变完成！', progress=100, result=res)
-        except Exception as e:
-            _a.update_async_job(jid, status='failed', error=str(e)[:300], step='裂变失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
-
-@router.post('/api/drafts/{did}/derive_omni')
-async def draft_derive_omni(did: str, request: Request):
-    """母稿驱动·全域多端一键派生接口：以当前编辑器母稿为单一基准，保真同步派生选中的矩阵平台。"""
-    _a.guard(request)
-    d = db.get_draft(did)
-    if not d:
-        raise HTTPException(404, '草稿不存在')
-    body = await request.json()
     master_title = body.get('title') or d.get('title', '')
     master_body_md = body.get('body_md')
     theme = body.get('theme')
@@ -1228,7 +1228,6 @@ async def draft_derive_omni(did: str, request: Request):
     _a.require_credits('rewrite', 1, f'母稿驱动全域多端派生 [{did}]')
     jid = f'derive-{did[:8]}-{uuid.uuid4().hex[:4]}'
     plat_str = f'({len(platforms)}端)' if platforms else '(全域)'
-    _a.start_async_job(jid, name=f'母稿驱动派生{plat_str}: {master_title[:16]}', task_type='omni_derive', target_id=did, params={'draft_id': did, 'title': master_title, 'theme': theme, 'platforms': platforms}, initial_step='启动母稿驱动派生引擎…')
 
     def _run():
         try:
@@ -1236,8 +1235,41 @@ async def draft_derive_omni(did: str, request: Request):
             _a.update_async_job(jid, status='done', step=f"矩阵多端派生完成！共 {len(res.get('selected_platforms', []))} 端", progress=100, result=res)
         except Exception as e:
             _a.update_async_job(jid, status='failed', error=str(e)[:300], step='派生失败')
-    asyncio.get_event_loop().run_in_executor(None, _run)
-    return {'job': jid}
+    return _spawn_user_job(u, f'母稿驱动派生{plat_str}: {master_title[:16]}', _run, jid=jid,
+                           task_type='omni_derive', target_id=did,
+                           params={'draft_id': did, 'title': master_title, 'theme': theme,
+                                   'platforms': platforms, 'card_style': card_style,
+                                   'media_name': media_name},
+                           initial_step='启动母稿驱动派生引擎…')
+
+
+@router.post('/api/drafts/{did}/fission')
+async def draft_fission(did: str, request: Request):
+    """一稿多平台裂变（兼容路由）→ 委托 derive_omni 同一实现，平台=全部。
+
+    ⭐ v15.9.9（重复 R6 收敛）：原实现与 derive_omni 各自维护一份裂变逻辑
+    （fission.generate_omnichannel_matrix vs derive_all_platforms_from_master），
+    行为已经漂移。现在只保留路由兼容外部调用，函数体委托同一实现并强制
+    平台=全部（忽略请求体里的 platforms）；新代码请直接调 derive_omni，
+    前端按钮迁移由前端负责人处理。
+    """
+    _a.guard(request)
+    await request.json()  # 兼容调用方可能携带的请求体（实现强制平台=全部，一律忽略）
+    u = _a.get_current_user(request)
+    res = await _start_omni_derive(u, did, {'platforms': None})
+    if isinstance(res, dict):
+        # 旧调用方迁移提示：本路由只保兼容，能力等同 derive_omni
+        res['deprecated'] = True
+        res['use_instead'] = f'/api/drafts/{did}/derive_omni'
+    return res
+
+@router.post('/api/drafts/{did}/derive_omni')
+async def draft_derive_omni(did: str, request: Request):
+    """母稿驱动·全域多端一键派生接口：以当前编辑器母稿为单一基准，保真同步派生选中的矩阵平台。"""
+    _a.guard(request)
+    body = await request.json()
+    u = _a.get_current_user(request)
+    return await _start_omni_derive(u, did, body)
 
 @router.post('/api/drafts/{did}/switch_theme_pure')
 async def draft_switch_theme_pure(did: str, request: Request):

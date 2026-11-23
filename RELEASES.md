@@ -4,7 +4,31 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
-## 🕊️ Version 15.9.9 · 鹤鸣篇 (Crane Call Chapter) · Runtime-Only Defect Remediation · 2026-11-20
+## 🌊 Version 15.9.10 · 江天阔 (Broad River Sky) · Wave 2 Closure · 2026-11-23
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.10"`, `__codename__ = "江天阔"`, `__codename_en__ = "Broad River Sky"`)
+
+### 🎯 Milestone Summary
+
+v15.9.8 操作审查「全部进行修复」的收尾版。v15.9.9 已落地 TTS 归一、gzip/渲染缓存、
+索引、列表摘要化、任务读路径、模型真源等大项；Wave 2 在「测试顺序污染排查」处中断。
+本版把剩余三项做完：配图风格单一真源、单机计费身份幂等、domain 死代码下线。
+
+### ⚡ Highlights
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **配图风格单一真源** | 三处硬编码下拉（灵感页 / 一句话成爆款 / 编辑器）统一由 `GET /api/drafts/image_styles` 填充；接口失败静默回退静态项 |
+| 2 | **单机计费身份幂等** | `core.auth` 的 `u-admin`（`tenant_id='default'`）与 studio 随机租户 id 分叉，导致 `get_default_billing_user()` 重复 INSERT 撞 UNIQUE、`check_and_deduct` 明明有余额却 402；改为全局身份取人 + 冲突回查 + 扣费前归一会员行 |
+| 3 | **domain 死代码下线** | 零调用 `ArticleQualityGate`（第三套 80 分门禁）删除；保留契约使用的 `normalize_score_100` 与图片去重函数，`/api/v10/health` 不动 |
+
+### ✅ Verified
+
+全量 **959** 用例通过；`ci.sh` 4/4 全绿（探针 2 PASS / 4 SKIP / 0 FAIL）；
+真实浏览器：三处风格下拉均由接口填充（`data-style-source=api`），控制中心用户面板
+首次进入即出数据，控制台 0 JS 错误。
+
+---
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.9"`, `__codename__ = "鹤鸣篇"`, `__codename_en__ = "Crane Call Chapter"`)
 

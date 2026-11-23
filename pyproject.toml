@@ -1,7 +1,7 @@
 [project]
 name = "yimu-baokuanstudio"
-version = "15.9.9"
-description = "一幕·YIMU 爆款工作室 V15.9.9 (鹤鸣篇 · Crane Call Chapter) — 全自主 Multi-Agent 全媒体内容与影视短剧创作系统"
+version = "15.9.10"
+description = "一幕·YIMU 爆款工作室 V15.9.10 (江天阔 · Broad River Sky) — 全自主 Multi-Agent 全媒体内容与影视短剧创作系统"
 readme = "README.md"
 requires-python = ">=3.9"
 

@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.9.10] - 江天阔 (Broad River Sky) · 2026-11-23
+
+### Fixed v15.9.9 Wave 2 收口：风格单一真源、单机计费身份幂等、domain 死代码下线
+
+本轮接续 v15.9.8 操作审查的「全部进行修复」。v15.9.9 已落地大项，但 Wave 2 在
+「测试顺序污染排查」处中断；本次把剩余三项收口，并补齐回归锁。
+
+1. **配图风格下拉单一真源**：灵感页 / 一句话成爆款 / 编辑器三处下拉各自硬编码，
+   后端 `VISUAL_STYLE_PRESETS` 增删风格时前端三处都不会变。新增
+   `web/static/js/yimu-image-styles.js`，统一拉 `GET /api/drafts/image_styles`
+   填充三处下拉（保留「自动/默认」首项、保留用户当前选择）；接口不可用时静默
+   回退页面原有静态项，不阻断任何生成流程。
+2. **单机计费身份幂等（测试顺序污染根因，也是真实 500 隐患）**：`core.auth` 以
+   固定主键 `u-admin` + `tenant_id='default'` 落库，studio 侧默认租户 id 却是随机串；
+   `get_default_billing_user()` 只在默认租户内查人，查不到就 INSERT 同一主键，
+   于是重复创建撞 `UNIQUE constraint failed: users.id`（先跑 v1599 再跑 r1 时
+   13 项连挂）。修复：按全局身份先取人 + 创建冲突回查；`check_and_deduct` 在扣费前
+   用 `ensure_membership` 把历史租户标记归一到真实会员行（原「余额明明够却 402」）。
+3. **domain 死代码下线**：`ArticleQualityGate` 全仓零调用（第三套 80 分门禁），
+   删除类与导出；保留被契约与测试使用的 `normalize_score_100`、公众号图片去重
+   函数。`/api/v10/health` 仍保留（smoke 测试与 CONTRACT 锁定，不属死链）。
+
+### Verified
+
+全量 **959** 用例通过（v15.9.9 954 项 + 新增 5 项回归锁 `tests/test_v15910_fixes.py`）；
+`ci.sh` 4/4 全绿（探针 2 PASS / 4 SKIP / 0 FAIL）。真实浏览器走查：v15.9.10 实例三处
+风格下拉均由接口填充（11/11/10 项，`data-style-source=api`），控制中心「用户与会员管理」
+首次进入即出数据（不再停在「正在加载用户数据…」），控制台 0 JS 错误。
+
+---
+
 ## [15.9.9] - 鹤鸣篇 (Crane Call Chapter) · 2026-11-20
 
 ### Fixed 任务终态断裂、Python 3.13+ 路径判定 fail-open 与静态资源缓存

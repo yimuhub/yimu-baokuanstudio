@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.9.9"
-__codename__ = "鹤鸣篇"
-__codename_en__ = "Crane Call Chapter"
-__slogan__ = "一念起 一幕开 万象生 · 文字生图生视频各用一家：主通道只懂文字，也能用别家出图出片"
-__slogan_cn__ = "一念起 一幕开 万象生 · 文字生图生视频各用一家：主通道只懂文字，也能用别家出图出片"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Text, image and video each pick their own provider: a text-only gateway no longer blocks your visuals"
+__version__ = "15.9.10"
+__codename__ = "江天阔"
+__codename_en__ = "Broad River Sky"
+__slogan__ = "一念起 一幕开 万象生 · 配图风格一处改、单机计费一处认、死代码不再复生"
+__slogan_cn__ = "一念起 一幕开 万象生 · 配图风格一处改、单机计费一处认、死代码不再复生"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · One style source, one billing identity, no dead code left behind"
 
 
 def get_version() -> str:

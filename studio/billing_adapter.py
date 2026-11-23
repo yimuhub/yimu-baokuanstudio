@@ -93,9 +93,16 @@ def check_and_deduct(db, tenant_id: str, user_id: str, action: str,
     """
     from studio.db_models import AuditLog, Ledger, new_id, utcnow
 
-    _, deduct_credits, _ = _membership_svc()
+    ensure_membership, deduct_credits, _ = _membership_svc()
     unit = ACTION_COSTS.get(action, 500)
     total = unit * max(1, count)
+    # ⭐ v15.9.10：先把 (tenant_id, user_id) 归一到真实会员行再扣。
+    # why：core.auth 写 users.tenant_id='default'，studio 侧默认租户 id 是随机串。
+    #      get_billing_status 走 ensure_membership 会自动对齐，而扣费走裸
+    #      deduct_credits 不会——于是「余额明明够却 402」，测试连跑时必现。
+    ms = ensure_membership(db, tenant_id, user_id)
+    if ms is not None and getattr(ms, "tenant_id", None):
+        tenant_id = str(ms.tenant_id)
     ok, _ = deduct_credits(db, tenant_id, user_id, total)
     if not ok:
         return False
@@ -335,14 +342,25 @@ def redeem_cdkey(db, tenant_id: str, user_id: str, code: str) -> dict:
 
 
 def get_default_billing_user(db, tenant_name: str = "default"):
-    """本地单机模式：取默认租户的首个用户（B 单用户语义的对应）。"""
+    """本地单机模式：取默认租户的首个用户（B 单用户语义的对应）。
+
+    ⭐ v15.9.10 幂等修复：core.auth 的单机管理员以固定主键 id='u-admin'
+    落库，tenant_id 用的是历史常量 'default'；而 studio 侧默认租户 id 是
+    随机串。原实现只在「默认租户内」查管理员，查不到就 INSERT 同一主键，
+    于是重复创建直接撞 UNIQUE constraint（先跑 v1599 再跑 r1 必红；
+    单机真实链路在管理员先由 core.auth 建好时同样会 500）。
+    现在按全局身份先取人，创建也走「冲突回查」，不再依赖租户 id 口径。
+    """
+    from sqlalchemy.exc import IntegrityError
+
     from studio.auth import ensure_default_tenant
-    from studio.db_models import Tenant, User, utcnow
+    from studio.db_models import User, utcnow
 
     tenant = ensure_default_tenant(db)
+    # 身份优先：u-admin/admin 是全单机唯一的管理员主键，跨租户口径都要认
     user = (
         db.query(User)
-        .filter(User.tenant_id == tenant.id, User.id.in_(("u-admin", "admin")))
+        .filter(User.id.in_(("u-admin", "admin")))
         .first()
     )
     if user is None:
@@ -353,13 +371,24 @@ def get_default_billing_user(db, tenant_name: str = "default"):
             .first()
         )
     if user is None:
-        user = User(
-            id="u-admin", tenant_id=tenant.id, username="admin",
-            email="", password_hash="!", salt="", role="admin",
-            is_active=True, created_at=utcnow(),
-        )
-        db.add(user)
-        db.commit()
+        try:
+            user = User(
+                id="u-admin", tenant_id=tenant.id, username="admin",
+                email="", password_hash="!", salt="", role="admin",
+                is_active=True, created_at=utcnow(),
+            )
+            db.add(user)
+            db.commit()
+        except IntegrityError:
+            # 并发或历史数据已存在同主键：回滚后按身份回查，绝不把 500 抛给用户
+            db.rollback()
+            user = (
+                db.query(User)
+                .filter(User.id.in_(("u-admin", "admin")))
+                .first()
+            )
+            if user is None:
+                raise
     return tenant, user
 
 

@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.9",
-  "current_codename_zh": "鹤鸣篇",
-  "current_codename_en": "Crane Call Chapter",
-  "next_index": 86,
+  "current_version": "15.9.10",
+  "current_codename_zh": "江天阔",
+  "current_codename_en": "Broad River Sky",
+  "next_index": 87,
   "sequence": [
     {
       "zh": "曦光序",
@@ -647,6 +647,12 @@
       "zh": "鹤鸣篇",
       "en": "Crane Call Chapter",
       "date": "2026-11-20"
+    },
+    {
+      "version": "v15.9.10",
+      "zh": "江天阔",
+      "en": "Broad River Sky",
+      "date": "2026-11-23"
     }
   ]
 }

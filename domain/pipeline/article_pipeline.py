@@ -1,10 +1,12 @@
 # SPDX-License-Identifier: BUSL-1.1
-"""文章创作与 80+ 分质量门禁统一管线（消除极简模式与工作台模式的重复代码）。"""
+"""文章评分归一工具（v15.9.10 去重后的唯一保留项）。
+
+历史说明：本模块曾包含 ``ArticleQualityGate``「80 分质量门禁」，但全仓
+零调用——真正的成稿门禁在 core/judge + web 路由链路内完成。为避免同一
+能力第三套实现继续制造审查噪音，该死类已删除；仅保留被测试与契约引用的
+``normalize_score_100``。
+"""
 from __future__ import annotations
-
-from typing import Any
-
-PASSING_SCORE_THRESHOLD: float = 80.0
 
 
 def normalize_score_100(raw_score: float | int | None) -> float:
@@ -13,30 +15,3 @@ def normalize_score_100(raw_score: float | int | None) -> float:
     if 0.0 < val <= 10.5:
         return round(val * 10.0, 1)
     return round(max(0.0, min(100.0, val)), 1)
-
-
-class ArticleQualityGate:
-    """80 分质量门禁：低于 80 分自动触发定向反馈重写，确保交付成稿 >= 80 分。"""
-
-    def __init__(self, threshold: float = PASSING_SCORE_THRESHOLD, max_rounds: int = 2) -> None:
-        self.threshold = threshold
-        self.max_rounds = max_rounds
-
-    def evaluate_and_polish(self, draft_id: str, platform: str = "wechat_mp") -> dict[str, Any]:
-        from core import db, judge
-
-        score_res = judge.judge_draft(draft_id, platform=platform)
-        cur_sc = normalize_score_100(score_res.get("total"))
-        rounds = 0
-        while cur_sc < self.threshold and rounds < self.max_rounds:
-            rounds += 1
-            rewritten = judge.rewrite_with_feedback(draft_id, score_res)
-            if not rewritten or len(rewritten.strip()) <= 80:
-                break
-            db.update_draft_body(draft_id, rewritten.strip())
-            score_res = judge.judge_draft(draft_id, platform=platform, min_score=cur_sc)
-            cur_sc = normalize_score_100(score_res.get("total"))
-        score_res["total"] = cur_sc
-        score_res["grade"] = judge.grade(cur_sc)
-        score_res["rewrite_rounds"] = rounds
-        return score_res

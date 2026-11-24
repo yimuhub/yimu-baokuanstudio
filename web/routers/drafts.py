@@ -22,6 +22,7 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
+from core.blocking import run_blocking  # noqa: E402,F811  (受界阻塞池)
 
 from web.draft_guard import DraftOwnerRoute, SAFE_DID_RE  # noqa: E402  稳定类身份 / did 白名单
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
@@ -135,7 +136,7 @@ async def draft_images_regenerate_one(did: str, request: Request):
     def _run():
         return imagegen.regenerate_draft_image(did, name=name, prompt=prompt, title=title, aspect=aspect)
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, _run)
+        res = await run_blocking(_run)
         return res
     except Exception as e:
         raise HTTPException(500, f'重绘配图失败: {e}')
@@ -156,7 +157,7 @@ async def draft_images_analyze_prompts(did: str, request: Request):
     def _run():
         return analyze_article_visual_prompts(d['title'], d['body_md'], sec_meta)
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, _run)
+        res = await run_blocking(_run)
         return {'ok': True, 'prompts': res}
     except Exception as e:
         raise HTTPException(500, f'构思提示词失败: {e}')
@@ -277,7 +278,7 @@ async def draft_generate_images(did: str, request: Request):
     _a.start_async_job(jid, name=f'全文智能配图 ({count}张·{style_name}): {d_title[:16]}', task_type='image_gen', target_id=did, params={'draft_id': did, 'count': count, 'style': style, 'model': model}, initial_step=f'正在分析段落视觉意境（风格：{style_name}）并生成 {count} 张专属高清配图…')
     try:
         _a.update_async_job(jid, step=f'AI 光学摄影渲染中（风格: {style_name}）…', progress=45)
-        res = await asyncio.get_event_loop().run_in_executor(None, lambda: generate_and_inject_images(did, count=count, style=style, force_regen=force_regen or bool(style), model=model))
+        res = await run_blocking(lambda: generate_and_inject_images(did, count=count, style=style, force_regen=force_regen or bool(style), model=model))
         _a.update_async_job(jid, status='done', step=f'成功生成 {count} 张【{style_name}】配图并已排版入文', progress=100, result=res)
         return res
     except Exception as e:
@@ -301,7 +302,7 @@ async def draft_generate_single_image(did: str, request: Request):
     _a.start_async_job(jid, name=f'单张配图生成: {title[:16]}', task_type='image_gen', target_id=did, params={'draft_id': did, 'title': title, 'prompt': prompt}, initial_step='AI 摄影抓拍提示词升华与渲染中…')
     try:
         _a.update_async_job(jid, step='极速高清渲染中…', progress=50)
-        res = await asyncio.get_event_loop().run_in_executor(None, lambda: generate_single_image(did, title=title, prompt=prompt))
+        res = await run_blocking(lambda: generate_single_image(did, title=title, prompt=prompt))
         _a.update_async_job(jid, status='done', step='单张配图生成完成', progress=100, result=res)
         return res
     except Exception as e:
@@ -499,7 +500,7 @@ async def draft_switch_title(did: str, request: Request):
     def _run():
         return orchestrator.switch_draft_title(did, new_title)
     try:
-        updated = await asyncio.get_event_loop().run_in_executor(None, _run)
+        updated = await run_blocking(_run)
         return {'ok': True, 'draft': updated}
     except Exception as e:
         raise HTTPException(500, f'切换标题失败: {e}')
@@ -519,7 +520,7 @@ async def draft_set_title(did: str, request: Request):
     if not title:
         raise HTTPException(400, '标题不能为空')
     try:
-        updated = await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.switch_draft_title(did, title))
+        updated = await run_blocking(lambda: orchestrator.switch_draft_title(did, title))
         return {'ok': True, 'draft': updated}
     except Exception as e:
         raise HTTPException(500, f'保存标题失败: {e}')
@@ -548,7 +549,7 @@ async def draft_set_body(did: str, request: Request):
         except Exception as e:
             print(f'[存盘] 正文已保存，但重排版失败（不影响正文）: {e}')
         return {'ok': True, 'chars': len(str(md))}
-    return await asyncio.get_event_loop().run_in_executor(None, _run)
+    return await run_blocking(_run)
 
 @router.post('/api/drafts/{did}/publish')
 async def draft_publish(did: str, request: Request):
@@ -561,7 +562,7 @@ async def draft_publish(did: str, request: Request):
     _plimit = _a._tier_capability_limit(u, 'publish_platforms')
     if isinstance(_plimit, int) and _plimit > 0 and (len(platforms) > _plimit):
         raise HTTPException(400, f'当前档位单次最多发布到 {_plimit} 个平台，升级 Pro 解锁全平台发布')
-    return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.approve_and_publish(did, platforms))
+    return await run_blocking(lambda: orchestrator.approve_and_publish(did, platforms))
 
 @router.post('/api/drafts/{did}/rescore')
 async def draft_rescore(did: str, request: Request):
@@ -571,13 +572,13 @@ async def draft_rescore(did: str, request: Request):
         platform = body.get('platform')
     except Exception:
         platform = None
-    return await asyncio.get_event_loop().run_in_executor(None, lambda: judge.judge_draft(did, platform=platform))
+    return await run_blocking(lambda: judge.judge_draft(did, platform=platform))
 
 @router.get('/api/drafts/{did}/platform_scores')
 async def draft_platform_scores(did: str, request: Request):
     """获取草稿各平台差异化评分估算（v3.33新增）。"""
     _a.guard(request)
-    return await asyncio.get_event_loop().run_in_executor(None, lambda: judge.judge_platform_scores(did))
+    return await run_blocking(lambda: judge.judge_platform_scores(did))
 
 @router.post('/api/drafts/{did}/publish_xhs')
 async def draft_publish_xhs(did: str, request: Request):
@@ -617,7 +618,7 @@ async def draft_storyboard(did: str, request: Request):
     def _run():
         return generate_storyboard(did) if force else get_storyboard(did)
     try:
-        return await asyncio.get_event_loop().run_in_executor(None, _run)
+        return await run_blocking(_run)
     except Exception as e:
         raise HTTPException(500, f'生成分镜失败: {e}')
 
@@ -647,7 +648,7 @@ async def storyboard_gen_image(did: str, request: Request):
     def _run():
         return storyboard.generate_storyboard_image(did, shot_index, prompt_en=prompt_en, aspect=aspect, image_model=image_model)
     try:
-        url = await asyncio.get_event_loop().run_in_executor(None, _run)
+        url = await run_blocking(_run)
         return {'ok': True, 'image_url': url, 'shot_index': shot_index}
     except Exception as e:
         raise HTTPException(500, f'分镜生图失败: {e}')
@@ -663,7 +664,7 @@ async def storyboard_batch_gen_images(did: str, request: Request):
     def _run():
         return storyboard.batch_generate_storyboard_images(did, aspect=aspect, image_model=image_model)
     try:
-        results = await asyncio.get_event_loop().run_in_executor(None, _run)
+        results = await run_blocking(_run)
         return {'ok': True, 'results': results}
     except Exception as e:
         raise HTTPException(500, f'批量生图失败: {e}')
@@ -742,7 +743,7 @@ async def restore_xhs_history_endpoint(did: str, hid: str, request: Request):
     """一键回溯还原指定的小红书版本（同时还原 xhs.md 与全套卡片图）。"""
     _a.guard(request)
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.restore_xhs_history(did, hid))
+        res = await run_blocking(lambda: orchestrator.restore_xhs_history(did, hid))
         return res
     except Exception as e:
         raise HTTPException(500, f'回溯小红书版本失败: {e}')
@@ -843,7 +844,7 @@ async def ai_upgrade_draft_endpoint(did: str, request: Request):
     _a.start_async_job(jid, name=f'AI 深度改写提升: {d_title[:16]}', task_type='ai_rewrite', target_id=did, params={'draft_id': did, 'persona': persona, 'skills': skills}, initial_step='正在融合名家文风、黄金3秒钩子与深度去AI味…')
     try:
         _a.update_async_job(jid, step='深度重塑正文、金句提炼与多端派生中…', progress=40)
-        res = await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.ai_upgrade_draft(did, persona_id=persona, skills=skills, focus_targets=focus_targets, custom_instruction=instruction, media_name=media_name))
+        res = await run_blocking(lambda: orchestrator.ai_upgrade_draft(did, persona_id=persona, skills=skills, focus_targets=focus_targets, custom_instruction=instruction, media_name=media_name))
         new_score = (res.get('score') or {}).get('total', 0)
         res['old_score'] = old_score
         res['improvement_delta'] = round(new_score - old_score, 1)
@@ -860,7 +861,7 @@ async def draft_rewrite(did: str, request: Request):
     body = await request.json()
     t0 = time.perf_counter()
     try:
-        return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.rewrite_draft_once(did, body.get('instruction', '')))
+        return await run_blocking(lambda: orchestrator.rewrite_draft_once(did, body.get('instruction', '')))
     except Exception as e:
         diag.capture_exc('rewrite', 'draft_rewrite', e, elapsed=time.perf_counter() - t0, draft_id=did, instruction_len=len(body.get('instruction') or ''))
         raise HTTPException(500, f'重写失败: {e}')
@@ -882,7 +883,7 @@ async def draft_rewrite_platform(did: str, request: Request):
     PLATFORM_NAMES = {'wechat_mp': '微信公众号', 'xhs': '小红书', 'toutiao': '今日头条', 'weibo': '微博', 'zhihu': '知乎', 'twitter': '推特/X'}
     plat_name = PLATFORM_NAMES.get(platform, platform)
     try:
-        result = await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.rewrite_single_platform(did, platform, instruction))
+        result = await run_blocking(lambda: orchestrator.rewrite_single_platform(did, platform, instruction))
         result['platform_name'] = plat_name
         return result
     except Exception as e:
@@ -952,7 +953,7 @@ async def draft_refine(did: str, request: Request):
         delta = round(new_score - old_score, 1)
         return {'ok': True, 'new_score': new_score, 'old_score': old_score, 'improvement_delta': delta, 'fixed_count': len(defects), 'score': res.get('score')}
     try:
-        return await asyncio.get_event_loop().run_in_executor(None, _run)
+        return await run_blocking(_run)
     except Exception as e:
         raise HTTPException(500, f'外科手术定点精修失败: {e}')
 

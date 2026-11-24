@@ -471,10 +471,14 @@ def redeem_invite(db: Session, tenant: Tenant, code: str, user: User) -> Members
     return membership
 
 
-def generate_invite_code(db: Session) -> str:
-    """生成全局唯一的邀请码（形如 YIMU-XXXXXX，碰撞时重试）。"""
+def generate_invite_code(db: Session, prefix: str = _INVITE_PREFIX) -> str:
+    """生成全局唯一的邀请码（默认形如 YIMU-XXXXXX，碰撞时重试）。
+
+    v15.9.11：``prefix`` 供卡密复用——类型前缀（YIMU-TOKEN-/YIMU-PRO-/
+    YIMU-STUDIO-）仍在码面，生成/查重/落库全部走这一处。
+    """
     for _ in range(20):
-        code = _INVITE_PREFIX + "".join(
+        code = prefix + "".join(
             secrets.choice(_INVITE_ALPHABET) for _ in range(_INVITE_RANDOM_LEN)
         )
         exists = db.query(Invite).filter(Invite.code == code).first()
@@ -492,11 +496,18 @@ def create_invite(
     expires_at: datetime | None = None,
     actor: str = "system",
     inviter_id: str = "",
+    code: str = "",
+    code_prefix: str = _INVITE_PREFIX,
 ) -> Invite:
-    """管理员发放邀请码并写审计日志。
+    """发放邀请码/卡密并写审计日志（全仓唯一创建实现）。
 
     R5-4：``inviter_id`` 标记这张码属于谁（用户自助生成的裂变码）；
     留空表示运营批量发放（无邀请人，核销时不给奖励）。
+
+    v15.9.11：新增 ``code`` / ``code_prefix``。卡密（YIMU-TOKEN- 等）过去在
+    ``billing_adapter.generate_cdkeys`` 里另起一份裸 INSERT，与邀请码创建
+    各说各话；现在卡密也走本函数，格式通过 ``code`` 原样保留，校验/审计/
+    撞码检查全部同源。
     """
     if max_uses < 1:
         errors.raise_err("BAD_REQUEST", "邀请码可用次数至少为 1")
@@ -516,10 +527,16 @@ def create_invite(
             expires_at = expires_at.replace(tzinfo=timezone.utc)
         if expires_at <= utcnow():
             errors.raise_err("BAD_REQUEST", "过期时间必须晚于当前时间")
+    if code:
+        code = code.strip().upper()
+        if db.query(Invite).filter(Invite.code == code).first() is not None:
+            errors.raise_err("BAD_REQUEST", "邀请码已存在，请重新生成")
+    else:
+        code = generate_invite_code(db, code_prefix)
     invite = Invite(
         id=new_id(),
         tenant_id=tenant.id,
-        code=generate_invite_code(db),
+        code=code,
         max_uses=max_uses,
         used_count=0,
         credits_grant=credits_grant,

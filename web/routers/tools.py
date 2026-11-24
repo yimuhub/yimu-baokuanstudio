@@ -21,6 +21,7 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
+from core.blocking import run_blocking  # noqa: E402,F811  (受界阻塞池)
 
 from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
@@ -78,14 +79,14 @@ async def do_search(request: Request):
         res, words = search_expanded(kw, sources, int(body.get('limit', 16)), expand=bool(body.get('expand', True)))
         res['_queries'] = words
         return res
-    return await asyncio.get_event_loop().run_in_executor(None, _run)
+    return await run_blocking(_run)
 
 @router.post('/api/rewrite')
 async def do_rewrite(request: Request):
     _a.guard(request)
     body = await request.json()
     try:
-        return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.benchmark_and_rewrite(body.get('platform', ''), body.get('title', ''), body.get('url', ''), (body.get('theme') or '').strip(), body.get('extra') or {}, source_text=body.get('source_text') or body.get('text') or '', user_id=_a._current_user_id(_a.guard(request))))
+        return await run_blocking(lambda: orchestrator.benchmark_and_rewrite(body.get('platform', ''), body.get('title', ''), body.get('url', ''), (body.get('theme') or '').strip(), body.get('extra') or {}, source_text=body.get('source_text') or body.get('text') or '', user_id=_a._current_user_id(_a.guard(request))))
     except Exception as e:
         raise HTTPException(500, f'拆解仿写失败: {e}')
 
@@ -101,7 +102,7 @@ async def do_extract(request: Request):
     def _run():
         return extract_url(raw_url)
     try:
-        return await asyncio.get_event_loop().run_in_executor(None, _run)
+        return await run_blocking(_run)
     except Exception as e:
         raise HTTPException(500, f'提取失败: {e}')
 

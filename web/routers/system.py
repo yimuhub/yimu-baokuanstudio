@@ -21,6 +21,7 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
+from core.blocking import run_blocking  # noqa: E402,F811  (受界阻塞池)
 
 from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
@@ -263,5 +264,5 @@ async def health_repair(request: Request):
             time.sleep(3)
             return {'ok': True}
         raise HTTPException(404, f'未知组件: {name}')
-    return await asyncio.get_event_loop().run_in_executor(None, _run)
+    return await run_blocking(_run)
 

@@ -4,6 +4,29 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 🎋 Version 15.9.11 · 竹溪曲 (Bamboo Brook Melody) · Efficiency & Single Key Path · 2026-11-24
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.11"`, `__codename__ = "竹溪曲"`, `__codename_en__ = "Bamboo Brook Melody"`)
+
+### 🎯 Milestone Summary
+
+v15.9.8 操作审查「全部进行修复」的最后两项收口：路由层的无界默认线程池改为受界池；
+卡密与邀请码的三处入口合并到同一个创建服务。
+
+### ⚡ Highlights
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **受界阻塞池** | 新增 `core/blocking.py`（默认 16 线程，`YIMU_BLOCKING_WORKERS` 2~64 可调）；41 处路由 `run_in_executor(None, …)` 改为 `await run_blocking(…)`，生图/改写/TTS 洪峰不再占满默认 32 线程、拖慢其他同步接口 |
+| 2 | **卡密/邀请码同源** | `create_invite` 支持显式 `code`；`generate_cdkeys` 逐码委托它落库，保留 `YIMU-TOKEN-`/`YIMU-PRO-`/`YIMU-STUDIO-` 格式；参数校验、撞码检查、审计日志不再有两套 |
+
+### ✅ Verified
+
+全量 **963** 用例通过（新增 4 项 `tests/test_v15911_fixes.py`）；`ci.sh` 4/4 全绿
+（探针 2 PASS / 4 SKIP / 0 FAIL）。
+
+---
+
 ## 🌊 Version 15.9.10 · 江天阔 (Broad River Sky) · Wave 2 Closure · 2026-11-23
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.10"`, `__codename__ = "江天阔"`, `__codename_en__ = "Broad River Sky"`)

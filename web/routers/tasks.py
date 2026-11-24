@@ -21,6 +21,7 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
+from core.blocking import run_blocking  # noqa: E402,F811  (受界阻塞池)
 
 from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
@@ -154,7 +155,7 @@ async def copilot_chat_endpoint(request: Request):
     image_model = body.get('image_model')
     skills = body.get('skills')
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, lambda: copilot.handle_copilot_chat(message, draft_id=draft_id, history=history, target_platform=platform, model=model, provider=provider, style=style, persona=persona, image_model=image_model, skills=skills, user_id=str(u.get('id') or '')))
+        res = await run_blocking(lambda: copilot.handle_copilot_chat(message, draft_id=draft_id, history=history, target_platform=platform, model=model, provider=provider, style=style, persona=persona, image_model=image_model, skills=skills, user_id=str(u.get('id') or '')))
         return _sanitize_copilot_result(res)
     except Exception as e:
         raise HTTPException(500, f'Copilot 响应失败: {str(e)}')
@@ -244,7 +245,7 @@ async def copilot_polish_prompt_endpoint(request: Request):
         raise HTTPException(400, '请先输入一句话想法')
     platform = body.get('platform') or 'xhs'
     from core import prompt_polish
-    res = await asyncio.get_event_loop().run_in_executor(None, lambda: prompt_polish.polish(text, platform=platform, user_id=str(u.get('id') or '')))
+    res = await run_blocking(lambda: prompt_polish.polish(text, platform=platform, user_id=str(u.get('id') or '')))
     return res
 
 def _stream_credit_preflight(user_id: str, model, messages: list) -> None:

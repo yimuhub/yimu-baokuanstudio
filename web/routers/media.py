@@ -21,6 +21,7 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
+from core.blocking import run_blocking  # noqa: E402,F811  (受界阻塞池)
 
 from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
@@ -54,7 +55,7 @@ async def xhspub_qrcode(request: Request):
     _a.guard(request)
     from core import xhspub
     # 豁免说明：请求内等待契约（前端直接展示二维码），保留线程池只为不阻塞事件循环
-    return await asyncio.get_event_loop().run_in_executor(None, xhspub.get_qrcode)
+    return await run_blocking(xhspub.get_qrcode)
 
 @router.post('/api/xhspub/login')
 async def xhspub_login(request: Request):
@@ -636,7 +637,7 @@ async def drama_decompose(did: str, request: Request):
     def _run():
         return short_drama.decompose_draft_to_drama(did, style_key=style, custom_script=script, mounted_persona=mounted_persona)
     try:
-        scenes = await asyncio.get_event_loop().run_in_executor(None, _run)
+        scenes = await run_blocking(_run)
         return {'ok': True, 'scenes': scenes}
     except Exception as e:
         raise HTTPException(500, f'短剧分镜解构失败: {e}')
@@ -705,7 +706,7 @@ async def drama_gen_image(did: str, request: Request):
     def _run():
         return short_drama.generate_scene_image(did, shot_id, prompt_en, aspect=aspect)
     try:
-        url = await asyncio.get_event_loop().run_in_executor(None, _run)
+        url = await run_blocking(_run)
         return {'ok': True, 'image_url': url, 'shot_id': shot_id}
     except Exception as e:
         raise HTTPException(500, f'分镜参考生图失败: {e}')
@@ -720,7 +721,7 @@ async def drama_batch_gen_images(did: str, request: Request):
     def _run():
         return short_drama.batch_generate_drama_images(did, aspect=aspect)
     try:
-        results = await asyncio.get_event_loop().run_in_executor(None, _run)
+        results = await run_blocking(_run)
         return {'ok': True, 'results': results}
     except Exception as e:
         raise HTTPException(500, f'批量生图失败: {e}')
@@ -747,7 +748,7 @@ async def drama_preview_audio(did: str, request: Request):
     def _run():
         return short_drama.synthesize_scene_tts(did, shot_id, script, voice=voice)
     try:
-        url = await asyncio.get_event_loop().run_in_executor(None, _run)
+        url = await run_blocking(_run)
         return {'ok': True, 'audio_url': url, 'shot_id': shot_id}
     except Exception as e:
         raise HTTPException(500, f'单句语音合成失败: {e}')
@@ -829,7 +830,7 @@ async def drama_pipeline_step1(did: str, request: Request):
     def _run():
         return short_drama.step1_analyze_and_rewrite(did, text=text, overrides=overrides)
     try:
-        proj = await asyncio.get_event_loop().run_in_executor(None, _run)
+        proj = await run_blocking(_run)
         return {'ok': True, 'project': proj}
     except Exception as e:
         raise HTTPException(500, f'剧本需求分析与改写失败: {e}')
@@ -851,7 +852,7 @@ async def drama_pipeline_step3(did: str, request: Request):
     def _run():
         return short_drama.step3_generate_assets_specs(did)
     try:
-        proj = await asyncio.get_event_loop().run_in_executor(None, _run)
+        proj = await run_blocking(_run)
         return {'ok': True, 'project': proj}
     except Exception as e:
         raise HTTPException(500, f'资产设定规格生成失败: {e}')
@@ -871,7 +872,7 @@ async def drama_pipeline_step4_single(did: str, request: Request):
     def _run():
         return short_drama.step4_generate_asset_image(did, asset_type=asset_type, asset_id=asset_id, prompt=prompt, is_turnaround=is_turnaround, aspect=aspect)
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, _run)
+        res = await run_blocking(_run)
         return res
     except Exception as e:
         raise HTTPException(500, f'资产图片生成失败: {e}')
@@ -891,7 +892,7 @@ async def drama_pipeline_step4_batch(did: str, request: Request):
     def _run():
         return short_drama.step4_batch_generate_assets(did, image_model=image_model)
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, _run)
+        res = await run_blocking(_run)
         return res
     except Exception as e:
         raise HTTPException(500, f'批量生成资产失败: {e}')
@@ -907,7 +908,7 @@ async def drama_pipeline_step5(did: str, request: Request):
     def _run():
         return short_drama.step5_generate_storyboard(did, max_total_seconds=_max_s)
     try:
-        shots = await asyncio.get_event_loop().run_in_executor(None, _run)
+        shots = await run_blocking(_run)
         return {'ok': True, 'shots': shots, 'project': short_drama.get_pipeline_project(did)}
     except Exception as e:
         raise HTTPException(500, f'分镜解构失败: {e}')
@@ -926,7 +927,7 @@ async def drama_pipeline_step6_single(did: str, request: Request):
     def _run():
         return short_drama.step6_generate_shot_image(did, shot_id=shot_id, prompt_en=prompt_en, aspect=aspect, image_model=image_model)
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, _run)
+        res = await run_blocking(_run)
         return res
     except Exception as e:
         raise HTTPException(500, f'分镜生图失败: {e}')
@@ -942,7 +943,7 @@ async def drama_pipeline_step6_batch(did: str, request: Request):
     def _run():
         return short_drama.step6_batch_generate_shots(did, aspect=aspect, image_model=image_model)
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, _run)
+        res = await run_blocking(_run)
         return res
     except Exception as e:
         raise HTTPException(500, f'批量生成分镜图失败: {e}')
@@ -961,7 +962,7 @@ async def drama_pipeline_step7_single(did: str, request: Request):
     def _run():
         return short_drama.step7_generate_shot_video(did, shot_id=shot_id, aspect=aspect, subtitle_enabled=subtitle_enabled, video_mode=video_mode, video_model=video_model)
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, _run)
+        res = await run_blocking(_run)
         return res
     except Exception as e:
         raise HTTPException(500, f'生成分镜切片视频失败: {e}')
@@ -979,7 +980,7 @@ async def drama_pipeline_step7_batch(did: str, request: Request):
     def _run():
         return short_drama.step7_batch_generate_videos(did, aspect=aspect, subtitle_enabled=subtitle_enabled, video_mode=video_mode, video_model=video_model)
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, _run)
+        res = await run_blocking(_run)
         return res
     except Exception as e:
         raise HTTPException(500, f'批量生成镜头视频切片失败: {e}')

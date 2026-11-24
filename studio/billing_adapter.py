@@ -183,21 +183,31 @@ def generate_cdkeys(db, tenant_id: str, actor: str, key_type: str = "tokens",
 
     key_type: tokens（充点数）/ pro（升级 Pro）/ studio（升级 Studio），
     类型编码在 code 前缀里（YIMU-TOKEN- / YIMU-PRO- / YIMU-STUDIO-）。
+
+    ⭐ v15.9.11（重复 R7 收口）：卡密不再裸 INSERT，统一委托
+    ``studio.membership.service.create_invite``——与 UI 邀请码共用同一套
+    参数校验、撞码检查、审计日志与落库路径；码面格式由 ``_make_code``
+    原样保留，兑换侧无需改动。
     """
-    from studio.db_models import Invite, new_id, utcnow
+    from studio.db_models import Tenant
+    from studio.membership.service import create_invite
 
     prefix = {"pro": "YIMU-PRO-", "studio": "YIMU-STUDIO-"}.get(key_type, "YIMU-TOKEN-")
+    tenant = db.query(Tenant).filter(Tenant.id == tenant_id).first()
+    if tenant is None:
+        tenant = db.query(Tenant).filter(Tenant.name == tenant_id).first()
+    if tenant is None:
+        raise RuntimeError(f"租户不存在，无法生成卡密: {tenant_id}")
     codes = []
     for _ in range(count):
-        code = _make_code(prefix)
-        db.add(Invite(
-            id=new_id(), tenant_id=tenant_id, code=code,
-            max_uses=1, used_count=0,
+        invite = create_invite(
+            db, tenant,
+            max_uses=1,
             credits_grant=amount if key_type == "tokens" else 0,
-            expires_at=None, status="active", created_at=utcnow(),
-        ))
-        codes.append(code)
-    db.commit()
+            actor=actor,
+            code=_make_code(prefix),
+        )
+        codes.append(invite.code)
     return codes
 
 

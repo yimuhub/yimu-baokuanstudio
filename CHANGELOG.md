@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [15.9.11] - 竹溪曲 (Bamboo Brook Melody) · 2026-11-24
+
+### Changed v15.9.8 审查遗留收口：阻塞池受界、卡密/邀请码单一创建路径
+
+接续 v15.9.10 的收尾线，本轮处理审查报告里最后两项「执行效率 / 重复功能」。
+
+1. **受界阻塞池（执行效率）**：新增 `core/blocking.py`，进程级
+   `ThreadPoolExecutor` 默认 16 线程，可用 `YIMU_BLOCKING_WORKERS` 在 2~64
+   之间调整。路由层 41 处 `asyncio.get_event_loop().run_in_executor(None, ...)`
+   全部收敛为 `await run_blocking(...)`（system 1 / media 14 / tasks 2 /
+   skills 1 / tools 3 / topics 2 / drafts 18）。过去这些调用直连事件循环默认
+   池（max_workers = min(32, CPU+4)），一批生图/改写/TTS 洪峰就能占满线程，
+   让其余同步接口排到 P99 抖动；现在统一排队、上限可配。
+   `core/task_queue.py` 的关机兜底保留唯一例外——池已关闭时不能再提交任务。
+2. **卡密/邀请码三入口同源（重复功能）**：`studio.membership.service.create_invite`
+   新增 `code` / `code_prefix` 参数，`billing_adapter.generate_cdkeys` 先按
+   id/name 查租户，再逐码委托 `create_invite`；码面仍是
+   `YIMU-TOKEN-` / `YIMU-PRO-` / `YIMU-STUDIO-` + 8hex-4hex，兑换侧零改动。
+   `web/gateway_ui.py` 与 `studio/membership_router.py` 原本就走同一服务，
+   至此卡密与邀请码不再各有一套落库：参数校验、撞码检查、`invite.create`
+   审计全部同源。
+
+### Verified
+
+全量 **963** 用例通过（v15.9.10 959 项 + 新增 4 项回归锁
+`tests/test_v15911_fixes.py`）；`ci.sh` 4/4 全绿（探针 2 PASS / 4 SKIP / 0 FAIL）。
+回归锁覆盖：路由层零默认线程池直连、受界池实际执行、卡密委托路径、
+三入口同源、显式卡密保留与审计。
+
+---
+
 ## [15.9.10] - 江天阔 (Broad River Sky) · 2026-11-23
 
 ### Fixed v15.9.9 Wave 2 收口：风格单一真源、单机计费身份幂等、domain 死代码下线

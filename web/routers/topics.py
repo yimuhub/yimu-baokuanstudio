@@ -21,6 +21,7 @@ from fastapi.responses import (FileResponse, HTMLResponse,  # noqa: E402,F401
                                JSONResponse, Response, StreamingResponse)
 
 from web import admin as _a  # noqa: E402  (循环安全:admin 底部才 include 本模块)
+from core.blocking import run_blocking  # noqa: E402,F811  (受界阻塞池)
 
 from web.draft_guard import DraftOwnerRoute  # noqa: E402  稳定类身份
 router = APIRouter(route_class=DraftOwnerRoute)  # {did} 归属校验路由类
@@ -60,7 +61,7 @@ async def topics_collect(request: Request):
     # 改后台化会破坏响应契约且前端不在本次整改范围；保留 run_in_executor 让
     # 抓取不阻塞事件循环即可。
     try:
-        res = await asyncio.get_event_loop().run_in_executor(None, orchestrator.run_once)
+        res = await run_blocking(orchestrator.run_once)
         return res
     except Exception as e:
         print(f'[热榜采集] 异常已兜底，改用已有热榜: {e}')
@@ -113,7 +114,7 @@ async def topic_action(tid: str, action: str, request: Request):
         # 豁免说明：与 generate_job 同源的生成逻辑，但此入口是「请求内等待」契约
         # （返回成稿结果本身）；保留 run_in_executor 只为不阻塞事件循环。
         try:
-            return await asyncio.get_event_loop().run_in_executor(None, lambda: orchestrator.generate_draft(tid, user_id=_a._current_user_id(user)))
+            return await run_blocking(lambda: orchestrator.generate_draft(tid, user_id=_a._current_user_id(user)))
         except Exception as e:
             raise HTTPException(500, str(e))
     if action == 'generate_job':

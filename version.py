@@ -6,12 +6,12 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.9.11"
-__codename__ = "竹溪曲"
-__codename_en__ = "Bamboo Brook Melody"
-__slogan__ = "一念起 一幕开 万象生 · 阻塞有界、卡密同源、长稳可期"
-__slogan_cn__ = "一念起 一幕开 万象生 · 阻塞有界、卡密同源、长稳可期"
-__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Bounded blocking, one key path, built to last"
+__version__ = "15.9.12"
+__codename__ = "兰台章"
+__codename_en__ = "Orchid Terrace Verse"
+__slogan__ = "一念起 一幕开 万象生 · 默认归对话、打开即新台"
+__slogan_cn__ = "一念起 一幕开 万象生 · 默认归对话、打开即新台"
+__slogan_en__ = "One Thought. One Scene. Infinite Worlds · Conversation first, the new desk on every launch"
 
 
 def get_version() -> str:

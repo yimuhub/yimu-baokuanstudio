@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.11",
-  "current_codename_zh": "竹溪曲",
-  "current_codename_en": "Bamboo Brook Melody",
-  "next_index": 88,
+  "current_version": "15.9.12",
+  "current_codename_zh": "兰台章",
+  "current_codename_en": "Orchid Terrace Verse",
+  "next_index": 89,
   "sequence": [
     {
       "zh": "曦光序",
@@ -658,6 +658,12 @@
       "version": "v15.9.11",
       "zh": "竹溪曲",
       "en": "Bamboo Brook Melody",
+      "date": "2026-11-24"
+    },
+    {
+      "version": "v15.9.12",
+      "zh": "兰台章",
+      "en": "Orchid Terrace Verse",
       "date": "2026-11-24"
     }
   ]

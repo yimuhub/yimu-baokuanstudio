@@ -4,6 +4,28 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 📜 Version 15.9.12 · 兰台章 (Orchid Terrace Verse) · Default View Fix · 2026-11-24
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.12"`, `__codename__ = "兰台章"`, `__codename_en__ = "Orchid Terrace Verse"`)
+
+### 🎯 Milestone Summary
+
+默认视图不再被「上一次访问」带跑：极简聊天模式固定为默认，经典版不再跨会话记忆。
+
+### ⚡ Highlights
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **默认回到极简聊天** | 新增 `yimu_system_mode_pref`，只有顶部胶囊写入；页面跳转 `persist:false`，不再把 `pro` 写成下次默认。旧键 `yimu_system_mode` 停止参与启动 |
+| 2 | **新版外壳默认** | `yimu.shell.mode` 不再跨会话记忆；宽屏默认新版三栏，经典版需 `?legacy=1`；<1280px 仍按宽度回落，避免三栏挤压 |
+
+### ✅ Verified
+
+全量 **963** 用例通过；真实浏览器：启动极简 → 点内容工作台切全能 → 刷新回极简，
+控制台 0 JS 错误。
+
+---
+
 ## 🎋 Version 15.9.11 · 竹溪曲 (Bamboo Brook Melody) · Efficiency & Single Key Path · 2026-11-24
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.11"`, `__codename__ = "竹溪曲"`, `__codename_en__ = "Bamboo Brook Melody"`)

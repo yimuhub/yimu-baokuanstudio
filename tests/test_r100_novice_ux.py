@@ -49,7 +49,13 @@ class TestFirstPieceFrontend:
 
     def test_default_system_mode_is_lite(self):
         html = INDEX_HTML.read_text(encoding="utf-8")
-        assert "localStorage.getItem('yimu_system_mode') || 'lite'" in html
+        # v15.9.12：默认固定极简（对话式）；旧键 yimu_system_mode 不再参与启动，
+        # 防止上一次浏览任意页面写成 pro 后把下一次启动带到全能/经典界面。
+        assert "yimu_system_mode_pref" in html
+        assert "localStorage.getItem('yimu_system_mode') || 'lite'" not in html
+        assert "switchSystemMode(savedMode, { persist: false })" in html
+        # 页面跳转造成的 pro 切换不得写偏好；只有顶部胶囊可持久化
+        assert html.count("switchSystemMode('pro', { persist: false })") >= 5
 
 
 class TestXhsQueueCopy:

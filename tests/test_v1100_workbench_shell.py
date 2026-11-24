@@ -119,6 +119,9 @@ def test_v1100_layout_decided_before_paint(html):
     assert "data-shell" in head_seg
     assert "legacy" in head_seg and "classic" in head_seg
     assert "yimu.shell.mode" in head_seg
+    # v15.9.12：经典版不再跨会话记忆；宽屏默认回到新版三栏
+    assert "removeItem('yimu.shell.mode')" in head_seg
+    assert "(forced || !wide) ? 'classic' : 'v2'" in head_seg
     # <body> 本身不得写死 data-shell="v2"
     assert not re.search(r"<body[^>]*data-shell=", html)
 

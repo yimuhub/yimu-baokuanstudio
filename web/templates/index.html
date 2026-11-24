@@ -5703,8 +5703,13 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
     var q = new URLSearchParams(location.search);
     var forced = q.get('legacy') === '1' || q.get('classic') === '1';
     var remembered = localStorage.getItem('yimu.shell.mode') === 'classic';
+    // v15.9.12：经典版不再跨会话记忆。宽屏默认始终回到新版三栏工作台；
+    // 需要经典版请显式 ?legacy=1（窄屏仍按宽度自动回落，避免三栏被挤坏）。
+    if (remembered && !forced) {
+      try { localStorage.removeItem('yimu.shell.mode'); } catch (e) {}
+    }
     var wide = window.innerWidth >= 1280;
-    document.body.setAttribute('data-shell', (forced || remembered || !wide) ? 'classic' : 'v2');
+    document.body.setAttribute('data-shell', (forced || !wide) ? 'classic' : 'v2');
   } catch (e) {
     document.body.setAttribute('data-shell', 'classic');
   }
@@ -14087,7 +14092,7 @@ document.querySelectorAll('.nav-item').forEach(item => {
       return;
     }
     if (currentSystemMode === 'lite') {
-      switchSystemMode('pro');
+      switchSystemMode('pro', { persist: false });
     }
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
@@ -14138,7 +14143,7 @@ function switchToPage(key) {
 
 function switchToProfileCenter() {
   if (typeof currentSystemMode !== 'undefined' && currentSystemMode === 'lite') {
-    switchSystemMode('pro');
+    switchSystemMode('pro', { persist: false });
   }
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
@@ -14328,13 +14333,22 @@ let isLiteInitialSession = true; // 页面刷新/初次载入标记：确保进�
 
 // 初始化双模式状态
 function initSystemMode() {
-  const savedMode = localStorage.getItem('yimu_system_mode') || 'lite';
-  switchSystemMode(savedMode);
+  // v15.9.12：默认固定为极简（对话式）模式。旧键 yimu_system_mode 会被
+  // 上一次浏览任意页面时写成 pro，导致下次启动落到全能/经典界面；这里改读
+  // 显式偏好键 yimu_system_mode_pref（只有点顶部胶囊才会写），无偏好即 lite。
+  let savedMode = 'lite';
+  try {
+    savedMode = localStorage.getItem('yimu_system_mode_pref') === 'pro' ? 'pro' : 'lite';
+  } catch (e) {}
+  switchSystemMode(savedMode, { persist: false });
 }
 
-function switchSystemMode(mode) {
+function switchSystemMode(mode, opts) {
+  const persist = !(opts && opts.persist === false);
   currentSystemMode = mode;
-  localStorage.setItem('yimu_system_mode', mode);
+  if (persist) {
+    try { localStorage.setItem('yimu_system_mode_pref', mode); } catch (e) {}
+  }
 
   const btnLite = $('mode-btn-lite');
   const btnPro = $('mode-btn-pro');
@@ -14818,13 +14832,13 @@ async function copyLiteCurrentRichContent() {
 function openLiteInProMode() {
   if (currentLiteDraftId) {
     curDraft = currentLiteDraftId;
-    switchSystemMode('pro');
+    switchSystemMode('pro', { persist: false });
     const draftsNav = document.querySelector('.nav-item[data-p=drafts]');
     if (draftsNav) draftsNav.click();
     selectDraft(currentLiteDraftId);
     toast('⚡ 已无缝接入全能操盘工作台，支持双栏实景排版、生图换图与全网多端发布！', 4000);
   } else {
-    switchSystemMode('pro');
+    switchSystemMode('pro', { persist: false });
   }
 }
 
@@ -25232,7 +25246,7 @@ async function openTaskDraft(draftId) {
 
   // 1. 切换至内容工作台 (兼容 Lite 与 Pro 模式)
   if (typeof currentSystemMode !== 'undefined' && currentSystemMode === 'lite') {
-    switchSystemMode('pro');
+    switchSystemMode('pro', { persist: false });
   }
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
@@ -27527,7 +27541,7 @@ function switchMobileNav(panelKey) {
     return;
   }
   if (typeof currentSystemMode !== 'undefined' && currentSystemMode === 'lite') {
-    switchSystemMode('pro');
+    switchSystemMode('pro', { persist: false });
   }
 
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('on'));

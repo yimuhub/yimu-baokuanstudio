@@ -6,9 +6,9 @@
 主版本跳升仅限开发者书面申请并修订本规范。
 """
 
-__version__ = "15.9.12"
-__codename__ = "兰台章"
-__codename_en__ = "Orchid Terrace Verse"
+__version__ = "15.9.13"
+__codename__ = "石泉境"
+__codename_en__ = "Stone Spring Realm"
 __slogan__ = "一念起 一幕开 万象生 · 默认归对话、打开即新台"
 __slogan_cn__ = "一念起 一幕开 万象生 · 默认归对话、打开即新台"
 __slogan_en__ = "One Thought. One Scene. Infinite Worlds · Conversation first, the new desk on every launch"

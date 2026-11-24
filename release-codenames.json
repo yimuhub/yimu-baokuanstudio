@@ -1,8 +1,8 @@
 {
-  "current_version": "15.9.12",
-  "current_codename_zh": "兰台章",
-  "current_codename_en": "Orchid Terrace Verse",
-  "next_index": 89,
+  "current_version": "15.9.13",
+  "current_codename_zh": "石泉境",
+  "current_codename_en": "Stone Spring Realm",
+  "next_index": 90,
   "sequence": [
     {
       "zh": "曦光序",
@@ -664,6 +664,12 @@
       "version": "v15.9.12",
       "zh": "兰台章",
       "en": "Orchid Terrace Verse",
+      "date": "2026-11-24"
+    },
+    {
+      "version": "v15.9.13",
+      "zh": "石泉境",
+      "en": "Stone Spring Realm",
       "date": "2026-11-24"
     }
   ]

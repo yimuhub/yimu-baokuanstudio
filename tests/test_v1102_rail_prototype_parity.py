@@ -202,7 +202,7 @@ def test_classic_mode_untouched():
     assert "?legacy=1" in html or "legacy" in html
     assert 'id="shell-classic-pill"' in html
     # 窄屏兜底：增强块在小屏收起
-    assert "@media (max-width: 1279px)" in html
+    assert "@media (max-width: 1023px)" in html
 
 
 # --------------------------------------------------------------------------

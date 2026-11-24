@@ -4,6 +4,31 @@ All notable changes and milestones to **YIMU Studio (一幕·YIMU 爆款工作�
 
 ---
 
+## 📜 Version 15.9.13 · 石泉境 (Stone Spring Realm) · Three-Column Default · 2026-11-24
+
+> **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.13"`, `__codename__ = "石泉境"`, `__codename_en__ = "Stone Spring Realm"`)
+
+### 🎯 Milestone Summary
+
+恢复并固定「左栏功能导航 + 中栏恒定对话 + 右栏舞台/资产」的三栏工作台为默认界面。
+这套 UI（v11 引入、v12 固定舞台、v15.3 / v15.6 持续迭代）从未被删除；
+丢失感来自启动阈值 1280px：窗口窄过一次就整场留在经典版，且不会自动回来。
+
+### ⚡ Highlights
+
+| # | Change | Detail |
+|---|--------|--------|
+| 1 | **三栏默认** | 宽屏启动即 `data-shell="v2"`；1269px 实测 `210 / 719 / 340`，1129px 宽度校验 `210 / 579 / 340` |
+| 2 | **阈值统一 1024** | 首屏判定与两处媒体查询从 `1280 / 1279` 下调到 `1024 / 1023`，与 `workbench-shell.js` 的 `BREAK` 对齐 |
+| 3 | **首屏复核** | 启动瞬间若误读窄宽度，`DOMContentLoaded` 复核并回到 v2，不再把一次窄窗误锁成永久经典版 |
+| 4 | **例外明确** | `?legacy=1` 仍进经典版；历史经典版记忆自动清除；内容工作台保留全屏编辑形态 |
+
+### ✅ Verified
+
+目标用例 **28 passed**，全量 **963** 用例与 CI 四步全绿；真实浏览器 1269×761：左栏导航、中栏对话、右栏「成稿 / 图片 / 视频 / 数据」资产台三栏同时可见，顶栏无横向溢出。
+
+---
+
 ## 📜 Version 15.9.12 · 兰台章 (Orchid Terrace Verse) · Default View Fix · 2026-11-24
 
 > **Single Source of Truth**: [`version.py`](version.py) (`__version__ = "15.9.12"`, `__codename__ = "兰台章"`, `__codename_en__ = "Orchid Terrace Verse"`)

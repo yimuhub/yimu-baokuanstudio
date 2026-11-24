@@ -104,7 +104,7 @@ def test_v1100_shell_css_contract():
     assert "--railw: 248px" in css
     assert "--panelw: 400px" in css
     assert "grid-template-columns: var(--railw) minmax(0, 1fr) var(--panelw)" in css
-    assert "@media (max-width: 1279px)" in css
+    assert "@media (max-width: 1023px)" in css
     # 专注态
     assert 'body[data-shell="v2"][data-focus="on"]' in css
     # 灯箱
@@ -122,6 +122,9 @@ def test_v1100_layout_decided_before_paint(html):
     # v15.9.12：经典版不再跨会话记忆；宽屏默认回到新版三栏
     assert "removeItem('yimu.shell.mode')" in head_seg
     assert "(forced || !wide) ? 'classic' : 'v2'" in head_seg
+    # v15.9.13：首屏瞬时窄宽度会在 DOMContentLoaded 复核并回到 v2，避免误锁经典版
+    assert "DOMContentLoaded" in head_seg
+    assert "window.innerWidth >= 1024" in head_seg
     # <body> 本身不得写死 data-shell="v2"
     assert not re.search(r"<body[^>]*data-shell=", html)
 

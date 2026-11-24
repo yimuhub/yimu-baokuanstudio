@@ -3486,7 +3486,7 @@ body.wb-split-drag iframe { pointer-events: none !important; }
 
 /* ==========================================================================
    V11 · 三栏工作台外壳（左 功能栏 / 中 主台 / 右 资产台）
-   —— 仅在 body[data-shell="v2"] 下生效；?legacy=1 或窄屏自动回落经典版布局，
+   —— 仅在 body[data-shell="v2"] 下生效；?legacy=1 或窄屏（<1024）自动回落经典版布局，
       原有 7 个业务面板与其 onclick 逻辑一行未动，只是换了容器与视口分配。
    ========================================================================== */
 :root {
@@ -4201,7 +4201,7 @@ body[data-shell="v2"] .panel .sub-tabs {
 body[data-shell="v2"] .panel .sub-tabs > * { flex: 0 0 auto; }
 
 /* ---------- 窄屏与打印兜底 ---------- */
-@media (max-width: 1279px) {
+@media (max-width: 1023px) {
   body[data-shell="v2"] {
     display: flex;
     height: auto;
@@ -4870,7 +4870,7 @@ body[data-shell="v2"] .rail-flash {
 }
 
 /* ============ 窄屏兜底：恢复为经典排布 ============ */
-@media (max-width: 1279px) {
+@media (max-width: 1023px) {
   body[data-shell="v2"] > .side .rail-new,
   body[data-shell="v2"] > .side .rail-head,
   body[data-shell="v2"] > .side .rail-list,
@@ -5697,7 +5697,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
 
 <script>
 /* V11 外壳引导：必须在首屏绘制前决定布局形态，避免经典版用户看到三栏闪烁。
-   ?legacy=1 / ?classic=1 / 本地记忆 classic → 保留原布局；窄屏（<1180）自动回落经典版。 */
+   ?legacy=1 / ?classic=1 → 保留原布局；历史经典版记忆会自动清除；窄屏（<1024）自动回落经典版。 */
 (function () {
   try {
     var q = new URLSearchParams(location.search);
@@ -5708,8 +5708,17 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
     if (remembered && !forced) {
       try { localStorage.removeItem('yimu.shell.mode'); } catch (e) {}
     }
-    var wide = window.innerWidth >= 1280;
+    var wide = window.innerWidth >= 1024;
     document.body.setAttribute('data-shell', (forced || !wide) ? 'classic' : 'v2');
+    // 启动瞬间窗口可能尚未完成布局（读到瞬时窄宽度而错判经典版）。
+    // 到 DOMContentLoaded 再复核一次：此时外壳脚本尚未 boot，切回 v2 不会漏初始化。
+    if (!forced && !wide) {
+      document.addEventListener('DOMContentLoaded', function () {
+        if (window.innerWidth >= 1024) {
+          document.body.setAttribute('data-shell', 'v2');
+        }
+      }, { once: true });
+    }
   } catch (e) {
     document.body.setAttribute('data-shell', 'classic');
   }

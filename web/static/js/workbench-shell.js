@@ -20,7 +20,7 @@
   var LS_TAB = 'yimu.shell.tab';
   var LS_MODE = 'yimu.shell.mode';
   var LS_HDR = 'yimu.shell.hdr';       // V15.6 顶栏工具项的「直接显示 / 收进更多」配置
-  var BREAK = 1180;                 // 低于该宽度不启用三栏
+  var BREAK = 1024;                 // 低于该宽度不启用三栏
   var MIN_RAIL = 200, MAX_RAIL = 420;
   var MIN_PANEL = 300, MAX_PANEL = 680;
   var MIN_MAIN = 460;               // 中栏保底宽度，宁可挤右栏也不压垮主台

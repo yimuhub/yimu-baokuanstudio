@@ -1,0 +1,1064 @@
+/* SPDX-License-Identifier: BUSL-1.1 */
+/* ==========================================================================
+   一幕·YIMU · Harness UI（第三套界面风格）· 外壳底座（A）
+   --------------------------------------------------------------------------
+   设计基准：design/harness-workspace-preview.html（token / 尺寸 / 间距原样取用）。
+   作用域：body[data-shell="harness"]；classic / v2 零影响。
+   中栏内容归 harness-thread.*，右栏舞台归 harness-stage.*，采集/设置归 D。
+   颜色只取顶部语义 token；浅色为默认，深色由 html[data-theme="dark"] 覆盖。
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ 变量 */
+body[data-shell="harness"] {
+  --hx-accent: #AE5B37;
+  --hx-accent-deep: #94492C;
+  --hx-accent-2: #C4795A;
+  --hx-accent-soft: #F6EDE7;
+  --hx-accent-line: #E7D5C9;
+  --hx-accent-ink: #8F4A2D;
+  --hx-ink: #2E332F;
+  --hx-ink-2: #5A615B;
+  --hx-ink-3: #666D67;
+  --hx-ink-4: #B0B4AD;
+  --hx-line: #E7E5DE;
+  --hx-line-strong: #D8D5CB;
+  --hx-bg: #F7F6F2;
+  --hx-panel: #FFFFFF;
+  --hx-panel-2: #FCFBF8;
+  --hx-panel-3: #F3F1EB;
+  --hx-rail: #FBFAF7;
+  --hx-stage: #F9F8F4;
+  --hx-hover: #F2F0E9;
+  --hx-hover-2: #EAE7DE;
+  --hx-input: #FFFFFF;
+  --hx-input-line: #E5E2D8;
+  --hx-topbar: rgba(251, 250, 247, .88);
+  --hx-topbar-ink: #232723;
+  --hx-topbar-ink-2: #6A716B;
+  --hx-overlay: rgba(35, 39, 35, .32);
+  --hx-scroll: #D8D5CB;
+  --hx-on-accent: #ffffff;
+  --hx-green: #47755A;
+  --hx-green-soft: #EAF1EC;
+  --hx-amber: #866428;
+  --hx-amber-soft: #F6EEE0;
+  --hx-blue: #4F6885;
+  --hx-blue-soft: #EAEEF3;
+  --hx-red: #9E4C43;
+  --hx-red-soft: #F6E7E4;
+  --hx-railw: 248px;
+  --hx-stagew: 404px;
+  --hx-bar: 46px;
+  --hx-radius: 10px;
+  --hx-radius-sm: 8px;
+  --hx-radius-pill: 999px;
+  --hx-shadow-sm: 0 1px 2px rgba(46, 51, 47, .04);
+  --hx-shadow-md: 0 8px 24px rgba(46, 51, 47, .06);
+  --hx-shadow-lg: 0 18px 44px rgba(46, 51, 47, .10);
+  --hx-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --hx-serif: "Songti SC", "Noto Serif SC", "STSong", "SimSun", serif;
+
+}
+
+/* 深色主题：与浅色共用同一套版面层次，只换语义 token（不做简单反色）。
+   偏好来源为站点既有 yimu_ui_theme_mode（light / dark / system）。 */
+html[data-theme="dark"] body[data-shell="harness"] {
+  --hx-accent: #B4603C;
+  --hx-accent-deep: #94492C;
+  --hx-accent-2: #C4795A;
+  --hx-accent-soft: #2B211B;
+  --hx-accent-line: #43322A;
+  --hx-accent-ink: #D89A76;
+  --hx-ink: #E8E7E1;
+  --hx-ink-2: #B7B6AE;
+  --hx-ink-3: #8F8F87;
+  --hx-ink-4: #6A6A63;
+  --hx-line: #2C2D27;
+  --hx-line-strong: #3A3B34;
+  --hx-bg: #17181A;
+  --hx-panel: #1E1F1D;
+  --hx-panel-2: #242521;
+  --hx-panel-3: #2A2B26;
+  --hx-rail: #1A1B19;
+  --hx-stage: #191A17;
+  --hx-radius-sm: 8px;
+  --hx-radius-pill: 999px;
+  --hx-hover: #262721;
+  --hx-hover-2: #2D2E28;
+  --hx-input: #20211E;
+  --hx-input-line: #35362F;
+  --hx-topbar: rgba(23, 24, 26, .9);
+  --hx-topbar-ink: #EFEEE8;
+  --hx-topbar-ink-2: #9A9A92;
+  --hx-overlay: rgba(0, 0, 0, .6);
+  --hx-scroll: #3A3B34;
+  --hx-on-accent: #ffffff;
+  --hx-green: #7FB394;
+  --hx-green-soft: #1E2C24;
+  --hx-amber: #D3A756;
+  --hx-amber-soft: #2C2519;
+  --hx-blue: #8FA7C4;
+  --hx-blue-soft: #1D2530;
+  --hx-red: #E08A80;
+  --hx-red-soft: #2E1E1C;
+  --hx-shadow-sm: 0 1px 2px rgba(0, 0, 0, .38);
+  --hx-shadow-md: 0 8px 24px rgba(0, 0, 0, .45);
+  --hx-shadow-lg: 0 18px 44px rgba(0, 0, 0, .5);
+
+}
+
+/* ------------------------------------------------------------------ 基础与网格 */
+body[data-shell="harness"] {
+  margin: 0;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: var(--hx-railw) minmax(0, 1fr) var(--hx-stagew);
+  grid-template-rows: var(--hx-bar) minmax(0, 1fr);
+  background: var(--hx-bg);
+  color: var(--hx-ink);
+  font-family: var(--hx-font);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+body[data-shell="harness"] * { box-sizing: border-box; }
+body[data-shell="harness"] button,
+body[data-shell="harness"] input,
+body[data-shell="harness"] textarea { font: inherit; color: inherit; }
+body[data-shell="harness"] button { cursor: pointer; }
+
+body[data-shell="harness"] #hxTopbar { grid-area: 1 / 1 / 2 / 4; }
+body[data-shell="harness"] #hxRail { grid-area: 2 / 1 / 3 / 2; }
+body[data-shell="harness"] #hxThread { grid-area: 2 / 2 / 3 / 3; }
+body[data-shell="harness"] #hxStage { grid-area: 2 / 3 / 3 / 4; }
+/* 弹层 / toast / 浮标等零散节点不参与三栏流式摆放。 */
+body[data-shell="harness"] > :not(#hxTopbar):not(#hxRail):not(#hxThread):not(#hxStage) {
+  grid-column: 1 / -1;
+  grid-row: 1 / -1;
+}
+
+/* ------------------------------------------------------------------ 图标 / sprite / toast */
+body[data-shell="harness"] .hx-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+body[data-shell="harness"] .icon {
+  width: 18px; height: 18px; flex:none;
+  fill: none; stroke: currentColor; stroke-width: 1.8;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+body[data-shell="harness"] .icon.sm { width: 15px; height: 15px; stroke-width: 1.9; }
+body[data-shell="harness"] .icon.lg { width: 21px; height: 21px; }
+
+body[data-shell="harness"] .hx-toast {
+  position: fixed; left: 50%; bottom: 34px; transform: translateX(-50%) translateY(8px);
+  z-index: 9999; max-width: min(420px, 80vw);
+  padding: 10px 14px; border-radius: var(--hx-radius);
+  background: var(--hx-panel); color: var(--hx-ink);
+  border: 1px solid var(--hx-line);
+  font-size: 12.5px; font-weight: 600; box-shadow: var(--hx-shadow-md);
+  opacity: 0; pointer-events: none; transition: .18s;
+}
+body[data-shell="harness"] .hx-toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* 业务迁入的 #toast：浅色小清新面 + 细线 + 轻阴影 + 正文色，去黑底白字大胶囊；
+   深色态用 --hx-panel-2。位置/层级/显隐仍走业务原规则，仅复位外壳外观。 */
+body[data-shell="harness"] #toast {
+  background: var(--hx-panel) !important;
+  color: var(--hx-ink) !important;
+  border: 1px solid var(--hx-line) !important;
+  border-radius: var(--hx-radius) !important;
+  box-shadow: var(--hx-shadow-md) !important;
+}
+html[data-theme="dark"] body[data-shell="harness"] #toast,
+html[data-theme-mode="dark"] body[data-shell="harness"] #toast {
+  background: var(--hx-panel-2) !important;
+  color: var(--hx-ink) !important;
+  border: 1px solid var(--hx-line-strong) !important;
+  box-shadow: var(--hx-shadow-md) !important;
+}
+
+/* ------------------------------------------------------------------ 顶栏 */
+body[data-shell="harness"] #hxTopbar {
+  height: var(--hx-bar);
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 16px 0 18px;
+  color: var(--hx-topbar-ink) !important;
+  background: var(--hx-topbar) !important;
+  border-bottom: 1px solid var(--hx-line) !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  position: relative; z-index: 120; min-width: 0;
+}
+body[data-shell="harness"] .hx-tb-brand { display: flex; align-items: center; gap: 9px; min-width: 0; white-space: nowrap; }
+/* 真实品牌 Logo：22px、圆角 6、contain，不加滤镜 / 反色；图片自带配色。 */
+body[data-shell="harness"] .hx-logo {
+  width: 22px; height: 22px; flex: none; display: block;
+  border-radius: 6px; object-fit: contain;
+}
+body[data-shell="harness"] .hx-tb-name { font-size: 11.5px; font-weight: 750; letter-spacing: .09em; color: var(--hx-topbar-ink); }
+body[data-shell="harness"] .hx-tb-badge {
+  font-size: 10px; padding: 2px 7px; border: 1px solid var(--hx-line); border-radius: 99px;
+  color: var(--hx-topbar-ink-2); background: var(--hx-panel-3);
+}
+
+body[data-shell="harness"] .hx-tb-seg {
+  display: flex; align-items: center; gap: 2px; padding: 3px;
+  border: 1px solid var(--hx-line); border-radius: var(--hx-radius-sm); background: transparent;
+}
+body[data-shell="harness"] .hx-tb-seg-btn {
+  height: 28px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--hx-topbar-ink-2); font-size: 11.5px; font-weight: 600; transition: none; white-space: nowrap;
+}
+body[data-shell="harness"] #hxTopbar .hx-tb-seg-btn { transition: none !important; }
+body[data-shell="harness"] .hx-tb-seg-btn:hover { color: var(--hx-topbar-ink); background: var(--hx-hover); }
+/* 顶栏分段激活态唯一判据 `.is-active`；非激活显式复位，不依赖继承，避免模板旧轨残留。 */
+body[data-shell="harness"] #hxTopbar .hx-tb-seg-btn:not(.is-active) { background: transparent !important; color: var(--hx-topbar-ink-2) !important; }
+body[data-shell="harness"] #hxTopbar .hx-tb-seg-btn.is-active { background: var(--hx-accent-soft) !important; color: var(--hx-accent-ink) !important; box-shadow: none; }
+
+body[data-shell="harness"] .hx-tb-search {
+  height: 30px; display: flex; align-items: center; gap: 7px;
+  padding: 0 10px; border: 1px solid var(--hx-line); border-radius: var(--hx-radius-sm); background: transparent;
+  color: var(--hx-topbar-ink-2); font-size: 12px; min-width: 180px; max-width: 260px; flex: 1 1 auto;
+}
+body[data-shell="harness"] .hx-tb-search:hover { border-color: var(--hx-line-strong); background: var(--hx-hover); }
+body[data-shell="harness"] .hx-tb-search span { flex: 1; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body[data-shell="harness"] .hx-tb-search kbd {
+  font-family: var(--hx-font); font-size: 9px; color: var(--hx-topbar-ink-2);
+  border: 1px solid var(--hx-line); background: var(--hx-panel-3); border-radius: 4px; padding: 1px 5px; white-space: nowrap;
+}
+
+body[data-shell="harness"] .hx-tb-status { display: flex; align-items: center; gap: 6px; margin-left: auto; flex: none; }
+body[data-shell="harness"] .hx-tb-pill {
+  height: 28px; display: inline-flex; align-items: center; gap: 5px;
+  padding: 0 10px; border: 1px solid var(--hx-line); border-radius: var(--hx-radius-sm); background: transparent;
+  color: var(--hx-topbar-ink); font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+body[data-shell="harness"] .hx-tb-pill:hover { background: var(--hx-hover); }
+body[data-shell="harness"] .hx-tb-pill .icon { width: 13px; height: 13px; color: var(--hx-accent); }
+body[data-shell="harness"] .hx-tb-pill-label { color: var(--hx-topbar-ink-2); }
+body[data-shell="harness"] .hx-tb-pill b { font-weight: 700; color: var(--hx-topbar-ink); }
+body[data-shell="harness"] .hx-tb-tier { color: var(--hx-topbar-ink-2); }
+body[data-shell="harness"] .hx-tb-tasks b { min-width: 14px; text-align: center; }
+body[data-shell="harness"] .hx-tb-tasks.has b { color: var(--hx-accent-ink); }
+
+body[data-shell="harness"] .hx-tb-acts { display: flex; align-items: center; gap: 8px; flex: none; }
+/* 顶栏中性控件基件：1px 细线描边、透明底，hover 浅底；唯一强调点留给激活态。 */
+body[data-shell="harness"] .hx-tb-theme,
+body[data-shell="harness"] .hx-tb-stage,
+body[data-shell="harness"] .hx-tb-account,
+body[data-shell="harness"] .hx-tb-style-btn {
+  height: 30px; display: flex; align-items: center; gap: 6px; padding: 0 9px;
+  border: 1px solid var(--hx-line); border-radius: var(--hx-radius-sm); background: transparent;
+  color: var(--hx-topbar-ink); font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+body[data-shell="harness"] .hx-tb-theme:hover,
+body[data-shell="harness"] .hx-tb-stage:hover,
+body[data-shell="harness"] .hx-tb-account:hover,
+body[data-shell="harness"] .hx-tb-style-btn:hover { background: var(--hx-hover); border-color: var(--hx-line-strong); }
+/* 舞台开合常驻入口：与 body[data-stage] 同步；激活态软底 + 强调文字，不做彩色实心。 */
+body[data-shell="harness"] .hx-tb-stage { color: var(--hx-topbar-ink-2); }
+body[data-shell="harness"] .hx-tb-stage .icon { width: 15px; height: 15px; }
+body[data-shell="harness"] .hx-tb-stage.is-active { background: var(--hx-accent-soft); border-color: var(--hx-accent-line); color: var(--hx-accent-ink); }
+body[data-shell="harness"] .hx-tb-stage.is-active .icon { color: var(--hx-accent-ink); }
+body[data-shell="harness"] .hx-tb-theme-icon { font-size: 13px; line-height: 1; }
+body[data-shell="harness"] .hx-tb-account { gap: 7px; }
+body[data-shell="harness"] .hx-tb-avatar {
+  width: 20px; height: 20px; border-radius: 6px; overflow: hidden;
+  background: var(--hx-accent);
+  display: grid; place-items: center; font-size: 10.5px; font-weight: 700; color: var(--hx-on-accent);
+}
+body[data-shell="harness"] .hx-tb-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: inherit; }
+body[data-shell="harness"] .hx-tb-account-name { font-size: 11.5px; font-weight: 600; }
+body[data-shell="harness"] .hx-tb-style { position: relative; }
+body[data-shell="harness"] .hx-tb-style-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); min-width: 148px; z-index: 130;
+  display: none; flex-direction: column; gap: 2px; padding: 6px;
+  background: var(--hx-panel); border: 1px solid var(--hx-line); border-radius: var(--hx-radius);
+  box-shadow: var(--hx-shadow-md);
+}
+body[data-shell="harness"] .hx-tb-style-menu.open { display: flex; }
+body[data-shell="harness"] .hx-tb-style-menu button {
+  height: 30px; padding: 0 10px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--hx-ink); font-size: 11.5px; font-weight: 600; text-align: left;
+}
+body[data-shell="harness"] .hx-tb-style-menu button:hover { background: var(--hx-hover); color: var(--hx-ink); }
+
+/* ------------------------------------------------------------------ 左栏骨架 */
+body[data-shell="harness"] #hxRail {
+  min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  background: var(--hx-rail); border-right: 1px solid var(--hx-line); position: relative; z-index: 20;
+}
+/* 既有真实 aside.side 保留节点与点击链路，原深色 chrome 隐藏，由 hx- 块接管视觉。 */
+body[data-shell="harness"] #hxRail > aside.side {
+  display: contents;
+}
+body[data-shell="harness"] #hxRail > aside.side > .logo-box,
+body[data-shell="harness"] #hxRail > aside.side > .nav-group,
+body[data-shell="harness"] #hxRail > aside.side > .nav-group-bottom,
+body[data-shell="harness"] #hxRail > aside.side > .side-foot { display: none !important; }
+
+/* brand */
+body[data-shell="harness"] .hx-rail-brand {
+  height: 64px; flex: none; display: flex; align-items: center; gap: 10px;
+  padding: 0 12px 0 14px; border-bottom: 1px solid var(--hx-line); background: var(--hx-rail);
+}
+/* 左栏真实品牌 Logo：常态 32px；迷你态 28px 且可见、居中不裁切。 */
+body[data-shell="harness"] .hx-brand-logo {
+  width: 32px; height: 32px; flex: none; display: block;
+  border-radius: 10px; object-fit: contain;
+}
+body[data-shell="harness"] .hx-brand-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+body[data-shell="harness"] .hx-brand-line { display: flex; align-items: center; gap: 5px; min-width: 0; }
+body[data-shell="harness"] .hx-brand-title { font-size: 15px; font-weight: 800; letter-spacing: .02em; color: var(--hx-ink); white-space: nowrap; }
+body[data-shell="harness"] .hx-brand-badge {
+  font-size: 9px; font-weight: 700; line-height: 1; padding: 3px 4px; border-radius: 4px; color: var(--hx-on-accent);
+  background: var(--hx-accent); white-space: nowrap;
+}
+body[data-shell="harness"] .hx-brand-sub { font-size: 10px; color: var(--hx-ink-3); white-space: nowrap; letter-spacing: .02em; }
+body[data-shell="harness"] .hx-rail-collapse {
+  width: 28px; height: 28px; margin-left: auto; border: 0; border-radius: 7px;
+  background: transparent; color: var(--hx-ink-3); display: grid; place-items: center; transition: .16s;
+}
+body[data-shell="harness"] .hx-rail-collapse:hover { background: var(--hx-hover); color: var(--hx-ink); }
+
+/* body */
+body[data-shell="harness"] .hx-rail-body {
+  flex: 1; min-height: 0; display: flex; flex-direction: column;
+  padding: 13px 11px 10px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--hx-scroll) transparent;
+}
+body[data-shell="harness"] .hx-rail-body::-webkit-scrollbar { width: 5px; }
+body[data-shell="harness"] .hx-rail-body::-webkit-scrollbar-thumb { background: var(--hx-scroll); border-radius: 99px; }
+
+body[data-shell="harness"] .hx-new-task {
+  width: 100%; height: 41px; flex: none; display: flex; align-items: center; gap: 8px;
+  padding: 0 10px; border: 0; border-radius: var(--hx-radius); color: var(--hx-on-accent);
+  background: var(--hx-accent);
+  box-shadow: var(--hx-shadow-sm);
+  font-size: 13px; font-weight: 700; transition: .18s;
+}
+body[data-shell="harness"] .hx-new-task:hover { background: var(--hx-accent-deep); transform: translateY(-1px); box-shadow: var(--hx-shadow-md); }
+body[data-shell="harness"] .hx-new-task:active { transform: none; }
+body[data-shell="harness"] .hx-new-task-plus {
+  width: 22px; height: 22px; border-radius: 6px; background: rgba(255, 255, 255, .18); display: grid; place-items: center;
+}
+body[data-shell="harness"] .hx-new-task kbd {
+  margin-left: auto; font-size: 9.5px; font-family: var(--hx-font); font-weight: 600; color: rgba(255, 255, 255, .75);
+  border: 1px solid rgba(255, 255, 255, .2); border-radius: 5px; padding: 2px 5px; background: rgba(255, 255, 255, .08);
+}
+
+body[data-shell="harness"] .hx-rail-search {
+  height: 36px; flex: none; margin-top: 9px; display: flex; align-items: center; gap: 7px; padding: 0 9px;
+  border: 1px solid var(--hx-line); border-radius: 9px; background: var(--hx-input); color: var(--hx-ink-3);
+  transition: .16s; box-shadow: var(--hx-shadow-sm); text-align: left;
+}
+body[data-shell="harness"] .hx-rail-search:hover,
+body[data-shell="harness"] .hx-rail-search:focus-within { border-color: var(--hx-accent-line); box-shadow: 0 0 0 3px var(--hx-accent-soft); }
+body[data-shell="harness"] .hx-rail-search span { flex: 1; min-width: 0; font-size: 12.5px; color: var(--hx-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body[data-shell="harness"] .hx-rail-search kbd {
+  font-family: var(--hx-font); font-size: 9px; color: var(--hx-ink-3); border: 1px solid var(--hx-line); background: var(--hx-panel-2);
+  border-radius: 4px; padding: 1px 4px; white-space: nowrap;
+}
+
+body[data-shell="harness"] .hx-rail-menu { margin-top: 13px; display: flex; flex-direction: column; gap: 1px; flex: none; }
+body[data-shell="harness"] #hxRailMenu .hx-menu-item {
+  height: 33px; width: 100%; display: flex; align-items: center; gap: 9px; padding: 0 9px;
+  border: 0; border-radius: 8px; background: transparent; color: var(--hx-ink-2); font-size: 12.5px; font-weight: 550;
+  text-align: left; transition: none;
+}
+/* 取消背景/字色过渡：搬家后过渡可能冻结在起始帧，激活态必须由静态声明色瞬时生效。 */
+body[data-shell="harness"] #hxRailMenu .hx-menu-item,
+body[data-shell="harness"] #hxRailMenu .hx-menu-item .icon,
+body[data-shell="harness"] #hxRailMenu .hx-menu-item .hx-menu-count { transition: none !important; }
+body[data-shell="harness"] #hxRailMenu .hx-menu-item .icon { color: var(--hx-ink-3); width: 17px; height: 17px; }
+body[data-shell="harness"] #hxRailMenu .hx-menu-item:hover { background: var(--hx-hover); color: var(--hx-ink); }
+/* 左栏激活态唯一判据 `.is-active`：非激活项显式清掉激活底/字色/徽标，不依赖继承或旧轨覆盖。 */
+body[data-shell="harness"] #hxRailMenu .hx-menu-item:not(.is-active) { background: transparent !important; color: var(--hx-ink-2) !important; font-weight: 550; }
+body[data-shell="harness"] #hxRailMenu .hx-menu-item:not(.is-active) .icon { color: var(--hx-ink-3); }
+body[data-shell="harness"] #hxRailMenu .hx-menu-item.is-active { background: var(--hx-accent-soft) !important; color: var(--hx-accent-ink) !important; font-weight: 700; }
+body[data-shell="harness"] #hxRailMenu .hx-menu-item.is-active .icon { color: var(--hx-accent-deep); }
+body[data-shell="harness"] #hxRailMenu .hx-menu-count {
+  margin-left: auto; min-width: 18px; height: 17px; padding: 0 5px; border-radius: 99px;
+  background: var(--hx-panel-3); color: var(--hx-ink-3); font-size: 10px; font-weight: 700; display: grid; place-items: center;
+}
+body[data-shell="harness"] #hxRailMenu .hx-menu-item:not(.is-active) .hx-menu-count { background: var(--hx-panel-3); color: var(--hx-ink-3); }
+body[data-shell="harness"] #hxRailMenu .hx-menu-item.is-active .hx-menu-count { background: var(--hx-accent-line) !important; color: var(--hx-accent-ink) !important; }
+body[data-shell="harness"] .hx-rail-more { margin-top: 4px; }
+
+body[data-shell="harness"] .hx-rail-sect-head {
+  flex: none; display: flex; align-items: center; justify-content: space-between;
+  margin: 17px 6px 7px; font-size: 10.5px; line-height: 1; font-weight: 750;
+  letter-spacing: .08em; color: var(--hx-ink-3); text-transform: uppercase;
+}
+body[data-shell="harness"] .hx-rail-sect-head button {
+  width: 22px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: var(--hx-ink-3); display: grid; place-items: center;
+}
+body[data-shell="harness"] .hx-rail-sect-head button:hover { background: var(--hx-hover); color: var(--hx-ink); }
+
+/* 上下文列表：任务 */
+body[data-shell="harness"] .hx-task-list { display: flex; flex-direction: column; gap: 2px; flex: none; }
+body[data-shell="harness"] .hx-task {
+  width: 100%; display: grid; grid-template-columns: 27px minmax(0, 1fr) 12px; gap: 8px; align-items: center;
+  padding: 8px 7px; border: 1px solid transparent; border-radius: 9px; background: transparent; text-align: left; transition: .15s;
+}
+body[data-shell="harness"] .hx-task:hover { background: var(--hx-panel-3); }
+body[data-shell="harness"] .hx-task.is-active { background: var(--hx-accent-soft); border-color: var(--hx-accent-line); box-shadow: inset 2px 0 0 var(--hx-accent); }
+body[data-shell="harness"] .hx-task-thumb {
+  width: 27px; height: 27px; border-radius: 8px; display: grid; place-items: center; overflow: hidden;
+  font-family: var(--hx-serif); font-size: 12px; color: var(--hx-on-accent); flex: none;
+}
+body[data-shell="harness"] .hx-task.is-active .hx-task-thumb { box-shadow: 0 0 0 2px var(--hx-accent-line); }
+body[data-shell="harness"] .hx-task-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+body[data-shell="harness"] .hx-task-title {
+  font-size: 12.5px; line-height: 1.35; font-weight: 650; color: var(--hx-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+body[data-shell="harness"] .hx-task.is-active .hx-task-title { color: var(--hx-accent-deep); }
+body[data-shell="harness"] .hx-task-meta { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 10px; color: var(--hx-ink-3); white-space: nowrap; }
+body[data-shell="harness"] .hx-task-meta .hx-sep { color: var(--hx-ink-4); }
+body[data-shell="harness"] .hx-task-more { width: 20px; height: 20px; border: 0; border-radius: 5px; background: transparent; color: var(--hx-ink-3); display: grid; place-items: center; opacity: .6; }
+
+body[data-shell="harness"] .hx-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--hx-ink-4); flex: none; display: inline-block; }
+body[data-shell="harness"] .hx-dot.green { background: var(--hx-green); box-shadow: 0 0 0 3px var(--hx-green-soft); }
+body[data-shell="harness"] .hx-dot.orange { background: var(--hx-accent); box-shadow: 0 0 0 3px var(--hx-accent-soft); }
+body[data-shell="harness"] .hx-dot.blue { background: var(--hx-blue); }
+
+/* 上下文列表：草稿 */
+body[data-shell="harness"] .hx-rail-filter { display: flex; align-items: center; gap: 3px; padding: 0 5px 8px; flex-wrap: wrap; }
+body[data-shell="harness"] .hx-rail-filter button {
+  height: 24px; padding: 0 7px; border: 1px solid transparent; border-radius: 6px; background: transparent;
+  color: var(--hx-ink-3); font-size: 9.5px; font-weight: 600; display: flex; align-items: center; gap: 3px;
+}
+body[data-shell="harness"] .hx-rail-filter button.is-active { background: var(--hx-accent-soft); border-color: var(--hx-accent-line); color: var(--hx-accent-ink); }
+body[data-shell="harness"] .hx-rail-filter button b { font-size: 8.5px; font-weight: 700; color: var(--hx-ink-4); }
+body[data-shell="harness"] .hx-rail-filter button.is-active b { color: var(--hx-accent-deep); }
+
+body[data-shell="harness"] .hx-draft-list { display: flex; flex-direction: column; gap: 2px; padding: 0 1px; }
+body[data-shell="harness"] .hx-draft-row {
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) 16px; gap: 7px; align-items: center;
+  width: 100%; padding: 6px 5px; border: 1px solid transparent; border-radius: 8px; background: transparent; text-align: left; transition: .15s;
+}
+body[data-shell="harness"] .hx-draft-row:hover { background: var(--hx-panel-3); }
+body[data-shell="harness"] .hx-draft-row.is-active { background: var(--hx-accent-soft); border-color: var(--hx-accent-line); box-shadow: inset 2px 0 0 var(--hx-accent); }
+body[data-shell="harness"] .hx-draft-thumb {
+  width: 34px; height: 38px; border-radius: 6px; display: grid; place-items: center; overflow: hidden;
+  font-family: var(--hx-serif); font-size: 13px; color: var(--hx-on-accent); flex: none;
+}
+body[data-shell="harness"] .hx-cover-orange { background: var(--hx-accent); color: var(--hx-on-accent); }
+body[data-shell="harness"] .hx-cover-gray { background: var(--hx-panel-3); color: var(--hx-ink-2); }
+body[data-shell="harness"] .hx-cover-blue { background: var(--hx-blue-soft); color: var(--hx-blue); }
+body[data-shell="harness"] .hx-cover-dark { background: var(--hx-ink-2); color: var(--hx-on-accent); }
+body[data-shell="harness"] .hx-cover-sand { background: var(--hx-amber-soft); color: var(--hx-amber); }
+body[data-shell="harness"] .hx-draft-main { min-width: 0; display: flex; flex-direction: column; gap: 3px; line-height: 1.25; }
+body[data-shell="harness"] .hx-draft-title { font-size: 10.5px; font-weight: 650; color: var(--hx-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body[data-shell="harness"] .hx-draft-row.is-active .hx-draft-title { color: var(--hx-accent-deep); }
+body[data-shell="harness"] .hx-draft-meta { display: flex; align-items: center; gap: 4px; font-size: 8.5px; color: var(--hx-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body[data-shell="harness"] .hx-draft-more { display: grid; place-items: center; color: var(--hx-ink-3); opacity: .6; cursor: pointer; border: 0; background: transparent; padding: 2px; border-radius: 5px; }
+body[data-shell="harness"] .hx-draft-more:hover { opacity: 1; background: var(--hx-panel-3); color: var(--hx-ink); }
+body[data-shell="harness"] .hx-draft-more .icon { width: 12px; height: 12px; }
+body[data-shell="harness"] .hx-draft-row.is-pinned .hx-draft-title { color: var(--hx-accent-ink); }
+body[data-shell="harness"] .hx-pin-mark { display: inline-flex; margin-left: 3px; vertical-align: -2px; color: var(--hx-accent); }
+body[data-shell="harness"] .hx-pin-mark .icon { width: 11px; height: 11px; }
+body[data-shell="harness"] .hx-draft-row.is-archived { opacity: .58; }
+
+/* 草稿卡三点菜单（单实例浮层，定位贴卡片右侧，越界自动回收） */
+body[data-shell="harness"] .hx-draft-menu {
+  position: fixed; z-index: 130; min-width: 178px; padding: 5px;
+  background: var(--hx-panel); border: 1px solid var(--hx-line); border-radius: var(--hx-radius);
+  box-shadow: var(--hx-shadow-md); display: none;
+}
+body[data-shell="harness"] .hx-draft-menu.open { display: block; }
+body[data-shell="harness"] .hx-dm-item {
+  display: flex; align-items: center; gap: 9px; width: 100%; padding: 8px 10px;
+  border: 0; background: transparent; border-radius: 8px; cursor: pointer;
+  color: var(--hx-ink-2); font-size: 12.5px; text-align: left;
+}
+body[data-shell="harness"] .hx-dm-item .icon { width: 15px; height: 15px; color: var(--hx-ink-3); flex: none; }
+body[data-shell="harness"] .hx-dm-item:hover:not(.is-disabled) { background: var(--hx-hover); color: var(--hx-ink); }
+body[data-shell="harness"] .hx-dm-item:hover:not(.is-disabled) .icon { color: var(--hx-ink); }
+body[data-shell="harness"] .hx-dm-label { flex: 1; min-width: 0; white-space: nowrap; }
+body[data-shell="harness"] .hx-dm-tag { font-style: normal; font-size: 9px; font-weight: 600; color: var(--hx-ink-4); border: 1px solid var(--hx-line-strong); border-radius: 99px; padding: 1px 6px; }
+body[data-shell="harness"] .hx-dm-item.is-disabled { opacity: .45; cursor: not-allowed; }
+body[data-shell="harness"] .hx-dm-sep { font-size: 9.5px; color: var(--hx-ink-4); padding: 7px 10px 4px; letter-spacing: .02em; }
+body[data-shell="harness"] .hx-dm-item.is-danger { color: var(--hx-red); }
+body[data-shell="harness"] .hx-dm-item.is-danger .icon { color: var(--hx-red); }
+
+/* 外壳弹层（重命名 / 历史版本 / 删除确认） */
+body[data-shell="harness"] .hx-modal-wrap { position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; }
+body[data-shell="harness"] .hx-modal-wrap.on { display: flex; }
+body[data-shell="harness"] .hx-modal-mask { position: absolute; inset: 0; background: var(--hx-overlay); }
+body[data-shell="harness"] .hx-modal-panel {
+  position: relative; width: min(420px, 92vw); background: var(--hx-panel);
+  border: 1px solid var(--hx-line); border-radius: var(--hx-radius); box-shadow: var(--hx-shadow-lg); padding: 18px 18px 16px;
+}
+body[data-shell="harness"] .hx-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+body[data-shell="harness"] .hx-modal-title { font-size: 14.5px; font-weight: 700; color: var(--hx-ink); }
+body[data-shell="harness"] .hx-modal-x { border: 0; background: transparent; color: var(--hx-ink-3); cursor: pointer; padding: 4px; border-radius: 6px; display: grid; place-items: center; }
+body[data-shell="harness"] .hx-modal-x:hover { background: var(--hx-hover); color: var(--hx-ink); }
+body[data-shell="harness"] .hx-modal-body { min-width: 0; }
+body[data-shell="harness"] .hx-modal-input {
+  width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid var(--hx-input-line);
+  border-radius: 10px; background: var(--hx-input); color: var(--hx-ink); font-size: 13px; outline: none;
+}
+body[data-shell="harness"] .hx-modal-input:focus { border-color: var(--hx-accent); }
+body[data-shell="harness"] .hx-modal-err { margin-top: 6px; font-size: 11.5px; color: var(--hx-red); min-height: 14px; }
+body[data-shell="harness"] .hx-modal-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+body[data-shell="harness"] .hx-btn { border: 1px solid transparent; border-radius: 10px; padding: 8px 14px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+body[data-shell="harness"] .hx-btn.ghost { background: transparent; border-color: var(--hx-line-strong); color: var(--hx-ink-2); }
+body[data-shell="harness"] .hx-btn.ghost:hover { background: var(--hx-hover); color: var(--hx-ink); }
+body[data-shell="harness"] .hx-btn.primary { background: var(--hx-accent); color: var(--hx-on-accent); }
+body[data-shell="harness"] .hx-btn.primary:hover { background: var(--hx-accent-deep); }
+body[data-shell="harness"] .hx-btn.danger { background: var(--hx-red-soft); color: var(--hx-red); border-color: var(--hx-red); }
+body[data-shell="harness"] .hx-btn.danger:hover { filter: brightness(.97); }
+body[data-shell="harness"] .hx-confirm-desc { font-size: 13.5px; color: var(--hx-ink); font-weight: 600; margin: 0 0 6px; }
+body[data-shell="harness"] .hx-confirm-hint { font-size: 11.5px; color: var(--hx-ink-3); margin: 0; }
+body[data-shell="harness"] .hx-modal-empty { color: var(--hx-ink-3); font-size: 12.5px; text-align: center; padding: 28px 10px; }
+body[data-shell="harness"] .hx-hist-list { display: flex; flex-direction: column; gap: 10px; max-height: 320px; overflow: auto; }
+body[data-shell="harness"] .hx-hist-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--hx-line); border-radius: 10px; background: var(--hx-panel-2); }
+body[data-shell="harness"] .hx-hist-main { flex: 1; min-width: 0; }
+body[data-shell="harness"] .hx-hist-title { font-size: 12.5px; font-weight: 600; color: var(--hx-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body[data-shell="harness"] .hx-hist-meta { font-size: 10.5px; color: var(--hx-ink-3); margin-top: 2px; }
+body[data-shell="harness"] .hx-hist-restore { flex: none; }
+
+body[data-shell="harness"] .hx-rail-empty {
+  margin: 6px 5px; padding: 16px 10px; border: 1px dashed var(--hx-line-strong); border-radius: 10px;
+  color: var(--hx-ink-3); font-size: 11px; line-height: 1.7; text-align: center;
+}
+
+/* 底部：额度卡 + 账号行 */
+body[data-shell="harness"] .hx-rail-bottom {
+  flex: none; border-top: 1px solid var(--hx-line); background: var(--hx-rail); padding: 9px 11px 10px;
+}
+body[data-shell="harness"] .hx-quota-card { border: 1px solid var(--hx-accent-line); border-radius: 10px; padding: 9px 10px 8px; background: var(--hx-accent-soft); }
+body[data-shell="harness"] .hx-quota-line { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--hx-ink-2); }
+body[data-shell="harness"] .hx-quota-line .icon { width: 13px; height: 13px; color: var(--hx-accent); }
+body[data-shell="harness"] .hx-quota-line b { margin-left: auto; font-size: 10.5px; color: var(--hx-accent-deep); font-weight: 650; }
+body[data-shell="harness"] .hx-quota-num { font-size: 13px; font-weight: 800; letter-spacing: -.01em; color: var(--hx-ink); margin-top: 2px; }
+body[data-shell="harness"] .hx-quota-num small { font-size: 9px; font-weight: 600; color: var(--hx-ink-3); margin-left: 3px; }
+body[data-shell="harness"] .hx-quota-track { height: 3px; border-radius: 99px; background: var(--hx-accent-line); margin-top: 6px; overflow: hidden; }
+body[data-shell="harness"] .hx-quota-track i { display: block; height: 100%; width: 62%; border-radius: 99px; background: var(--hx-accent); }
+
+body[data-shell="harness"] .hx-profile-row { display: flex; align-items: center; gap: 8px; margin-top: 9px; padding: 2px 1px; cursor: pointer; }
+body[data-shell="harness"] .hx-profile-avatar {
+  width: 29px; height: 29px; border-radius: 8px; overflow: hidden; background: var(--hx-line-strong); color: var(--hx-ink);
+  display: grid; place-items: center; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; flex: none;
+}
+body[data-shell="harness"] .hx-profile-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: inherit; }
+body[data-shell="harness"] .hx-profile-main { min-width: 0; line-height: 1.25; }
+body[data-shell="harness"] .hx-profile-name { font-size: 11.5px; font-weight: 700; color: var(--hx-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body[data-shell="harness"] .hx-profile-sub { font-size: 9.5px; color: var(--hx-ink-3); white-space: nowrap; }
+body[data-shell="harness"] .hx-profile-gear { width: 26px; height: 26px; margin-left: auto; border: 0; border-radius: 7px; background: transparent; color: var(--hx-ink-3); display: grid; place-items: center; }
+body[data-shell="harness"] .hx-profile-gear:hover { background: var(--hx-hover); color: var(--hx-ink); }
+
+/* ------------------------------------------------------------------ 中栏骨架（B 填充内部） */
+body[data-shell="harness"] #hxThread { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--hx-panel); position: relative; }
+body[data-shell="harness"] #hxThreadHead { flex: none; min-width: 0; }
+body[data-shell="harness"] #hxThreadBody { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+/* 真实 main-wrapper 作为兄弟节点保留在 #hxThread 内：节点与 onclick 链路不销毁，
+   默认整体隐藏；需要露出的面板由 thread / collect / settings 模块搬入各自宿主。 */
+body[data-shell="harness"] #hxThread > .main-wrapper { display: none !important; }
+body[data-shell="harness"] #hxThread > .main-wrapper > header { display: none !important; }
+body[data-shell="harness"] #hxThreadBody .live-metrics-banner { display: none !important; }
+/* 搬入中栏槽的真实业务面板（含「更多」分组与 D/B 深层宿主 `.hx-collect-body` /
+   `.hx-settings-body` / 编辑器宿主）：撑满槽位、可滚动，不允许 0×0；
+   模板 fadeIn 动画在面板被搬家后会停在起始帧 opacity 0，外壳侧任意层级复位为不透明。
+   仅固化动画终态，不改动 `.panel{display:none}` / `.panel.on{display:block}` 显隐语义。 */
+body[data-shell="harness"] #hxThreadBody .panel { animation: none !important; opacity: 1 !important; transform: none !important; transition: none !important; }
+body[data-shell="harness"] #hxThreadBody > .panel { flex: 1 1 auto; min-height: 0; min-width: 0; width: 100%; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--hx-scroll) transparent; }
+body[data-shell="harness"] #hxThreadBody > .panel::-webkit-scrollbar { width: 5px; }
+body[data-shell="harness"] #hxThreadBody > .panel::-webkit-scrollbar-thumb { background: var(--hx-scroll); border-radius: 99px; }
+
+body[data-shell="harness"] .hx-thread-fallback {
+  height: 54px; display: flex; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--hx-line);
+}
+body[data-shell="harness"] .hx-thread-fallback-title { font-size: 15px; font-weight: 750; color: var(--hx-ink); }
+
+/* 更多页搬入面板：标题 / 描述 / 二级页签在双主题下保持可读、可点、不溢出。 */
+body[data-shell="harness"] #hxThreadBody .sub-tabs {
+  display: flex; flex-wrap: wrap; gap: 2px; border-bottom: 1px solid var(--hx-line);
+}
+body[data-shell="harness"] #hxThreadBody .sub-tab { cursor: pointer; }
+body[data-shell="harness"] #hxThreadBody .panel h1,
+body[data-shell="harness"] #hxThreadBody .panel h2,
+body[data-shell="harness"] #hxThreadBody .panel h3 { color: var(--hx-ink); }
+
+/* ------------------------------------------------------------------ 右栏骨架（C 填充内部） */
+body[data-shell="harness"] #hxStage {
+  min-width: 0; min-height: 0; display: flex; flex-direction: column;
+  background: var(--hx-stage); border-left: 1px solid var(--hx-line); position: relative; z-index: 15;
+}
+body[data-shell="harness"] #hxStageTabs { flex: none; min-width: 0; display: flex; align-items: center; gap: 2px; }
+body[data-shell="harness"] #hxStageBody { flex: 1; min-width: 0; min-height: 0; overflow-y: auto; }
+
+body[data-shell="harness"] .hx-stage-tab {
+  height: 30px; padding: 0 8px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--hx-ink-2); font-size: 10.5px; font-weight: 600; display: flex; align-items: center; gap: 4px; white-space: nowrap; transition: .14s;
+}
+body[data-shell="harness"] .hx-stage-tab:hover { background: var(--hx-panel-3); color: var(--hx-ink); }
+body[data-shell="harness"] .hx-stage-tab.is-active { color: var(--hx-accent-ink); background: var(--hx-accent-soft); font-weight: 750; }
+body[data-shell="harness"] .hx-tab-count { min-width: 14px; height: 14px; padding: 0 4px; border-radius: 99px; background: var(--hx-panel-3); color: var(--hx-ink-3); font-size: 8px; font-weight: 700; display: grid; place-items: center; font-style: normal; }
+
+body[data-shell="harness"] .hx-stage-empty {
+  min-height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 22px 14px;
+}
+body[data-shell="harness"] .hx-stage-empty-art {
+  width: 118px; height: 88px; position: relative; margin-bottom: 14px; display: grid; place-items: center;
+}
+body[data-shell="harness"] .hx-stage-empty-art .icon { width: 26px; height: 26px; color: var(--hx-accent-2); stroke-width: 1.5; }
+body[data-shell="harness"] .hx-stage-empty-title { font-size: 15px; font-weight: 750; color: var(--hx-ink); margin: 0 0 5px; }
+body[data-shell="harness"] .hx-stage-empty-desc { font-size: 11px; line-height: 1.7; color: var(--hx-ink-3); max-width: 250px; margin: 0; }
+
+/* 既有真实资产台在 harness 右栏内的框架适配（内部渲染仍归 workbench-shell / C）。 */
+body[data-shell="harness"] #hxStage > #assetsPanel {
+  flex: 1; min-height: 0; min-width: 0; width: auto; height: auto; display: flex;
+  background: var(--hx-stage); border-left: 0; user-select: auto;
+}
+
+/* ------------------------------------------------------------------ 折叠 / 舞台收起态 */
+body[data-shell="harness"][data-rail="mini"] { grid-template-columns: 68px minmax(0, 1fr) var(--hx-stagew); }
+body[data-shell="harness"][data-stage="closed"] { grid-template-columns: var(--hx-railw) minmax(0, 1fr) 0; }
+body[data-shell="harness"][data-stage="closed"] #hxStage { display: none; }
+body[data-shell="harness"][data-rail="mini"][data-stage="closed"] { grid-template-columns: 68px minmax(0, 1fr) 0; }
+
+body[data-shell="harness"][data-rail="mini"] .hx-rail-brand {
+  padding: 0; flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+}
+body[data-shell="harness"][data-rail="mini"] .hx-brand-logo { width: 28px; height: 28px; margin: 0 auto; }
+/* 迷你态保留可见可点的展开入口：28px 图标按钮，与 Logo 同容器纵向排列、不重叠。 */
+body[data-shell="harness"][data-rail="mini"] .hx-rail-collapse {
+  width: 28px; height: 28px; margin: 0 auto; border-radius: var(--hx-radius-sm);
+  display: grid; place-items: center;
+}
+body[data-shell="harness"][data-rail="mini"] .hx-rail-collapse .icon { width: 16px; height: 16px; }
+body[data-shell="harness"][data-rail="mini"] .hx-brand-text,
+body[data-shell="harness"][data-rail="mini"] .hx-brand-line,
+body[data-shell="harness"][data-rail="mini"] .hx-brand-title,
+body[data-shell="harness"][data-rail="mini"] .hx-brand-badge,
+body[data-shell="harness"][data-rail="mini"] .hx-brand-sub,
+body[data-shell="harness"][data-rail="mini"] .hx-rail-search,
+body[data-shell="harness"][data-rail="mini"] .hx-menu-label,
+body[data-shell="harness"][data-rail="mini"] .hx-menu-count,
+body[data-shell="harness"][data-rail="mini"] .hx-rail-sect-head,
+body[data-shell="harness"][data-rail="mini"] .hx-rail-ctx,
+body[data-shell="harness"][data-rail="mini"] .hx-task-main,
+body[data-shell="harness"][data-rail="mini"] .hx-task-more,
+body[data-shell="harness"][data-rail="mini"] .hx-quota-card,
+body[data-shell="harness"][data-rail="mini"] .hx-profile-main,
+body[data-shell="harness"][data-rail="mini"] .hx-profile-gear { display: none; }
+/* 计数徽标被 #hxRailMenu ID 选择器的 display:grid 压住，迷你态需显式复位。 */
+body[data-shell="harness"][data-rail="mini"] #hxRailMenu .hx-menu-count { display: none !important; }
+body[data-shell="harness"][data-rail="mini"] .hx-rail-body { padding: 13px 9px 10px; align-items: center; }
+body[data-shell="harness"][data-rail="mini"] .hx-new-task { width: 38px; height: 38px; padding: 0; justify-content: center; margin: 0 auto; }
+body[data-shell="harness"][data-rail="mini"] .hx-new-task .hx-new-label,
+body[data-shell="harness"][data-rail="mini"] .hx-new-task kbd,
+body[data-shell="harness"][data-rail="mini"] .hx-new-task-plus { display: none; }
+body[data-shell="harness"][data-rail="mini"] .hx-rail-menu { align-items: center; width: 100%; }
+body[data-shell="harness"][data-rail="mini"] .hx-menu-item { width: 38px; height: 38px; padding: 0; justify-content: center; margin: 0 auto; }
+body[data-shell="harness"][data-rail="mini"] .hx-task-list { width: 100%; align-items: center; }
+body[data-shell="harness"][data-rail="mini"] .hx-task { width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; margin: 0 auto; }
+body[data-shell="harness"][data-rail="mini"] .hx-task-thumb { width: 28px; height: 28px; font-size: 9px; }
+body[data-shell="harness"][data-rail="mini"] .hx-rail-bottom { padding: 9px 5px 10px; display: flex; flex-direction: column; align-items: center; }
+body[data-shell="harness"][data-rail="mini"] .hx-rail-filter,
+body[data-shell="harness"][data-rail="mini"] .hx-draft-main,
+body[data-shell="harness"][data-rail="mini"] .hx-draft-more { display: none; }
+body[data-shell="harness"][data-rail="mini"] .hx-draft-row { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; margin: 0 auto; grid-template-columns: 1fr; }
+body[data-shell="harness"][data-rail="mini"] .hx-draft-thumb { width: 28px; height: 28px; font-size: 9px; margin: 0; }
+body[data-shell="harness"][data-rail="mini"] .hx-profile-row { margin-top: 0; padding: 0; }
+body[data-shell="harness"][data-rail="mini"] .hx-profile-avatar { width: 30px; height: 30px; }
+
+/* ------------------------------------------------------------------ 窄屏（≤1180px）：两列 + 舞台覆盖式抽屉
+   宽屏（>1180px，含 1231）保持三列；抽屉不挤压中栏、不盖顶栏、不产生横向溢出。
+   左栏全态 248 / mini 68 都保留。 */
+@media (max-width: 1180px) {
+  body[data-shell="harness"] { grid-template-columns: var(--hx-railw) minmax(0, 1fr); }
+  body[data-shell="harness"][data-rail="mini"] { grid-template-columns: 68px minmax(0, 1fr); }
+  body[data-shell="harness"][data-stage="closed"] { grid-template-columns: var(--hx-railw) minmax(0, 1fr); }
+  body[data-shell="harness"][data-rail="mini"][data-stage="closed"] { grid-template-columns: 68px minmax(0, 1fr); }
+
+  body[data-shell="harness"] #hxTopbar { grid-area: 1 / 1 / 2 / -1; }
+  body[data-shell="harness"] #hxThread { grid-area: 2 / 2 / 3 / 3; }
+
+  body[data-shell="harness"] #hxStage {
+    position: fixed;
+    top: var(--hx-bar);
+    right: 0;
+    bottom: 0;
+    left: auto;
+    width: min(420px, 92vw);
+    z-index: 40;
+    grid-area: auto;
+    border-left: 1px solid var(--hx-line);
+    box-shadow: var(--hx-shadow-lg) !important;
+  }
+  body[data-shell="harness"][data-stage="closed"] #hxStage { display: none; }
+}
+
+/* 顶栏拥挤时逐级收敛：先藏搜索框，再压缩分段按钮与按钮文字，保证不压字、不溢出。 */
+@media (max-width: 1100px) {
+  body[data-shell="harness"] .hx-tb-search { display: none; }
+}
+@media (max-width: 1024px) {
+  body[data-shell="harness"] #hxTopbar { gap: 10px; padding: 0 12px; }
+  body[data-shell="harness"] .hx-tb-brand { gap: 7px; min-width: 0; }
+  body[data-shell="harness"] .hx-tb-badge { display: none; }
+  body[data-shell="harness"] .hx-tb-seg { gap: 1px; padding: 2px; min-width: 0; }
+  body[data-shell="harness"] .hx-tb-seg-btn { height: 26px; padding: 0 7px; font-size: 11px; }
+  body[data-shell="harness"] .hx-tb-status { gap: 5px; min-width: 0; }
+  body[data-shell="harness"] .hx-tb-pill { height: 26px; padding: 0 7px; gap: 4px; }
+  body[data-shell="harness"] .hx-tb-pill-label { display: none; }
+  body[data-shell="harness"] .hx-tb-acts { gap: 6px; min-width: 0; }
+  body[data-shell="harness"] .hx-tb-theme,
+  body[data-shell="harness"] .hx-tb-account,
+  body[data-shell="harness"] .hx-tb-style-btn { height: 28px; padding: 0 7px; }
+  body[data-shell="harness"] .hx-tb-theme-label,
+  body[data-shell="harness"] .hx-tb-style-btn span { display: none; }
+  body[data-shell="harness"] .hx-tb-account-name,
+  body[data-shell="harness"] .hx-tb-account .icon { display: none; }
+  body[data-shell="harness"] .hx-tb-stage span { display: none; }
+}
+
+/* ==========================================================================
+   业务组件低饱和包覆（第三轮 · A）
+   仅样式包覆：不改业务 JS/DOM；选择器全部收在 body[data-shell="harness"] 下，
+   Classic(?legacy=1) 与 V11(?ui=v2) 零影响。彩色渐变/实心块 → 纯色或浅底；
+   描边统一 --hx-line；静置阴影只留 --hx-shadow-sm；圆角 8/10。
+   ========================================================================== */
+
+/* 按钮体系：同屏仅主操作为实心强调，其余 ghost/tonal；danger 保留 --hx-red。 */
+body[data-shell="harness"] .btn {
+  background: var(--hx-panel-3); color: var(--hx-ink-2);
+  border: 1px solid var(--hx-line); border-radius: var(--hx-radius-sm);
+  box-shadow: none; transition: background .15s, border-color .15s, color .15s;
+}
+body[data-shell="harness"] .btn:hover { background: var(--hx-hover); border-color: var(--hx-line-strong); color: var(--hx-ink); }
+body[data-shell="harness"] .btn.ghost { background: transparent; }
+body[data-shell="harness"] .btn.ghost:hover { background: var(--hx-hover); }
+body[data-shell="harness"] .btn.primary { background: var(--hx-accent); border-color: var(--hx-accent); color: var(--hx-on-accent); }
+body[data-shell="harness"] .btn.primary:hover { background: var(--hx-accent-deep); border-color: var(--hx-accent-deep); color: var(--hx-on-accent); }
+body[data-shell="harness"] .btn.ok { background: var(--hx-panel-3); border-color: var(--hx-line); color: var(--hx-ink-2); }
+body[data-shell="harness"] .btn.danger,
+body[data-shell="harness"] .btn.warn { background: var(--hx-red-soft); border-color: var(--hx-red); color: var(--hx-red); }
+body[data-shell="harness"] .btn.info { background: var(--hx-panel-3); border-color: var(--hx-line); color: var(--hx-ink-2); }
+body[data-shell="harness"] .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* 卡片：纯白/深灰卡 + 极浅描边 + 轻阴影；嵌套内层去阴影、改描边。 */
+body[data-shell="harness"] .card {
+  background: var(--hx-panel); border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius); box-shadow: var(--hx-shadow-sm);
+}
+body[data-shell="harness"] .card .card,
+body[data-shell="harness"] .card .panel { box-shadow: none; }
+
+/* 徽标：语义软底 + 细线，不荧光。 */
+body[data-shell="harness"] .badge {
+  background: var(--hx-panel-3); color: var(--hx-ink-2); border: 1px solid var(--hx-line);
+}
+body[data-shell="harness"] .badge.green,
+body[data-shell="harness"] .badge.ok { background: var(--hx-green-soft); color: var(--hx-green); border-color: var(--hx-green); }
+body[data-shell="harness"] .badge.blue,
+body[data-shell="harness"] .badge.info { background: var(--hx-blue-soft); color: var(--hx-blue); border-color: var(--hx-blue); }
+body[data-shell="harness"] .badge.red,
+body[data-shell="harness"] .badge.danger { background: var(--hx-red-soft); color: var(--hx-red); border-color: var(--hx-red); }
+body[data-shell="harness"] .badge.gold,
+body[data-shell="harness"] .badge.warn { background: var(--hx-amber-soft); color: var(--hx-amber); border-color: var(--hx-amber); }
+body[data-shell="harness"] .badge.gray { background: var(--hx-panel-3); color: var(--hx-ink-3); border-color: var(--hx-line); }
+
+/* 标签 / 芯片 */
+body[data-shell="harness"] .tag,
+body[data-shell="harness"] .chip,
+body[data-shell="harness"] .stat-tag,
+body[data-shell="harness"] .sb-tag,
+body[data-shell="harness"] .p-tag,
+body[data-shell="harness"] .copilot-chip,
+body[data-shell="harness"] .derive-chip,
+body[data-shell="harness"] .inspire-chip,
+body[data-shell="harness"] .lite-plat-chip {
+  background: var(--hx-panel-3); color: var(--hx-ink-2); border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius-sm);
+}
+body[data-shell="harness"] .tag.on,
+body[data-shell="harness"] .chip.on,
+body[data-shell="harness"] .derive-chip.on,
+body[data-shell="harness"] .copilot-chip.on {
+  background: var(--hx-accent-soft); color: var(--hx-accent-ink); border-color: var(--hx-accent-line);
+}
+
+/* 页签：小号、默认次文字，选中软底强调。 */
+body[data-shell="harness"] .tabs .tab,
+body[data-shell="harness"] .sub-tab {
+  color: var(--hx-ink-3); background: transparent; border: 0;
+  border-radius: var(--hx-radius-sm);
+}
+body[data-shell="harness"] .tabs .tab:hover,
+body[data-shell="harness"] .sub-tab:hover { color: var(--hx-ink); background: var(--hx-hover); }
+body[data-shell="harness"] .tabs .tab.on,
+body[data-shell="harness"] .sub-tab.on { color: var(--hx-accent-ink); background: var(--hx-accent-soft); font-weight: 700; }
+
+/* 表格 */
+body[data-shell="harness"] .table th,
+body[data-shell="harness"] table th { background: var(--hx-panel-2); color: var(--hx-ink-2); border-color: var(--hx-line); }
+body[data-shell="harness"] .table td,
+body[data-shell="harness"] table td { border-color: var(--hx-line); }
+body[data-shell="harness"] .table tbody tr:hover,
+body[data-shell="harness"] table tbody tr:hover { background: var(--hx-hover); }
+
+/* 弹窗面板 */
+body[data-shell="harness"] .modal-box {
+  background: var(--hx-panel); border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius); box-shadow: var(--hx-shadow-lg); color: var(--hx-ink);
+}
+
+/* 空态 */
+body[data-shell="harness"] .empty,
+body[data-shell="harness"] .empty-state { color: var(--hx-ink-3); }
+
+/* 开关 */
+body[data-shell="harness"] .switch { background: var(--hx-panel-3); border: 1px solid var(--hx-line); }
+body[data-shell="harness"] .switch.on,
+body[data-shell="harness"] .switch[aria-checked="true"] { background: var(--hx-accent); border-color: var(--hx-accent); }
+
+/* 表单控件 */
+body[data-shell="harness"] input[type="text"],
+body[data-shell="harness"] input[type="password"],
+body[data-shell="harness"] input[type="number"],
+body[data-shell="harness"] input[type="search"],
+body[data-shell="harness"] select,
+body[data-shell="harness"] textarea,
+body[data-shell="harness"] .m-input {
+  background: var(--hx-input); border: 1px solid var(--hx-input-line); color: var(--hx-ink);
+  border-radius: var(--hx-radius-sm);
+}
+body[data-shell="harness"] input:focus,
+body[data-shell="harness"] select:focus,
+body[data-shell="harness"] textarea:focus,
+body[data-shell="harness"] .m-input:focus { border-color: var(--hx-accent); outline: none; }
+
+/* 滚动条：8px，thumb 中性，轨透明。 */
+body[data-shell="harness"] ::-webkit-scrollbar { width: 8px; height: 8px; }
+body[data-shell="harness"] ::-webkit-scrollbar-thumb { background: var(--hx-scroll); border-radius: 99px; }
+body[data-shell="harness"] ::-webkit-scrollbar-track { background: transparent; }
+
+/* 影音工坊步骤条等业务内联块：去高饱和，统一中性。 */
+body[data-shell="harness"] .drama-step-item { background: var(--hx-panel) !important; border: 1px solid var(--hx-line) !important; border-radius: var(--hx-radius) !important; }
+body[data-shell="harness"] .drama-step-item.active { border-color: var(--hx-accent-line) !important; background: var(--hx-accent-soft) !important; }
+body[data-shell="harness"] .drama-step-num { background: var(--hx-panel-3) !important; color: var(--hx-ink-2) !important; box-shadow: none !important; }
+body[data-shell="harness"] .drama-step-item.active .drama-step-num { background: var(--hx-accent) !important; color: var(--hx-on-accent) !important; box-shadow: none !important; }
+body[data-shell="harness"] #p-studio .drama-step-item.active .drama-step-num { background: var(--hx-accent) !important; color: var(--hx-on-accent) !important; }
+body[data-shell="harness"] #p-studio .drama-step-item.done .drama-step-num { background: var(--hx-green-soft) !important; color: var(--hx-green) !important; }
+body[data-shell="harness"] .drama-step-item.done .drama-step-num { background: var(--hx-green-soft) !important; color: var(--hx-green) !important; box-shadow: none !important; }
+
+/* 业务分段胶囊（画幅 / 保底分档）：默认 ghost 中性，选中软底强调，去橙渐变与实心橙块。 */
+body[data-shell="harness"] #hxThreadBody .aspect-pill-btn,
+body[data-shell="harness"] #hxThreadBody .furnace-pill-btn {
+  background: transparent !important;
+  background-image: none !important;
+  border: 1px solid var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+}
+body[data-shell="harness"] #hxThreadBody .aspect-pill-btn.active,
+body[data-shell="harness"] #hxThreadBody .furnace-pill-btn.active {
+  background: var(--hx-accent-soft) !important;
+  background-image: none !important;
+  border-color: var(--hx-accent-line) !important;
+  color: var(--hx-accent-ink) !important;
+}
+
+/* 内联样式兜底：业务面板把底色/描边/颜色写在 style 上，类选择器压不住；这里用外壳
+   槽位 ID 锚定，仅复位外壳属性（底色 / 描边 / 文字 / 背景图），不改 DOM、不改业务行为。 */
+body[data-shell="harness"] #hxThreadBody .card,
+body[data-shell="harness"] #hxStageBody .card {
+  background: var(--hx-panel) !important;
+  background-image: none !important;
+  border-color: var(--hx-line) !important;
+  box-shadow: var(--hx-shadow-sm);
+}
+
+body[data-shell="harness"] #hxThreadBody .btn,
+body[data-shell="harness"] #hxStageBody .btn { background-image: none !important; box-shadow: none !important; }
+body[data-shell="harness"] #hxThreadBody .btn:not(.ghost):not(.ok):not(.info):not(.danger):not(.warn):not(.primary),
+body[data-shell="harness"] #hxStageBody .btn:not(.ghost):not(.ok):not(.info):not(.danger):not(.warn):not(.primary) {
+  background-color: var(--hx-panel-3) !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+}
+body[data-shell="harness"] #hxThreadBody .btn.ghost,
+body[data-shell="harness"] #hxStageBody .btn.ghost {
+  background-color: transparent !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+}
+body[data-shell="harness"] #hxThreadBody .btn.primary,
+body[data-shell="harness"] #hxStageBody .btn.primary {
+  background-color: var(--hx-accent) !important;
+  border-color: var(--hx-accent) !important;
+  color: var(--hx-on-accent) !important;
+}
+/* 成功/信息类操作按钮：绿色/蓝色只保留在徽标与状态文字上；按钮统一中性 tonal。
+   覆盖线程体/舞台体与 body 级弹窗（modal）内的同类按钮；badge 为 span，不受影响。 */
+body[data-shell="harness"] button.btn.ok:not(.primary),
+body[data-shell="harness"] a.btn.ok:not(.primary),
+body[data-shell="harness"] button.btn.info:not(.primary),
+body[data-shell="harness"] a.btn.info:not(.primary),
+body[data-shell="harness"] button.btn.success:not(.primary),
+body[data-shell="harness"] button[class*="success"]:not(.primary):not(.badge) {
+  background-color: var(--hx-panel-3) !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+body[data-shell="harness"] #hxThreadBody .btn.danger,
+body[data-shell="harness"] #hxStageBody .btn.danger,
+body[data-shell="harness"] #hxThreadBody .btn.warn,
+body[data-shell="harness"] #hxStageBody .btn.warn {
+  background-color: var(--hx-red-soft) !important;
+  border-color: var(--hx-red) !important;
+  color: var(--hx-red) !important;
+}
+
+body[data-shell="harness"] #hxThreadBody .badge:not(.green):not(.blue):not(.red):not(.gold):not(.gray):not(.ok),
+body[data-shell="harness"] #hxStageBody .badge:not(.green):not(.blue):not(.red):not(.gold):not(.gray):not(.ok) {
+  background: var(--hx-panel-3) !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+}
+
+/* ==========================================================================
+   第二轮精准收尾（A）：大屏色晕 / 渐变进度条 / 图表降饱和 / 横幅纯色。
+   全部限定在对应业务面板 id 内；只复位外壳属性，不改业务 DOM，不碰封面缩略图。
+   ========================================================================== */
+
+/* 1) 大屏统计卡右上角匿名径向色晕（80×80 absolute 装饰 div）：清零背景图。 */
+body[data-shell="harness"] #p-dashboard div[style*="radial-gradient"] {
+  background-image: none !important;
+}
+
+/* 2) 平台矩阵 / 漏斗进度条：去渐变，统一 --hx-accent 纯色填充，保留原 width；
+      排除卡片本身（.card 已由卡片规则包覆）。父级轨道本就是浅中性底，保持不动。 */
+body[data-shell="harness"] #p-dashboard div[style*="linear-gradient"]:not(.card) {
+  background-image: none !important;
+  background-color: var(--hx-accent) !important;
+}
+
+/* 3) 图表画布元素降饱和：只加在 svg 上，不加卡片/浮层容器，避免改变 containing block。 */
+body[data-shell="harness"] #p-dashboard svg {
+  filter: saturate(.55);
+}
+
+/* 4) 价格 / 个人页顶部横幅：渐变与彩色描边改浅底 + 细线，保留文字与可点；
+      头像圆（border-radius:50%）不在此横幅规则内，单独按强调色实心处理。 */
+body[data-shell="harness"] #p-pricing div[style*="linear-gradient"],
+body[data-shell="harness"] #p-profile div[style*="linear-gradient"]:not([style*="border-radius:50%"]) {
+  background-image: none !important;
+  background-color: var(--hx-panel-2) !important;
+  border-color: var(--hx-line) !important;
+}
+
+/* 个人中心 58px 头像圆：渐变改唯一强调色实心，描边归中性线。 */
+body[data-shell="harness"] #p-profile div[style*="border-radius:50%"] {
+  background-image: none !important;
+  background-color: var(--hx-accent) !important;
+  border-color: var(--hx-line) !important;
+}
+
+/* 个人中心配额条（.blN-bar > i）：轨道中性浅底，填充强调色纯色。 */
+body[data-shell="harness"] #p-profile .blN-bar { background: var(--hx-panel-3); }
+body[data-shell="harness"] #p-profile .blN-bar i {
+  background-image: none !important;
+  background-color: var(--hx-accent) !important;
+}
+
+/* 价格页：当前步骤软底强调（去掉橙描边与投影），提示条浅底中性；白字复位为正文色。 */
+body[data-shell="harness"] #p-pricing #inapp-step-1 {
+  background: var(--hx-accent-soft) !important;
+  border-color: var(--hx-accent-line) !important;
+  box-shadow: none !important;
+}
+body[data-shell="harness"] #p-pricing #inapp-step-1 div[style*="color:#fff"] { color: var(--hx-ink) !important; }
+body[data-shell="harness"] #p-pricing div[style*="rgba(240,136,62,0.09)"] {
+  background: var(--hx-panel-2) !important;
+  border-color: var(--hx-line) !important;
+}
+
+/* 个人中心：推荐套餐卡软底强调，套餐提示浅条中性。 */
+body[data-shell="harness"] #p-profile .billing-plan-card.selected {
+  background: var(--hx-accent-soft) !important;
+  border: 1px solid var(--hx-accent-line) !important;
+  box-shadow: none !important;
+}
+body[data-shell="harness"] #p-profile div[style*="rgba(240,136,62,0.06)"] {
+  background: var(--hx-panel-2) !important;
+  border-color: var(--hx-line) !important;
+}
+
+/* ==========================================================================
+   第三轮收口（A）：影音工坊按钮/标签去彩色；价格/个人页内联高饱和文字映射 token；
+   大屏四条 CTA 链接统一强调色；实心彩色按钮全局兜底。绿色仅保留在徽标/状态文字。
+   ========================================================================== */
+
+/* 影音工坊：选中子标签、当前步骤胶囊保留唯一 accent 软底强调。 */
+body[data-shell="harness"] #p-studio .sub-tab.on {
+  background: var(--hx-accent-soft) !important;
+  border-color: var(--hx-accent-line) !important;
+  color: var(--hx-accent-ink) !important;
+}
+body[data-shell="harness"] #p-studio .drama-step-item.active,
+body[data-shell="harness"] #p-studio .drama-step-item.active span {
+  color: var(--hx-accent-ink) !important;
+}
+
+/* 影音工坊：琥珀提示条改中性面板；提示文字 / 标签 / 字数计数去橙黄蓝。 */
+body[data-shell="harness"] #p-studio div[style*="rgba(210, 153, 34"],
+body[data-shell="harness"] #p-studio .sgm-text {
+  background: var(--hx-panel-2) !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+}
+body[data-shell="harness"] #p-studio label[style*="#e3b341"],
+body[data-shell="harness"] #p-studio label[style*="#f0883e"],
+body[data-shell="harness"] #p-studio span[style*="#79c0ff"],
+body[data-shell="harness"] #p-studio label[style*="#e3b341"] span,
+body[data-shell="harness"] #p-studio label[style*="#f0883e"] span {
+  color: var(--hx-ink-2) !important;
+}
+
+/* 价格 / 个人页：橙色主文字 → accent-ink；蓝 / 绿 / 紫普通文字 → ink-2。
+   徽标（.badge.ok/.green/.blue/.gold）语义软底与文字保留，不在此复位。 */
+body[data-shell="harness"] #p-pricing [style*="#ffb25e"],
+body[data-shell="harness"] #p-profile [style*="#ffb25e"],
+body[data-shell="harness"] #p-profile [style*="#ff9d55"],
+body[data-shell="harness"] #p-profile [style*="#ffd0a6"],
+body[data-shell="harness"] #p-pricing [style*="color:var(--primary)"],
+body[data-shell="harness"] #p-profile [style*="color:var(--primary)"],
+body[data-shell="harness"] #p-profile .blN-tiername {
+  color: var(--hx-accent-ink) !important;
+}
+body[data-shell="harness"] #p-pricing [style*="#34d399"],
+body[data-shell="harness"] #p-pricing [style*="#7ee787"],
+body[data-shell="harness"] #p-profile [style*="#38bdf8"],
+body[data-shell="harness"] #p-profile [style*="var(--purple)"] {
+  color: var(--hx-ink-2) !important;
+}
+
+/* 大屏统计卡四条 CTA 链接：统一 accent-ink，不再橙 / 蓝 / 绿三色区分。 */
+body[data-shell="harness"] #p-dashboard div[style*="#f0883e"],
+body[data-shell="harness"] #p-dashboard div[style*="#58a6ff"],
+body[data-shell="harness"] #p-dashboard div[style*="#3fb950"] {
+  color: var(--hx-accent-ink) !important;
+}
+
+/* 全局兜底：内联实心绿 / 蓝 / 红 / 橙渐变的操作按钮 → 中性 tonal；
+   排除 .primary 实心强调与徽标；尺寸 / 圆角 / 内边距不动。 */
+body[data-shell="harness"] button[style*="#2ea043"]:not(.primary),
+body[data-shell="harness"] button[style*="#238636"]:not(.primary),
+body[data-shell="harness"] button[style*="#3b82f6"]:not(.primary),
+body[data-shell="harness"] button[style*="#0284c7"]:not(.primary),
+body[data-shell="harness"] button[style*="#ff2442"]:not(.primary),
+body[data-shell="harness"] button[style*="linear-gradient"]:not(.primary):not(.badge) {
+  background-image: none !important;
+  background-color: var(--hx-panel-3) !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+  box-shadow: none !important;
+}

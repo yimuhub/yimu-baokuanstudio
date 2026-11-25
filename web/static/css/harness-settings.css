@@ -1,0 +1,675 @@
+/* SPDX-License-Identifier: BUSL-1.1 */
+/* ==========================================================================
+   Harness · 系统设置样式（D 模块 · fresh 小清新视觉系统）
+   作用域：body[data-shell="harness"]；class 统一 hx- 前缀。
+   classic / v2 既有样式零影响；通用按钮/徽标/胶囊/页签/表格/输入框由
+   harness-ui.css 统一接管，本文件只补设置面板专属 legacy 类与自有栏。
+   取色只引用 harness-ui.css 落地的 --hx-* token，不另造颜色。
+   ========================================================================== */
+
+/* ------------------------------ 左栏 · 设置导航 ------------------------------ */
+
+body[data-shell="harness"] .hx-set-ctx {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+body[data-shell="harness"] .hx-set-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 6px 7px;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 750;
+  letter-spacing: .08em;
+  color: var(--hx-ink-3);
+}
+
+body[data-shell="harness"] .hx-set-nav,
+body[data-shell="harness"] .hx-set-extra {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 1px;
+}
+
+body[data-shell="harness"] .hx-set-extra-label {
+  margin: 12px 7px 5px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  color: var(--hx-ink-3);
+}
+
+body[data-shell="harness"] .hx-set-item {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 7px;
+  align-items: center;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--hx-ink-2);
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+body[data-shell="harness"] .hx-set-item:hover { background: var(--hx-hover); color: var(--hx-ink); }
+
+body[data-shell="harness"] .hx-set-item.is-active {
+  background: var(--hx-accent-soft);
+  border-color: var(--hx-accent-line);
+  color: var(--hx-accent-ink);
+  font-weight: 700;
+}
+
+body[data-shell="harness"] .hx-set-item .hx-ico { width: 15px; height: 15px; color: var(--hx-ink-3); }
+
+body[data-shell="harness"] .hx-set-item.is-active .hx-ico { color: var(--hx-accent-deep); }
+
+body[data-shell="harness"] .hx-set-item span:not(.hx-set-dot) {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-shell="harness"] .hx-set-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--hx-ink-4);
+  flex: none;
+}
+
+body[data-shell="harness"] .hx-set-dot.ok { background: var(--hx-green); }
+body[data-shell="harness"] .hx-set-dot.warn { background: var(--hx-amber); }
+
+body[data-shell="harness"] .hx-set-extra-item { height: 31px; font-size: 10px; color: var(--hx-ink-2); }
+
+body[data-shell="harness"] .hx-set-hint {
+  margin: 12px 7px 2px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--hx-line);
+  font-size: 9px;
+  line-height: 1.7;
+  color: var(--hx-ink-3);
+}
+
+/* ------------------------------ 中栏 · 真实面板容器 ------------------------------ */
+
+body[data-shell="harness"] .hx-settings-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body[data-shell="harness"] .hx-settings-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hx-scroll) transparent;
+}
+
+body[data-shell="harness"] .hx-settings-panel::-webkit-scrollbar { width: 6px; height: 6px; }
+body[data-shell="harness"] .hx-settings-panel::-webkit-scrollbar-thumb { background: var(--hx-scroll); border-radius: 99px; }
+body[data-shell="harness"] .hx-settings-panel::-webkit-scrollbar-track { background: transparent; }
+
+/* legacy 变量映射到 fresh token：内联/嵌入样式随 token 换肤，深浅态同层级。 */
+body[data-shell="harness"] .hx-settings-panel {
+  --card: var(--hx-panel);
+  --card-bg: var(--hx-panel);
+  --card-hover: var(--hx-hover);
+  --card-light: var(--hx-panel);
+  --bg-card: var(--hx-panel);
+  --bg-card-hover: var(--hx-hover);
+  --border: var(--hx-line);
+  --text: var(--hx-ink);
+  --text-muted: var(--hx-ink-2);
+  --primary: var(--hx-accent);
+  --primary-subtle: var(--hx-accent-soft);
+  --primary-hover: var(--hx-accent-deep);
+  --info: var(--hx-blue);
+  --success: var(--hx-green);
+  --danger: var(--hx-red);
+}
+
+/* 分组卡 / 设置卡：纯白（深态深灰卡）+ 极浅描边 + 轻阴影，去渐变与悬浮抬升。 */
+body[data-shell="harness"] .hx-settings-panel .set20-card {
+  background: var(--hx-panel) !important;
+  border: 1px solid var(--hx-line) !important;
+  color: var(--hx-ink);
+  border-radius: var(--hx-radius);
+  box-shadow: var(--hx-shadow-sm);
+  background-image: none !important;
+  min-width: 0;
+}
+
+/* 卡片内宽表不撑开面板：卡片体横向自滚，表格限宽。 */
+body[data-shell="harness"] .hx-settings-panel .set20-card .ds,
+body[data-shell="harness"] .hx-settings-panel .card .ds {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+body[data-shell="harness"] .hx-settings-panel table { max-width: 100%; }
+
+/* 内联渐变卡片：去蓝/橙渐变，回收为标准白卡。 */
+body[data-shell="harness"] .hx-settings-panel .card {
+  background: var(--hx-panel) !important;
+  border: 1px solid var(--hx-line) !important;
+  background-image: none !important;
+}
+
+/* 内联深色盒子（习惯进化框 / 视频配置折叠区）回收为次级面板底。 */
+body[data-shell="harness"] .hx-settings-panel #habit-evolution-box,
+body[data-shell="harness"] .hx-settings-panel #vdCfg-vc-fields {
+  background: var(--hx-panel-2) !important;
+  border-color: var(--hx-line) !important;
+}
+
+/* 卡片内联白字 / 浅灰字回收为正文 token，避免浅底白字不可读。 */
+body[data-shell="harness"] .hx-settings-panel .card [style*="color:#fff"],
+body[data-shell="harness"] .hx-settings-panel .card [style*="color:#ffffff"] { color: var(--hx-ink) !important; }
+body[data-shell="harness"] .hx-settings-panel .card [style*="color:#e2e8f0"] { color: var(--hx-ink-2) !important; }
+
+body[data-shell="harness"] .hx-settings-panel .set20-card:hover {
+  border-color: var(--hx-accent-line);
+  transform: none;
+}
+
+body[data-shell="harness"] .hx-settings-panel .set20-card .tt { color: var(--hx-ink); }
+
+body[data-shell="harness"] .hx-settings-panel .set20-card .ds,
+body[data-shell="harness"] .hx-settings-panel .set20-card .meta,
+body[data-shell="harness"] .hx-settings-panel .sub { color: var(--hx-ink-3); }
+
+body[data-shell="harness"] .hx-settings-panel .set20-card .ic {
+  background: var(--hx-accent-soft);
+  border-color: var(--hx-accent-line);
+  color: var(--hx-accent-ink);
+}
+
+/* 三件事引导英雄卡：去橙蓝渐变，收敛为次级面板底。 */
+body[data-shell="harness"] .hx-settings-panel .set20-hero {
+  background: var(--hx-panel-2) !important;
+  border: 1px solid var(--hx-line) !important;
+  background-image: none !important;
+  border-radius: var(--hx-radius);
+}
+
+body[data-shell="harness"] .hx-settings-panel .set20-hero h2 { color: var(--hx-ink); }
+body[data-shell="harness"] .hx-settings-panel .set20-hero p { color: var(--hx-ink-3); }
+
+body[data-shell="harness"] .hx-settings-panel .set-hub .h {
+  background: var(--hx-panel-2) !important;
+  border: 1px solid var(--hx-line) !important;
+}
+
+body[data-shell="harness"] .hx-settings-panel .set-hub .h b { color: var(--hx-ink); }
+body[data-shell="harness"] .hx-settings-panel .set-hub .h .val { color: var(--hx-ink-3); }
+body[data-shell="harness"] .hx-settings-panel .set-hub .h .val em { color: var(--hx-accent-ink); }
+body[data-shell="harness"] .hx-settings-panel .set-hub .h.done { border-color: var(--hx-green-soft); }
+body[data-shell="harness"] .hx-settings-panel .set-hub .h.pending { border-color: var(--hx-accent-line); }
+
+body[data-shell="harness"] .hx-settings-panel .set20-tier .t {
+  background: var(--hx-panel-2) !important;
+  border: 1px solid var(--hx-line) !important;
+}
+
+body[data-shell="harness"] .hx-settings-panel .set20-tier .t b { color: var(--hx-ink); }
+body[data-shell="harness"] .hx-settings-panel .set20-tier .t span { color: var(--hx-ink-3); }
+body[data-shell="harness"] .hx-settings-panel .set20-tier .t .go { color: var(--hx-accent-ink); }
+
+body[data-shell="harness"] .hx-settings-panel .set20-adv {
+  background: var(--hx-panel-2) !important;
+  border: 1px dashed var(--hx-line) !important;
+}
+
+body[data-shell="harness"] .hx-settings-panel .set20-adv > summary { color: var(--hx-ink-2); }
+body[data-shell="harness"] .hx-settings-panel .set20-adv > summary::after { color: var(--hx-accent-ink); }
+
+/* 状态小圆点：绿色仅表示成功，去发光阴影。 */
+body[data-shell="harness"] .hx-settings-panel .dot {
+  background: var(--hx-green);
+  box-shadow: none;
+}
+
+/* 徽标：低饱和软底；绿=成功，红=异常，蓝=信息，琥珀=提醒，中性=元信息。 */
+body[data-shell="harness"] .hx-settings-panel .badge {
+  background: var(--hx-panel-3) !important;
+  border: 1px solid var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+  background-image: none !important;
+}
+
+body[data-shell="harness"] .hx-settings-panel .badge.ok,
+body[data-shell="harness"] .hx-settings-panel .badge.green {
+  background: var(--hx-green-soft) !important;
+  border-color: var(--hx-green-soft) !important;
+  color: var(--hx-green) !important;
+}
+
+body[data-shell="harness"] .hx-settings-panel .badge.red {
+  background: var(--hx-red-soft) !important;
+  border-color: var(--hx-red-soft) !important;
+  color: var(--hx-red) !important;
+}
+
+body[data-shell="harness"] .hx-settings-panel .badge.blue,
+body[data-shell="harness"] .hx-settings-panel .badge.info {
+  background: var(--hx-blue-soft) !important;
+  border-color: var(--hx-blue-soft) !important;
+  color: var(--hx-blue) !important;
+}
+
+body[data-shell="harness"] .hx-settings-panel .badge.gold,
+body[data-shell="harness"] .hx-settings-panel .badge.warn {
+  background: var(--hx-amber-soft) !important;
+  border-color: var(--hx-amber-soft) !important;
+  color: var(--hx-amber) !important;
+}
+
+body[data-shell="harness"] .hx-settings-panel .badge.gray,
+body[data-shell="harness"] .hx-settings-panel .badge.purple {
+  background: var(--hx-panel-3) !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-3) !important;
+}
+
+/* 二级页签：选中细底边结构（颜色归 ui.css）。 */
+body[data-shell="harness"] .hx-settings-panel .sub-tabs {
+  border-bottom: 1px solid var(--hx-line);
+  padding-bottom: 0;
+  margin-bottom: 14px;
+}
+
+body[data-shell="harness"] .hx-settings-panel .sub-tab {
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid transparent;
+}
+
+body[data-shell="harness"] .hx-settings-panel .sub-tab.on {
+  border-bottom-color: var(--hx-accent);
+}
+
+/* legacy 深色输入控件补白；通用输入框由 ui.css 接管。 */
+body[data-shell="harness"] .hx-settings-panel .gwN-input,
+body[data-shell="harness"] .hx-settings-panel .gwN-select,
+body[data-shell="harness"] .hx-settings-panel .gwN-textarea,
+body[data-shell="harness"] .hx-settings-panel .vdCfg-input,
+body[data-shell="harness"] .hx-settings-panel input[style*="0d1117"],
+body[data-shell="harness"] .hx-settings-panel input[style*="161b22"],
+body[data-shell="harness"] .hx-settings-panel select[style*="0d1117"],
+body[data-shell="harness"] .hx-settings-panel select[style*="161b22"],
+body[data-shell="harness"] .hx-settings-panel textarea[style*="0d1117"] {
+  background: var(--hx-input) !important;
+  border: 1px solid var(--hx-input-line) !important;
+  color: var(--hx-ink) !important;
+  background-image: none !important;
+}
+
+body[data-shell="harness"] .hx-settings-panel input:focus,
+body[data-shell="harness"] .hx-settings-panel textarea:focus,
+body[data-shell="harness"] .hx-settings-panel select:focus {
+  box-shadow: 0 0 0 3px var(--hx-accent-soft);
+}
+
+body[data-shell="harness"] .hx-settings-panel input[type="checkbox"],
+body[data-shell="harness"] .hx-settings-panel input[type="radio"] {
+  accent-color: var(--hx-accent);
+}
+
+/* 单选 / 复选选项卡：选中浅橙软底 + 橙细边。 */
+body[data-shell="harness"] .hx-settings-panel .vdCfg-opt {
+  background: var(--hx-panel);
+  border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius-sm);
+}
+
+body[data-shell="harness"] .hx-settings-panel .vdCfg-opt.on {
+  border-color: var(--hx-accent-line);
+  background: var(--hx-accent-soft);
+}
+
+body[data-shell="harness"] .hx-settings-panel .vdCfg-label { color: var(--hx-ink); }
+body[data-shell="harness"] .hx-settings-panel .vdCfg-desc { color: var(--hx-ink-3); }
+
+/* 表格补充分隔与留白；表头/行 hover 归 ui.css。 */
+body[data-shell="harness"] .hx-settings-panel .tbl th,
+body[data-shell="harness"] .hx-settings-panel table th {
+  color: var(--hx-ink-3);
+  font-size: 12px;
+  padding: 9px 8px;
+  white-space: nowrap;
+}
+
+body[data-shell="harness"] .hx-settings-panel .tbl td,
+body[data-shell="harness"] .hx-settings-panel table td {
+  padding: 9px 8px;
+}
+
+/* 代码 / Key 块 / JSON 预览：次级面板底 + 等宽字体 + 细线，不用黑底高饱和块。 */
+body[data-shell="harness"] .hx-settings-panel code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--hx-panel-3);
+  border: 1px solid var(--hx-line);
+  color: var(--hx-ink-2);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: .9em;
+}
+
+body[data-shell="harness"] .hx-settings-panel pre,
+body[data-shell="harness"] .hx-settings-panel .gwN-keybox,
+body[data-shell="harness"] .hx-settings-panel .gwN-result,
+body[data-shell="harness"] .hx-settings-panel .vdCfg-key {
+  background: var(--hx-panel-2) !important;
+  border: 1px solid var(--hx-line);
+  color: var(--hx-ink-2);
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+body[data-shell="harness"] .hx-settings-panel pre { padding: 12px; white-space: pre-wrap; }
+body[data-shell="harness"] .hx-settings-panel .gwN-result pre { background: var(--hx-panel-3) !important; border: 0; }
+body[data-shell="harness"] .hx-settings-panel .vdCfg-key { padding: 4px 10px; font-size: 12.5px; }
+
+body[data-shell="harness"] .hx-settings-panel a { color: var(--hx-accent-ink); }
+
+/* ------------------------------ 未接入占位空态 ------------------------------ */
+
+body[data-shell="harness"] .hx-setting-placeholder {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 30px 20px;
+}
+
+body[data-shell="harness"] .hx-setting-empty {
+  max-width: 360px;
+  border: 1px dashed var(--hx-line-strong);
+  border-radius: 12px;
+  background: var(--hx-panel-3);
+  padding: 30px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+body[data-shell="harness"] .hx-setting-empty-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--hx-panel);
+  border: 1px solid var(--hx-line);
+  display: grid;
+  place-items: center;
+  color: var(--hx-ink-3);
+}
+
+body[data-shell="harness"] .hx-setting-empty-ico .hx-ico { width: 19px; height: 19px; }
+
+body[data-shell="harness"] .hx-setting-empty b {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--hx-ink);
+}
+
+body[data-shell="harness"] .hx-setting-empty span {
+  font-size: 9.5px;
+  line-height: 1.75;
+  color: var(--hx-ink-3);
+}
+
+/* ------------------------------ 右栏 · 配置检查 ------------------------------ */
+
+body[data-shell="harness"] .hx-config-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+body[data-shell="harness"] .hx-config-health {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--hx-line);
+  border-radius: 10px;
+  background: var(--hx-panel-2);
+}
+
+body[data-shell="harness"] .hx-config-ring {
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  background: conic-gradient(var(--hx-accent) var(--hx-ring, 0%), var(--hx-panel-3) 0 100%);
+  display: grid;
+  grid-template-rows: auto auto;
+  align-content: center;
+  gap: 1px;
+  place-items: center;
+  position: relative;
+  flex: none;
+}
+
+body[data-shell="harness"] .hx-config-ring:before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--hx-panel);
+}
+
+body[data-shell="harness"] .hx-config-ring b {
+  position: relative;
+  z-index: 1;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--hx-ink);
+  font-weight: 800;
+}
+
+body[data-shell="harness"] .hx-config-ring span {
+  position: relative;
+  z-index: 1;
+  font-size: 7px;
+  color: var(--hx-ink-3);
+}
+
+body[data-shell="harness"] .hx-config-health > div:last-child {
+  min-width: 0;
+  line-height: 1.35;
+}
+
+body[data-shell="harness"] .hx-config-health h3 {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--hx-ink);
+  font-weight: 750;
+}
+
+body[data-shell="harness"] .hx-config-health p {
+  margin: 3px 0 4px;
+  font-size: 8.5px;
+  line-height: 1.55;
+  color: var(--hx-ink-3);
+}
+
+body[data-shell="harness"] .hx-config-list {
+  border: 1px solid var(--hx-line);
+  border-radius: 9px;
+  background: var(--hx-panel);
+  overflow: hidden;
+}
+
+body[data-shell="harness"] .hx-config-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px;
+  border-bottom: 1px solid var(--hx-line);
+}
+
+body[data-shell="harness"] .hx-config-row:last-child { border-bottom: 0; }
+
+body[data-shell="harness"] .hx-config-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-3);
+  flex: none;
+}
+
+body[data-shell="harness"] .hx-config-icon .hx-ico { width: 12px; height: 12px; }
+
+body[data-shell="harness"] .hx-config-icon.ok { background: var(--hx-green-soft); color: var(--hx-green); }
+body[data-shell="harness"] .hx-config-icon.warn { background: var(--hx-amber-soft); color: var(--hx-amber); }
+
+body[data-shell="harness"] .hx-config-row > div {
+  min-width: 0;
+  flex: 1;
+  line-height: 1.3;
+}
+
+body[data-shell="harness"] .hx-config-row b {
+  display: block;
+  font-size: 9px;
+  color: var(--hx-ink-2);
+  font-weight: 650;
+}
+
+body[data-shell="harness"] .hx-config-row > div span {
+  display: block;
+  font-size: 7.5px;
+  color: var(--hx-ink-3);
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+body[data-shell="harness"] .hx-config-state {
+  font-size: 7.5px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 4px;
+  flex: none;
+  white-space: nowrap;
+}
+
+body[data-shell="harness"] .hx-config-state.ok { background: var(--hx-green-soft); color: var(--hx-green); }
+body[data-shell="harness"] .hx-config-state.warn { background: var(--hx-amber-soft); color: var(--hx-amber); }
+body[data-shell="harness"] .hx-config-state.danger { background: var(--hx-red-soft); color: var(--hx-red); }
+
+body[data-shell="harness"] .hx-config-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 9px;
+  border: 1px solid var(--hx-line-strong);
+  border-radius: 8px;
+  background: var(--hx-amber-soft);
+}
+
+body[data-shell="harness"] .hx-config-tip .hx-ico { width: 12px; height: 12px; color: var(--hx-amber); margin-top: 1px; flex: none; }
+
+body[data-shell="harness"] .hx-config-tip div { min-width: 0; line-height: 1.45; }
+
+body[data-shell="harness"] .hx-config-tip b {
+  display: block;
+  font-size: 9px;
+  color: var(--hx-amber);
+  font-weight: 700;
+}
+
+body[data-shell="harness"] .hx-config-tip span {
+  display: block;
+  font-size: 8px;
+  color: var(--hx-ink-3);
+  margin-top: 2px;
+}
+
+body[data-shell="harness"] .hx-config-run {
+  height: 32px;
+  border: 1px solid var(--hx-accent);
+  border-radius: 8px;
+  background: var(--hx-accent);
+  color: var(--hx-on-accent);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+body[data-shell="harness"] .hx-config-run:hover { background: var(--hx-accent-deep); border-color: var(--hx-accent-deep); }
+body[data-shell="harness"] .hx-config-run .hx-ico { width: 13px; height: 13px; }
+
+body[data-shell="harness"] .hx-config-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 8px;
+  color: var(--hx-ink-3);
+  padding-top: 2px;
+}
+
+body[data-shell="harness"] .hx-config-foot .hx-ico { width: 11px; height: 11px; }
+
+/* ==========================================================================
+   收尾：唯一强调色。绿色只留在「正常/成功」徽标与文字，操作按钮不再用绿。
+   ========================================================================== */
+
+/* Key 引导条：去青/橙渐变与彩色描边，收次级面板底 + 细线。
+   选择器带 #hxThreadBody，压过线程块 ID 级规则。 */
+body[data-shell="harness"] #hxThreadBody .hx-settings-panel #key-guide-card {
+  background: var(--hx-panel-2) !important;
+  border: 1px solid var(--hx-line) !important;
+  background-image: none !important;
+}
+
+/* 其余 .ok 动作按钮去绿，收中性 tonal。 */
+body[data-shell="harness"] #hxThreadBody .hx-settings-panel .btn.ok {
+  background: var(--hx-panel-3) !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+  background-image: none !important;
+}
+
+/* 引导条内 CTA「去填 Key →」：实心陶土橙主操作，压过上面的中性规则。 */
+body[data-shell="harness"] #hxThreadBody .hx-settings-panel #key-guide-card .btn.ok {
+  background: var(--hx-accent) !important;
+  border-color: var(--hx-accent) !important;
+  color: var(--hx-on-accent) !important;
+  background-image: none !important;
+}

@@ -38,6 +38,16 @@
   /* ------------------------------ 小工具 ------------------------------ */
   function byId(id) { return DOC.getElementById(id); }
 
+  function isV2Shell() {
+    if (DOC.body.getAttribute('data-shell') !== 'v2') return false;
+    return true;
+  }
+
+  /* Harness UI 复用同一套真实资产接口；classic 仍不启动任何外壳监听。 */
+  function isHarness() {
+    return DOC.body && DOC.body.getAttribute('data-shell') === 'harness';
+  }
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -256,7 +266,7 @@
     WIN.addEventListener('blur', onUp);
 
     WIN.addEventListener('resize', function () {
-      if (DOC.body.getAttribute('data-shell') !== 'v2') return;
+      if (DOC.body.getAttribute('data-shell') !== 'v2' && !isHarness()) return;
       var w = currentWidths();
       applyWidths(fitWidths(w.rail, w.panel));
       fitPaper();
@@ -922,7 +932,7 @@
     fitHeader();
     var t = null;
     WIN.addEventListener('resize', function () {
-      if (DOC.body.getAttribute('data-shell') !== 'v2') return;
+      if (DOC.body.getAttribute('data-shell') !== 'v2' && !isHarness()) return;
       clearTimeout(t);
       t = setTimeout(fitHeader, 160);
     });
@@ -1130,7 +1140,7 @@
   function boot() {
     bindClassicReturn();
 
-    if (DOC.body.getAttribute('data-shell') !== 'v2') return;
+    if (!isV2Shell() && !isHarness()) return;
 
     // 拖拽手柄（HTML 里没写，避免经典版多两个无用节点）
     var hl = DOC.createElement('div');

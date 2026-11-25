@@ -115,14 +115,15 @@ def test_v1100_layout_decided_before_paint(html):
     """布局形态必须由首屏内联脚本决定，避免经典版用户看到三栏闪烁。"""
     body_idx = html.find("<body>")
     assert body_idx > 0
-    head_seg = html[body_idx: body_idx + 1400]
+    head_seg = html[body_idx: body_idx + 2800]
     assert "data-shell" in head_seg
     assert "legacy" in head_seg and "classic" in head_seg
     assert "yimu.shell.mode" in head_seg
-    # v15.9.12：经典版不再跨会话记忆；宽屏默认回到新版三栏
+    # v15.9.12：经典版不再跨会话记忆；v15.9.14：宽屏默认第三套 Harness UI
     assert "removeItem('yimu.shell.mode')" in head_seg
-    assert "(forced || !wide) ? 'classic' : 'v2'" in head_seg
-    # v15.9.13：首屏瞬时窄宽度会在 DOMContentLoaded 复核并回到 v2，避免误锁经典版
+    assert "var saved = 'harness'" in head_seg
+    assert "forcedClassic ? 'classic' : (forcedV2 ? 'v2' : (forcedHarness ? 'harness' : saved))" in head_seg
+    # 首屏瞬时窄宽度会在 DOMContentLoaded 复核并回到目标风格，避免误锁经典版
     assert "DOMContentLoaded" in head_seg
     assert "window.innerWidth >= 1024" in head_seg
     # <body> 本身不得写死 data-shell="v2"

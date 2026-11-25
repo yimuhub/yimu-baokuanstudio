@@ -1,0 +1,909 @@
+/* SPDX-License-Identifier: BUSL-1.1 */
+/* ==========================================================================
+   Harness 外壳 · 右栏舞台样式（C 模块）
+   作用域：仅 body[data-shell="harness"]；classic / v2 不受影响。
+   新增 class 统一 hx- 前缀；页签条 / 骨架由 core（harness-core.js）持有，
+   本文件只填充 core 给出的 .hx-stage-pane 内部外观与舞台骨架外观层。
+   取色只引用 harness-ui.css 落地的 --hx-* 语义 token；浅色为默认，深色由
+   html[data-theme="dark"] 下的 token 覆盖，本文件不另定义颜色字面量。
+   ========================================================================== */
+
+/* ------------------------------------------------------------------ 舞台骨架 */
+body[data-shell="harness"] #hxStage {
+  background: var(--hx-stage);
+  border-left: 1px solid var(--hx-line);
+  box-shadow: none;
+}
+
+/* 顶部页签行：40px 内，底部 1px 细线分隔；页签居左，收起控件居右。 */
+body[data-shell="harness"] #hxStageTabs {
+  height: 40px;
+  padding: 0 10px;
+  gap: 4px;
+  border-bottom: 1px solid var(--hx-line);
+}
+
+body[data-shell="harness"] #hxStageBody {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 舞台页签：小号 12px，默认 --hx-ink-3；选中 --hx-ink + --hx-accent-soft；
+   数字 --hx-ink-4；不使用彩色实心胶囊。 */
+body[data-shell="harness"] .hx-stage-tab {
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--hx-radius-sm);
+  background: transparent;
+  color: var(--hx-ink-3);
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .14s, color .14s;
+}
+body[data-shell="harness"] .hx-stage-tab:hover {
+  background: var(--hx-hover);
+  color: var(--hx-ink-2);
+}
+body[data-shell="harness"] .hx-stage-tab.is-active {
+  background: var(--hx-accent-soft);
+  color: var(--hx-ink);
+  font-weight: 600;
+}
+body[data-shell="harness"] .hx-stage-tab:focus-visible {
+  outline: 2px solid var(--hx-accent-line);
+  outline-offset: 1px;
+}
+body[data-shell="harness"] .hx-tab-count {
+  min-width: 15px;
+  height: 15px;
+  padding: 0 5px;
+  border-radius: var(--hx-radius-pill);
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-4);
+  font-size: 10px;
+  font-weight: 600;
+  font-style: normal;
+  display: grid;
+  place-items: center;
+}
+body[data-shell="harness"] .hx-stage-tab.is-active .hx-tab-count {
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-3);
+}
+
+/* 页签行右侧收起 / 展开控件：ghost 32px，hover 才出 --hx-hover；深色同样可读。
+   常驻展开入口由外壳顶栏 #hxTbStage 提供，本按钮只负责舞台内收起，与之一一对应、
+   不另建第二份常驻入口。 */
+body[data-shell="harness"] .hx-stage-collapse {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 0;
+  border-radius: var(--hx-radius-sm);
+  background: transparent;
+  color: var(--hx-ink-3);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background .14s, color .14s;
+}
+body[data-shell="harness"] .hx-stage-collapse:hover {
+  background: var(--hx-hover);
+  color: var(--hx-ink-2);
+}
+body[data-shell="harness"] .hx-stage-collapse:focus-visible {
+  outline: 2px solid var(--hx-accent-line);
+  outline-offset: 1px;
+}
+body[data-shell="harness"] .hx-stage-collapse .hx-ico,
+body[data-shell="harness"] .hx-stage-collapse svg { width: 15px; height: 15px; }
+
+/* ------------------------------------------------------------------ pane 容器 */
+body[data-shell="harness"] .hx-stage-pane {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* 本模块自渲染的三个 pane 统一留内边距；D 模块（采集分析 / 配置检查）pane
+   自行管理内边距，不在这里套。 */
+body[data-shell="harness"] .hx-stage-pane[data-key="assets"],
+body[data-shell="harness"] .hx-stage-pane[data-key="browser"],
+body[data-shell="harness"] .hx-stage-pane[data-key="preview"] {
+  padding: 12px 12px 12px;
+}
+
+/* 既有资产台外壳 #assetsPanel 已迁出舞台：保留在文档中的隐藏持有节点里，
+   业务引用与 workbench-shell 绑定链路不受影响，但不以隐藏空壳参与舞台布局。 */
+body[data-shell="harness"] .hx-legacy-holder {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------------ 资产 pane */
+body[data-shell="harness"] .hx-assets {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body[data-shell="harness"] .hx-assets-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 10px;
+  min-width: 0;
+}
+
+body[data-shell="harness"] .hx-assets-tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 2px;
+}
+
+/* 资产子页签：小号中性胶囊，选中软底 + 强调文字，无彩色描边。 */
+body[data-shell="harness"] .hx-a-tab {
+  height: 28px;
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1px solid transparent;
+  border-radius: var(--hx-radius-sm);
+  background: transparent;
+  color: var(--hx-ink-3);
+  font-size: 11.5px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  transition: background .14s, color .14s;
+}
+body[data-shell="harness"] .hx-a-tab:hover {
+  background: var(--hx-hover);
+  color: var(--hx-ink-2);
+}
+body[data-shell="harness"] .hx-a-tab.is-active {
+  color: var(--hx-accent-ink);
+  background: var(--hx-accent-soft);
+  font-weight: 600;
+}
+body[data-shell="harness"] .hx-a-tab:focus-visible {
+  outline: 2px solid var(--hx-accent-line);
+  outline-offset: 1px;
+}
+body[data-shell="harness"] .hx-a-count {
+  min-width: 15px;
+  height: 15px;
+  padding: 0 5px;
+  border-radius: var(--hx-radius-pill);
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-3);
+  font-size: 9px;
+  font-weight: 600;
+  font-style: normal;
+  display: grid;
+  place-items: center;
+}
+body[data-shell="harness"] .hx-a-tab.is-active .hx-a-count {
+  background: var(--hx-panel-3);
+  color: var(--hx-accent-ink);
+}
+
+body[data-shell="harness"] .hx-assets-list {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 0 10px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hx-scroll) transparent;
+}
+body[data-shell="harness"] .hx-assets-list::-webkit-scrollbar { width: 6px; }
+body[data-shell="harness"] .hx-assets-list::-webkit-scrollbar-thumb {
+  background: var(--hx-scroll);
+  border-radius: var(--hx-radius-pill);
+}
+
+/* 成稿行卡：纯白卡 + 1px 细边 + 8px 圆角 + 极轻阴影；hover 中性底，不抬升。 */
+body[data-shell="harness"] .hx-a-row {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 11px;
+  border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius-sm);
+  background: var(--hx-panel);
+  box-shadow: var(--hx-shadow-sm);
+  margin-bottom: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .14s, background .14s, box-shadow .14s;
+}
+body[data-shell="harness"] .hx-a-row:hover {
+  border-color: var(--hx-line-strong);
+  background: var(--hx-hover);
+  box-shadow: var(--hx-shadow-sm);
+}
+body[data-shell="harness"] .hx-a-row:focus-visible {
+  outline: 2px solid var(--hx-accent-line);
+  outline-offset: 1px;
+}
+
+body[data-shell="harness"] .hx-a-score {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--hx-radius-sm);
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-2);
+  font-size: 12px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+}
+body[data-shell="harness"] .hx-a-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+body[data-shell="harness"] .hx-a-main b {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--hx-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  white-space: normal;
+  line-height: 1.35;
+}
+body[data-shell="harness"] .hx-a-main i {
+  font-style: normal;
+  font-size: 10px;
+  color: var(--hx-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-shell="harness"] .hx-a-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--hx-ink-3);
+  letter-spacing: .03em;
+  margin: 6px 2px 8px;
+}
+
+body[data-shell="harness"] .hx-a-status {
+  flex: none;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--hx-radius-pill);
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-2);
+  font-size: 10px;
+  font-weight: 500;
+  display: grid;
+  place-items: center;
+}
+
+body[data-shell="harness"] .hx-a-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* 图片资产卡：纯白卡 + 1px 细边 + 8px 圆角 + 极轻阴影；hover 中性底。 */
+body[data-shell="harness"] .hx-a-img {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius-sm);
+  background: var(--hx-panel);
+  box-shadow: var(--hx-shadow-sm);
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .14s, background .14s, box-shadow .14s;
+}
+body[data-shell="harness"] .hx-a-img:hover {
+  border-color: var(--hx-line-strong);
+  background: var(--hx-hover);
+  box-shadow: var(--hx-shadow-sm);
+}
+body[data-shell="harness"] .hx-a-img img {
+  width: 100%;
+  height: 88px;
+  object-fit: cover;
+  display: block;
+  background: var(--hx-panel-3);
+}
+body[data-shell="harness"] .hx-a-img-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 9px;
+  min-width: 0;
+}
+body[data-shell="harness"] .hx-a-img-meta b {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--hx-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body[data-shell="harness"] .hx-a-img-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+/* 类型标签：中性灰胶囊，不使用彩色。 */
+body[data-shell="harness"] .hx-a-img-type {
+  flex: none;
+  height: 18px;
+  padding: 0 7px;
+  border-radius: var(--hx-radius-pill);
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-3);
+  font-size: 9px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+body[data-shell="harness"] .hx-a-img-meta i {
+  font-style: normal;
+  font-size: 9.5px;
+  color: var(--hx-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-shell="harness"] .hx-a-more {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--hx-ink-3);
+}
+
+/* ------------------------------------------------------------------ 空态 */
+body[data-shell="harness"] .hx-stage-empty {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 22px 14px;
+}
+
+/* 空态插画：单色线条 + 中性底，不用强调色渐变与彩色描边。 */
+body[data-shell="harness"] .hx-empty-art {
+  width: 118px;
+  height: 88px;
+  position: relative;
+  margin-bottom: 14px;
+}
+body[data-shell="harness"] .hx-ea-base {
+  position: absolute;
+  left: 18px; top: 18px;
+  width: 82px; height: 57px;
+  border: 1px dashed var(--hx-line-strong);
+  border-radius: var(--hx-radius-sm);
+  background: var(--hx-panel-2);
+}
+body[data-shell="harness"] .hx-ea-card {
+  position: absolute;
+  left: 7px; top: 7px;
+  width: 82px; height: 57px;
+  border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius-sm);
+  background: var(--hx-panel);
+  box-shadow: var(--hx-shadow-sm);
+  display: grid;
+  place-items: center;
+  color: var(--hx-ink-3);
+}
+body[data-shell="harness"] .hx-ea-card .hx-ico,
+body[data-shell="harness"] .hx-ea-card svg { width: 26px; height: 26px; color: var(--hx-ink-3); stroke-width: 1.5; }
+body[data-shell="harness"] .hx-ea-dot {
+  position: absolute;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--hx-panel-3);
+  border: 1px solid var(--hx-line);
+  right: 3px; bottom: 0;
+  display: grid;
+  place-items: center;
+  color: var(--hx-ink-3);
+}
+body[data-shell="harness"] .hx-ea-dot .hx-ico,
+body[data-shell="harness"] .hx-ea-dot svg { width: 12px; height: 12px; color: var(--hx-ink-3); }
+
+body[data-shell="harness"] .hx-empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--hx-ink);
+  margin: 0 0 5px;
+}
+body[data-shell="harness"] .hx-empty-desc {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--hx-ink-3);
+  max-width: 250px;
+  margin: 0 0 14px;
+}
+body[data-shell="harness"] .hx-empty-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------------ 按钮 / 图标 */
+body[data-shell="harness"] .hx-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: var(--hx-radius-sm);
+  background: transparent;
+  color: var(--hx-ink-3);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background .14s, color .14s;
+}
+body[data-shell="harness"] .hx-icon-btn:hover {
+  background: var(--hx-hover);
+  color: var(--hx-ink-2);
+}
+body[data-shell="harness"] .hx-icon-btn .hx-ico,
+body[data-shell="harness"] .hx-icon-btn svg { width: 15px; height: 15px; }
+
+/* primary：唯一实心强调色，纯色无渐变、无外发光。 */
+body[data-shell="harness"] .hx-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 31px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--hx-radius-sm);
+  background: var(--hx-accent);
+  color: var(--hx-on-accent);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--hx-font, inherit);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .14s;
+}
+body[data-shell="harness"] .hx-btn-primary:hover { background: var(--hx-accent-deep); }
+body[data-shell="harness"] .hx-btn-primary .hx-ico,
+body[data-shell="harness"] .hx-btn-primary svg { width: 13px; height: 13px; }
+
+/* ghost：透明底 + 1px 细线 + 次文字；hover 中性底。 */
+body[data-shell="harness"] .hx-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 31px;
+  padding: 0 12px;
+  border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius-sm);
+  background: transparent;
+  color: var(--hx-ink-2);
+  font-size: 11px;
+  font-family: var(--hx-font, inherit);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color .14s, background .14s, color .14s;
+}
+body[data-shell="harness"] .hx-btn-ghost:hover {
+  border-color: var(--hx-line-strong);
+  background: var(--hx-hover);
+  color: var(--hx-ink);
+}
+body[data-shell="harness"] .hx-btn-ghost .hx-ico,
+body[data-shell="harness"] .hx-btn-ghost svg { width: 13px; height: 13px; }
+
+/* ------------------------------------------------------------------ 浏览器 pane */
+body[data-shell="harness"] .hx-browser-card {
+  border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius);
+  background: var(--hx-panel);
+  overflow: hidden;
+  box-shadow: var(--hx-shadow-sm);
+}
+
+/* 地址栏 / 工具栏：次级面板底 + 输入细线；按钮 ghost。 */
+body[data-shell="harness"] .hx-browser-bar {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  background: var(--hx-panel-2);
+  border-bottom: 1px solid var(--hx-line);
+}
+body[data-shell="harness"] .hx-b-dots { display: flex; align-items: center; gap: 4px; flex: none; }
+body[data-shell="harness"] .hx-b-dots i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--hx-ink-4);
+}
+
+body[data-shell="harness"] .hx-b-url {
+  flex: 1;
+  min-width: 0;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid var(--hx-input-line);
+  border-radius: 6px;
+  background: var(--hx-panel-2);
+  color: var(--hx-ink-3);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body[data-shell="harness"] .hx-b-url .hx-ico,
+body[data-shell="harness"] .hx-b-url svg { width: 10px; height: 10px; color: var(--hx-ink-3); flex: none; }
+body[data-shell="harness"] .hx-b-url span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+body[data-shell="harness"] .hx-b-tools { display: flex; align-items: center; gap: 2px; color: var(--hx-ink-3); flex: none; }
+body[data-shell="harness"] .hx-b-tools a {
+  width: 22px; height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: inherit;
+}
+body[data-shell="harness"] .hx-b-tools a:hover { background: var(--hx-hover); color: var(--hx-ink-2); }
+body[data-shell="harness"] .hx-b-tools .hx-ico,
+body[data-shell="harness"] .hx-b-tools svg { width: 12px; height: 12px; }
+
+body[data-shell="harness"] .hx-browser-body { padding: 12px; background: var(--hx-panel); min-width: 0; }
+
+body[data-shell="harness"] .hx-browser-frame {
+  width: 100%;
+  height: 340px;
+  border: 0;
+  border-radius: var(--hx-radius-sm);
+  background: var(--hx-panel-2);
+  display: block;
+}
+
+body[data-shell="harness"] .hx-browser-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  margin-top: 9px;
+  font-size: 10px;
+  line-height: 1.6;
+  color: var(--hx-ink-3);
+}
+body[data-shell="harness"] .hx-browser-note .hx-ico,
+body[data-shell="harness"] .hx-browser-note svg { width: 11px; height: 11px; margin-top: 2px; flex: none; }
+
+body[data-shell="harness"] .hx-browser-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+/* 站点禁止内嵌的降级提示：琥珀软底 + 琥珀文字，不铺彩色大块。 */
+body[data-shell="harness"] .hx-browser-blocked {
+  text-align: center;
+  padding: 22px 16px;
+  background: var(--hx-amber-soft);
+  border-radius: var(--hx-radius-sm);
+}
+body[data-shell="harness"] .hx-blocked-ico {
+  width: 34px;
+  height: 34px;
+  color: var(--hx-amber);
+  margin: 0 auto 10px;
+}
+body[data-shell="harness"] .hx-blocked-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--hx-ink);
+  margin: 0 0 6px;
+}
+body[data-shell="harness"] .hx-blocked-reason {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--hx-amber);
+  max-width: 280px;
+  margin: 0 auto 10px;
+}
+body[data-shell="harness"] .hx-browser-meta {
+  font-size: 10px;
+  color: var(--hx-ink-3);
+  margin-bottom: 12px;
+}
+body[data-shell="harness"] .hx-browser-blocked .hx-browser-actions { justify-content: center; }
+
+/* ------------------------------------------------------------------ 预览 pane */
+/* 纸面：纯白纸 + 10px 圆角 + 1px 细线，内边距 ≥16px；面板本身不叠阴影。 */
+body[data-shell="harness"] .hx-preview-doc {
+  background: var(--hx-panel);
+  border: 1px solid var(--hx-line);
+  border-radius: var(--hx-radius);
+  padding: 16px 16px 18px;
+  min-width: 0;
+}
+
+body[data-shell="harness"] .hx-preview-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* 「当前版本」标记：中性灰胶囊。 */
+body[data-shell="harness"] .hx-version-pill {
+  height: 22px;
+  padding: 0 9px;
+  border-radius: var(--hx-radius-pill);
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-3);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+
+body[data-shell="harness"] .hx-preview-plats {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* 平台切换：小号灰色胶囊（panel-3 底 + ink-2），选中 accent-soft + accent-ink；
+   不使用彩色描边。 */
+body[data-shell="harness"] .hx-pill-plat {
+  height: 22px;
+  padding: 0 10px;
+  border-radius: var(--hx-radius-pill);
+  border: 1px solid transparent;
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-2);
+  font-size: 10px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background .14s, color .14s;
+}
+body[data-shell="harness"] .hx-pill-plat:hover {
+  color: var(--hx-ink);
+}
+body[data-shell="harness"] .hx-pill-plat.is-active {
+  background: var(--hx-accent-soft);
+  color: var(--hx-accent-ink);
+  font-weight: 600;
+}
+body[data-shell="harness"] .hx-spacer { flex: 1; }
+
+body[data-shell="harness"] .hx-preview-title {
+  font-family: var(--hx-serif, Songti SC, 'Songti SC', serif);
+  font-size: 22px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--hx-ink);
+  margin: 4px 0 6px;
+  word-break: break-word;
+}
+body[data-shell="harness"] .hx-preview-meta {
+  font-size: 12px;
+  color: var(--hx-ink-3);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+body[data-shell="harness"] .hx-preview-meta span { display: flex; align-items: center; gap: 4px; }
+body[data-shell="harness"] .hx-preview-meta .hx-ico,
+body[data-shell="harness"] .hx-preview-meta svg { width: 10px; height: 10px; color: var(--hx-ink-4); }
+body[data-shell="harness"] .hx-preview-rule { height: 1px; background: var(--hx-line); margin: 12px 0; }
+
+body[data-shell="harness"] .hx-preview-paper {
+  font-size: 13.5px;
+  line-height: 1.85;
+  color: var(--hx-ink);
+  word-break: break-word;
+  -webkit-font-smoothing: antialiased;
+  min-width: 0;
+}
+body[data-shell="harness"] .hx-preview-paper img {
+  max-width: 100% !important;
+  height: auto !important;
+  border-radius: var(--hx-radius-sm);
+  display: block;
+  margin: 10px auto;
+}
+body[data-shell="harness"] .hx-preview-paper h1 { font-size: 18px; line-height: 1.5; margin: 0 0 12px; }
+body[data-shell="harness"] .hx-preview-paper h2 { font-size: 16px; margin: 18px 0 10px; }
+body[data-shell="harness"] .hx-preview-paper h3 { font-size: 15px; margin: 16px 0 8px; }
+body[data-shell="harness"] .hx-preview-paper p { margin: 0 0 12px; }
+body[data-shell="harness"] .hx-preview-paper blockquote {
+  margin: 14px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--hx-line-strong);
+  background: var(--hx-panel-2);
+  color: var(--hx-ink-2);
+}
+body[data-shell="harness"] .hx-preview-paper table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+body[data-shell="harness"] .hx-preview-paper td,
+body[data-shell="harness"] .hx-preview-paper th {
+  border: 1px solid var(--hx-line);
+  padding: 6px 8px;
+}
+body[data-shell="harness"] .hx-preview-paper a { color: var(--hx-accent); }
+
+/* 小红书卡片素材条：两列网格，图不拉伸、不溢出 */
+body[data-shell="harness"] .hx-pv-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+body[data-shell="harness"] .hx-pv-cards img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: var(--hx-radius-sm);
+  display: block;
+  margin: 0;
+}
+
+/* 小红书 / 抖音等窄平台观感：正文收窄、留白更紧 */
+body[data-shell="harness"] .hx-preview-doc[data-plat="xhs"] .hx-preview-paper,
+body[data-shell="harness"] .hx-preview-doc[data-plat="douyin"] .hx-preview-paper {
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+body[data-shell="harness"] .hx-preview-loading,
+body[data-shell="harness"] .hx-preview-error {
+  padding: 24px 10px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--hx-ink-3);
+}
+body[data-shell="harness"] .hx-preview-error .hx-retry { margin-left: 8px; height: 26px; padding: 0 10px; font-size: 10px; }
+
+/* ------------------------------------------------------------------ 深色：后端文章内联样式中和 */
+/* 后端排版 HTML 自带浅色内联背景 / 深色文字；深色主题下用 !important 覆盖回
+   语义 token，避免白底刺眼、也避免深字压深底发灰。图片自身配色不动。 */
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper div,
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper section,
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper article {
+  background: transparent !important;
+}
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper p,
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper li,
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper td,
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper th,
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper blockquote {
+  color: var(--hx-ink) !important;
+}
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper h1,
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper h2,
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper h3 {
+  color: var(--hx-ink) !important;
+}
+html[data-theme="dark"] body[data-shell="harness"] .hx-preview-paper strong {
+  color: var(--hx-ink-2) !important;
+}
+
+/* ------------------------------------------------------------------ 真实预览节点停靠（内容工作台）
+   #wb-preview-pane 搬入右栏预览挂载点后的布局适配：只调布局 / 留白 / 换行，
+   不取业务颜色；平台页签可横向滚动，评分 / 报告 / 卡片纵向堆叠，禁止横向溢出。 */
+body[data-shell="harness"] .hx-stage-pane--dock { padding: 0; }
+
+body[data-shell="harness"] .hx-stage-preview-mount {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+body[data-shell="harness"] .hx-stage-preview-mount.is-hidden {
+  display: none;
+}
+
+body[data-shell="harness"][data-preview-dock="stage"] #wb-preview-pane {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+}
+
+body[data-shell="harness"][data-preview-dock="stage"] #wb-preview-pane .wb-preview-header {
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 8px;
+}
+
+body[data-shell="harness"][data-preview-dock="stage"] #wb-preview-pane .wb-nav-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+body[data-shell="harness"][data-preview-dock="stage"] #wb-preview-pane .wb-nav-tab {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+body[data-shell="harness"][data-preview-dock="stage"] #wb-preview-pane .wb-preview-header > div:last-child {
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+body[data-shell="harness"][data-preview-dock="stage"] #wb-preview-pane .wb-preview-header .btn {
+  min-width: 0;
+  padding: 4px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+body[data-shell="harness"][data-preview-dock="stage"] #wb-preview-pane .wb-preview-viewport {
+  padding: 12px 10px 16px;
+}
+
+body[data-shell="harness"][data-preview-dock="stage"] #wb-preview-pane .wb-preview-sheet {
+  max-width: 100%;
+  min-width: 0;
+}

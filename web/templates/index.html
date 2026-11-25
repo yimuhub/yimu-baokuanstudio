@@ -504,7 +504,8 @@ body {
 }
 [data-theme="light"] #dash-topics-count,
 [data-theme="light"] #dash-drafts-count,
-[data-theme="light"] #dash-videos-count {
+[data-theme="light"] #dash-videos-count,
+[data-theme="light"] #dash-workspaces-count {
   color: #0f172a !important;
 }
 [data-theme="light"] #p-dashboard svg line {
@@ -5692,30 +5693,58 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
 }
 
 </style>
+<link rel="stylesheet" href="/static/css/harness-ui.css">
+<link rel="stylesheet" href="/static/css/harness-thread.css">
+<link rel="stylesheet" href="/static/css/harness-stage.css">
+<link rel="stylesheet" href="/static/css/harness-collect.css">
+<link rel="stylesheet" href="/static/css/harness-settings.css">
 </head>
 <body>
 
 <script>
-/* V11 外壳引导：必须在首屏绘制前决定布局形态，避免经典版用户看到三栏闪烁。
-   ?legacy=1 / ?classic=1 → 保留原布局；历史经典版记忆会自动清除；窄屏（<1024）自动回落经典版。 */
+/* 界面外壳引导：必须在首屏绘制前决定布局形态，避免用户看到风格闪烁。
+   第三套 Harness UI 为宽屏默认；?legacy=1 / ?classic=1 进入经典版，
+   ?ui=v2 / ?shell=v2 进入 V11 三栏，?ui=harness / ?shell=harness 强制 Harness。
+   经典版旧记忆键 yimu.shell.mode 仍会清除；新三态偏好存 yimu.shell.style。 */
 (function () {
   try {
     var q = new URLSearchParams(location.search);
-    var forced = q.get('legacy') === '1' || q.get('classic') === '1';
-    var remembered = localStorage.getItem('yimu.shell.mode') === 'classic';
-    // v15.9.12：经典版不再跨会话记忆。宽屏默认始终回到新版三栏工作台；
-    // 需要经典版请显式 ?legacy=1（窄屏仍按宽度自动回落，避免三栏被挤坏）。
-    if (remembered && !forced) {
+    var forcedClassic = q.get('legacy') === '1' || q.get('classic') === '1';
+    var forcedHarness = q.get('ui') === 'harness' || q.get('shell') === 'harness' || q.get('hx') === '1';
+    var forcedV2 = q.get('ui') === 'v2' || q.get('shell') === 'v2';
+    var rememberedClassic = localStorage.getItem('yimu.shell.mode') === 'classic';
+    if (rememberedClassic && !forcedClassic) {
       try { localStorage.removeItem('yimu.shell.mode'); } catch (e) {}
     }
+
+    var saved = 'harness';
+    try {
+      var raw = localStorage.getItem('yimu.shell.style');
+      if (raw === 'harness' || raw === 'v2' || raw === 'classic') saved = raw;
+      else localStorage.setItem('yimu.shell.style', 'harness');
+    } catch (e2) {}
+
+    var preferred = forcedClassic ? 'classic' : (forcedV2 ? 'v2' : (forcedHarness ? 'harness' : saved));
     var wide = window.innerWidth >= 1024;
-    document.body.setAttribute('data-shell', (forced || !wide) ? 'classic' : 'v2');
+    var shell = (!wide && !forcedClassic) ? 'classic' : preferred;
+
+    document.body.setAttribute('data-shell', shell);
+    if (shell === 'harness') {
+      document.documentElement.setAttribute('data-ui-shell', 'harness');
+      // Harness 支持真正的浅色/深色双主题：主题完全交给下面既有的
+      // yimu_ui_theme_mode 偏好（light / dark / system），这里不再强制锁浅色。
+    }
+
     // 启动瞬间窗口可能尚未完成布局（读到瞬时窄宽度而错判经典版）。
-    // 到 DOMContentLoaded 再复核一次：此时外壳脚本尚未 boot，切回 v2 不会漏初始化。
-    if (!forced && !wide) {
+    // 到 DOMContentLoaded 再复核一次：此时外壳脚本尚未 boot，切回目标风格不会漏初始化。
+    if (!forcedClassic && !wide) {
       document.addEventListener('DOMContentLoaded', function () {
         if (window.innerWidth >= 1024) {
-          document.body.setAttribute('data-shell', 'v2');
+          document.body.setAttribute('data-shell', preferred);
+          if (preferred === 'harness') {
+            document.documentElement.setAttribute('data-ui-shell', 'harness');
+            // 同上：主题沿用既有偏好，不再强制浅色。
+          }
         }
       }, { once: true });
     }
@@ -6205,7 +6234,7 @@ body[data-shell="v2"] #p-lite-mode .lite-col-left .cb-bubble-files {
           <div class="card" onclick="openWorkspaceManageModal()" style="margin-bottom:0;background:linear-gradient(145deg, #121824, #0d121c);border:1px solid rgba(63,185,80,0.3);position:relative;overflow:hidden;cursor:pointer;transition:all 0.2s" onmouseover="this.style.borderColor='#3fb950';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(63,185,80,0.3)';this.style.transform='none'" title="点击打开工作室矩阵管理中枢：查看各矩阵号空间与技能配置">
             <div style="position:absolute;top:0;right:0;width:80px;height:80px;background:radial-gradient(circle, rgba(63,185,80,0.2) 0%, transparent 70%);border-radius:50%"></div>
             <div style="font-size:12px;color:var(--text-muted)">🏢 矩阵工作空间</div>
-            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-workspaces-count">—</div>
+            <div style="font-size:26px;font-weight:800;color:#fff;margin:8px 0 4px 0" id="dash-workspaces-count"></div>
             <div style="font-size:11.5px;color:var(--text-muted)" id="dash-workspaces-sub">尚未创建工作空间</div>
             <div style="font-size:11px;color:#3fb950;margin-top:6px;display:flex;align-items:center;gap:4px">
               <span>管理工作室中枢</span> <span>➔</span>
@@ -16824,6 +16853,7 @@ async function refresh() {  try {
   renderTrendXAxis();
 
   loadBillingStatus();
+  loadDashWorkspaceCount();
   initUserMediaInputs();
   renderHotTopics();
   loadHotDbStats();
@@ -19611,6 +19641,33 @@ function loadVideoTasks() {
     if($('dash-videos-count')) $('dash-videos-count').textContent = allVideoTasks.length + ' 支';
     renderVideoTasksGrid();
   }).catch(()=>{});
+}
+
+/* 操盘大屏「矩阵工作空间」计数：优先既有缓存，其次拉取 /api/workspaces；
+   0 个 / 接口失败 / 数据缺失时隐藏数字行，仅保留空态文案，不再出现裸破折号。 */
+function loadDashWorkspaceCount() {
+  const el = $('dash-workspaces-count');
+  if (!el) return;
+  const apply = (list) => {
+    const n = Array.isArray(list) ? list.length : 0;
+    const sub = $('dash-workspaces-sub');
+    if (n > 0) {
+      el.textContent = n + ' 个';
+      el.style.display = '';
+      if (sub) sub.textContent = '查看各矩阵号空间与技能配置';
+    } else {
+      el.textContent = '';
+      el.style.display = 'none';
+      if (sub) sub.textContent = '尚未创建工作空间';
+    }
+  };
+  const cached = window._allWorkspaces;
+  if (Array.isArray(cached) && cached.length) { apply(cached); return; }
+  api('/api/workspaces', { silentAuth: true }).then(r => {
+    const list = (r && r.workspaces) || [];
+    window._allWorkspaces = list;
+    apply(list);
+  }).catch(() => { apply([]); });
 }
 
 function previewCardVideo(cardEl, play) {
@@ -27565,7 +27622,15 @@ function switchMobileNav(panelKey) {
 }
 </script>
 
-<!-- V11 三栏外壳：栏宽拖拽 / 右栏资产台 / 专注放大。非 v2 布局下自行空转退出。 -->
+<!-- Harness UI（第三套风格）· 按原型重建：core（命名空间/路由/注册表）→ rail → thread → stage → collect → settings。
+     非 body[data-shell="harness"] 下各模块自行空转退出。 -->
+<script src="/static/js/harness-core.js"></script>
+<script src="/static/js/harness-rail.js"></script>
+<script src="/static/js/harness-thread.js"></script>
+<script src="/static/js/harness-stage.js"></script>
+<script src="/static/js/harness-collect.js"></script>
+<script src="/static/js/harness-settings.js"></script>
+<!-- V11 三栏外壳：栏宽拖拽 / 右栏资产台 / 专注放大。非 v2 / harness 布局下自行空转退出。 -->
 <script src="/static/js/workbench-shell.js"></script>
 <script src="/static/js/workbench-rail.js"></script>
 <!-- V12 右栏舞台：左栏恒定 / 中栏恒定对话 / 功能页在右栏打开并可全屏 -->

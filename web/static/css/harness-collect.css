@@ -1,0 +1,660 @@
+/* SPDX-License-Identifier: BUSL-1.1 */
+/* ==========================================================================
+   Harness · 采集工作台样式（D 模块 · fresh 小清新视觉系统）
+   作用域：body[data-shell="harness"]；class 统一 hx- 前缀。
+   classic / v2 既有样式零影响；通用按钮/徽标/胶囊/页签/表格/输入框由
+   harness-ui.css 统一接管，本文件只补采集面板专属 legacy 类与自有栏。
+   取色只引用 harness-ui.css 落地的 --hx-* token，不另造颜色。
+   ========================================================================== */
+
+/* ------------------------------ 左栏 · 采集记录 ------------------------------ */
+
+body[data-shell="harness"] .hx-col-ctx {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+body[data-shell="harness"] .hx-col-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 6px 7px;
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 750;
+  letter-spacing: .08em;
+  color: var(--hx-ink-3);
+}
+
+body[data-shell="harness"] .hx-col-filter {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 5px 8px;
+  flex-wrap: wrap;
+}
+
+body[data-shell="harness"] .hx-col-chip {
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--hx-ink-3);
+  font-size: 10px;
+  font-weight: 650;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+body[data-shell="harness"] .hx-col-chip b {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--hx-ink-4);
+}
+
+body[data-shell="harness"] .hx-col-chip:hover { background: var(--hx-hover); color: var(--hx-ink-2); }
+
+body[data-shell="harness"] .hx-col-chip.is-active {
+  background: var(--hx-accent-soft);
+  border-color: var(--hx-accent-line);
+  color: var(--hx-accent-ink);
+}
+
+body[data-shell="harness"] .hx-col-chip.is-active b { color: var(--hx-accent-deep); }
+
+body[data-shell="harness"] .hx-col-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 1px;
+  overflow-y: auto;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hx-scroll) transparent;
+}
+
+body[data-shell="harness"] .hx-col-list::-webkit-scrollbar { width: 6px; }
+body[data-shell="harness"] .hx-col-list::-webkit-scrollbar-thumb { background: var(--hx-scroll); border-radius: 99px; }
+body[data-shell="harness"] .hx-col-list::-webkit-scrollbar-track { background: transparent; }
+
+body[data-shell="harness"] .hx-col-row {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 16px;
+  gap: 7px;
+  align-items: center;
+  width: 100%;
+  padding: 6px 5px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  font-family: inherit;
+  transition: .15s;
+  cursor: pointer;
+}
+
+body[data-shell="harness"] .hx-col-row:hover { background: var(--hx-hover); }
+
+body[data-shell="harness"] .hx-col-row.is-active {
+  background: var(--hx-accent-soft);
+  border-color: var(--hx-accent-line);
+  box-shadow: inset 2px 0 0 var(--hx-accent);
+}
+
+/* 来源缩略图：单色中性块，不用彩色渐变。 */
+body[data-shell="harness"] .hx-col-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  font-size: 8px;
+  font-weight: 750;
+  letter-spacing: .02em;
+  color: var(--hx-ink-2);
+  background: var(--hx-panel-3);
+  flex: none;
+}
+
+body[data-shell="harness"] .hx-col-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  line-height: 1.25;
+}
+
+body[data-shell="harness"] .hx-col-title {
+  font-size: 10.5px;
+  font-weight: 650;
+  color: var(--hx-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-shell="harness"] .hx-col-row.is-active .hx-col-title { color: var(--hx-accent-deep); }
+
+body[data-shell="harness"] .hx-col-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 8.5px;
+  color: var(--hx-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body[data-shell="harness"] .hx-col-more {
+  display: grid;
+  place-items: center;
+  color: var(--hx-ink-3);
+  opacity: .6;
+}
+
+body[data-shell="harness"] .hx-col-more .hx-ico { width: 11px; height: 11px; }
+
+body[data-shell="harness"] .hx-col-empty {
+  margin: 12px 5px;
+  padding: 18px 10px;
+  border: 1px dashed var(--hx-line-strong);
+  border-radius: 10px;
+  background: var(--hx-panel-3);
+  font-size: 10px;
+  line-height: 1.7;
+  color: var(--hx-ink-3);
+  text-align: center;
+}
+
+/* ------------------------------ 中栏 · 真实面板容器 ------------------------------ */
+
+body[data-shell="harness"] .hx-collect-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+body[data-shell="harness"] .hx-collect-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--hx-scroll) transparent;
+}
+
+body[data-shell="harness"] .hx-collect-panel::-webkit-scrollbar { width: 6px; height: 6px; }
+body[data-shell="harness"] .hx-collect-panel::-webkit-scrollbar-thumb { background: var(--hx-scroll); border-radius: 99px; }
+body[data-shell="harness"] .hx-collect-panel::-webkit-scrollbar-track { background: transparent; }
+
+/* 把业务面板内联/嵌入样式读取的 legacy 变量映射到 fresh token，深浅态同层级不反相。 */
+body[data-shell="harness"] .hx-collect-panel {
+  --card: var(--hx-panel);
+  --card-bg: var(--hx-panel);
+  --card-hover: var(--hx-hover);
+  --card-light: var(--hx-panel);
+  --bg-card: var(--hx-panel);
+  --bg-card-hover: var(--hx-hover);
+  --border: var(--hx-line);
+  --text: var(--hx-ink);
+  --text-muted: var(--hx-ink-2);
+  --primary: var(--hx-accent);
+  --primary-subtle: var(--hx-accent-soft);
+  --primary-hover: var(--hx-accent-deep);
+  --info: var(--hx-blue);
+  --success: var(--hx-green);
+  --danger: var(--hx-red);
+}
+
+/* 卡片 / 英雄卡 / 结果卡：纯白（深态深灰卡）+ 极浅描边 + 轻阴影，去渐变。 */
+body[data-shell="harness"] .hx-collect-panel .extract-hero-card,
+body[data-shell="harness"] .hx-collect-panel .res-card,
+body[data-shell="harness"] .hx-collect-panel .extract-card-detail {
+  background: var(--hx-panel) !important;
+  border: 1px solid var(--hx-line) !important;
+  color: var(--hx-ink);
+  border-radius: var(--hx-radius);
+  box-shadow: var(--hx-shadow-sm);
+  background-image: none !important;
+}
+
+body[data-shell="harness"] .hx-collect-panel .extract-hero-card h2,
+body[data-shell="harness"] .hx-collect-panel .extract-hero-card h3,
+body[data-shell="harness"] .hx-collect-panel .res-card .rc-title { color: var(--hx-ink); }
+
+body[data-shell="harness"] .hx-collect-panel .res-card .rc-snippet,
+body[data-shell="harness"] .hx-collect-panel .res-card .rc-bottom { color: var(--hx-ink-3); }
+
+/* 页头两条业务横幅：收敛为次级面板底 + 细线，去橙/蓝渐变。 */
+body[data-shell="harness"] .hx-collect-panel .user-media-badge-bar,
+body[data-shell="harness"] .hx-collect-panel .inspire-preset-platforms-bar {
+  background: var(--hx-panel-2) !important;
+  border: 1px solid var(--hx-line) !important;
+  background-image: none !important;
+  border-radius: var(--hx-radius);
+}
+
+/* 徽标：低饱和软底；绿=成功，红=异常，蓝=信息，琥珀=提醒，中性=元信息。 */
+body[data-shell="harness"] .hx-collect-panel .badge {
+  background: var(--hx-panel-3) !important;
+  border: 1px solid var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+  background-image: none !important;
+}
+
+body[data-shell="harness"] .hx-collect-panel .badge.ok,
+body[data-shell="harness"] .hx-collect-panel .badge.green {
+  background: var(--hx-green-soft) !important;
+  border-color: var(--hx-green-soft) !important;
+  color: var(--hx-green) !important;
+}
+
+body[data-shell="harness"] .hx-collect-panel .badge.red {
+  background: var(--hx-red-soft) !important;
+  border-color: var(--hx-red-soft) !important;
+  color: var(--hx-red) !important;
+}
+
+body[data-shell="harness"] .hx-collect-panel .badge.blue,
+body[data-shell="harness"] .hx-collect-panel .badge.info {
+  background: var(--hx-blue-soft) !important;
+  border-color: var(--hx-blue-soft) !important;
+  color: var(--hx-blue) !important;
+}
+
+body[data-shell="harness"] .hx-collect-panel .badge.gold,
+body[data-shell="harness"] .hx-collect-panel .badge.warn {
+  background: var(--hx-amber-soft) !important;
+  border-color: var(--hx-amber-soft) !important;
+  color: var(--hx-amber) !important;
+}
+
+body[data-shell="harness"] .hx-collect-panel .badge.gray,
+body[data-shell="harness"] .hx-collect-panel .badge.purple {
+  background: var(--hx-panel-3) !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-3) !important;
+}
+
+/* 二级页签：小号灰字，选中细底边 + 浅橙底（颜色归 ui.css，这里补底边结构）。 */
+body[data-shell="harness"] .hx-collect-panel .sub-tabs {
+  border-bottom: 1px solid var(--hx-line);
+  padding-bottom: 0;
+  margin-bottom: 14px;
+}
+
+body[data-shell="harness"] .hx-collect-panel .sub-tab {
+  border-radius: 8px 8px 0 0;
+  border-bottom: 2px solid transparent;
+}
+
+body[data-shell="harness"] .hx-collect-panel .sub-tab.on {
+  border-bottom-color: var(--hx-accent);
+}
+
+/* 平台 / 模式胶囊：中性浅底，选中浅橙软底，去蓝橙渐变与发光。 */
+body[data-shell="harness"] .hx-collect-panel .hot-plat-btn,
+body[data-shell="harness"] .hx-collect-panel .aspect-pill-btn,
+body[data-shell="harness"] .hx-collect-panel .furnace-pill-btn {
+  background: var(--hx-panel-3) !important;
+  border: 1px solid var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+  border-radius: 7px;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+body[data-shell="harness"] .hx-collect-panel .hot-plat-btn:hover,
+body[data-shell="harness"] .hx-collect-panel .aspect-pill-btn:hover,
+body[data-shell="harness"] .hx-collect-panel .furnace-pill-btn:hover {
+  background: var(--hx-hover) !important;
+  border-color: var(--hx-line-strong) !important;
+  color: var(--hx-ink) !important;
+}
+
+body[data-shell="harness"] .hx-collect-panel .hot-plat-btn.active,
+body[data-shell="harness"] .hx-collect-panel .aspect-pill-btn.active,
+body[data-shell="harness"] .hx-collect-panel .furnace-pill-btn.active {
+  background: var(--hx-accent-soft) !important;
+  border-color: var(--hx-accent-line) !important;
+  color: var(--hx-accent-ink) !important;
+}
+
+/* 面板内 legacy 深色输入控件补白：通用输入框由 ui.css 接管。 */
+body[data-shell="harness"] .hx-collect-panel .studio-model-select,
+body[data-shell="harness"] .hx-collect-panel .user-media-name-input,
+body[data-shell="harness"] .hx-collect-panel input[style*="0d1117"],
+body[data-shell="harness"] .hx-collect-panel input[style*="161b22"],
+body[data-shell="harness"] .hx-collect-panel select[style*="0d1117"],
+body[data-shell="harness"] .hx-collect-panel textarea[style*="0d1117"] {
+  background: var(--hx-input) !important;
+  border: 1px solid var(--hx-input-line) !important;
+  color: var(--hx-ink) !important;
+  background-image: none !important;
+}
+
+body[data-shell="harness"] .hx-collect-panel input:focus,
+body[data-shell="harness"] .hx-collect-panel textarea:focus,
+body[data-shell="harness"] .hx-collect-panel select:focus {
+  box-shadow: 0 0 0 3px var(--hx-accent-soft);
+}
+
+body[data-shell="harness"] .hx-collect-panel input[type="checkbox"],
+body[data-shell="harness"] .hx-collect-panel input[type="radio"] {
+  accent-color: var(--hx-accent);
+}
+
+/* 表格补充分隔与留白；表头/行 hover 归 ui.css。 */
+body[data-shell="harness"] .hx-collect-panel .tbl th,
+body[data-shell="harness"] .hx-collect-panel table th {
+  color: var(--hx-ink-3);
+  font-size: 12px;
+  padding: 9px 8px;
+  white-space: nowrap;
+}
+
+body[data-shell="harness"] .hx-collect-panel .tbl td,
+body[data-shell="harness"] .hx-collect-panel table td {
+  padding: 9px 8px;
+}
+
+/* 代码 / 文本块：次级面板底 + 等宽字体 + 细线，不用黑底高饱和语法块。 */
+body[data-shell="harness"] .hx-collect-panel code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--hx-panel-3);
+  border: 1px solid var(--hx-line);
+  color: var(--hx-ink-2);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: .9em;
+}
+
+body[data-shell="harness"] .hx-collect-panel pre {
+  background: var(--hx-panel-2) !important;
+  border: 1px solid var(--hx-line);
+  color: var(--hx-ink-2);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+}
+
+body[data-shell="harness"] .hx-collect-panel a { color: var(--hx-accent-ink); }
+
+/* 进度条：单色实心 + 浅底轨，去橙蓝渐变。 */
+body[data-shell="harness"] .hx-collect-panel #oneshot-progress-bar,
+body[data-shell="harness"] .hx-collect-panel #batch-progress-bar {
+  background: var(--hx-accent) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+
+/* 热榜名次徽章：内联渐变/发光收敛为中性软底，保留名次文案与 emoji。 */
+body[data-shell="harness"] .hx-collect-panel #hot-topic-list span[style*="gradient"],
+body[data-shell="harness"] .hx-collect-panel #hot-topic-list span[style*="box-shadow"] {
+  background: var(--hx-panel-3) !important;
+  background-image: none !important;
+  color: var(--hx-ink-2) !important;
+  border: 1px solid var(--hx-line) !important;
+  box-shadow: none !important;
+}
+
+/* ------------------------------ 右栏 · 采集分析 ------------------------------ */
+
+body[data-shell="harness"] .hx-analysis-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--hx-line);
+  flex: none;
+}
+
+body[data-shell="harness"] .hx-analysis-tab {
+  height: 34px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--hx-ink-3);
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: inherit;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+body[data-shell="harness"] .hx-analysis-tab:hover { color: var(--hx-ink-2); }
+
+body[data-shell="harness"] .hx-analysis-tab.is-active {
+  color: var(--hx-accent-ink);
+  border-bottom-color: var(--hx-accent);
+}
+
+body[data-shell="harness"] .hx-analysis-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 14px 18px;
+}
+
+body[data-shell="harness"] .hx-source-head {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--hx-line);
+}
+
+body[data-shell="harness"] .hx-source-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 7px;
+  flex-wrap: wrap;
+}
+
+body[data-shell="harness"] .hx-source-logo {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 5px;
+  font-size: 8.5px;
+  font-weight: 750;
+  letter-spacing: .02em;
+  color: var(--hx-ink-2);
+  background: var(--hx-panel-3);
+  border: 1px solid var(--hx-line);
+}
+
+body[data-shell="harness"] .hx-source-type {
+  font-size: 8px;
+  color: var(--hx-ink-3);
+  background: var(--hx-panel-3);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+body[data-shell="harness"] .hx-source-tag {
+  font-size: 8px;
+  color: var(--hx-accent-ink);
+  background: var(--hx-accent-soft);
+  border: 1px solid var(--hx-accent-line);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+body[data-shell="harness"] .hx-source-title {
+  font-size: 16px;
+  line-height: 1.45;
+  font-weight: 650;
+  color: var(--hx-ink);
+  margin: 0 0 8px;
+}
+
+body[data-shell="harness"] .hx-source-byline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+body[data-shell="harness"] .hx-source-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--hx-panel-3);
+  color: var(--hx-ink-2);
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 700;
+  flex: none;
+}
+
+body[data-shell="harness"] .hx-source-byline > div {
+  min-width: 0;
+  flex: 1;
+  line-height: 1.25;
+}
+
+body[data-shell="harness"] .hx-source-byline b {
+  display: block;
+  font-size: 9.5px;
+  color: var(--hx-ink-2);
+  font-weight: 600;
+}
+
+body[data-shell="harness"] .hx-source-byline span {
+  display: block;
+  font-size: 8.5px;
+  color: var(--hx-ink-3);
+  margin-top: 1px;
+}
+
+body[data-shell="harness"] .hx-source-text {
+  padding: 10px 0;
+}
+
+body[data-shell="harness"] .hx-source-text p {
+  margin: 0 0 8px;
+  font-size: 10.5px;
+  line-height: 1.9;
+  color: var(--hx-ink-2);
+  white-space: pre-wrap;
+}
+
+body[data-shell="harness"] .hx-source-stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid var(--hx-line);
+  font-size: 8px;
+  color: var(--hx-ink-3);
+}
+
+body[data-shell="harness"] .hx-source-stats b {
+  display: block;
+  font-size: 11px;
+  color: var(--hx-ink-2);
+  font-weight: 750;
+  margin-bottom: 1px;
+}
+
+/* 空态：一句说明 + 中性虚线底；「未接入」诚实占位，不伪造数据。 */
+body[data-shell="harness"] .hx-analysis-empty {
+  border: 1px dashed var(--hx-line-strong);
+  border-radius: 10px;
+  background: var(--hx-panel-3);
+  padding: 26px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  text-align: center;
+}
+
+body[data-shell="harness"] .hx-analysis-empty-ico {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--hx-panel);
+  border: 1px solid var(--hx-line);
+  display: grid;
+  place-items: center;
+  color: var(--hx-ink-3);
+}
+
+body[data-shell="harness"] .hx-analysis-empty-ico .hx-ico { width: 18px; height: 18px; }
+
+body[data-shell="harness"] .hx-analysis-empty b {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--hx-ink);
+}
+
+body[data-shell="harness"] .hx-analysis-empty span {
+  font-size: 9px;
+  line-height: 1.7;
+  color: var(--hx-ink-3);
+  max-width: 240px;
+}
+
+/* ==========================================================================
+   收尾：唯一强调色。绿色只留在「正常/成功」徽标与文字，操作按钮不再用绿。
+   ========================================================================== */
+
+/* 主操作 CTA「一键联网创作」：实心陶土橙 + 白字，同屏唯一主操作。
+   选择器带 #hxThreadBody，压过线程块 ID 级 .btn.ok 绿 tonal 规则。 */
+body[data-shell="harness"] #hxThreadBody .hx-collect-panel #btn-run-oneshot {
+  background: var(--hx-accent) !important;
+  border-color: var(--hx-accent) !important;
+  color: var(--hx-on-accent) !important;
+  background-image: none !important;
+}
+
+/* 其余 .ok 动作按钮去绿，收中性 tonal。 */
+body[data-shell="harness"] #hxThreadBody .hx-collect-panel .btn.ok:not(#btn-run-oneshot) {
+  background: var(--hx-panel-3) !important;
+  border-color: var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+  background-image: none !important;
+}
+
+/* 平台选择胶囊：未选中 panel-2 底 + line 描边 + ink-2 文字；
+   选中 accent-soft 底 + accent-line 描边 + accent-ink 文字。emoji 圆点保留。 */
+body[data-shell="harness"] #hxThreadBody .hx-collect-panel .derive-chip {
+  background: var(--hx-panel-2) !important;
+  border: 1px solid var(--hx-line) !important;
+  color: var(--hx-ink-2) !important;
+}
+
+body[data-shell="harness"] #hxThreadBody .hx-collect-panel .derive-chip.on {
+  background: var(--hx-accent-soft) !important;
+  border-color: var(--hx-accent-line) !important;
+  color: var(--hx-accent-ink) !important;
+}
+
+/* 媒体提示条内状态徽标（已启用记忆）：中性 accent-soft，不占用成功绿。 */
+body[data-shell="harness"] #hxThreadBody .hx-collect-panel .user-media-badge-bar .badge {
+  background: var(--hx-accent-soft) !important;
+  border-color: var(--hx-accent-line) !important;
+  color: var(--hx-accent-ink) !important;
+}
